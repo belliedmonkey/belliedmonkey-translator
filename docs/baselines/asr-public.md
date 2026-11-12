@@ -189,6 +189,18 @@ node eval/baselines/asr/run-sa-file.js --audio-cache eval/baselines/asr/.cache/a
 node run-sa-file.js --audio-cache <existing-cache-audio> --out-root <new-runs-dir>
 ```
 
+只重新打包一个已经存在的运行目录，不重新识别：
+
+```bash
+node eval/baselines/asr/run-sa-file.js --pack-existing <run-dir>
+```
+
+目录里缺分数或假设文件时，这条命令失败，并且不创建它们。
+
+`cbc0c0e1` 在 Mac 上的一键验收，数字来自主席报告。本仓库没有读取 `/workspace/baseline-sa-mac-20261112/one-command-cache-fix-verification/`，也不记录那里源文件的 SHA。2026-11-12 16:44:14–16:44:22（+08）第一次退出码 0，用时 7.62 秒，含编译和准备。16:45:04–16:45:10 第二次退出码 0。两次的运行目录和 run id 各自独立，摘要哈希和证据包哈希不同，第一次的目录没有被第二次改写。两轮假设都是恰好 16 条非空字符串。主席报告的假设 SHA256 是 `b0dae4d76fdef94c8f051f436f01f864cafea19fff493685bd0c75ab042e8ea6`，分数文件 SHA256 是 `21a887d1fa30f86a2bc57f9f6f6900aa6c5bc62b117a97aafdd6555e3b9dc9e5`。英文 11/174，中文 33/301。`platformEligible`、`appleExecutionStarted`、`recognitionCompleted`、`appleResult` 都是 true。`productMetric`、端到端、以及和 `e1_b1` 相同，都是 false。en-US 和 zh-CN 都是 `supported`，官方请求返回 nil，复查 `installed`，下载 0。16:45:37 空缓存退出码 2，代码 `missing-audio`。没有假设文件，没有分数文件，`rates` 为 null，`appleResult`、`appleExecutionStarted`、`recognitionCompleted` 都是 false。`run-summary.json`、`MANIFEST.sha256`、`evidence.tar.gz` 都在，主席核过。这仍是 `cbc0c0e1` 的探索性组件结果，不是产品分。机器可读摘要在 [`eval/baselines/asr/mac-sa-one-command-cbc0c0e1-2026-11-12.json`](../../eval/baselines/asr/mac-sa-one-command-cbc0c0e1-2026-11-12.json)。
+
+同一次 Mac 包里还有不在 MANIFEST 中的 `._*` 成员。禁止 macOS 元数据的打包修复是后来的提交，还没有在 Mac 上复验，不能算进 `cbc0c0e1`。
+
 产品实施建议（不在本 PR 改 App）：给现有 `MTDeviceTranscriber` / `MTE1B1Transcriber` 加一条文件 PCM 入口，而不是再写一套识别器。
 
 ## 这批不引入的来源

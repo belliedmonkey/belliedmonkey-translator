@@ -7,7 +7,9 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { spawn } = require('child_process');
+const { spawn, spawnSync, execFileSync } = require('child_process');
+const zlib = require('zlib');
+const { parseHeader } = require('./tar-member.js');
 const { scoreFrozen } = require('./score.js');
 
 const COMPILE_MS = 90 * 1000;
@@ -68,6 +70,7 @@ function archiveAllowed(names) {
       return { ok: false, code: 'archive-path' };
     }
     const base = path.basename(name);
+    if (base.startsWith('._') || base === '.DS_Store') return { ok: false, code: 'archive-appledouble' };
     if (/\.wav$/i.test(base) || base === '.env' || base.includes('.env') || base === 'sa-file-bin') {
       return { ok: false, code: 'archive-forbidden' };
     }
@@ -199,7 +202,6 @@ function watchChild(spawnFn, bin, args, opts) {
 
 function gitSha() {
   try {
-    const { execFileSync } = require('child_process');
     return execFileSync('git', ['rev-parse', 'HEAD'], {
       cwd: path.join(__dirname, '..', '..', '..'),
       encoding: 'utf8',
@@ -236,11 +238,129 @@ function baseSummary(extra) {
   }, extra);
 }
 
-function defaultArchive(runDir, names) {
-  const { spawnSync } = require('child_process');
+function tarCreateSpec(platform) {
+  const args = [];
+  if (platform === 'darwin') args.push('--disable-copyfile');
+  args.push('-czf');
+  return {
+    args: args,
+    env: {
+      COPYFILE_DISABLE: '1',
+      COPY_EXTENDED_ATTRIBUTES_DISABLE: '1',
+    },
+  };
+}
+
+function listArchiveMembers(tarPath) {
+  let raw;
+  try { raw = zlib.gunzipSync(fs.readFileSync(tarPath)); }
+  catch (_) { return { ok: false, code: 'archive-members', members: [] }; }
+  const members = [];
+  let off = 0;
+  let longName = '';
+  while (off + 512 <= raw.length) {
+    const header = raw.slice(off, off + 512);
+    off += 512;
+    const parsed = parseHeader(header);
+    if (!parsed || parsed.zero) break;
+    const size = parsed.size;
+    if (off + size > raw.length) return { ok: false, code: 'archive-members', members: members };
+    const body = raw.slice(off, off + size);
+    const pad = size % 512 === 0 ? 0 : 512 - (size % 512);
+    off += size + pad;
+    if (parsed.typeflag === 'L') {
+      longName = body.toString('utf8').replace(/\0+$/, '');
+      continue;
+    }
+    const name = longName || parsed.name;
+    longName = '';
+    members.push({
+      name: name,
+      typeflag: parsed.typeflag === '\0' ? '0' : parsed.typeflag,
+    });
+  }
+  return { ok: true, members: members };
+}
+
+function verifyEvidenceArchive(tarPath, names) {
+  const listed = listArchiveMembers(tarPath);
+  if (!listed.ok) return { ok: false, code: 'archive-members' };
+  if (listed.members.length !== names.length) return { ok: false, code: 'archive-members' };
+  const expected = new Set(names);
+  const seen = new Set();
+  for (const member of listed.members) {
+    const name = member.name;
+    if (member.typeflag !== '0') return { ok: false, code: 'archive-type', name: name };
+    if (typeof name !== 'string' || name !== path.posix.basename(name) || name.includes('..')) {
+      return { ok: false, code: 'archive-path', name: name };
+    }
+    if (name.startsWith('._') || name === '.DS_Store' || !expected.has(name) || seen.has(name)) {
+      return { ok: false, code: 'archive-members', name: name };
+    }
+    seen.add(name);
+  }
+  if (seen.size !== expected.size) return { ok: false, code: 'archive-members' };
+  return { ok: true, code: 'ok' };
+}
+
+function writeEvidenceArchive(runDir, names) {
+  const allowed = archiveAllowed(names);
+  if (!allowed.ok) throw new Error(allowed.code);
+  for (const name of names) {
+    const full = path.join(runDir, name);
+    if (!fs.existsSync(full)) throw new Error('missing-evidence-file');
+    const st = fs.lstatSync(full);
+    if (st.isSymbolicLink() || !st.isFile()) throw new Error('archive-type');
+  }
   const tarPath = path.join(runDir, 'evidence.tar.gz');
-  const result = spawnSync('tar', ['-czf', tarPath, '-C', runDir].concat(names), { encoding: 'utf8' });
+  const spec = tarCreateSpec(process.platform);
+  const result = spawnSync('tar', spec.args.concat([tarPath, '-C', runDir]).concat(names), {
+    encoding: 'utf8',
+    env: Object.assign({}, process.env, spec.env),
+  });
   if (result.status !== 0) throw new Error(redactText(result.stderr || 'tar failed'));
+  const checked = verifyEvidenceArchive(tarPath, names);
+  if (!checked.ok) {
+    try { fs.unlinkSync(tarPath); } catch (_) {}
+    throw new Error(checked.code);
+  }
+}
+
+function packExisting(runDir) {
+  const summaryPath = path.join(runDir, 'run-summary.json');
+  if (!fs.existsSync(summaryPath)) return { ok: false, code: 'missing-summary', processExit: 2 };
+  let summary;
+  try { summary = JSON.parse(fs.readFileSync(summaryPath, 'utf8')); }
+  catch (_) { return { ok: false, code: 'missing-summary', processExit: 2 }; }
+  const names = ['run-summary.json'];
+  if (summary && summary.ok === true) names.push('score.json', 'hypotheses.json');
+  for (const name of ['child-stdout.txt', 'child-stderr.txt']) {
+    if (fs.existsSync(path.join(runDir, name))) names.push(name);
+  }
+  for (const name of names) {
+    const full = path.join(runDir, name);
+    if (!fs.existsSync(full)) return { ok: false, code: 'missing-evidence-file', name: name, processExit: 2 };
+    let st;
+    try { st = fs.lstatSync(full); }
+    catch (_) { return { ok: false, code: 'missing-evidence-file', name: name, processExit: 2 }; }
+    if (st.isSymbolicLink() || !st.isFile()) return { ok: false, code: 'archive-type', name: name, processExit: 2 };
+  }
+  const before = {};
+  for (const name of names) before[name] = fs.readFileSync(path.join(runDir, name));
+  const lines = names.map((name) => sha256File(path.join(runDir, name)) + '  ' + name);
+  fs.writeFileSync(path.join(runDir, 'MANIFEST.sha256'), lines.join('\n') + '\n');
+  const packed = names.concat(['MANIFEST.sha256']);
+  try {
+    writeEvidenceArchive(runDir, packed);
+  } catch (_) {
+    return { ok: false, code: 'evidence-pack-failed', processExit: 2 };
+  }
+  for (const name of Object.keys(before)) {
+    if (!fs.readFileSync(path.join(runDir, name)).equals(before[name])) {
+      return { ok: false, code: 'evidence-rewritten', processExit: 2 };
+    }
+  }
+  return { ok: true, code: 'ok', processExit: 0, members: packed };
 }
 
 async function runSaFile(opts) {
@@ -271,7 +391,9 @@ async function runSaFile(opts) {
     const names = present.concat(['MANIFEST.sha256']);
     if (!archiveAllowed(names).ok) throw new Error('archive-forbidden');
     if (opts.writeArchive) opts.writeArchive(runDir, names);
-    else defaultArchive(runDir, names);
+    else writeEvidenceArchive(runDir, names);
+    const checked = verifyEvidenceArchive(path.join(runDir, 'evidence.tar.gz'), names);
+    if (!checked.ok) throw new Error(checked.code || 'archive-members');
   }
   function seal(summary) {
     summary.platformEligible = platformEligible;
@@ -421,15 +543,25 @@ function main(argv) {
   let audioCache = '';
   let outRoot = '';
   let fetchAudio = false;
+  let packDir = '';
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--set') setPath = args[++i];
     else if (args[i] === '--audio-cache') audioCache = args[++i];
     else if (args[i] === '--out-root') outRoot = args[++i];
     else if (args[i] === '--fetch-audio') fetchAudio = true;
+    else if (args[i] === '--pack-existing') packDir = args[++i] || '';
     else {
       console.error('unknown arg ' + args[i]);
       process.exit(2);
     }
+  }
+  if (packDir) {
+    const packed = packExisting(packDir);
+    console.log(JSON.stringify({
+      ok: packed.ok === true, code: packed.code, processExit: packed.processExit,
+      members: packed.members || null, rates: null, productMetric: false, appleResult: false,
+    }));
+    process.exit(packed.processExit);
   }
   if (!audioCache || !outRoot) {
     console.error('usage: node run-sa-file.js --audio-cache <cache> --out-root <new-runs> [--fetch-audio]');
@@ -442,7 +574,6 @@ function main(argv) {
       process.exit(2);
     }
     try {
-      const { execFileSync } = require('child_process');
       execFileSync(process.execPath, [path.join(__dirname, 'fetch-fleurs.js'), '--audio'], { stdio: 'inherit' });
     } catch (_) {
       console.error('{"ok":false,"code":"fetch-audio-failed","rates":null,"productMetric":false}');
@@ -451,7 +582,6 @@ function main(argv) {
   }
   const which = (() => {
     try {
-      const { execFileSync } = require('child_process');
       return execFileSync('which', ['swiftc'], { encoding: 'utf8' }).trim();
     } catch (_) { return ''; }
   })();
@@ -492,6 +622,7 @@ if (require.main === module) {
 
 module.exports = {
   runDirName, itemWatchDecision, archiveAllowed, exactHypotheses, redactText, cacheRelative,
+  tarCreateSpec, writeEvidenceArchive, verifyEvidenceArchive, listArchiveMembers, packExisting,
   preflight, runSaFile,
   COMPILE_MS, PROCESS_MS, ITEM_MS,
 };

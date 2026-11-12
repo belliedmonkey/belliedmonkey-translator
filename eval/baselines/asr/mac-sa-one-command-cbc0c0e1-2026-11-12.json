@@ -1,0 +1,86 @@
+{
+  "schema": "baseline-sa-one-command-chair.v1",
+  "commit": "cbc0c0e1",
+  "readByThisAgent": false,
+  "sourceFilesRead": false,
+  "sourceSha256": null,
+  "hypothesisFileCopied": false,
+  "chairBox": "/workspace/baseline-sa-mac-20261112/one-command-cache-fix-verification/",
+  "arm": "sa",
+  "component": "apple-speech-analyzer-file",
+  "productMetric": false,
+  "sameProductProcess": false,
+  "endToEnd": false,
+  "matchesIntlMacChineseDefaultArm": false,
+  "intlMacChineseDefaultArm": "e1_b1",
+  "leaderboard": false,
+  "exploratory": true,
+  "notProductLatency": true,
+  "runs": [
+    {
+      "label": "run1",
+      "startedAt": "2026-11-12T16:44:14+08:00",
+      "endedAt": "2026-11-12T16:44:22+08:00",
+      "exit": 0,
+      "wallSecondsIncludingCompileAndPrepare": 7.62,
+      "runDirectoryIndependent": true
+    },
+    {
+      "label": "run2",
+      "startedAt": "2026-11-12T16:45:04+08:00",
+      "endedAt": "2026-11-12T16:45:10+08:00",
+      "exit": 0,
+      "runDirectoryIndependent": true,
+      "runIdDiffersFromRun1": true,
+      "summaryHashDiffersFromRun1": true,
+      "archiveHashDiffersFromRun1": true,
+      "run1LeftUnmodified": true
+    }
+  ],
+  "hashValuesNotCopied": "The chair reported that the two summaries and the two archives hashed differently. Those digest values are not in this file.",
+  "bothSuccessRuns": {
+    "hypothesisCount": 16,
+    "noneEmpty": true,
+    "orderExact": true,
+    "hypothesisSha256ChairReported": "b0dae4d76fdef94c8f051f436f01f864cafea19fff493685bd0c75ab042e8ea6",
+    "scoreSha256ChairReported": "21a887d1fa30f86a2bc57f9f6f6900aa6c5bc62b117a97aafdd6555e3b9dc9e5",
+    "sameHypothesisShaAcrossRuns": true,
+    "sameScoreShaAcrossRuns": true,
+    "en": { "metric": "wer", "errors": 11, "length": 174 },
+    "zh": { "metric": "cer", "errors": 33, "length": 301 },
+    "platformEligible": true,
+    "appleExecutionStarted": true,
+    "recognitionCompleted": true,
+    "appleResult": true
+  },
+  "assets": {
+    "locales": ["en-US", "zh-CN"],
+    "before": "supported",
+    "requestResult": "nil",
+    "downloads": 0,
+    "after": "installed"
+  },
+  "emptyCache": {
+    "at": "2026-11-12T16:45:37+08:00",
+    "exit": 2,
+    "code": "missing-audio",
+    "hypothesisFile": false,
+    "scoreFile": false,
+    "rates": null,
+    "appleResult": false,
+    "appleExecutionStarted": false,
+    "recognitionCompleted": false,
+    "summaryPresent": true,
+    "manifestPresent": true,
+    "evidencePresent": true,
+    "chairVerifiedArchive": true
+  },
+  "archiveMemberGapObservedOnThisCommit": {
+    "appleDoubleMembers": true,
+    "bytes": 163,
+    "attribute": "com.apple.provenance",
+    "listedInManifest": false,
+    "packFixIncludedInThisCommit": false,
+    "packFixMacVerified": false
+  }
+}

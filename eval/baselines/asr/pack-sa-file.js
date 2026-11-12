@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { spawnSync } = require('child_process');
+const { tarCreateSpec, listArchiveMembers } = require('./run-sa-file.js');
 
 const HERE = __dirname;
 const FILES = [
@@ -41,6 +42,13 @@ function buildBundle(dest) {
     'Each run creates a new subdirectory. An existing run directory is not overwritten.',
     'Missing audio fails. `--fetch-audio` downloads the pinned public revision into this bundle\'s `.cache/audio` and is not the default.',
     'The evidence archive omits wavs, the compiled binary, and secret files.',
+    'Repack one existing run directory, without recognition:',
+    '',
+    '```bash',
+    'node run-sa-file.js --pack-existing <run-dir>',
+    '```',
+    '',
+    'That command packs only files already in the directory. It does not create a missing score or hypothesis file.',
     '',
   ].join('\n'));
   const names = FILES.concat(['README.md']);
@@ -66,10 +74,20 @@ function main(argv) {
   const stage = fs.mkdtempSync(path.join(require('os').tmpdir(), 'sa-pack-'));
   const dest = path.join(stage, 'sa-file-bundle');
   buildBundle(dest);
-  const result = spawnSync('tar', ['-czf', path.resolve(out), '-C', stage, 'sa-file-bundle'], { encoding: 'utf8' });
+  const spec = tarCreateSpec(process.platform);
+  const result = spawnSync('tar', spec.args.concat([path.resolve(out), '-C', stage, 'sa-file-bundle']), {
+    encoding: 'utf8',
+    env: Object.assign({}, process.env, spec.env),
+  });
   if (result.status !== 0) {
     console.error(result.stderr || 'tar failed');
     process.exit(2);
+  }
+  const listed = listArchiveMembers(path.resolve(out));
+  if (!listed.ok) process.exit(2);
+  for (const member of listed.members) {
+    const parts = String(member.name || '').split('/');
+    if (parts.some((part) => part.startsWith('._') || part === '.DS_Store')) process.exit(2);
   }
   const hash = crypto.createHash('sha256').update(fs.readFileSync(path.resolve(out))).digest('hex');
   console.log(hash + '  ' + path.resolve(out));

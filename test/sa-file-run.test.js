@@ -8,7 +8,8 @@ const { spawn, spawnSync } = require('child_process');
 const { describe, test, eq, ok } = require('./harness');
 const {
   runDirName, itemWatchDecision, archiveAllowed, exactHypotheses, redactText,
-  preflight, runSaFile, cacheRelative,
+  preflight, runSaFile, cacheRelative, tarCreateSpec, writeEvidenceArchive,
+  verifyEvidenceArchive, packExisting,
 } = require('../eval/baselines/asr/run-sa-file.js');
 const { buildBundle } = require('../eval/baselines/asr/pack-sa-file.js');
 
@@ -481,6 +482,98 @@ describe('sa file run — one entry, no reused score', () => {
     eq(packed.ok, false);
     eq(packed.rates, null);
     eq(JSON.parse(fs.readFileSync(path.join(packed.runDir, 'run-summary.json'), 'utf8')).ok, false);
+  });
+
+  test('linux tar members equal the whitelist, and an extra member is not success', async () => {
+    const specLinux = tarCreateSpec('linux');
+    const specMac = tarCreateSpec('darwin');
+    eq(specLinux.env.COPYFILE_DISABLE, '1');
+    eq(specMac.env.COPYFILE_DISABLE, '1');
+    ok(specLinux.args.indexOf('--disable-copyfile') < 0);
+    ok(specMac.args.indexOf('--disable-copyfile') >= 0);
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sa-tar-'));
+    fs.writeFileSync(path.join(dir, 'run-summary.json'), '{"ok":true}\n');
+    fs.writeFileSync(path.join(dir, 'hypotheses.json'), '[{"id":"a"}]\n');
+    const names = ['run-summary.json', 'hypotheses.json'];
+    writeEvidenceArchive(dir, names);
+    const listed = spawnSync('tar', ['-tzf', path.join(dir, 'evidence.tar.gz')], { encoding: 'utf8' });
+    eq(listed.status, 0);
+    const got = listed.stdout.split('\n').filter(Boolean).sort();
+    eq(JSON.stringify(got), JSON.stringify(names.slice().sort()));
+    ok(listed.stdout.includes('._') === false);
+    const checked = verifyEvidenceArchive(path.join(dir, 'evidence.tar.gz'), names);
+    eq(checked.ok, true);
+    fs.writeFileSync(path.join(dir, '._run-summary.json'), Buffer.alloc(163, 1));
+    const extraTar = path.join(dir, 'extra.tar.gz');
+    const made = spawnSync('tar', ['-czf', extraTar, '-C', dir, 'run-summary.json', 'hypotheses.json', '._run-summary.json']);
+    eq(made.status, 0);
+    const bad = verifyEvidenceArchive(extraTar, names);
+    eq(bad.ok, false);
+    eq(bad.code, 'archive-members');
+    fs.symlinkSync('run-summary.json', path.join(dir, 'link.json'));
+    const linkTar = path.join(dir, 'link.tar.gz');
+    const linked = spawnSync('tar', ['-czf', linkTar, '-C', dir, 'run-summary.json', 'link.json']);
+    eq(linked.status, 0);
+    const linkCheck = verifyEvidenceArchive(linkTar, ['run-summary.json', 'link.json']);
+    eq(linkCheck.ok, false);
+    eq(linkCheck.code, 'archive-type');
+    const set = tinySet();
+    const audio = fs.mkdtempSync(path.join(os.tmpdir(), 'sa-extra-'));
+    writeAudio(audio, set);
+    const setPath = path.join(audio, 'set.json');
+    fs.writeFileSync(setPath, JSON.stringify(set));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sa-extra-out-'));
+    const slipped = await runSaFile({
+      setPath: setPath,
+      audioCache: audio,
+      outRoot: root,
+      now: 14,
+      nonce: 'extramem',
+      platform: 'darwin',
+      swiftc: process.execPath,
+      compile: (outBin) => {
+        fs.writeFileSync(outBin, '#!/usr/bin/env node\n' + successBin() + '\n', { mode: 0o755 });
+        return { code: 0, signal: null, cap: null };
+      },
+      writeArchive: (runDir, packNames) => {
+        fs.writeFileSync(path.join(runDir, '._run-summary.json'), Buffer.alloc(163, 2));
+        const args = ['-czf', path.join(runDir, 'evidence.tar.gz'), '-C', runDir].concat(packNames).concat(['._run-summary.json']);
+        const result = spawnSync('tar', args, { encoding: 'utf8' });
+        if (result.status !== 0) throw new Error(result.stderr || 'tar failed');
+      },
+    });
+    eq(slipped.ok, false);
+    eq(slipped.processExit, 2);
+    eq(slipped.code, 'evidence-pack-failed');
+    eq(slipped.rates, null);
+    const summary = JSON.parse(fs.readFileSync(path.join(slipped.runDir, 'run-summary.json'), 'utf8'));
+    eq(summary.ok, false);
+    eq(summary.rates, null);
+  });
+
+  test('repack uses only files already present', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sa-repack-'));
+    const summary = { ok: true, rates: { en: { errors: 1, length: 2 } }, productMetric: false };
+    fs.writeFileSync(path.join(dir, 'run-summary.json'), JSON.stringify(summary));
+    const missing = packExisting(dir);
+    eq(missing.ok, false);
+    eq(missing.code, 'missing-evidence-file');
+    eq(fs.existsSync(path.join(dir, 'score.json')), false);
+    eq(fs.existsSync(path.join(dir, 'hypotheses.json')), false);
+    eq(fs.existsSync(path.join(dir, 'evidence.tar.gz')), false);
+    const hyp = '[{"id":"kept"}]\n';
+    const score = '{"ok":true,"rates":null}\n';
+    fs.writeFileSync(path.join(dir, 'hypotheses.json'), hyp);
+    fs.writeFileSync(path.join(dir, 'score.json'), score);
+    const packed = packExisting(dir);
+    eq(packed.ok, true);
+    eq(fs.readFileSync(path.join(dir, 'hypotheses.json'), 'utf8'), hyp);
+    eq(fs.readFileSync(path.join(dir, 'score.json'), 'utf8'), score);
+    eq(fs.readFileSync(path.join(dir, 'run-summary.json'), 'utf8'), JSON.stringify(summary));
+    const listed = spawnSync('tar', ['-tzf', path.join(dir, 'evidence.tar.gz')], { encoding: 'utf8' });
+    const got = listed.stdout.split('\n').filter(Boolean).sort();
+    eq(JSON.stringify(got), JSON.stringify(['MANIFEST.sha256', 'hypotheses.json', 'run-summary.json', 'score.json']));
+    ok(listed.stdout.includes('._') === false);
   });
 
   test('archive membership rejects audio, binaries, and secrets', () => {
