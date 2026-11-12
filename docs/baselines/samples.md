@@ -51,7 +51,11 @@
 | `document` | 0 |
 | 相邻形态 | 0，且即使以后有，也不能顶替上面的形态 |
 
-因此没有冻结集、没有人工金标、没有 LLM judge 校准集。这些都 **待测**。
+因此没有真实失败冻结集、没有人工金标、没有 LLM judge 校准集。这些都 **待测**。
+
+## 公开对照不是这份目录
+
+FLEURS `en_us` / `cmn_hans_cn` test 各 8 句在 [`asr-public.md`](asr-public.md)。许可记录为 CC BY 4.0，`kind` 为 `public-comparison`。它不进入 `samples-0`，也不把朗读参考写成用户失败。真实失败行数仍是 0。
 
 ## 版本
 

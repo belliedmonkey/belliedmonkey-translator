@@ -141,6 +141,7 @@ function checkDocs() {
     'docs/baselines/forms/realtime.md',
     'docs/baselines/forms/web.md',
     'docs/baselines/forms/documents.md',
+    'docs/baselines/asr-public.md',
   ];
   for (const rel of tree) {
     const text = read(rel);
