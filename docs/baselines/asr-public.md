@@ -149,11 +149,13 @@ node eval/baselines/asr/run-product-asr.js --out-dir <output-dir>
 
 待验证的唯一假设：手动路径的 `fed` 结束时间和分析器消费到的时间不一致，所以 `finalize(through:)` 停住；官方 `analyzeSequence` 对照如果能收到结果事件并返回，就说明识别器本身可用，故障在手动时间线。如果两条都收不到结果事件，这个假设不成立。这不是整集分数，`completeSet` 为 false，`rates` 为 null，不写 `hypotheses.json`。
 
-```bash
-node eval/baselines/asr/run-product-asr.js --diagnostic-first --out-dir <output-dir>
-```
+14:52:56–14:55:57 的单句双路径把手动路径跑满 Node 的 3 分钟 `SIGTERM`（`swiftExit` 为 null，stderr 为空）。42 段从 0 连续到 170880，源和目标都是 170880 帧、16000 Hz、单声道，`finishRequestedFrame` 等于最后一段的 `endFrame`。`resultEventsReceived` 为 37，`finalizeReturned` 为 false。官方 `analyzeSequence` 条目不存在，因为同进程里的手动 `finalize` 没有把控制交回来。`withThrowingTaskGroup` 在 body 退出前会等已取消的子任务；`finalize(through:)` 不响应取消，所以 45 秒时限不会返回。37 个结果事件否定了「没有结果事件」。末次 `result.end` 为 9 秒，这不是消费位置的证据。
 
-每条路径最多 45 秒，Node 总上限 3 分钟。不带 `--install-assets`。看 `<output-dir>/diagnostic-run.json` 里两条 `feed` 的 `resultEventsReceived`、`finalizeReturned`、`finishRequestedFrame` 和 `inputs` 的首尾帧。
+下一次只跑官方文件路径，单独进程，不重跑手动路径。编译预算 90 秒，运行硬上限 45 秒，总时间不超过 3 分钟。超时不是成功。
+
+```bash
+node eval/baselines/asr/run-product-asr.js --diagnostic-first --diagnostic-path apple-file --out-dir <output-dir>
+```
 
 产品实施建议（不在本 PR 改 App）：给现有 `MTDeviceTranscriber` / `MTE1B1Transcriber` 加一条文件 PCM 入口，而不是再写一套识别器。
 

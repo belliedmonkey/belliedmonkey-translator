@@ -175,8 +175,14 @@ function converterOutputAction(status, hasNsError) {
 
 function diagnosticPlan(input) {
   const on = input.diagnosticFirst === true;
+  const selected = input.diagnosticPath === 'apple-file'
+    ? 'apple-analyzeSequence-file'
+    : input.diagnosticPath === 'manual'
+      ? 'manual-pcm-analyzer-input'
+      : null;
   return {
     diagnosticFirst: on,
+    diagnosticPath: input.diagnosticPath || '',
     itemLimit: on ? 1 : null,
     completeSet: !on,
     notAFullSetScore: on,
@@ -187,10 +193,50 @@ function diagnosticPlan(input) {
     endToEnd: false,
     arm: 'sa',
     nodeTimeoutMs: on ? 3 * 60 * 1000 : 15 * 60 * 1000,
-    sampleCapMs: 45 * 1000,
-    feeds: on
-      ? ['manual-pcm-analyzer-input', 'apple-analyzeSequence-file']
-      : ['manual-pcm-analyzer-input'],
+    runCapMs: 45 * 1000,
+    compileCapMs: 90 * 1000,
+    feeds: selected ? [selected] : [],
+  };
+}
+
+function diagnosticProcesses(input) {
+  const which = input.diagnosticPath;
+  const names = which === 'both' ? ['manual', 'apple-file']
+    : (which === 'apple-file' || which === 'manual') ? [which] : [];
+  if (!names.length) {
+    return { ok: false, code: 'need-diagnostic-path', processes: [], totalCapMs: 3 * 60 * 1000 };
+  }
+  const processes = names.map((name) => {
+    const plan = diagnosticPlan({ diagnosticFirst: true, diagnosticPath: name });
+    return {
+      path: name,
+      feed: plan.feeds[0],
+      separateProcess: true,
+      compileCapMs: plan.compileCapMs,
+      runCapMs: plan.runCapMs,
+      hypotheses: null,
+      notAProductScore: name === 'apple-file',
+      sameProductProcess: false,
+    };
+  });
+  return { ok: true, processes: processes, totalCapMs: 3 * 60 * 1000 };
+}
+
+function pathTimeoutRecord(err, partial) {
+  const failure = childFailure(err, partial || null);
+  return {
+    ok: false,
+    path: partial && (partial.feed || partial.path) ? (partial.feed || partial.path) : '',
+    phase: failure.timedOut ? 'killed' : 'exited',
+    timedOut: failure.timedOut,
+    signal: failure.signal,
+    swiftExit: failure.swiftExit,
+    resultEventsReceived: partial && partial.resultEventsReceived ? partial.resultEventsReceived : 0,
+    success: false,
+    hypotheses: null,
+    rates: null,
+    productMetric: false,
+    code: failure.code,
   };
 }
 
@@ -351,11 +397,13 @@ function main(argv) {
   let outDir = '';
   let installAssets = false;
   let diagnosticFirst = false;
+  let diagnosticPath = '';
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--set') setPath = args[++i];
     else if (args[i] === '--out-dir') outDir = args[++i];
     else if (args[i] === '--install-assets') installAssets = true;
     else if (args[i] === '--diagnostic-first') diagnosticFirst = true;
+    else if (args[i] === '--diagnostic-path') diagnosticPath = args[++i];
     else {
       console.error('unknown arg ' + args[i]);
       process.exit(1);
@@ -402,10 +450,81 @@ function main(argv) {
     note: 'sa arm file feed only. Not the intl-Mac Chinese default e1_b1 arm and not an end-to-end result.',
   };
   fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+  if (diagnosticFirst) {
+    const specs = diagnosticProcesses({ diagnosticPath: diagnosticPath });
+    if (!specs.ok) {
+      meta.code = specs.code;
+      meta.hypotheses = null;
+      meta.rates = null;
+      meta.success = false;
+      fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+      process.exit(2);
+    }
+    const bin = path.join(dest, 'diag-sa');
+    const caps = diagnosticPlan({ diagnosticFirst: true, diagnosticPath: diagnosticPath });
+    try {
+      execFileSync('swiftc', [
+        '-framework', 'Speech', '-framework', 'AVFoundation', '-framework', 'CoreMedia',
+        HELPER, '-o', bin,
+      ], { stdio: 'inherit', timeout: caps.compileCapMs });
+    } catch (err) {
+      const rec = pathTimeoutRecord(err, { feed: 'compile', resultEventsReceived: 0 });
+      rec.phase = 'compile';
+      meta.paths = [rec];
+      meta.hypotheses = null;
+      meta.rates = null;
+      meta.timedOut = rec.timedOut;
+      meta.signal = rec.signal;
+      meta.swiftExit = null;
+      meta.success = false;
+      fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+      process.exit(2);
+    }
+    const pathRecords = [];
+    for (const proc of specs.processes) {
+      try {
+        execFileSync(bin, [
+          '--set', setPath, '--out', hypPath,
+          '--status-out', path.join(dest, 'asset-status.json'),
+          '--diagnostic-first', '--diagnostic-path', proc.path,
+        ], { stdio: 'inherit', timeout: proc.runCapMs });
+        pathRecords.push({
+          path: proc.feed,
+          phase: 'exited',
+          timedOut: false,
+          signal: null,
+          swiftExit: 0,
+          success: false,
+          hypotheses: null,
+          rates: null,
+          productMetric: false,
+          notAProductScore: proc.notAProductScore,
+        });
+      } catch (err) {
+        let partial = { feed: proc.feed, resultEventsReceived: 0 };
+        try {
+          const doc = JSON.parse(fs.readFileSync(path.join(dest, 'diagnostic-run.json'), 'utf8'));
+          const hit = (doc.paths || []).find((item) => item.feed === proc.feed) || {};
+          partial.resultEventsReceived = hit.resultEventsReceived || 0;
+        } catch (_) {}
+        pathRecords.push(pathTimeoutRecord(err, partial));
+      }
+    }
+    meta.paths = pathRecords;
+    meta.hypotheses = null;
+    meta.rates = null;
+    meta.completeSet = false;
+    meta.notAFullSetScore = true;
+    meta.timedOut = pathRecords.some((item) => item.timedOut);
+    meta.swiftExit = meta.timedOut ? null : 0;
+    meta.success = false;
+    fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+    try { fs.unlinkSync(hypPath); } catch (_) {}
+    process.exit(meta.timedOut ? 2 : 0);
+  }
   const swiftArgs = [HELPER, '--set', setPath, '--out', hypPath, '--status-out', path.join(dest, 'asset-status.json')];
   if (installAssets) swiftArgs.push('--install-assets');
-  if (diagnosticFirst) swiftArgs.push('--diagnostic-first');
-  const diagTimeout = diagnosticPlan({ diagnosticFirst: diagnosticFirst }).nodeTimeoutMs;
+  const diagTimeout = diagnosticPlan({ diagnosticFirst: false }).nodeTimeoutMs;
   try {
     execFileSync('swift', swiftArgs, {
       stdio: 'inherit',
@@ -439,5 +558,5 @@ if (require.main === module) main(process.argv);
 module.exports = {
   planRun, macMajor, inspectItem, assetPlan, classifyAssetError, reportFailure, redactText,
   pcmReadAction, readThrownAction, converterOutputAction, childFailure,
-  diagnosticPlan, coverageReport,
+  diagnosticPlan, coverageReport, diagnosticProcesses, pathTimeoutRecord,
 };

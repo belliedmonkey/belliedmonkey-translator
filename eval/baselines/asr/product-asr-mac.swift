@@ -107,6 +107,10 @@ enum FileASR {
         }
         let install = args.contains("--install-assets")
         let diagnostic = args.contains("--diagnostic-first")
+        let diagnosticPath = ""
+        if let pathIdx = args.firstIndex(of: "--diagnostic-path"), pathIdx + 1 < args.count {
+            diagnosticPath = args[pathIdx + 1]
+        }
         let setURL = URL(fileURLWithPath: args[setIdx + 1])
         let outURL = URL(fileURLWithPath: args[outIdx + 1])
         let statusURL = statusOutURL(args)
@@ -124,8 +128,18 @@ enum FileASR {
             if diagnostic, let item = chosen.first {
                 // Diagnostic mode does not write hypotheses.json.
                 try? FileManager.default.removeItem(at: outURL)
-                try await writeFirstClipDiagnostic(item: item, root: root, statusURL: statusURL)
-                return 0
+                if diagnosticPath == "apple-file" {
+                    let audio = URL(fileURLWithPath: item.audioCache, relativeTo: root)
+                    let row = await officialFileProbe(url: audio, locale: locale(for: item.config), sampleId: item.id, statusURL: statusURL, item: item)
+                    writeDiagnostic(statusURL, item: item, paths: [row])
+                    return 0
+                }
+                if diagnosticPath == "manual" {
+                    try await writeFirstClipDiagnostic(item: item, root: root, statusURL: statusURL, manualOnly: true)
+                    return 0
+                }
+                fputs("{\"ok\":false,\"code\":\"need-diagnostic-path\",\"hypotheses\":null,\"rates\":null,\"productMetric\":false}\n", stderr)
+                return 2
             }
             var rows: [[String: String]] = []
             for item in set.items {
@@ -620,7 +634,7 @@ enum FileASR {
         }
     }
 
-    static func writeFirstClipDiagnostic(item: Item, root: URL, statusURL: URL?) async throws {
+    static func writeFirstClipDiagnostic(item: Item, root: URL, statusURL: URL?, manualOnly: Bool = false) async throws {
         let audio = URL(fileURLWithPath: item.audioCache, relativeTo: root)
         let locale = locale(for: item.config)
         var paths: [[String: Any]] = []
@@ -660,12 +674,17 @@ enum FileASR {
         }
         manualTrace.flush()
         paths = [manual]
-        let official = await officialFileProbe(url: audio, locale: locale, sampleId: item.id)
-        paths.append(official)
+        if !manualOnly {
+            let official = await officialFileProbe(url: audio, locale: locale, sampleId: item.id, statusURL: statusURL, item: item)
+            paths.append(official)
+        }
         writeDiagnostic(statusURL, item: item, paths: paths)
     }
 
-    static func officialFileProbe(url: URL, locale: Locale, sampleId: String) async -> [String: Any] {
+    // A task group waits for a cancelled child. finalize(through:) does not
+    // observe cancellation, so an in-process deadline never reached the next
+    // path. This function has no in-process deadline. Node kills the process.
+    static func officialFileProbe(url: URL, locale: Locale, sampleId: String, statusURL: URL?, item: Item) async -> [String: Any] {
         var row: [String: Any] = [
             "feed": "apple-analyzeSequence-file",
             "notAProductScore": true,
@@ -695,6 +714,24 @@ enum FileASR {
             row["resultTaskStarted"] = true
             let analyzer = SpeechAnalyzer(modules: [speech])
             let box = TimeBox()
+            counter.flush = {
+                var partial: [String: Any] = [
+                    "feed": "apple-analyzeSequence-file",
+                    "notAProductScore": true,
+                    "notAFullSetScore": true,
+                    "sameProductProcess": false,
+                    "endToEnd": false,
+                    "productMetric": false,
+                    "hypotheses": NSNull(),
+                    "rates": NSNull(),
+                    "resultTaskStarted": counter.resultTaskStarted,
+                    "resultEventsReceived": counter.resultEventsReceived,
+                    "finalizeReturned": false,
+                ]
+                if let end = counter.lastResultEndSeconds { partial["lastResultEndSeconds"] = end }
+                writeDiagnostic(statusURL, item: item, paths: [partial])
+            }
+            counter.flush()
             async let pending: String = {
                 var last = ""
                 for try await result in speech.results {
@@ -703,15 +740,7 @@ enum FileASR {
                 }
                 return last
             }()
-            try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask { box.value = try await analyzer.analyzeSequence(from: file) }
-                group.addTask {
-                    try await Task.sleep(nanoseconds: 45_000_000_000)
-                    throw StageFail(stage: "apple-analyzeSequence-file", locale: locale.identifier(.bcp47), sampleId: sampleId, underlyingCode: "recognition-timeout", underlying: NSError(domain: "product-asr", code: 7, userInfo: [NSLocalizedDescriptionKey: "analyzeSequence exceeded 45s"]))
-                }
-                try await group.next()
-                group.cancelAll()
-            }
+            box.value = try await analyzer.analyzeSequence(from: file)
             if let lastSample = box.value {
                 row["lastSampleSeconds"] = lastSample.seconds
                 try await analyzer.finalizeAndFinish(through: lastSample)

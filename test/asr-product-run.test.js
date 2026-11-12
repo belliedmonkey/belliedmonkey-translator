@@ -6,7 +6,7 @@ const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 const { describe, test, eq, ok } = require('./harness');
-const { planRun, macMajor, assetPlan, classifyAssetError, reportFailure, pcmReadAction, readThrownAction, converterOutputAction, childFailure, diagnosticPlan, coverageReport } = require('../eval/baselines/asr/run-product-asr.js');
+const { planRun, macMajor, assetPlan, classifyAssetError, reportFailure, pcmReadAction, readThrownAction, converterOutputAction, childFailure, diagnosticPlan, coverageReport, diagnosticProcesses, pathTimeoutRecord } = require('../eval/baselines/asr/run-product-asr.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -250,7 +250,7 @@ describe('product ASR gate — no hypothesis off the Apple recognizer', () => {
     eq(full.itemLimit, null);
     eq(full.completeSet, true);
     eq(full.nodeTimeoutMs, 15 * 60 * 1000);
-    const one = diagnosticPlan({ diagnosticFirst: true });
+    const one = diagnosticPlan({ diagnosticFirst: true, diagnosticPath: 'apple-file' });
     eq(one.itemLimit, 1);
     eq(one.completeSet, false);
     eq(one.notAFullSetScore, true);
@@ -258,9 +258,33 @@ describe('product ASR gate — no hypothesis off the Apple recognizer', () => {
     eq(one.rates, null);
     eq(one.productMetric, false);
     eq(one.sameProductProcess, false);
-    eq(one.nodeTimeoutMs, 3 * 60 * 1000);
-    eq(one.sampleCapMs, 45 * 1000);
-    eq(one.feeds.join(','), 'manual-pcm-analyzer-input,apple-analyzeSequence-file');
+    eq(one.feeds.join(','), 'apple-analyzeSequence-file');
+    eq(one.runCapMs, 45 * 1000);
+    eq(one.compileCapMs <= 90 * 1000, true);
+    eq(one.compileCapMs + one.runCapMs <= 3 * 60 * 1000, true);
+  });
+
+  test('apple-file is its own process and a kill is not success', () => {
+    const plan = diagnosticProcesses({ diagnosticPath: 'apple-file' });
+    eq(plan.ok, true);
+    eq(plan.processes.length, 1);
+    eq(plan.processes[0].feed, 'apple-analyzeSequence-file');
+    eq(plan.processes[0].separateProcess, true);
+    eq(plan.processes[0].runCapMs, 45 * 1000);
+    eq(plan.totalCapMs <= 3 * 60 * 1000, true);
+    const both = diagnosticProcesses({ diagnosticPath: 'both' });
+    eq(both.processes.length, 2);
+    eq(both.processes[0].separateProcess, true);
+    eq(both.processes[1].separateProcess, true);
+    const killed = pathTimeoutRecord({
+      code: 'ETIMEDOUT', signal: 'SIGTERM', status: null,
+    }, { feed: 'apple-analyzeSequence-file', resultEventsReceived: 0 });
+    eq(killed.timedOut, true);
+    eq(killed.signal, 'SIGTERM');
+    eq(killed.swiftExit, null);
+    eq(killed.success, false);
+    eq(killed.hypotheses, null);
+    eq(killed.path, 'apple-analyzeSequence-file');
   });
 
   test('timeline coverage says whether the finish time matches the fed audio', () => {
@@ -289,7 +313,10 @@ describe('product ASR gate — no hypothesis off the Apple recognizer', () => {
     ok(src.includes('apple-analyzeSequence-file'));
     ok(src.includes('resultEventsReceived'));
     ok(src.includes('analyzeSequence(from:'));
-    ok(src.includes('hypotheses.json') === false || src.includes('does not write hypotheses.json'));
+    ok(src.includes('--diagnostic-path'));
+    const official = src.slice(src.indexOf('func officialFileProbe'), src.indexOf('func writeDiagnostic'));
+    ok(official.includes('withThrowingTaskGroup') === false);
+    ok(src.includes('does not write hypotheses.json'));
   });
 
   test('the Mac helper bounds analyzer-finish and names that timeout', () => {
