@@ -279,9 +279,24 @@ sounds and is why the architecture looks unusual. See
 
 ---
 
-## Effect vs industry waterline (2026-10)
+## Baselines
 
-Live interpret / caption pipeline today: **on-device SpeechAnalyzer → VAD/LID/segmentation → cloud qwen plus (repair + translate) → local TTS**. Full table and notes: [`docs/benchmark-waterlevel.md`](docs/benchmark-waterlevel.md).
+Quality, latency, and cost are not claimed here. The durable index is
+[`docs/baselines/README.md`](docs/baselines/README.md). Nothing in that tree is a
+passed score: every end-to-end figure is still unmeasured (**待测**), and there is
+no combined score and no acceptance cutoff.
+
+What the source on this version actually shows, as an inventory rather than a measurement:
+
+- Conversation listen-translate and Live Subtitles share the app speech bridge, then diverge. Subtitles do not use the conversation segmentation model. Chinese speech on international Mac builds can take the SenseVoice arm; other builds stay on the system analyzer. See the inventory for the exact gate.
+- Webpage text, YouTube timed text, x.com VTT, and podcast timed transcripts are separate extension paths. A podcast page with no transcript does not transcribe. Opt-in transcription of captionless media is a further path. Mac offline transcription of a local video file is none of these.
+- Document translation reads PDF, Word (docx), text, and images. Two-column layouts and tables are not specially reconstructed. OCR runs for images and for PDF pages that have no text layer, when the configured engine can see images.
+
+The 2026-10 waterline below is a historical snapshot. Those numbers were not re-run under the baseline protocol.
+
+## Effect vs industry waterline (2026-10, historical reference)
+
+Snapshot pipeline sentence, not re-verified as the only current route: **on-device SpeechAnalyzer → VAD/LID/segmentation → cloud qwen plus (repair + translate) → local TTS**. Full table and notes: [`docs/benchmark-waterlevel.md`](docs/benchmark-waterlevel.md). Current routing differences are in [`docs/baselines/inventory.md`](docs/baselines/inventory.md).
 
 | Dimension | Ours (measured) | Public industry anchor | Gap |
 |---|---|---|---|
@@ -456,6 +471,7 @@ green badge imply coverage it doesn't have.
 
 | Document | What it owns |
 |---|---|
+| [`docs/baselines/README.md`](docs/baselines/README.md) | Per-form quality baselines. Inventory and protocol only until a measured run exists. The 2026-10 numbers stay in [`docs/benchmark-waterlevel.md`](docs/benchmark-waterlevel.md). |
 | [`docs/domain-design.md`](docs/domain-design.md) | The domain model: `source → Extractor → units → Engine → Renderer`, the zero-site-selectors rule, provider registry. **Changes here need human review first.** |
 | [`docs/verification-spec.md`](docs/verification-spec.md) | How anything is verified. The full-matrix rule, per-surface traps, honesty rules. |
 | [`docs/interaction-spec.md`](docs/interaction-spec.md) | User-facing interaction and layout constraints. |

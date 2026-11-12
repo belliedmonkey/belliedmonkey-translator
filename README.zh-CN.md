@@ -258,9 +258,21 @@ Web Component 也覆盖了 —— 开放的 shadow root 会被遍历，所以把
 
 ---
 
-## 效果与业界水位（2026-10）
+## 基线
 
-大肚猴听译/字幕当前管线：**端上 SpeechAnalyzer → VAD/LID/切句 → 云端 qwen plus（修正+翻译）→ 本地 TTS**。更完整的说明见 [`docs/benchmark-waterlevel.md`](docs/benchmark-waterlevel.md)。
+这里不报质量、延迟或成本达标。耐久索引是 [`docs/baselines/README.md`](docs/baselines/README.md)。那里的端到端数字都还是 **待测**，没有总分，也没有通过门槛。
+
+这一版源码能确定的是清点，不是测量：
+
+- 对话听译和实时字幕共用 App 的听写桥，然后分路。字幕不走对话那条模型断句。国际版 Mac 的中文听写可以走 SenseVoice 臂，其他构建仍走系统分析器。具体门在清点里。
+- 网页文字、YouTube 已有字幕、x.com 的 VTT、播客已有时轴稿，是扩展侧不同的路径。播客页没有稿就不会转写。没有字幕时的转写要用户点按，是又一条路径。Mac 上对本地视频文件的离线转写哪一条都不是。
+- 文档翻译读 PDF、Word（docx）、文本和图片。双栏和表格没有专门重排。OCR 用于图片，以及没有文字层的 PDF 页，并且当前引擎要能看图。
+
+下面的 2026-10 水位是历史快照，没有按基线协议重测。
+
+## 效果与业界水位（2026-10，历史参考）
+
+快照里的管线句子，未再核实为当前唯一路线：**端上 SpeechAnalyzer → VAD/LID/切句 → 云端 qwen plus（修正+翻译）→ 本地 TTS**。更完整的说明见 [`docs/benchmark-waterlevel.md`](docs/benchmark-waterlevel.md)。当前路由差异见 [`docs/baselines/inventory.md`](docs/baselines/inventory.md)。
 
 | 维度 | 我们（有数） | 业界公开锚（第三方） | 差距一句话 |
 |---|---|---|---|
@@ -405,6 +417,7 @@ npm run test:layout   # 44 个排版 fixture，跑在真实无头 Chrome 上（N
 
 | 文档 | 它拥有什么 |
 |---|---|
+| [`docs/baselines/README.md`](docs/baselines/README.md) | 按形态分开的质量基线。在有一次按协议的测量之前，这里只有清点和协议。2026-10 的数字仍在 [`docs/benchmark-waterlevel.md`](docs/benchmark-waterlevel.md)。 |
 | [`docs/domain-design.md`](docs/domain-design.md) | 领域模型：`source → Extractor → units → Engine → Renderer`、零站点选择器规则、provider 注册表。**改这里必须先过人工评审。** |
 | [`docs/verification-spec.md`](docs/verification-spec.md) | 一切如何被验证。全矩阵规则、各平台的坑、诚实性规则。 |
 | [`docs/interaction-spec.md`](docs/interaction-spec.md) | 面向用户的交互与排版约束。 |
