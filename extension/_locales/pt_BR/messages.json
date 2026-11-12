@@ -4363,9 +4363,9 @@
     "message": "Seguir o idioma da interface"
   },
   "app_e1_label": {
-    "message": "Experimental: transcrição de chinês com SenseVoice"
+    "message": "Transcrição de chinês com SenseVoice"
   },
   "app_e1_note": {
-    "message": "Desativado por padrão. Quando ativado, apenas conversas em chinês (zh) usam o SenseVoice no dispositivo para a transcrição final; o modelo é baixado no primeiro uso (cerca de 160 MB). Em caso de falha, volta automaticamente à transcrição do sistema."
+    "message": "Ativado por padrão apenas para chinês (zh). O modelo é baixado em segundo plano no primeiro uso (cerca de 160 MB); até a conclusão e em caso de falha, é usada a transcrição do sistema. A alteração entra em vigor na próxima sessão. Desativar volta à transcrição do sistema."
   }
 }

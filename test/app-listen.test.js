@@ -1123,8 +1123,10 @@ function mkListenEl() {
     querySelector() { return mkListenEl(); }, querySelectorAll() { return []; }, getAttribute() { return ''; } };
 }
 
-function bootListen(seed, installed) {
+function bootListen(seed, installed, env) {
+  env = env || {};
   const writes = [];
+  const sttOpens = [];
   const store = Object.assign({ listenAutoSpeak: false, listenCapture: false }, seed || {});
   const get = (keys, cb) => {
     const out = {};
@@ -1147,7 +1149,7 @@ function bootListen(seed, installed) {
     },
     ensureAssets: async () => ({ ok: true }), ensureLid: async () => ({ ok: true }), ensureVad: async () => ({ ok: true }),
     lidPause() {}, diagAudio() {}, onLid: () => () => {},
-    sttOpen: () => ({ sendPcm: () => true, close() {}, cut() {} }),
+    sttOpen: (opts) => { sttOpens.push(opts); return { sendPcm: () => true, close() {}, cut() {} }; },
   };
   const NativeAudio = {
     available: () => true, suspends: () => false, audioCaps: () => ({ system: 'ok' }),
@@ -1156,9 +1158,9 @@ function bootListen(seed, installed) {
     subtitleShow() {}, subtitleState() {}, subtitleConfig() {}, subtitleHide() {}, subtitleFloat() {},
   };
   const sb = {
-    window: { addEventListener() {}, removeEventListener() {}, AudioContext: function () {}, webkitAudioContext: function () {}, MT_LANGS: LANGS },
+    window: { addEventListener() {}, removeEventListener() {}, AudioContext: function () {}, webkitAudioContext: function () {}, MT_LANGS: LANGS, ...(env.flavor ? { MT_FLAVOR: env.flavor } : {}) },
     document: { getElementById: () => mkListenEl(), querySelector: () => mkListenEl(), querySelectorAll: () => [], addEventListener() {}, createElement: () => mkListenEl(), body: mkListenEl(), documentElement: mkListenEl(), hidden: false },
-    navigator: { platform: 'MacIntel', maxTouchPoints: 0, language: 'zh-CN', userAgent: 'test', mediaDevices: { getUserMedia: async () => ({ getTracks: () => [] }) } },
+    navigator: { platform: env.platform || 'MacIntel', maxTouchPoints: env.maxTouchPoints != null ? env.maxTouchPoints : 0, language: 'zh-CN', userAgent: 'test', mediaDevices: { getUserMedia: async () => ({ getTracks: () => [] }) } },
     btoa: (s) => Buffer.from(s, 'binary').toString('base64'), atob: (s) => Buffer.from(s, 'base64').toString('binary'),
     chrome: { storage: { local: { get, set, remove }, onChanged: { addListener() {} } }, runtime: { getURL: (u) => u } },
     ListenCore: C, NativeAudio, NativeSpeech,
@@ -1172,7 +1174,7 @@ function bootListen(seed, installed) {
     console, URL, setTimeout, clearTimeout, setInterval, clearInterval,
   };
   const ctx = loadSrc('src/app/listen-model.js', 'AppListen', sb);
-  return { A: ctx.AppListen, store, writes, installed };
+  return { A: ctx.AppListen, store, writes, installed, sttOpens };
 }
 
 async function waitUntil(fn, ms) {
@@ -1180,6 +1182,47 @@ async function waitUntil(fn, ms) {
   while (Date.now() < until) { if (fn()) return true; await tick(5); }
   return !!fn();
 }
+
+// BEL-19：默认是**读时**决定（不播种、不写盘）。seed 里没有 zhAsrE1 时必须得到 e1_b1，
+// 显式 false 才回 sa；China flavor 与 iPhone/iPad 即使显式 true 也仍是 sa。
+describe('BEL-19 中文默认 SenseVoice — 读时默认与平台/flavor 门', () => {
+  async function arm(seed, env) {
+    const box = bootListen(seed, new Set(['en', 'zh']), env);
+    box.A.open('conv');
+    const ready = await waitUntil(() => box.A._debug().cfgReady && box.A._debug().cfgE1Arm !== undefined);
+    ok(ready, 'cfg 未读入: ' + JSON.stringify(box.A._debug()));
+    return box;
+  }
+
+  test('intl Mac 未存过 → e1_b1，且不写盘/不播种', async () => {
+    const box = await arm({}, { flavor: 'global' });
+    eq(box.A._debug().cfgE1Arm, 'e1_b1', '未存过应默认开');
+    ok(!('zhAsrE1' in box.store), '读时默认不应播种 zhAsrE1');
+    ok(!box.writes.some((w) => 'zhAsrE1' in w), '读时默认不应写盘: ' + JSON.stringify(box.writes));
+  });
+
+  test('intl Mac 显式 false → sa', async () => {
+    const box = await arm({ zhAsrE1: false }, { flavor: 'global' });
+    eq(box.A._debug().cfgE1Arm, 'sa', '显式 false 必须关');
+    eq(box.store.zhAsrE1, false, '读路径不应改写显式 false');
+  });
+
+  test('intl Mac 显式 true → e1_b1', async () => {
+    const box = await arm({ zhAsrE1: true }, { flavor: 'global' });
+    eq(box.A._debug().cfgE1Arm, 'e1_b1', '显式 true 必须开');
+  });
+
+  test('China flavor 未存过/true 仍 sa', async () => {
+    eq((await arm({}, { flavor: 'china' })).A._debug().cfgE1Arm, 'sa', '中国包未存过应 sa');
+    eq((await arm({ zhAsrE1: true }, { flavor: 'china' })).A._debug().cfgE1Arm, 'sa', '中国包显式 true 也应 sa');
+  });
+
+  test('iPhone/iPad 未存过/true 仍 sa', async () => {
+    const iphone = { platform: 'iPhone', maxTouchPoints: 5 };
+    eq((await arm({}, iphone)).A._debug().cfgE1Arm, 'sa', 'iPhone 未存过应 sa');
+    eq((await arm({ zhAsrE1: true }, iphone)).A._debug().cfgE1Arm, 'sa', 'iPhone 显式 true 也应 sa');
+  });
+});
 
 describe('BEL-216 — 名额已满卡按当下语言对/资产派生（真模型，假 NativeSpeech）', () => {
   async function bootWithQuotaCard() {

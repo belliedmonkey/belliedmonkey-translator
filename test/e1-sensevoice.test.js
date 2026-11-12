@@ -70,21 +70,23 @@ describe('E1 关臂 ≡ 基线 SA', () => {
     ok(zhArm >= 0 && b1 > zhArm && fallback > b1,
       'e1_b1 未限 zh（lane!=zh 应走 MTDeviceTranscriber）');
   });
-  test('JS 只认 schema：zhAsrE1 为 true 才 e1_b1，其余 sa', () => {
+  test('JS 只认 schema：未存过/true 才 e1_b1，显式 false 才 sa', () => {
     const lm = read('src/app/listen-model.js');
     ok(!/zh_asr_e1_arm/.test(lm), 'listen-model 仍引用旧开发键 zh_asr_e1_arm');
     ok(!/testBridge/.test(lm), 'listen-model 仍留 testBridge');
-    ok(/zhAsrE1Arm: s\.zhAsrE1 === true \? 'e1_b1' : 'sa'/.test(lm),
-      '听译未按 schema zhAsrE1 选臂');
+    ok(/zhAsrE1Arm:\s*\(isMacHost\(\)\s*&&\s*Registry\.flavor\(\)\s*!==\s*'china'\s*&&\s*s\.zhAsrE1\s*!==\s*false\)\s*\?\s*'e1_b1'\s*:\s*'sa'/.test(lm),
+      '听译未按 intl Mac + zhAsrE1 !== false 选臂');
     ok(!lm.includes('__mtTest'), 'listen-model 含 __mtTest 字面量（出货包会带测试桥）');
     ok(/zhAsrE1Arm: \(cfg && cfg\.zhAsrE1Arm === 'e1_b1'\) \? 'e1_b1' : 'sa'/.test(lm), 'sttOpen 未传臂');
+    const resume = lm.slice(lm.indexOf('async function resume()'), lm.indexOf('function resumeByUser'));
+    ok(resume && !/readCfg/.test(resume), 'resume() 重读了 readCfg（会话应钉住本场臂）');
     const schema = read('src/store/schema.js');
     ok(!/zh_asr_e1_arm/.test(schema), 'zh_asr_e1_arm 不应进 schema');
   });
-  test('schema zhAsrE1 默认 false、app+listen 双面可见', () => {
+  test('schema zhAsrE1 默认 true、app+listen 双面可见', () => {
     const ctx = loadSrc('src/store/schema.js', 'SETTINGS_SCHEMA', { MT_PALETTE: {} });
     const S = ctx.SETTINGS_SCHEMA;
-    eq(S.defaultFor('zhAsrE1'), false, 'zhAsrE1 默认不是 false');
+    eq(S.defaultFor('zhAsrE1'), true, 'zhAsrE1 默认不是 true');
     ok(S.keysFor('app').includes('zhAsrE1'), 'app 面读不到 zhAsrE1');
     ok(S.keysFor('listen').includes('zhAsrE1'), 'listen 面读不到 zhAsrE1');
   });
@@ -206,5 +208,57 @@ describe('E1 失败回退枚举', () => {
       ok(SWIFT_E1.includes('"' + r + '"'), '缺枚举 ' + r);
     }
     ok(!SWIFT_E1.includes('consecutive_empty_final'), '旧 consecutive_empty_final 仍在');
+  });
+});
+
+describe('BEL-19 中文默认 SenseVoice — 设置行与 13 语文案', () => {
+  const VIEW = read('src/app/settings-view.jsx');
+  const ROW = (VIEW.match(/<label[^>]*id="listen-e1-row"[^>]*>/) || [''])[0];
+  const NOTE = (VIEW.match(/<p[^>]*id="listen-e1-note"[^>]*>/) || [''])[0];
+  const LOCALES = ['ar', 'de', 'en', 'es', 'fr', 'hi', 'ja', 'ko', 'pt_BR', 'ru', 'th', 'zh_CN', 'zh_TW'];
+  const M = {};
+  for (const l of LOCALES) M[l] = JSON.parse(read('extension/_locales/' + l + '/messages.json'));
+
+  test('设置页读 !== false；行常显（去 adv-only / !detail），China/iOS 仍 hidden', () => {
+    ok(/\$\('listen-e1'\)\.checked = cur\.zhAsrE1 !== false;/.test(VIEW),
+      '设置页回填仍不是 cur.zhAsrE1 !== false');
+    ok(ROW, '找不到 listen-e1-row 的 label 开标签');
+    ok(!/adv-only/.test(ROW), 'listen-e1-row 仍带 adv-only');
+    ok(!/!detail/.test(ROW), 'listen-e1-row 仍被 !detail 隐藏');
+    ok(/hidden=\{!listenModel\.isMacHost\(\) \|\| isChinaFlavor\(\)\}/.test(ROW),
+      'listen-e1-row 未保留 Mac 非中国 hidden 门');
+    ok(NOTE, '找不到 listen-e1-note 的开标签');
+    ok(!/adv-only/.test(NOTE), 'listen-e1-note 仍带 adv-only');
+    ok(!/!detail/.test(NOTE), 'listen-e1-note 仍被 !detail 隐藏');
+    ok(/hidden=\{!listenModel\.isMacHost\(\) \|\| isChinaFlavor\(\)\}/.test(NOTE),
+      'listen-e1-note 未保留 Mac 非中国 hidden 门');
+  });
+
+  test('13 语 app_e1_note 含 160，且不再以旧「默认关闭」前缀开头', () => {
+    const OLD = ['Off by default', '默认关闭', '預設關閉', '既定ではオフ', 'Standardmäßig aus',
+      'Desactivado por defecto', 'Désactivé par défaut', 'Desativado por padrão',
+      'По умолчанию выключено', 'معطّل افتراضيًا', 'डिफ़ॉल्ट रूप से बंद',
+      '기본적으로 꺼져', 'ปิดเป็นค่าเริ่มต้น'];
+    eq(Object.keys(M).length, 13, 'locale 数不是 13');
+    for (const l of LOCALES) {
+      const note = ((M[l].app_e1_note || {}).message || '');
+      ok(note.includes('160'), l + ' 的 app_e1_note 未写约 160MB');
+      for (const p of OLD) ok(note.indexOf(p) !== 0, l + ' 的 app_e1_note 仍以旧默认关前缀开头: ' + p);
+    }
+  });
+
+  test('en / zh_CN / zh_TW label 去「实验」', () => {
+    ok(!/Experimental/.test(M.en.app_e1_label.message), 'en label 仍带 Experimental');
+    ok(!/实验/.test(M.zh_CN.app_e1_label.message), 'zh_CN label 仍带「实验」');
+    ok(!/實驗/.test(M.zh_TW.app_e1_label.message), 'zh_TW label 仍带「實驗」');
+  });
+
+  test('en / zh_CN 兜底文案逐字', () => {
+    eq(M.en.app_e1_label.message, 'Chinese speech-to-text with SenseVoice');
+    eq(M.en.app_e1_note.message,
+      'On by default for Chinese (zh) only. The model downloads in the background on first use (about 160 MB); until it finishes, and on failure, system dictation is used. It takes effect on the next session. Turn off to go back to system dictation.');
+    eq(M.zh_CN.app_e1_label.message, '中文听译 SenseVoice');
+    eq(M.zh_CN.app_e1_note.message,
+      '默认开启，仅中文（zh）。首次使用会在后台下载约 160MB；下载完成前及失败时仍用系统听写，完成后的下一次会话生效。关闭后回到系统听写。');
   });
 });

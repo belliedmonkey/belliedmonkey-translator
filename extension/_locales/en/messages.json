@@ -4363,9 +4363,9 @@
     "message": "Follow interface language"
   },
   "app_e1_label": {
-    "message": "Experimental: Chinese speech-to-text with SenseVoice"
+    "message": "Chinese speech-to-text with SenseVoice"
   },
   "app_e1_note": {
-    "message": "Off by default. When on, only Chinese (zh) conversations use on-device SenseVoice for final transcripts; the model downloads on first use (about 160 MB). On failure it falls back to system dictation automatically."
+    "message": "On by default for Chinese (zh) only. The model downloads in the background on first use (about 160 MB); until it finishes, and on failure, system dictation is used. It takes effect on the next session. Turn off to go back to system dictation."
   }
 }

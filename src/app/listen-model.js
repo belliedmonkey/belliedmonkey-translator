@@ -276,8 +276,9 @@ const listenModel = (() => {
           captureOn: sub ? s.subtitleCapture !== false : s.listenCapture !== false,
           mode: sub ? 'subtitle' : 'conv',
           lidEngine: s.lidEngine === 'whisper' ? 'whisper' : 'ecapa',
-          // BEL-19 E1 A 层：Release 只认 schema `zhAsrE1`；Debug 由设置开关/存储同键控制
-          zhAsrE1Arm: s.zhAsrE1 === true ? 'e1_b1' : 'sa',
+          // BEL-19 E1 A 层：中文默认开（未存过 / true）；显式 false 关；China flavor / iOS 仍 sa。
+          zhAsrE1Arm: (isMacHost() && Registry.flavor() !== 'china' && s.zhAsrE1 !== false)
+            ? 'e1_b1' : 'sa',
           lidThreshold: Number(s.lidThreshold) > 0 ? Number(s.lidThreshold) : 6,
           lidCpuOnly: s.lidCpuOnly === true,
           lidTrace: s.lidTrace === true,
@@ -3774,6 +3775,7 @@ const listenModel = (() => {
     pipRectUpdate,
     _debug: () => ({ mode, subsReason, pipWindow, pipReason, phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,
       acctEpoch, cfgReady: !!cfg,   // BEL-230 Q1：账号代际 / 旧 cfg 是否已作废
+      cfgE1Arm: cfg ? cfg.zhAsrE1Arm : undefined,   // BEL-19：本场钉住的 E1 臂（测试/真机只读）
       lid: lidPair(), lidRaw: lidLang,   // §9.6.1.3：归属用的是**已稳住**的判词；lidRaw 是当前原始判词
       pcmFrames, pcmSent, sock: !!sock, bridged: bridged(), ctx: audioCtx ? audioCtx.state : null, track: stream && stream.getAudioTracks()[0] ? stream.getAudioTracks()[0].readyState : null,
       echoDropped: echo.dropped(), speakQueue: sq.size(), speakingRid, autoSpeakOff, lastSpoken, autoSkip, speakPumping,
