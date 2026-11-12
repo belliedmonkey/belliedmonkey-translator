@@ -161,11 +161,13 @@ t10u（15:14+08）要求换一次可证伪实验，不是重跑 15:08 的命令�
 
 15:31:08–15:31:11，这条官方命令在 Mac 上编译和运行都是退出码 0。en-US `statusBefore` 为 `supported`，`assetInstallationRequest` 一次返回 nil，没有下载，复查为 `installed`。准备后、识别前、结束时都是 `installed`。同一个 `speechModule`，同一份编译出的 binary。`analyzeSequence` 返回 `lastSampleSeconds` 10.679937499999999，即 170879/16000；文件是 170880 帧、16000 Hz。`finalizeAndFinish` 返回，reader 结束，37 个事件。`diagnosticText` 只有 `" Schlegel."`，`lastResultEndSeconds` 为 9。`success` 仍是 false。这不是整集分数，也不是产品分数。它只证明这次同进程序列能返回，不解释状态为什么从 `installed` 变成 `supported`。
 
-[`finalize(through:)`](https://developer.apple.com/documentation/speech/speechanalyzer/finalize(through:)) 会等到分析器消费到给定时间码，含该点，才返回。`analyzeSequence` 返回的是最后一个被消费采样的时间码。这次就是 170879/16000，不是缓冲的独占终点 170880/16000。手动路径原来把帧数之和 `fed` 当作 through。那个时间码不是一个采样，按文档不会被消费，等待没有上界。手动 PCM 的 through 现已改成起点加帧数减一，时基仍是缓冲的采样率；帧数为 0 时直接失败，不把时间减成负数。从 0 起的 170880 帧对应 170879。这还没有在 Mac 上单变量复验，所以不称已经根治。手动输入仍走 `finalize(through:)`，没有改成 `finalizeAndFinish`，也没有改成 `analyzeSequence`。
+[`finalize(through:)`](https://developer.apple.com/documentation/speech/speechanalyzer/finalize(through:)) 会等到分析器消费到给定时间码，含该点，才返回。`analyzeSequence` 返回的是最后一个被消费采样的时间码。这次就是 170879/16000，不是缓冲的独占终点 170880/16000。手动路径原来把帧数之和 `fed` 当作 through。那个时间码不是一个采样，按文档不会被消费，等待没有上界。手动 PCM 的 through 现已改成起点加帧数减一，时基仍是缓冲的采样率；帧数为 0 时直接失败，不把时间减成负数。从 0 起的 170880 帧对应 170879。15:43:40–15:44:28，这条手动命令编译成功。en-US 一直是 `installed`，没有请求，没有下载。trace 在 15:43:43 进入 `result-consume`，这个阶段只在 `analyzer-finish` 返回后才写，所以 `finalize(through:)` 已经返回。随后 `await reader.value` 不结束，直到 45 秒识别上限 `SIGTERM`。Node 退出码 2，`timedOut` 为 true，`swiftExit` 为 null。没有假设文件。当时 `diagnostic-run` 的中途 flush 是空的，文件仍停在 `recognize-before`，不能用里面的 false 否定 trace。
 
 [`SpeechTranscriber.Result`](https://developer.apple.com/documentation/speech/speechtranscriber/result) 是按顺序送来的一段。`isFinal` 为 false 时是这段的修订，不进入定稿；为 true 时是这段的定稿。同一时间范围后来的定稿替换该段，不把修订重复拼上。评测原先只用最后一条 `isFinal` 的文本覆盖整句，所以接口走完后 `diagnosticText` 仍只有 `" Schlegel."`。定稿现按段拼接。这只改评测提取。产品桥仍是每条 final 单独送出。接口返回不表示转写正确。
 
-`--diagnostic-prepare-assets` 现在也可以配 `--diagnostic-first --diagnostic-path manual`，仍然只准备这一句 en-US，不默认安装。下一次只验证两件事：最后采样点的 `finalize(through:)` 是否返回，以及定稿分段是否拼完整。`swiftc` 仍是 90 秒。该进程硬上限仍是 `min(180 秒, 4 分钟 − 编译用时)`，识别阶段轮询 45 秒。进程内的 task group 取消不了 `finalize(through:)`，硬停止仍是 Node 的 `SIGTERM` / `SIGKILL`。
+[`finalize(through:)`](https://developer.apple.com/documentation/speech/speechanalyzer/finalize(through:)) 只把结果定稿，不结束分析会话，结果流继续开着。[`finalizeAndFinish(through:)`](https://developer.apple.com/documentation/speech/speechanalyzer/finalizeandfinish(through:)) 在同样的定稿之后结束会话，结果流随之终止。有限文件把输入 `finish` 掉也不会结束会话。产品麦克风流在会话还开着时调用 `finalize(through:)`，并不等待 reader 结束，因为后面还有音频。有限文件的手动 PCM 现改为 `finalizeAndFinish(through:)`，through 仍是上一轮的最后有效采样。不取消 reader，不把 volatile 当定稿，不改成 `analyzeSequence`。这次还没有在 Mac 上复验，所以不称 reader 已经会结束。
+
+手动诊断现在每个阶段都写下 `fed`、`finishRequestedFrame`、`exclusiveEndFrame`、`inputLastEndFrame`、`finalizeReturned`、事件数和定稿分段。`diagnosticText` 只在 reader 正常返回后写入。45 秒上限不延长。已安装就不下载。官方文件对照不再跑。下一次仍是同一条手动命令，只看结果流是否结束。若那次返回，下一步是 16 句离线基线，不是再加诊断；那一步等审核后再做。
 
 产品实施建议（不在本 PR 改 App）：给现有 `MTDeviceTranscriber` / `MTE1B1Transcriber` 加一条文件 PCM 入口，而不是再写一套识别器。
 

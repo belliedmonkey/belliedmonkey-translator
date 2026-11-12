@@ -6,7 +6,7 @@ const os = require('os');
 const path = require('path');
 const { execFileSync, spawnSync } = require('child_process');
 const { describe, test, eq, ok } = require('./harness');
-const { planRun, macMajor, assetPlan, classifyAssetError, reportFailure, pcmReadAction, readThrownAction, converterOutputAction, childFailure, diagnosticPlan, coverageReport, diagnosticProcesses, pathTimeoutRecord, diagnosticAggregate, diagnosticInvocation, interpretSupervisedExit, stageKillDecision, superviseChild, lastSampleTime, aggregateFinalSegments } = require('../eval/baselines/asr/run-product-asr.js');
+const { planRun, macMajor, assetPlan, classifyAssetError, reportFailure, pcmReadAction, readThrownAction, converterOutputAction, childFailure, diagnosticPlan, coverageReport, diagnosticProcesses, pathTimeoutRecord, diagnosticAggregate, diagnosticInvocation, interpretSupervisedExit, stageKillDecision, superviseChild, lastSampleTime, aggregateFinalSegments, fileReaderFinish, diagnosticSnapshot } = require('../eval/baselines/asr/run-product-asr.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -348,6 +348,81 @@ describe('product ASR gate — no hypothesis off the Apple recognizer', () => {
     ]);
     eq(volatileOnly.text, '');
     eq(volatileOnly.finalCount, 0);
+  });
+
+  test('a finite file finishes the result stream and a live mic does not', () => {
+    const manual = fileReaderFinish('manual-pcm-file');
+    eq(manual.awaitsReader, true);
+    eq(manual.sessionFinish, 'finalizeAndFinish(through:)');
+    eq(manual.through, 'last-sample');
+    eq(manual.cancelsReader, false);
+    eq(manual.volatileIsFinal, false);
+    eq(manual.productCode, false);
+    const apple = fileReaderFinish('apple-file');
+    eq(apple.sessionFinish, 'finalizeAndFinish(through:)');
+    eq(apple.awaitsReader, true);
+    const live = fileReaderFinish('live-mic');
+    eq(live.awaitsReader, false);
+    eq(live.sessionFinish, null);
+    eq(live.productCode, true);
+    eq(live.hypotheses, null);
+    eq(live.rates, null);
+  });
+
+  test('a mid-run diagnostic snapshot keeps frames and omits text until the reader ends', () => {
+    const mid = diagnosticSnapshot({
+      stage: 'result-consume',
+      fed: 170880,
+      finishRequestedFrame: 170879,
+      exclusiveEndFrame: 170880,
+      inputLastEndFrame: 170880,
+      finalizeReturned: true,
+      resultEventsReceived: 37,
+      finalSegments: [{ isFinal: true, text: ' Schlegel.', rangeStart: 8, rangeEnd: 9 }],
+      completed: false,
+      diagnosticText: 'should-not-appear',
+    });
+    eq(mid.stage, 'result-consume');
+    eq(mid.fed, 170880);
+    eq(mid.finishRequestedFrame, 170879);
+    eq(mid.exclusiveEndFrame, 170880);
+    eq(mid.inputLastEndFrame, 170880);
+    eq(mid.finalizeReturned, true);
+    eq(mid.resultEventsReceived, 37);
+    eq(mid.finalSegments.length, 1);
+    eq(Object.prototype.hasOwnProperty.call(mid, 'diagnosticText'), false);
+    eq(mid.hypotheses, null);
+    eq(mid.rates, null);
+    eq(mid.success, false);
+    const done = diagnosticSnapshot({
+      stage: 'done',
+      fed: 170880,
+      finishRequestedFrame: 170879,
+      exclusiveEndFrame: 170880,
+      inputLastEndFrame: 170880,
+      finalizeReturned: true,
+      resultEventsReceived: 37,
+      finalSegments: [{ isFinal: true, text: ' Schlegel.', rangeStart: 8, rangeEnd: 9 }],
+      completed: true,
+      diagnosticText: 'Hello Schlegel.',
+    });
+    eq(done.diagnosticText, 'Hello Schlegel.');
+  });
+
+  test('manual file code finishes the session and the product mic still only finalizes', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'eval/baselines/asr/product-asr-mac.swift'), 'utf8');
+    const body = src.slice(src.indexOf('static func transcribe'), src.indexOf('static func writeFirstClipDiagnostic'));
+    ok(body.includes('analyzer.finalizeAndFinish(through: through)'));
+    ok(body.includes('analyzer.finalize(through:') === false);
+    ok(body.includes('reader.cancel') === false);
+    ok(body.includes('origin + fed - 1'));
+    const product = fs.readFileSync(path.join(ROOT, 'app/native/speech-bridge.swift'), 'utf8');
+    ok(product.includes('an.finalize(through: through)'));
+    ok(product.includes('finalizeAndFinish') === false);
+    const manual = src.slice(src.indexOf('static func prepareAndRecognizeManual'), src.indexOf('static func writeDiagnostic'));
+    ok(manual.includes('inputLastEndFrame'));
+    ok(manual.includes('finalSegments'));
+    ok(manual.includes('trace.flush'));
   });
 
   test('a fake child exit 2 is not wrapped as success, and exit 0 is not a product score', () => {

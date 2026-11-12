@@ -242,6 +242,52 @@ function aggregateFinalSegments(events) {
   };
 }
 
+function fileReaderFinish(kind) {
+  const blank = { hypotheses: null, rates: null, productMetric: false, success: false };
+  if (kind === 'live-mic') {
+    return Object.assign(blank, {
+      awaitsReader: false,
+      sessionFinish: null,
+      through: null,
+      cancelsReader: false,
+      volatileIsFinal: false,
+      productCode: true,
+    });
+  }
+  if (kind === 'manual-pcm-file' || kind === 'apple-file') {
+    return Object.assign(blank, {
+      awaitsReader: true,
+      sessionFinish: 'finalizeAndFinish(through:)',
+      through: 'last-sample',
+      cancelsReader: false,
+      volatileIsFinal: false,
+      productCode: false,
+    });
+  }
+  return Object.assign(blank, { awaitsReader: false, sessionFinish: null, code: 'unknown-kind' });
+}
+
+function diagnosticSnapshot(state) {
+  const snap = {
+    stage: state && state.stage ? state.stage : '',
+    fed: state ? state.fed : 0,
+    finishRequestedFrame: state ? state.finishRequestedFrame : 0,
+    exclusiveEndFrame: state ? state.exclusiveEndFrame : 0,
+    inputLastEndFrame: state ? state.inputLastEndFrame : 0,
+    finalizeReturned: !!(state && state.finalizeReturned),
+    resultEventsReceived: state && state.resultEventsReceived ? state.resultEventsReceived : 0,
+    finalSegments: state && state.finalSegments ? state.finalSegments : [],
+    hypotheses: null,
+    rates: null,
+    productMetric: false,
+    success: false,
+  };
+  if (state && state.completed === true) {
+    snap.diagnosticText = typeof state.diagnosticText === 'string' ? state.diagnosticText : '';
+  }
+  return snap;
+}
+
 function diagnosticInvocation(input) {
   const prepare = input.prepareAssets === true;
   const first = input.diagnosticFirst === true;
@@ -824,5 +870,5 @@ module.exports = {
   pcmReadAction, readThrownAction, converterOutputAction, childFailure,
   diagnosticPlan, coverageReport, diagnosticProcesses, pathTimeoutRecord, diagnosticAggregate,
   diagnosticInvocation, interpretSupervisedExit, stageKillDecision, superviseChild,
-  lastSampleTime, aggregateFinalSegments,
+  lastSampleTime, aggregateFinalSegments, fileReaderFinish, diagnosticSnapshot,
 };
