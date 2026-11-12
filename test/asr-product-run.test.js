@@ -6,7 +6,8 @@ const os = require('os');
 const path = require('path');
 const { execFileSync, spawnSync } = require('child_process');
 const { describe, test, eq, ok } = require('./harness');
-const { planRun, macMajor, assetPlan, classifyAssetError, reportFailure, pcmReadAction, readThrownAction, converterOutputAction, childFailure, diagnosticPlan, coverageReport, diagnosticProcesses, pathTimeoutRecord, diagnosticAggregate, diagnosticInvocation, interpretSupervisedExit, stageKillDecision, superviseChild, lastSampleTime, aggregateFinalSegments, fileReaderFinish, diagnosticSnapshot } = require('../eval/baselines/asr/run-product-asr.js');
+const { planRun, macMajor, assetPlan, classifyAssetError, reportFailure, pcmReadAction, readThrownAction, converterOutputAction, childFailure, diagnosticPlan, coverageReport, diagnosticProcesses, pathTimeoutRecord, diagnosticAggregate, diagnosticInvocation, interpretSupervisedExit, stageKillDecision, superviseChild, lastSampleTime, aggregateFinalSegments, fileReaderFinish, diagnosticSnapshot, baselineRunPlan, acceptHypotheses } = require('../eval/baselines/asr/run-product-asr.js');
+const { scoreFrozen } = require('../eval/baselines/asr/score.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -262,6 +263,91 @@ describe('product ASR gate — no hypothesis off the Apple recognizer', () => {
     eq(one.runCapMs, 45 * 1000);
     eq(one.compileCapMs <= 90 * 1000, true);
     eq(one.compileCapMs + one.runCapMs <= 3 * 60 * 1000, true);
+  });
+
+  test('the 16-clip baseline stays inside 180s because the audio is shorter', () => {
+    const set = JSON.parse(fs.readFileSync(path.join(ROOT, 'eval/baselines/asr/fleurs-public-v1.json'), 'utf8'));
+    const audioSeconds = set.items.reduce((sum, item) => sum + item.durationSeconds, 0);
+    eq(set.items.length, 16);
+    eq(audioSeconds, 165.26);
+    const plan = baselineRunPlan({ count: 16, audioSeconds: audioSeconds });
+    eq(plan.ok, true);
+    eq(plan.launcher, 'swiftc');
+    eq(plan.compileCapMs, 90 * 1000);
+    eq(plan.perItemCapMs, 45 * 1000);
+    eq(plan.processCapMs, 180 * 1000);
+    eq(plan.assetAttempts, 1);
+    eq(plan.manualReserve, false);
+    eq(plan.releaseLocales, false);
+    eq(plan.productMetric, false);
+    eq(plan.sameProductProcess, false);
+    eq(plan.endToEnd, false);
+    eq(plan.rates, null);
+    eq(plan.success, null);
+    const tooLong = baselineRunPlan({ count: 16, audioSeconds: 180 });
+    eq(tooLong.ok, false);
+    eq(tooLong.code, 'audio-longer-than-cap');
+    eq(tooLong.processCapMs, 180 * 1000);
+    const swift = fs.readFileSync(path.join(ROOT, 'eval/baselines/asr/product-asr-mac.swift'), 'utf8');
+    ok(swift.includes('try await ensureOnce'));
+    ok(swift.includes('let text = try await transcribe'));
+    const once = swift.slice(swift.indexOf('static func ensureOnce'), swift.indexOf('static func prepareAssets'));
+    ok(once.includes('attempts"] = 1'));
+    ok(once.includes('while attempts') === false);
+    ok(once.includes('AssetInventory.reserve') === false);
+    ok(once.includes('AssetInventory.release') === false);
+    const transcribe = swift.slice(swift.indexOf('static func transcribe'), swift.indexOf('static func writeFirstClipDiagnostic'));
+    ok(transcribe.includes('analyzer.finalizeAndFinish(through: through)'));
+    ok(transcribe.includes('origin + fed - 1'));
+    ok(transcribe.includes('file.framePosition >= file.length'));
+  });
+
+  test('a 16-clip file is accepted only when every hypothesis is a string', () => {
+    const rows = [];
+    for (let i = 0; i < 16; i++) rows.push({ id: 'id-' + i, hypothesis: 'text ' + i });
+    const okRows = acceptHypotheses(rows, 16);
+    eq(okRows.ok, true);
+    eq(okRows.processExit, 0);
+    eq(okRows.count, 16);
+    eq(okRows.rates, null);
+    eq(okRows.productMetric, false);
+    eq(okRows.completeSet, true);
+    eq(okRows.success, null);
+    const short = acceptHypotheses(rows.slice(0, 15), 16);
+    eq(short.ok, false);
+    eq(short.processExit, 2);
+    eq(short.rates, null);
+    eq(short.hypotheses, null);
+    const hole = rows.map((row) => Object.assign({}, row));
+    hole[3].hypothesis = null;
+    const broken = acceptHypotheses(hole, 16);
+    eq(broken.ok, false);
+    eq(broken.processExit, 2);
+    eq(broken.rates, null);
+  });
+
+  test('an incomplete hypothesis list has null rates and is not a product score', () => {
+    const set = {
+      kind: 'public-comparison',
+      items: [
+        { id: 'en', lang: 'en', reference: 'Fichte' },
+        { id: 'zh', lang: 'zh', reference: '甲乙' },
+      ],
+    };
+    const partial = scoreFrozen(set, [{ id: 'en', hypothesis: 'Fished' }]);
+    eq(partial.ok, false);
+    eq(partial.rates, null);
+    eq(partial.productMetric, false);
+    const full = scoreFrozen(set, [
+      { id: 'en', hypothesis: 'Fished' },
+      { id: 'zh', hypothesis: '甲乙' },
+    ]);
+    eq(full.ok, true);
+    eq(full.productMetric, false);
+    eq(full.byLang.en.metric, 'wer');
+    eq(full.byLang.zh.metric, 'cer');
+    eq(full.combined, undefined);
+    eq(full.sameProductProcess, undefined);
   });
 
   test('prepare-assets is legal for one en-US sentence on the official or manual path', () => {

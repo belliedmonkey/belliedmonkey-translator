@@ -288,6 +288,74 @@ function diagnosticSnapshot(state) {
   return snap;
 }
 
+function baselineRunPlan(input) {
+  const count = input && input.count;
+  const audioSeconds = input && input.audioSeconds;
+  const base = {
+    productMetric: false,
+    sameProductProcess: false,
+    endToEnd: false,
+    matchesIntlMacChineseDefaultArm: false,
+    hypotheses: null,
+    rates: null,
+    success: null,
+    compileCapMs: 90 * 1000,
+    perItemCapMs: 45 * 1000,
+    processCapMs: 180 * 1000,
+    launcher: 'swiftc',
+    assetAttempts: 1,
+    manualReserve: false,
+    releaseLocales: false,
+  };
+  if (count !== 16) return Object.assign(base, { ok: false, code: 'need-16', processExit: 2 });
+  if (typeof audioSeconds !== 'number' || !(audioSeconds < 180)) {
+    return Object.assign(base, {
+      ok: false,
+      code: 'audio-longer-than-cap',
+      processExit: 2,
+      audioSeconds: audioSeconds,
+    });
+  }
+  return Object.assign(base, {
+    ok: true,
+    code: 'run-16',
+    processExit: 0,
+    audioSeconds: audioSeconds,
+    completeSet: true,
+  });
+}
+
+function acceptHypotheses(rows, expectedCount) {
+  const reject = {
+    ok: false,
+    processExit: 2,
+    hypotheses: null,
+    rates: null,
+    productMetric: false,
+    sameProductProcess: false,
+    endToEnd: false,
+    completeSet: false,
+    success: null,
+  };
+  if (!Array.isArray(rows) || rows.length !== expectedCount) return reject;
+  for (const row of rows) {
+    if (!row || typeof row.id !== 'string' || typeof row.hypothesis !== 'string') return reject;
+  }
+  return {
+    ok: true,
+    processExit: 0,
+    count: rows.length,
+    hypothesesFile: 'hypotheses.json',
+    hypotheses: null,
+    rates: null,
+    productMetric: false,
+    sameProductProcess: false,
+    endToEnd: false,
+    completeSet: true,
+    success: null,
+  };
+}
+
 function diagnosticInvocation(input) {
   const prepare = input.prepareAssets === true;
   const first = input.diagnosticFirst === true;
@@ -832,6 +900,90 @@ async function main(argv) {
     try { fs.unlinkSync(hypPath); } catch (_) {}
     process.exit(agg.processExit);
   }
+  if (!diagnosticFirst && !prepareAssets && !installAssets) {
+    const audioSeconds = (set.items || []).reduce((sum, item) => sum + (item.durationSeconds || 0), 0);
+    const planned = baselineRunPlan({ count: (set.items || []).length, audioSeconds: audioSeconds });
+    meta.audioSeconds = audioSeconds;
+    meta.compileCapMs = planned.compileCapMs;
+    meta.perItemCapMs = planned.perItemCapMs;
+    meta.processCapMs = planned.processCapMs;
+    meta.rates = null;
+    meta.productMetric = false;
+    meta.completeSet = false;
+    if (!planned.ok) {
+      meta.code = planned.code;
+      meta.hypotheses = null;
+      meta.success = null;
+      fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+      process.exit(planned.processExit);
+    }
+    const bin = path.join(dest, 'baseline-sa');
+    try {
+      execFileSync('swiftc', [
+        '-framework', 'Speech', '-framework', 'AVFoundation', '-framework', 'CoreMedia',
+        HELPER, '-o', bin,
+      ], { stdio: 'inherit', timeout: planned.compileCapMs });
+    } catch (err) {
+      const rec = pathTimeoutRecord(err, { feed: 'compile', resultEventsReceived: 0 });
+      meta.code = rec.timedOut ? 'compile-timeout' : 'compile-failed';
+      meta.timedOut = rec.timedOut;
+      meta.signal = rec.signal;
+      meta.swiftExit = rec.timedOut ? null : rec.swiftExit;
+      meta.hypotheses = null;
+      meta.rates = null;
+      meta.success = null;
+      fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+      try { fs.unlinkSync(hypPath); } catch (_) {}
+      process.exit(2);
+    }
+    const watched = await superviseChild(bin, [
+      '--set', setPath, '--out', hypPath,
+      '--status-out', path.join(dest, 'asset-status.json'),
+    ], {
+      phaseFile: path.join(dest, 'diagnostic-phase.json'),
+      processCapMs: planned.processCapMs,
+      prepareCapMs: planned.processCapMs,
+      recognizeCapMs: planned.processCapMs,
+    });
+    const killed = watched.cap != null || watched.signal === 'SIGTERM' || watched.signal === 'SIGKILL';
+    if (killed || watched.code !== 0) {
+      meta.code = killed ? (watched.cap || 'killed') : 'recognition-failed';
+      meta.timedOut = killed;
+      meta.signal = watched.signal || null;
+      meta.swiftExit = killed ? null : watched.code;
+      meta.hypotheses = null;
+      meta.rates = null;
+      meta.success = null;
+      meta.completeSet = false;
+      fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+      try { fs.unlinkSync(hypPath); } catch (_) {}
+      process.exit(2);
+    }
+    let rows = null;
+    try { rows = JSON.parse(fs.readFileSync(hypPath, 'utf8')); } catch (_) { rows = null; }
+    const accepted = acceptHypotheses(rows, (set.items || []).length);
+    if (!accepted.ok) {
+      meta.code = 'incomplete-hypotheses';
+      meta.hypotheses = null;
+      meta.rates = null;
+      meta.success = null;
+      meta.completeSet = false;
+      meta.swiftExit = 0;
+      fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+      try { fs.unlinkSync(hypPath); } catch (_) {}
+      process.exit(accepted.processExit);
+    }
+    meta.hypothesesFile = accepted.hypothesesFile;
+    meta.hypothesisCount = accepted.count;
+    meta.completeSet = true;
+    meta.rates = null;
+    meta.productMetric = false;
+    meta.success = null;
+    meta.swiftExit = 0;
+    meta.timedOut = false;
+    fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+    process.exit(0);
+  }
   const swiftArgs = [HELPER, '--set', setPath, '--out', hypPath, '--status-out', path.join(dest, 'asset-status.json')];
   if (installAssets) swiftArgs.push('--install-assets');
   const diagTimeout = diagnosticPlan({ diagnosticFirst: false }).nodeTimeoutMs;
@@ -871,4 +1023,5 @@ module.exports = {
   diagnosticPlan, coverageReport, diagnosticProcesses, pathTimeoutRecord, diagnosticAggregate,
   diagnosticInvocation, interpretSupervisedExit, stageKillDecision, superviseChild,
   lastSampleTime, aggregateFinalSegments, fileReaderFinish, diagnosticSnapshot,
+  baselineRunPlan, acceptHypotheses,
 };

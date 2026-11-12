@@ -161,7 +161,11 @@ enum FileASR {
             }
             let chosen = diagnostic ? Array(set.items.prefix(1)) : set.items
             let locales = try assetLocales(SetFile(items: chosen))
-            try await prepareAssets(locales: locales, install: install, statusURL: statusURL)
+            if !diagnostic && !install {
+                try await ensureOnce(locales: locales, statusURL: statusURL)
+            } else {
+                try await prepareAssets(locales: locales, install: install, statusURL: statusURL)
+            }
             if install {
                 try? FileManager.default.removeItem(at: outURL)
                 return 0
@@ -237,6 +241,57 @@ enum FileASR {
         case .downloading: return "downloading"
         default: return "unknown"
         }
+    }
+
+    // One official request for a supported locale. Installed locales are not downloaded.
+    static func ensureOnce(locales: [Locale], statusURL: URL?) async throws {
+        var rows: [[String: Any]] = []
+        for locale in locales {
+            let id = locale.identifier(.bcp47)
+            let module = speechModule(locale)
+            let before = await AssetInventory.status(forModules: [module])
+            var row: [String: Any] = [
+                "locale": id,
+                "before": statusName(before),
+                "installed": before == .installed,
+                "installRequested": false,
+                "attempts": 0,
+            ]
+            rows.append(row)
+            writeStatus(statusURL, rows: rows, install: false, state: "checked")
+            if before == .installed { continue }
+            if before != .supported {
+                writeStatus(statusURL, rows: rows, install: false, state: statusName(before))
+                throw AssetFail(code: "speech-assets-not-installed", locale: id, status: statusName(before), detail: "status is not installed", attempts: 0)
+            }
+            row["installRequested"] = true
+            row["attempts"] = 1
+            rows[rows.count - 1] = row
+            writeStatus(statusURL, rows: rows, install: true, state: "waiting")
+            do {
+                if let request = try await AssetInventory.assetInstallationRequest(supporting: [module]) {
+                    row["installRequest"] = "downloadAndInstall"
+                    try await request.downloadAndInstall()
+                } else {
+                    row["installRequest"] = "nil"
+                }
+            } catch {
+                row["error"] = redact(String(describing: error))
+                rows[rows.count - 1] = row
+                writeStatus(statusURL, rows: rows, install: true, state: "failed")
+                throw AssetFail(code: "speech-assets-not-installed", locale: id, status: "supported", detail: redact(String(describing: error)), attempts: 1)
+            }
+            let after = await AssetInventory.status(forModules: [module])
+            row["after"] = statusName(after)
+            row["installed"] = after == .installed
+            rows[rows.count - 1] = row
+            writeStatus(statusURL, rows: rows, install: true, state: statusName(after))
+            if after != .installed {
+                let code = (row["installRequest"] as? String) == "nil" ? "nil-request-not-installed" : "speech-assets-not-installed"
+                throw AssetFail(code: code, locale: id, status: statusName(after), detail: "status after one request was not installed", attempts: 1)
+            }
+        }
+        writeStatus(statusURL, rows: rows, install: false, state: "installed")
     }
 
     static func prepareAssets(locales: [Locale], install: Bool, statusURL: URL?) async throws {

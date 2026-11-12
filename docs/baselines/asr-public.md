@@ -167,7 +167,16 @@ t10u（15:14+08）要求换一次可证伪实验，不是重跑 15:08 的命令�
 
 [`finalize(through:)`](https://developer.apple.com/documentation/speech/speechanalyzer/finalize(through:)) 只把结果定稿，不结束分析会话，结果流继续开着。[`finalizeAndFinish(through:)`](https://developer.apple.com/documentation/speech/speechanalyzer/finalizeandfinish(through:)) 在同样的定稿之后结束会话，结果流随之终止。有限文件把输入 `finish` 掉也不会结束会话。产品麦克风流在会话还开着时调用 `finalize(through:)`，并不等待 reader 结束，因为后面还有音频。有限文件的手动 PCM 现改为 `finalizeAndFinish(through:)`，through 仍是上一轮的最后有效采样。不取消 reader，不把 volatile 当定稿，不改成 `analyzeSequence`。这次还没有在 Mac 上复验，所以不称 reader 已经会结束。
 
-手动诊断现在每个阶段都写下 `fed`、`finishRequestedFrame`、`exclusiveEndFrame`、`inputLastEndFrame`、`finalizeReturned`、事件数和定稿分段。`diagnosticText` 只在 reader 正常返回后写入。45 秒上限不延长。已安装就不下载。官方文件对照不再跑。下一次仍是同一条手动命令，只看结果流是否结束。若那次返回，下一步是 16 句离线基线，不是再加诊断；那一步等审核后再做。
+手动诊断现在每个阶段都写下 `fed`、`finishRequestedFrame`、`exclusiveEndFrame`、`inputLastEndFrame`、`finalizeReturned`、事件数和定稿分段。`diagnosticText` 只在 reader 正常返回后写入。45 秒上限不延长。已安装就不下载。官方文件对照不再跑。
+
+15:54:36–15:54:39，同一条手动命令编译和运行都是退出码 0，没有超时。en-US 一直是 `installed`，没有下载。`fed`、`inputLastEndFrame`、`exclusiveEndFrame` 都是 170880，`finishRequestedFrame` 是 170879，`finalizeReturned` 为 true，reader 正常结束，阶段是 `done`。37 个事件，3 段相连的定稿：1.08–7.02、7.02–7.98、7.98–9。`diagnosticText` 是 “Romanticism had a large element of cultural determinism drawn from writers such as Goethe, Fished, and Schlegel.” 参考里的 Fichte 被听成 Fished，这不是截尾。`success` 仍是 false，不是质量分。
+
+默认 16 句走同一个 `transcribe`：文件读到末帧停止、through 是最后有效采样、`finalizeAndFinish(through:)`、定稿按段拼接。资源在同一进程里先查 en-US 和 zh-CN。已安装不下载；`supported` 只做一次官方请求和复查。不调用 `reserve` / `release`。每句的 45 秒包在 `finalizeAndFinish` 外面；若这次调用不返回，进程内的取消等不到它，硬停止是整段进程的 180 秒。16 条音频合计 165.26 秒，短于 180 秒，所以上限不延长。不足 16 条字符串假设、子进程非 0、或被杀掉，都不留假设文件，`rates` 为 null。诊断用的 `success: false` 不写进这条 16 句记录。这条 16 句还没有跑，所以这里没有 CER/WER。
+
+```bash
+node eval/baselines/asr/run-product-asr.js --out-dir <output-dir>
+node eval/baselines/asr/score.js --set eval/baselines/asr/fleurs-public-v1.json --hyp <output-dir>/hypotheses.json
+```
 
 产品实施建议（不在本 PR 改 App）：给现有 `MTDeviceTranscriber` / `MTE1B1Transcriber` 加一条文件 PCM 入口，而不是再写一套识别器。
 
