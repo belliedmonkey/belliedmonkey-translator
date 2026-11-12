@@ -102,7 +102,33 @@ node eval/baselines/asr/run-product-asr.js --out-dir <output-dir>
 
 当前阻塞是语音资源状态不是已安装。脚本对 `SpeechTranscriber` 查了 `AssetInventory.status`，不是 `.installed` 后又查了回落的 `DictationTranscriber`，仍不是 `.installed`，于是抛出 domain `product-asr`、code 1。这次抛错前没有请求安装语音资源，也没有出现权限提示。权限是否已授予是未知的，因为执行没有走到那一步。怎样安装这些资源没有在这里研究，本文不写谁才能安装。
 
-识别步骤停在这次失败。这份记录不授权第三次运行，也不授权下载系统语音资源。
+那两次停在「没有发起安装」。之后用户授权只补这一处：显式安装入口，不把那两次记录改成已经装好。
+
+## 显式安装入口
+
+官方说明（2026-11-12 读 Apple 文档 JSON）：
+
+- [AssetInventory](https://developer.apple.com/documentation/speech/assetinventory)：用模块配置安装资产；模型从 Apple 的服务器下载，由系统管理。
+- [assetInstallationRequest(supporting:)](https://developer.apple.com/documentation/speech/assetinventory/assetinstallationrequest%28supporting:%29)：当前状态已是 `.installed` 时返回 nil。需要的 locale 还没预留时，它会自动预留；如果会超过 [maximumReservedLocales](https://developer.apple.com/documentation/speech/assetinventory/maximumreservedlocales)，或者资产不支持，就抛错。
+- [downloadAndInstall()](https://developer.apple.com/documentation/speech/assetinstallationrequest/downloadandinstall%28%29)：下载并安装设备上还没有的资产。
+- [Status](https://developer.apple.com/documentation/speech/assetinventory/status)：`.supported` 是「配置可用，但资产还要下载」，不是 `.installed`。`.downloading` 是正在下载或在等条件。`.unsupported` 是这个配置不能用。
+- [reserve(locale:)](https://developer.apple.com/documentation/speech/assetinventory/reserve%28locale:%29) 是可选的手动预留。安装请求自己会预留，所以这个脚本不调用它。
+- [release(reservedLocale:)](https://developer.apple.com/documentation/speech/assetinventory/release%28reservedlocale:%29) 会去掉预留，系统随后可能删掉资产。这个脚本不调用它，也不卸载、不替换系统默认、不重置授权、不用 sudo。
+
+仓库里已有的安装例子是 `app/native/speech-bridge.swift` 的 `sttAssets`：同样只调用 `assetInstallationRequest(supporting:)` 和 `downloadAndInstall()`，不在这条路上调用 `reserve` / `release`。这次不改产品 App，也不改国际版 Mac 中文默认的 `e1_b1`。
+
+范围只是 `en-US` 与 `zh-CN` 的 `SpeechTranscriber`，也就是 SA 文件入口的 `sa` 臂。默认命令不安装。只有带 `--install-assets` 才向系统申请。准备命令不写假设文件。安装失败、语言不支持、预留满了（`SFSpeechErrorDomain` code 11）、或下载失败，都退出码 2，`hypotheses` 为 null。状态写在输出目录的 `asset-status.json`，里面有安装前和安装后的状态名。
+
+同一步下载最多两次，整段安装预算 15 分钟。到点记 `asset-download-timeout`。node 在准备命令上多等 30 秒，只为把状态文件写完，不是第三次下载。
+
+官方文档没有给出资源字节数，所以大小记为 unknown，这里不编数字。文档也没有写安装会不会弹出系统权限对话框。第二次运行没有调用安装接口，所以也没有观察到对话框。如果系统弹出对话框，脚本不会代点。这里不说用户必须点。
+
+这两条命令还没有在 Mac 上编译或运行。`swiftCompiledByPackager` 仍是 false。没有产品 CER/WER。端到端仍 **待测**。
+
+```bash
+node eval/baselines/asr/run-product-asr.js --install-assets --out-dir <output-dir>
+node eval/baselines/asr/run-product-asr.js --out-dir <output-dir>
+```
 
 产品实施建议（不在本 PR 改 App）：给现有 `MTDeviceTranscriber` / `MTE1B1Transcriber` 加一条文件 PCM 入口，而不是再写一套识别器。
 

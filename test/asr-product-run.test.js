@@ -6,7 +6,7 @@ const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 const { describe, test, eq, ok } = require('./harness');
-const { planRun, macMajor } = require('../eval/baselines/asr/run-product-asr.js');
+const { planRun, macMajor, assetPlan, classifyAssetError } = require('../eval/baselines/asr/run-product-asr.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -75,6 +75,83 @@ describe('product ASR gate — no hypothesis off the Apple recognizer', () => {
     ok(!src.includes('AVAudioConverter(from: file.processingFormat, to: fmt)!' ));
     ok(!src.includes('frameCapacity: 4096)!'));
     ok(!src.includes(')!'));
+  });
+
+  test('supported is not installed and the default plan does not request a download', () => {
+    const plan = assetPlan({
+      install: false,
+      configs: ['en_us', 'cmn_hans_cn'],
+      statuses: { 'en-US': 'supported', 'zh-CN': 'supported' },
+    });
+    eq(plan.ok, false);
+    eq(plan.code, 'speech-assets-not-installed');
+    eq(plan.installRequested, false);
+    eq(plan.hypotheses, null);
+    eq(plan.productMetric, false);
+    eq(plan.assets[0].installed, false);
+    eq(plan.manualReserve, false);
+    eq(plan.releaseLocales, false);
+    eq(plan.maxAttempts, 2);
+    eq(plan.timeoutMs, 15 * 60 * 1000);
+  });
+
+  test('an explicit install flag requests only en-US and zh-CN', () => {
+    const plan = assetPlan({
+      install: true,
+      configs: ['en_us', 'cmn_hans_cn', 'en_us'],
+      statuses: { 'en-US': 'supported', 'zh-CN': 'downloading' },
+    });
+    eq(plan.ok, true);
+    eq(plan.code, 'request-install');
+    eq(plan.installRequested, true);
+    eq(plan.locales.join(','), 'en-US,zh-CN');
+    eq(plan.hypotheses, null);
+  });
+
+  test('an unsupported locale is not an install request', () => {
+    const plan = assetPlan({
+      install: true,
+      configs: ['en_us'],
+      statuses: { 'en-US': 'unsupported' },
+    });
+    eq(plan.ok, false);
+    eq(plan.code, 'unsupported-locale');
+    eq(plan.installRequested, false);
+    eq(plan.hypotheses, null);
+  });
+
+  test('a config outside en-US and zh-CN is rejected before install', () => {
+    const plan = assetPlan({
+      install: true,
+      configs: ['ja_jp'],
+      statuses: {},
+    });
+    eq(plan.code, 'unsupported-locale');
+    eq(plan.installRequested, false);
+  });
+
+  test('an install failure keeps hypotheses null', () => {
+    const err = classifyAssetError({ domain: 'NSURLErrorDomain', code: -1009, attempts: 2 });
+    eq(err.ok, false);
+    eq(err.code, 'asset-download-failed');
+    eq(err.hypotheses, null);
+    eq(err.attempts, 2);
+    eq(classifyAssetError({ domain: 'SFSpeechErrorDomain', code: 11 }).code, 'reservation-unavailable');
+    eq(classifyAssetError({ timeout: true, attempts: 2 }).code, 'asset-download-timeout');
+    eq(classifyAssetError({ domain: 'SFSpeechErrorDomain', code: 4 }).code, 'unsupported-locale');
+    eq(classifyAssetError({ domain: 'Other', code: 1 }).code, 'asset-install-failed');
+  });
+
+  test('the Mac helper installs only through AssetInventory and only when asked', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'eval/baselines/asr/product-asr-mac.swift'), 'utf8');
+    ok(src.includes('AssetInventory.assetInstallationRequest(supporting:'));
+    ok(src.includes('downloadAndInstall()'));
+    ok(src.includes('--install-assets'));
+    ok(src.includes('case .supported'));
+    ok(!src.includes('AssetInventory.release'));
+    ok(!src.includes('AssetInventory.reserve'));
+    ok(src.includes('speech-assets-not-installed'));
+    ok(src.includes('asset-download-failed'));
   });
 
   test('the command on a checked wav still emits no hypothesis file', () => {

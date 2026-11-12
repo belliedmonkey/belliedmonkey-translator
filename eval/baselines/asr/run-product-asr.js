@@ -27,6 +27,86 @@ function macMajor(version) {
   return Number.isFinite(n) ? n : 0;
 }
 
+const ASSET_LOCALE = {
+  en_us: 'en-US',
+  cmn_hans_cn: 'zh-CN',
+};
+
+function assetPlan(input) {
+  const install = input.install === true;
+  const statuses = input.statuses || {};
+  const base = {
+    productMetric: false,
+    hypotheses: null,
+    arm: 'sa',
+    installRequested: false,
+    manualReserve: false,
+    releaseLocales: false,
+    maxAttempts: 2,
+    timeoutMs: 15 * 60 * 1000,
+  };
+  const locales = [];
+  for (const config of input.configs || []) {
+    const locale = ASSET_LOCALE[config];
+    if (!locale) {
+      return Object.assign({}, base, {
+        ok: false,
+        code: 'unsupported-locale',
+        locale: config,
+      });
+    }
+    if (locales.indexOf(locale) === -1) locales.push(locale);
+  }
+  const assets = locales.map((locale) => {
+    const status = statuses[locale] || 'unknown';
+    return { locale: locale, status: status, installed: status === 'installed' };
+  });
+  const unsupported = assets.filter((row) => row.status === 'unsupported');
+  if (unsupported.length) {
+    return Object.assign({}, base, {
+      ok: false,
+      code: 'unsupported-locale',
+      locale: unsupported[0].locale,
+      status: 'unsupported',
+      assets: assets,
+    });
+  }
+  const missing = assets.filter((row) => !row.installed);
+  if (!missing.length) {
+    return Object.assign({}, base, { ok: true, code: 'assets-installed', assets: assets });
+  }
+  if (!install) {
+    return Object.assign({}, base, {
+      ok: false,
+      code: 'speech-assets-not-installed',
+      assets: assets,
+    });
+  }
+  return Object.assign({}, base, {
+    ok: true,
+    code: 'request-install',
+    installRequested: true,
+    locales: missing.map((row) => row.locale),
+    assets: assets,
+  });
+}
+
+function classifyAssetError(err) {
+  const attempts = err && err.attempts != null ? err.attempts : null;
+  let code = 'asset-install-failed';
+  if (err && err.timeout) code = 'asset-download-timeout';
+  else if (err && err.domain === 'SFSpeechErrorDomain' && err.code === 11) code = 'reservation-unavailable';
+  else if (err && err.domain === 'SFSpeechErrorDomain' && err.code === 4) code = 'unsupported-locale';
+  else if (err && err.domain === 'NSURLErrorDomain') code = 'asset-download-failed';
+  return {
+    ok: false,
+    code: code,
+    hypotheses: null,
+    productMetric: false,
+    attempts: attempts,
+  };
+}
+
 function planRun(input) {
   const items = input.items || [];
   const errors = [];
@@ -114,9 +194,11 @@ function main(argv) {
   const args = argv.slice(2);
   let setPath = DEFAULT_SET;
   let outDir = '';
+  let installAssets = false;
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--set') setPath = args[++i];
     else if (args[i] === '--out-dir') outDir = args[++i];
+    else if (args[i] === '--install-assets') installAssets = true;
     else {
       console.error('unknown arg ' + args[i]);
       process.exit(1);
@@ -132,6 +214,8 @@ function main(argv) {
     items: inspected,
   });
   plan.checked = inspected.length;
+  plan.installFlag = installAssets;
+  plan.installRequested = false;
   console.log(JSON.stringify(plan, null, 2));
   if (!plan.ok) process.exit(2);
   if (!outDir) {
@@ -151,13 +235,17 @@ function main(argv) {
     endToEnd: false,
     productMetric: false,
     swiftCompiledByPackager: false,
+    installFlag: installAssets,
+    installRequested: false,
     note: 'sa arm file feed only. Not the intl-Mac Chinese default e1_b1 arm and not an end-to-end result.',
   };
   fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+  const swiftArgs = [HELPER, '--set', setPath, '--out', hypPath, '--status-out', path.join(dest, 'asset-status.json')];
+  if (installAssets) swiftArgs.push('--install-assets');
   try {
-    execFileSync('swift', [HELPER, '--set', setPath, '--out', hypPath], {
+    execFileSync('swift', swiftArgs, {
       stdio: 'inherit',
-      timeout: 15 * 60 * 1000,
+      timeout: installAssets ? (15 * 60 * 1000) + 30000 : 15 * 60 * 1000,
     });
   } catch (err) {
     meta.swiftExit = err.status == null ? 1 : err.status;
@@ -167,10 +255,15 @@ function main(argv) {
     process.exit(meta.swiftExit || 1);
   }
   meta.swiftExit = 0;
-  meta.hypothesesFile = 'hypotheses.json';
+  if (installAssets) {
+    meta.hypotheses = null;
+    meta.recognition = false;
+  } else {
+    meta.hypothesesFile = 'hypotheses.json';
+  }
   fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
 }
 
 if (require.main === module) main(process.argv);
 
-module.exports = { planRun, macMajor, inspectItem };
+module.exports = { planRun, macMajor, inspectItem, assetPlan, classifyAssetError };
