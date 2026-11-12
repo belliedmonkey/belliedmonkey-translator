@@ -72,6 +72,20 @@ node eval/baselines/asr/fetch-fleurs.js --audio --record
 
 假设文件是 JSON 数组，元素只有 `{ "id", "hypothesis" }`。`hypothesis` 必须是字符串；缺字段、null 或数字会被拒绝。只有显式 `""` 表示识别器给出了空输出。`id` 用冻结集里的 id，对应缓存里的 `audioCache`。不要把 `reference` 填进 `hypothesis`。
 
+## 产品 ASR 这一轮没有分数
+
+这 16 条的产品识别器不是本机可执行的文件转写脚本。英文只走 `app/native/speech-bridge.swift` 里的 `SpeechAnalyzer`（macOS 26 / iOS 26）。`RecognizerFactory.make` 在语言不是 `zh` 或臂是 `sa` 时返回同一条 Apple 转写器。国际版 Mac 的中文默认臂 `e1_b1` 仍在这个进程里：SpeechAnalyzer 的 partial，加上 `language: "zh"`、`useInverseTextNormalization: true` 的 SenseVoice 定稿，定稿前还有 `sil0.5_thr0.3_max8` VAD。SenseVoice 权重不代替英文路径，单独跑 ONNX 也不是这条臂。
+
+本环境是 Linux。命令：
+
+```bash
+node eval/baselines/asr/run-product-asr.js
+```
+
+它先核对缓存 wav 的 SHA-256、WAV 头和采样数，然后因不是 Apple SpeechAnalyzer 而退出码 2，`hypotheses` 为 null。macOS 26 上同一命令才会启动 `product-asr-mac.swift`，并且那个文件适配器只覆盖 SA 文件喂入，不跑 `e1_b1`。没有假设文件，所以没有产品 CER/WER。端到端仍 **待测**。
+
+产品实施建议（不在本 PR 改 App）：给现有 `MTDeviceTranscriber` / `MTE1B1Transcriber` 加一条文件 PCM 入口，而不是再写一套识别器。
+
 ## 这批不引入的来源
 
 Common Voice 的再分发请求、Gutenberg 在美国境外的版权、以及附件里的其他候选，都没有进入本切片。
