@@ -2,7 +2,7 @@
 
 适用范围：仓库 `package.json` 版本见 `eval/baselines/inventory.json` 的 `sourceVersion`。这是源码清点与协议，不是一次端到端测量。
 
-质量、延迟、成本在本协议下全部 **待测**。这里没有总分，没有通过门槛。2026-10 的数字仍只在 [`docs/benchmark-waterlevel.md`](../benchmark-waterlevel.md)，标为历史参考，未按本协议重测。
+端到端质量、延迟、成本仍 **待测**。这里没有总分，没有通过门槛。公开 SA 文件组件有一次 16 句探索性分数，见 [asr-public.md](asr-public.md)，不是达标，也不是排行榜。2026-10 的数字仍只在 [`docs/benchmark-waterlevel.md`](../benchmark-waterlevel.md)，标为历史参考，未按本协议重测。
 
 ## 这一批做到哪
 
@@ -14,7 +14,7 @@
 | [forms/realtime.md](forms/realtime.md) | 实时听译、实时字幕各自的端到端协议 | 协议；待测 |
 | [forms/web.md](forms/web.md) | 网页文字，以及四种预制媒体路径 | 协议；待测 |
 | [forms/documents.md](forms/documents.md) | 文档，以及不能并进上两类的相邻形态 | 协议；待测 |
-| [asr-public.md](asr-public.md) | FLEURS 中英 test 各 8 句的公开 ASR 参考，加离线 CER/WER | 16 条文本已冻结；16 条 wav 在忽略缓存里。15:54 手动首句生命周期已走完，Fichte 被听成 Fished。16 句分数还没有跑。端到端仍待测 |
+| [asr-public.md](asr-public.md) | FLEURS 中英 test 各 8 句的公开 ASR 参考，加离线 CER/WER | 16 条文本已冻结。2026-11-12 主席摘要：英文 WER 11/174，中文 CER 33/301。探索性组件分数，不是产品分。端到端仍待测 |
 
 离线检查：`node eval/baselines/check.js`。它核对证据摘录仍在源码里、矩阵每一格都在、真实失败样本库仍为空、工具用合成句不能变成质量样本。公开 ASR 切片另见上表，不打产品分。
 

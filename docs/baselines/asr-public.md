@@ -1,6 +1,6 @@
 # 公开 ASR 对照切片（FLEURS）
 
-这是一条可离线评分的公开对照，不是用户真实失败集，也不是听译或实时字幕的端到端基线。产品上的识别结果 **待测**。这里没有系统假设文件，所以没有 CER/WER 产品数字。
+这是一条可离线评分的公开对照，不是用户真实失败集，也不是听译或实时字幕的端到端基线。产品上的识别结果 **待测**。下面的 16 句数字是 SA 文件组件的一次探索性分数，不是产品 CER/WER，也不是官方 FLEURS 排行榜。
 
 ## 已实现
 
@@ -171,7 +171,11 @@ t10u（15:14+08）要求换一次可证伪实验，不是重跑 15:08 的命令�
 
 15:54:36–15:54:39，同一条手动命令编译和运行都是退出码 0，没有超时。en-US 一直是 `installed`，没有下载。`fed`、`inputLastEndFrame`、`exclusiveEndFrame` 都是 170880，`finishRequestedFrame` 是 170879，`finalizeReturned` 为 true，reader 正常结束，阶段是 `done`。37 个事件，3 段相连的定稿：1.08–7.02、7.02–7.98、7.98–9。`diagnosticText` 是 “Romanticism had a large element of cultural determinism drawn from writers such as Goethe, Fished, and Schlegel.” 参考里的 Fichte 被听成 Fished，这不是截尾。`success` 仍是 false，不是质量分。
 
-默认 16 句走同一个 `transcribe`：文件读到末帧停止、through 是最后有效采样、`finalizeAndFinish(through:)`、定稿按段拼接。资源在同一进程里先查 en-US 和 zh-CN。已安装不下载；`supported` 只做一次官方请求和复查。不调用 `reserve` / `release`。每句的 45 秒包在 `finalizeAndFinish` 外面；若这次调用不返回，进程内的取消等不到它，硬停止是整段进程的 180 秒。16 条音频合计 165.26 秒，短于 180 秒，所以上限不延长。不足 16 条字符串假设、子进程非 0、或被杀掉，都不留假设文件，`rates` 为 null。诊断用的 `success: false` 不写进这条 16 句记录。这条 16 句还没有跑，所以这里没有 CER/WER。
+默认 16 句走同一个 `transcribe`：文件读到末帧停止、through 是最后有效采样、`finalizeAndFinish(through:)`、定稿按段拼接。资源在同一进程里先查 en-US 和 zh-CN。已安装不下载；`supported` 只做一次官方请求和复查。不调用 `reserve` / `release`。每句的 45 秒包在 `finalizeAndFinish` 外面；若这次调用不返回，进程内的取消等不到它，硬停止是整段进程的 180 秒。16 条音频合计 165.26 秒，短于 180 秒，所以上限不延长。不足 16 条字符串假设、子进程非 0、或被杀掉，都不留假设文件，`rates` 为 null。诊断用的 `success: false` 不写进这条 16 句记录。
+
+2026-11-12 16:04:00–16:04:07（+08），macOS 27、Swift 6.4，同一份编译出的 binary 跑完 16 句，退出码 0，没有触发 180 秒上限。编译大约 2 秒。资源检查大约在 16:04:03：en-US 和 zh-CN 的 `before` 都是 `supported`，各一次官方请求且返回 nil，下载次数 0，复查为 `installed`。假设与冻结集的 16 个 id 和顺序一致，全是非空字符串，没有重复或错位。完整假设文件只在 16 句的 `finalizeAndFinish` 和 reader 都返回之后原子写入。逐句标志没有落盘，这里不补。整段用时 7 秒，含编译和准备，不是产品延迟，也不是模型实时率。音频合计 165.26 秒。16:04:42 的独立评分退出码 0。主席读取的 `score.json` 是 `ok: true`，`missing`、`unknown`、`rejected` 都是空数组。英文 WER：8 句、11/174、0.06321839080459771。中文 CER：8 句、33/301、0.10963455149501661。逐句 errors/length：英文 1660–1667 为 1/17、0/20、3/22、3/23、3/17、0/24、0/22、1/29；中文为 2/32、0/28、2/34、26/63、2/26、0/37、0/35、1/46。这些数字来自主席摘要，本仓库没有那份假设文件，也不记录它的 SHA。机器可读摘要在 [`eval/baselines/asr/mac-sa-16-chair-2026-11-12.json`](../../eval/baselines/asr/mac-sa-16-chair-2026-11-12.json)。原始文件在主席目录 `/workspace/baseline-sa-mac-20261112/full16-attempt1/`，可复核。`samples-0` 的记录数仍是 0。这不是 `e1_b1`，不是端到端，也不能据此排优劣。端到端仍 **待测**。
+
+评分口径没有改。分母与冻结集第 3 字段经现有 `enTokens` / `zhChars` 后的长度一致，所以没有重算，也没有按假设去改参考。英文这 8 句的参考用单词 two；`Two` 与 `two` 是同一个词，数字 `2` 不是，规则不把 `2` 改写成 two。中文 CER 去掉空白、标点和符号，保留汉字、拉丁字母和数字，参考和假设走同一个函数。`cmn_hans_cn/1663` 的计分参考长 63，其中 42 个汉字、21 个拉丁字母（去掉空格后是 `cochamóvalleyyosemite`）。原始字段有括号，计分字段没有括号，但两边去掉标点后都是 63，括号不是多出来的长度。26/63 是中文 33 个错误里的大头。音频没有核对这串拉丁是不是被念出来了。参考保持冻结，分数不优化。这不是评分器分叉，所以不因此阻断这次冻结口径下的记录；它仍然只是探索性结果，不是排行榜比较。
 
 ```bash
 node eval/baselines/asr/run-product-asr.js --out-dir <output-dir>

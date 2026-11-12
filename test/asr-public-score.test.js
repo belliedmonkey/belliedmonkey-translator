@@ -6,7 +6,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { describe, test, ok, eq } = require('./harness');
 const zlib = require('zlib');
-const { scorePair, scoreFrozen } = require('../eval/baselines/asr/score.js');
+const { scorePair, scoreFrozen, zhChars, enTokens } = require('../eval/baselines/asr/score.js');
 const { parseTsv, selectFirst } = require('../eval/baselines/asr/select.js');
 const { createTarCollector } = require('../eval/baselines/asr/tar-member.js');
 const { wavInfo } = require('../eval/baselines/asr/wav-info.js');
@@ -177,6 +177,12 @@ describe('public ASR scorer — tool correctness, not a product metric', () => {
     eq(row.reference, '智利首选登山目的地科茶莫山谷 cochamó valley 被称为南美洲的优胜美地 yosemite这里有各式各样的花岗岩大石壁和峭壁');
     ok(row.reference.indexOf('cochamó valley') >= 0);
     ok(row.reference.indexOf('浪 漫') < 0);
+    const chars = zhChars(row.reference);
+    eq(chars.length, 63);
+    eq(chars.filter((ch) => /\p{Script=Latin}/u.test(ch)).join(''), 'cochamóvalleyyosemite');
+    eq(enTokens('two').join(' '), 'two');
+    eq(enTokens('Two').join(' '), 'two');
+    eq(enTokens('2').join(' '), '2');
   });
 
   test('cached wav metadata is recorded and the bytes are not part of the set file', () => {

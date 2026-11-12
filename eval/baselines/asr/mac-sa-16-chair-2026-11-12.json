@@ -1,0 +1,95 @@
+{
+  "schema": "baseline-sa-16-chair-summary.v1",
+  "readByThisAgent": false,
+  "sourceSha256": null,
+  "hypothesisFileCopied": false,
+  "chairBox": "/workspace/baseline-sa-mac-20261112/full16-attempt1/",
+  "chairRead": "score.json ok true; missing, unknown, and rejected are empty arrays",
+  "arm": "sa",
+  "component": "apple-speech-analyzer-file",
+  "productMetric": false,
+  "sameProductProcess": false,
+  "endToEnd": false,
+  "matchesIntlMacChineseDefaultArm": false,
+  "intlMacChineseDefaultArm": "e1_b1",
+  "samplesCatalog": "samples-0",
+  "samplesRecords": 0,
+  "leaderboard": false,
+  "exploratory": true,
+  "os": "macOS 27",
+  "swift": "6.4",
+  "startedAt": "2026-11-12T16:04:00+08:00",
+  "endedAt": "2026-11-12T16:04:07+08:00",
+  "scoreAt": "2026-11-12T16:04:42+08:00",
+  "compileSeconds": 2,
+  "wallSecondsIncludingCompileAndPrepare": 7,
+  "notProductLatency": true,
+  "notModelRtf": true,
+  "audioSeconds": 165.26,
+  "processCapSeconds": 180,
+  "processCapTriggered": false,
+  "exit": 0,
+  "timedOut": false,
+  "scoreExit": 0,
+  "assets": {
+    "locales": ["en-US", "zh-CN"],
+    "before": "supported",
+    "requests": 1,
+    "requestResult": "nil",
+    "downloads": 0,
+    "after": "installed"
+  },
+  "hypotheses": {
+    "count": 16,
+    "allStrings": true,
+    "noneEmpty": true,
+    "duplicateIds": 0,
+    "orderMatchesFrozen": true,
+    "writtenAtomicallyAfterAllSixteenReturned": true,
+    "perClipFlagsPersisted": false
+  },
+  "rates": {
+    "en": { "metric": "wer", "n": 8, "errors": 11, "length": 174, "rate": 0.06321839080459771 },
+    "zh": { "metric": "cer", "n": 8, "errors": 33, "length": 301, "rate": 0.10963455149501661 }
+  },
+  "perSentence": {
+    "en": [
+      { "sentenceId": "1660", "errors": 1, "length": 17 },
+      { "sentenceId": "1661", "errors": 0, "length": 20 },
+      { "sentenceId": "1662", "errors": 3, "length": 22 },
+      { "sentenceId": "1663", "errors": 3, "length": 23 },
+      { "sentenceId": "1664", "errors": 3, "length": 17 },
+      { "sentenceId": "1665", "errors": 0, "length": 24 },
+      { "sentenceId": "1666", "errors": 0, "length": 22 },
+      { "sentenceId": "1667", "errors": 1, "length": 29 }
+    ],
+    "zh": [
+      { "sentenceId": "1660", "errors": 2, "length": 32 },
+      { "sentenceId": "1661", "errors": 0, "length": 28 },
+      { "sentenceId": "1662", "errors": 2, "length": 34 },
+      { "sentenceId": "1663", "errors": 26, "length": 63 },
+      { "sentenceId": "1664", "errors": 2, "length": 26 },
+      { "sentenceId": "1665", "errors": 0, "length": 37 },
+      { "sentenceId": "1666", "errors": 0, "length": 35 },
+      { "sentenceId": "1667", "errors": 1, "length": 46 }
+    ]
+  },
+  "scoringAudit": {
+    "referenceField": "normalized transcription, TSV field index 3",
+    "denominatorsMatchFrozenFieldUnderScorer": true,
+    "errorsNotRecomputedFromHypotheses": true,
+    "scoreNotOptimized": true,
+    "audioNotVerifiedForAnnotations": true,
+    "zh1663": {
+      "scoredReferenceLength": 63,
+      "hanCharacters": 42,
+      "latinCharactersAfterSpaceRemoval": 21,
+      "latinSpan": "cochamóvalleyyosemite",
+      "rawHasParentheses": true,
+      "scoredFieldHasParentheses": false,
+      "note": "The 26 errors are most of the 33 Chinese errors. The Latin gloss stays in the frozen reference. It was not removed to lower the rate."
+    },
+    "englishNumeral": "This slice's English references use the word two. enTokens maps Two and two to the same token and leaves the digit 2 as a different token. It does not rewrite 2 as two.",
+    "cerMixedScript": "zhChars keeps Han, Latin letters, and digits, and drops whitespace, punctuation, and symbols. The same function is applied to the reference and the hypothesis."
+  }
+}
