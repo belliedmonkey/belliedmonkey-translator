@@ -35,11 +35,15 @@ iOS/iPadOS 系统「翻译」拉起 `TranslationUIProviderExtension`。源语言
 
 ## adjacent-agent-host
 
-`translate_page` 与 `translate_video_captions` 在 `agent/contract.js`。它们是宿主动作。与扩展 `DomSegmenter` 或 YouTube timedtext 是否同路，清点标为 `pending`。在对齐调用链之前，不把宿主试跑写进网页基线。
+`translate_page` 与 `translate_video_captions` 在 `agent/contract.js`。有宿主 key 或宿主订阅、且文本非空时，`agent/host-transport.js` 打一枪，系统提示是 `Translate to zh-CN`，调用方自己切段，单段最多 2000 个码点。空文本是计费探针。回执不带回译文。
+
+App 的 `shell-model.js` 只实现 `openSetup` 与 `enterSubtitle`。这里没有 `translatePage` 端口，所以这一枪不是扩展里 `DomSegmenter` 的整页翻译，也不是 YouTube timedtext。质量 **待测**。即使以后测了这一枪，数字也不写入 `webpage-text` 或 `webpage-youtube`。
 
 ## 没有另列的形态
 
-学习/复习只消费已经产生的句对。它不是第十三种翻译业务。本批没有发现需要再开一张端到端表的其他用户可见翻译形态。
+学习/复习只消费已经产生的句对。它不是另一种翻译业务。
+
+`docs/domain-design.md` §2.7 写过一个翻译 CLI。这份检出里没有 `cli/`，也没有 `build/cli-bundle.js`，所以 CLI 不进矩阵。源码进库之后再单列，在那之前不把它算成已接线形态。
 
 ## 门槛
 

@@ -75,6 +75,8 @@ intl Mac、中国版以外、`zhAsrE1 !== false` 时，中文听写臂是 `e1_b1
 
 读某一格时同时看 `note`。`not-applicable` 也有证据，避免以后把「没写」当成「没查」。
 
+补记两处容易混的入口。Apple Podcasts 与小宇宙网页不走播客字幕叠层，只走网页文字。宿主 `translate_page` 在有宿主凭证且文本非空时是一次译到 `zh-CN` 的调用，App 没有 `translatePage` 端口。`docs/domain-design.md` §2.7 的 CLI 在这份检出里没有源码，不在上表。
+
 ## 平台与语言
 
 本批没有把矩阵填成「已覆盖的语言 × 平台」分数表。源码能确定的只有路由差异，例如中国版不走 intl Mac 的 `e1_b1`，泰语 Grok 开关默认关，系统翻译弹层是 iOS 扩展点。某语言在某端的识别质量 **待测**。

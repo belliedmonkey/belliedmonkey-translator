@@ -151,6 +151,11 @@
     "P_QUICK_OCR": { "path": "src/app/quick-model.js", "excerpt": "const text = await TranslationAPI.ocr" },
     "P_SYS": { "path": "app/native/translate-ext/TranslateExt.swift", "excerpt": "TranslationUIProviderExtension" },
     "P_AGENT": { "path": "agent/contract.js", "excerpt": "'translate_page'" },
+    "P_AGENT_SHOT": { "path": "agent/contract.js", "excerpt": "non-empty is one host page-MT shot (the caller segments, at most 2000 code points)" },
+    "P_HOST_SHOT": { "path": "agent/host-transport.js", "excerpt": "system: 'Translate to ' + TARGET_LANG + '.'" },
+    "P_HOST_LANG": { "path": "agent/host-transport.js", "excerpt": "const TARGET_LANG = 'zh-CN';" },
+    "P_SHELL_PORTS": { "path": "src/app/shell-model.js", "excerpt": "openSetup(req) { return runAgentSetup(req && req.step); }" },
+    "P_TEXTONLY": { "path": "extension/content/content-main.js", "excerpt": "const isTextOnlyPodcast = /(podcasts\\.apple\\.com|xiaoyuzhoufm\\.com)/" },
     "P_QWEN": { "path": "build/providers.config.js", "excerpt": "defaultModel: 'qwen-plus'" },
     "P_GRANT": { "path": "build/grant-models.config.js", "excerpt": "chat: 'qwen3.7-plus'" },
     "P_GRANT_STT": { "path": "build/grant-models.config.js", "excerpt": "stt: 'qwen3-asr-flash'" },
@@ -225,7 +230,7 @@
     ["webpage-podcast-timed", "translation", "applies", "同一字幕适配器翻译 cue。", ["P_POD_UI", "P_PAGE"]],
     ["webpage-podcast-timed", "tts", "not-applicable", "已有时轴稿的播客路径不另合成朗读。", ["P_POD"]],
     ["webpage-podcast-timed", "ocr", "not-applicable", "已有时轴稿的播客路径不识图。", ["P_POD"]],
-    ["webpage-podcast-timed", "extract", "applies", "页内稿或 podcast:transcript。", ["P_POD"]],
+    ["webpage-podcast-timed", "extract", "applies", "页内稿或 podcast:transcript。Apple Podcasts 与小宇宙网页被标成只翻页面文字，不走这条字幕叠层。", ["P_POD", "P_TEXTONLY"]],
     ["webpage-podcast-timed", "render", "applies", "视口叠层跟音频时钟。时轴本批未测。", ["P_POD"]],
 
     ["webpage-ai-transcript", "vad", "pending", "文件里没有听译 Silero。直播层只有 RMS 静音守卫。是否等价于 VAD 未核实。", ["P_SIL"]],
@@ -286,12 +291,12 @@
     ["adjacent-agent-host", "vad", "not-applicable", "宿主动作不是听译会话。", ["P_AGENT"]],
     ["adjacent-agent-host", "lid", "not-applicable", "动作契约里没有 LID。", ["P_AGENT"]],
     ["adjacent-agent-host", "asr", "not-applicable", "translate_page 不是听写。", ["P_AGENT"]],
-    ["adjacent-agent-host", "segmentation", "pending", "与扩展 DomSegmenter 是否同一条路，本批未逐调用对齐。", ["P_AGENT", "P_WEB"]],
+    ["adjacent-agent-host", "segmentation", "not-applicable", "宿主这一枪不切段。契约写明由调用方分段，单段最多 2000 个码点。扩展的 DomSegmenter 不是这条调用。", ["P_AGENT_SHOT"]],
     ["adjacent-agent-host", "sentence-correction", "not-applicable", "不经过听译修正。", ["P_AGENT"]],
-    ["adjacent-agent-host", "translation", "applies", "契约里有 translate_page 与 translate_video_captions。不得默认等于扩展页译或 YouTube 预制字幕基线。", ["P_AGENT", "P_YT"]],
+    ["adjacent-agent-host", "translation", "route-dependent", "有宿主 key 或宿主订阅时，非空文本走一次翻译，系统提示是 Translate to zh-CN，不是页译的 buildSystemPrompt。空文本是计费探针。App 的 ports 只有 openSetup 与 enterSubtitle，没有 translatePage。", ["P_HOST_SHOT", "P_HOST_LANG", "P_SHELL_PORTS"]],
     ["adjacent-agent-host", "tts", "not-applicable", "这两个动作的结果是文本。", ["P_AGENT"]],
     ["adjacent-agent-host", "ocr", "not-applicable", "这两个动作不是识图。", ["P_AGENT"]],
-    ["adjacent-agent-host", "extract", "pending", "文本由宿主传入还是由扩展再切 DOM，未在本批做成同一契约。", ["P_AGENT"]],
-    ["adjacent-agent-host", "render", "pending", "宿主动作的用户可见表面与扩展 FAB 不是同一个基线。", ["P_AGENT", "P_WEB"]]
+    ["adjacent-agent-host", "extract", "not-applicable", "文本由调用方传入。契约写明 url 只是提示，宿主不自己抓页。", ["P_AGENT_SHOT"]],
+    ["adjacent-agent-host", "render", "not-applicable", "回执不回显原文或译文。扩展页面上的译文行来自弹窗的 translatePage，不是 App 的宿主端口。", ["P_AGENT_SHOT", "P_SHELL_PORTS"]]
   ]
 }

@@ -38,7 +38,7 @@
 | `adjacent-mac-offline-file` | Mac 本地视频文件 | 桥存在，旗标默认关 | 不是网页媒体基线 |
 | `adjacent-quick` | Mac 快捷翻译与截图 | 已接线 | 待测 |
 | `adjacent-system-translate` | 系统翻译弹层 | 已接线 | 待测 |
-| `adjacent-agent-host` | 宿主 `translate_page` | 契约存在 | 不得默认等于页译 |
+| `adjacent-agent-host` | 宿主 `translate_page` | 计费路径是单次译到 zh-CN；App 未接扩展整页端口 | 待测，且不并进页译 |
 
 场景轴（口音、噪声、专名、数字、纠正过度、语义保真）只是将来的采样计划。语言和平台不按「四端都已覆盖」或「12 语已覆盖」填写。
 

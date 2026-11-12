@@ -30,7 +30,7 @@
 
 ## webpage-podcast-timed
 
-适用范围：`content-podcast.js`。只翻译页内 WebVTT/SRT、`podcast:transcript` 或 Spotify 同步 DOM。没有稿就显示不可用，并留给网页文字路径。维度同上。这条的 ASR 格是 `not-applicable`。 **待测**。
+适用范围：`content-podcast.js`。只翻译页内 WebVTT/SRT、`podcast:transcript` 或 Spotify 同步 DOM。没有稿就显示不可用，并留给网页文字路径。Apple Podcasts 与小宇宙网页被 `isTextOnlyPodcast` 排除在字幕叠层之外，只走网页文字。维度同上。这条的 ASR 格是 `not-applicable`。 **待测**。
 
 ## webpage-ai-transcript
 
