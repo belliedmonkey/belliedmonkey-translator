@@ -57,6 +57,8 @@ final class FeedTrace {
     var resultEventsReceived = 0
     var lastResultEndSeconds: Double?
     var finishRequestedFrame: Int64 = 0
+    var exclusiveEndFrame: Int64 = 0
+    var finalSegmentCount = 0
     var finalizeReturned = false
     var volatileStartSeconds: Double?
     var volatileEndSeconds: Double?
@@ -77,6 +79,22 @@ final class FeedTrace {
         if let endSeconds { lastResultEndSeconds = endSeconds }
         flush()
     }
+}
+
+// A SpeechTranscriber.Result is one phrase. Volatile events revise that phrase.
+// A final for the same range replaces it. Different ranges stay, in arrival order.
+final class SegmentText {
+    private var pieces: [(start: Double, end: Double, text: String)] = []
+    func note(isFinal: Bool, text: String, start: Double, end: Double) {
+        guard isFinal else { return }
+        if let idx = pieces.firstIndex(where: { $0.start == start && $0.end == end }) {
+            pieces[idx].text = text
+        } else {
+            pieces.append((start, end, text))
+        }
+    }
+    var text: String { pieces.map(\.text).joined() }
+    var finalCount: Int { pieces.count }
 }
 
 if #available(macOS 26.0, *) {
@@ -120,11 +138,15 @@ enum FileASR {
             let set = try JSONDecoder().decode(SetFile.self, from: data)
             if diagnostic && args.contains("--diagnostic-prepare-assets") {
                 let sentenceId = "en_us/1660/12742373433258665797.wav"
-                guard diagnosticPath == "apple-file", let item = set.items.first(where: { $0.id == sentenceId }) else {
-                    fputs("{\"ok\":false,\"code\":\"prepare-assets-requires-apple-file\",\"hypotheses\":null,\"rates\":null,\"productMetric\":false}\n", stderr)
+                guard diagnosticPath == "apple-file" || diagnosticPath == "manual",
+                      let item = set.items.first(where: { $0.id == sentenceId }) else {
+                    fputs("{\"ok\":false,\"code\":\"prepare-assets-requires-one-sentence\",\"hypotheses\":null,\"rates\":null,\"productMetric\":false}\n", stderr)
                     return 2
                 }
                 try? FileManager.default.removeItem(at: outURL)
+                if diagnosticPath == "manual" {
+                    return await prepareAndRecognizeManual(item: item, root: root, statusURL: statusURL, args: args)
+                }
                 return await prepareAndRecognizeOfficial(item: item, root: root, statusURL: statusURL, args: args)
             }
             let chosen = diagnostic ? Array(set.items.prefix(1)) : set.items
@@ -475,12 +497,12 @@ enum FileASR {
         }
     }
 
-    static func transcribe(url: URL, locale: Locale, sampleId: String, statusURL: URL?, trace: FeedTrace? = nil) async throws -> String {
+    static func transcribe(url: URL, locale: Locale, sampleId: String, statusURL: URL?, trace: FeedTrace? = nil, speech existing: SpeechTranscriber? = nil) async throws -> String {
         let localeId = locale.identifier(.bcp47)
         let file = try await stage("audio-open", locale: localeId, sampleId: sampleId, statusURL: statusURL) {
             try AVAudioFile(forReading: url)
         }
-        let speech = speechModule(locale)
+        let speech = existing ?? speechModule(locale)
         let status = try await stage("asset-status", locale: localeId, sampleId: sampleId, statusURL: statusURL) {
             await AssetInventory.status(forModules: [speech])
         }
@@ -514,23 +536,27 @@ enum FileASR {
             trace?.resultTaskStarted = true
             trace?.flush()
             if let t = module as? SpeechTranscriber {
-                var last = ""
+                let segments = SegmentText()
                 for try await result in t.results {
                     trace?.bumpResult(endSeconds: result.range.end.seconds)
-                    if result.isFinal { last = String(result.text.characters) }
+                    segments.note(isFinal: result.isFinal, text: String(result.text.characters), start: result.range.start.seconds, end: result.range.end.seconds)
                 }
-                return last
+                trace?.finalSegmentCount = segments.finalCount
+                return segments.text
             }
             if let t = module as? DictationTranscriber {
-                var last = ""
+                let segments = SegmentText()
+                var ordinal = 0.0
                 for try await result in t.results {
-                    if result.isFinal { last = String(result.text.characters) }
+                    ordinal += 1
+                    segments.note(isFinal: result.isFinal, text: String(result.text.characters), start: ordinal, end: ordinal)
                 }
-                return last
+                trace?.finalSegmentCount = segments.finalCount
+                return segments.text
             }
             return ""
         }
-        let fed: Int64 = try await stage("convert", locale: localeId, sampleId: sampleId, statusURL: statusURL) {
+        let lastSampleFrame: Int64 = try await stage("convert", locale: localeId, sampleId: sampleId, statusURL: statusURL) {
             // AVAudioConverter(from:to:) is optional. A nil converter must fail closed.
             guard let converter = AVAudioConverter(from: file.processingFormat, to: fmt) else {
                 throw NSError(domain: "product-asr", code: 4, userInfo: [
@@ -547,9 +573,11 @@ enum FileASR {
             trace?.targetSampleRate = fmt.sampleRate
             trace?.targetChannels = fmt.channelCount
             var fed: Int64 = 0
+            var origin: Int64?
             func deliver(_ out: AVAudioPCMBuffer) {
                 let start = fed
                 let frames = Int64(out.frameLength)
+                if origin == nil { origin = start }
                 trace?.noteInput(start: start, frames: frames, rate: fmt.sampleRate)
                 cont.yield(AnalyzerInput(buffer: out, bufferStartTime: CMTime(value: start, timescale: CMTimeScale(fmt.sampleRate))))
                 fed += frames
@@ -598,12 +626,19 @@ enum FileASR {
             }
             cont.finish()
             trace?.targetFrames = fed
-            trace?.finishRequestedFrame = fed
+            guard fed > 0, let origin else {
+                throw NSError(domain: "product-asr", code: 8, userInfo: [
+                    NSLocalizedDescriptionKey: "zero-input",
+                ])
+            }
+            let lastSample = origin + fed - 1
+            trace?.exclusiveEndFrame = origin + fed
+            trace?.finishRequestedFrame = lastSample
             trace?.flush()
-            return fed
+            return lastSample
         }
         try await stage("analyzer-finish", locale: localeId, sampleId: sampleId, statusURL: statusURL) {
-            let through = CMTime(value: fed, timescale: CMTimeScale(fmt.sampleRate))
+            let through = CMTime(value: lastSampleFrame, timescale: CMTimeScale(fmt.sampleRate))
             trace?.flush()
             try await withThrowingTaskGroup(of: Void.self) { group in
                 group.addTask { try await analyzer.finalize(through: through) }
@@ -664,6 +699,8 @@ enum FileASR {
             manual["targetChannels"] = manualTrace.targetChannels
             manual["inputs"] = manualTrace.inputs
             manual["finishRequestedFrame"] = manualTrace.finishRequestedFrame
+            manual["exclusiveEndFrame"] = manualTrace.exclusiveEndFrame
+            manual["finalSegmentCount"] = manualTrace.finalSegmentCount
             manual["resultTaskStarted"] = manualTrace.resultTaskStarted
             manual["resultEventsReceived"] = manualTrace.resultEventsReceived
             manual["finalizeReturned"] = manualTrace.finalizeReturned
@@ -796,12 +833,13 @@ enum FileASR {
             row["resultTaskStarted"] = true
             let analyzer = SpeechAnalyzer(modules: [speech])
             async let pending: String = {
-                var last = ""
+                let segments = SegmentText()
                 for try await result in speech.results {
                     counter.bumpResult(endSeconds: result.range.end.seconds)
-                    if result.isFinal { last = String(result.text.characters) }
+                    segments.note(isFinal: result.isFinal, text: String(result.text.characters), start: result.range.start.seconds, end: result.range.end.seconds)
                 }
-                return last
+                counter.finalSegmentCount = segments.finalCount
+                return segments.text
             }()
             if let lastSample = try await analyzer.analyzeSequence(from: file) {
                 row["lastSampleSeconds"] = lastSample.seconds
@@ -814,6 +852,7 @@ enum FileASR {
             }
             row["diagnosticText"] = try await pending
             row["resultEventsReceived"] = counter.resultEventsReceived
+            row["finalSegmentCount"] = counter.finalSegmentCount
             if let end = counter.lastResultEndSeconds { row["lastResultEndSeconds"] = end }
         } catch {
             row["error"] = redact(String(describing: error))
@@ -880,12 +919,13 @@ enum FileASR {
             }
             counter.flush()
             async let pending: String = {
-                var last = ""
+                let segments = SegmentText()
                 for try await result in speech.results {
                     counter.bumpResult(endSeconds: result.range.end.seconds)
-                    if result.isFinal { last = String(result.text.characters) }
+                    segments.note(isFinal: result.isFinal, text: String(result.text.characters), start: result.range.start.seconds, end: result.range.end.seconds)
                 }
-                return last
+                counter.finalSegmentCount = segments.finalCount
+                return segments.text
             }()
             box.value = try await analyzer.analyzeSequence(from: file)
             if let lastSample = box.value {
@@ -899,12 +939,126 @@ enum FileASR {
             }
             row["diagnosticText"] = try await pending
             row["resultEventsReceived"] = counter.resultEventsReceived
+            row["finalSegmentCount"] = counter.finalSegmentCount
         } catch {
             row["error"] = redact(String(describing: error))
             row["resultTaskStarted"] = counter.resultTaskStarted
             row["resultEventsReceived"] = counter.resultEventsReceived
         }
         return row
+    }
+
+    // Same module for the nil-request recheck and the manual PCM finalize.
+    // The through time is the last sample. This does not switch to analyzeSequence.
+    static func prepareAndRecognizeManual(item: Item, root: URL, statusURL: URL?, args: [String]) async -> Int32 {
+        let locale = locale(for: item.config)
+        let speech = speechModule(locale)
+        let trace = FeedTrace()
+        var row: [String: Any] = [
+            "feed": "manual-pcm-analyzer-input",
+            "notAProductScore": true,
+            "notAFullSetScore": true,
+            "sameProductProcess": false,
+            "endToEnd": false,
+            "productMetric": false,
+            "hypotheses": NSNull(),
+            "rates": NSNull(),
+            "completeSet": false,
+            "success": false,
+            "downloadBytes": "unknown",
+            "permissionPrompt": "unknown",
+            "module": [
+                "constructedBy": "speechModule",
+                "locale": locale.identifier(.bcp47),
+                "transcriptionOptions": "[]",
+                "reportingOptions": "volatileResults,fastResults,alternativeTranscriptions",
+                "attributeOptions": "audioTimeRange,transcriptionConfidence",
+                "preset": NSNull(),
+            ],
+            "sourceSha256": argValue(args, "--source-sha256"),
+            "runtimeKind": argValue(args, "--runtime-kind"),
+            "finalizeReturned": false,
+            "finalSegmentCount": 0,
+        ]
+        func publish() { writeDiagnostic(statusURL, item: item, paths: [row]) }
+        guard locale.identifier(.bcp47) == "en-US" else {
+            row["code"] = "unsupported-locale"
+            publish()
+            return 2
+        }
+        writePhase(statusURL, "prepare-before")
+        let before = await AssetInventory.status(forModules: [speech])
+        row["statusBefore"] = statusName(before)
+        publish()
+        if before == .installed {
+            row["installRequest"] = "not-called"
+        } else if before == .supported {
+            do {
+                if let request = try await AssetInventory.assetInstallationRequest(supporting: [speech]) {
+                    row["installRequest"] = "downloadAndInstall"
+                    try await request.downloadAndInstall()
+                } else {
+                    row["installRequest"] = "nil"
+                }
+            } catch {
+                row["code"] = "speech-assets-not-installed"
+                row["error"] = redact(String(describing: error))
+                publish()
+                return 2
+            }
+            let afterRequest = await AssetInventory.status(forModules: [speech])
+            row["statusAfterRequest"] = statusName(afterRequest)
+            if afterRequest != .installed {
+                row["code"] = row["installRequest"] as? String == "nil" ? "nil-request-not-installed" : "speech-assets-not-installed"
+                publish()
+                return 2
+            }
+        } else {
+            row["code"] = "speech-assets-not-installed"
+            row["status"] = statusName(before)
+            publish()
+            return 2
+        }
+        let afterPrepare = await AssetInventory.status(forModules: [speech])
+        row["statusAfterPrepare"] = statusName(afterPrepare)
+        writePhase(statusURL, "prepare-after")
+        publish()
+        guard afterPrepare == .installed else {
+            row["code"] = "speech-assets-not-installed"
+            publish()
+            return 2
+        }
+        writePhase(statusURL, "recognize-before")
+        let beforeRecognize = await AssetInventory.status(forModules: [speech])
+        row["statusBeforeRecognize"] = statusName(beforeRecognize)
+        publish()
+        do {
+            let text = try await transcribe(
+                url: URL(fileURLWithPath: item.audioCache, relativeTo: root),
+                locale: locale,
+                sampleId: item.id,
+                statusURL: statusURL,
+                trace: trace,
+                speech: speech)
+            row["diagnosticText"] = text
+            row["finalizeReturned"] = trace.finalizeReturned
+            row["finishRequestedFrame"] = trace.finishRequestedFrame
+            row["exclusiveEndFrame"] = trace.exclusiveEndFrame
+            row["finalSegmentCount"] = trace.finalSegmentCount
+            row["resultEventsReceived"] = trace.resultEventsReceived
+            if let end = trace.lastResultEndSeconds { row["lastResultEndSeconds"] = end }
+        } catch {
+            row["error"] = redact(String(describing: error))
+            row["finalizeReturned"] = trace.finalizeReturned
+            publish()
+            writePhase(statusURL, "done")
+            return 2
+        }
+        let atEnd = await AssetInventory.status(forModules: [speech])
+        row["statusAtEnd"] = statusName(atEnd)
+        publish()
+        writePhase(statusURL, "done")
+        return row["finalizeReturned"] as? Bool == true ? 0 : 2
     }
 
     static func writeDiagnostic(_ statusURL: URL?, item: Item, paths: [[String: Any]]) {

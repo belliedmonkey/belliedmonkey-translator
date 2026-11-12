@@ -6,7 +6,7 @@ const os = require('os');
 const path = require('path');
 const { execFileSync, spawnSync } = require('child_process');
 const { describe, test, eq, ok } = require('./harness');
-const { planRun, macMajor, assetPlan, classifyAssetError, reportFailure, pcmReadAction, readThrownAction, converterOutputAction, childFailure, diagnosticPlan, coverageReport, diagnosticProcesses, pathTimeoutRecord, diagnosticAggregate, diagnosticInvocation, interpretSupervisedExit, stageKillDecision, superviseChild } = require('../eval/baselines/asr/run-product-asr.js');
+const { planRun, macMajor, assetPlan, classifyAssetError, reportFailure, pcmReadAction, readThrownAction, converterOutputAction, childFailure, diagnosticPlan, coverageReport, diagnosticProcesses, pathTimeoutRecord, diagnosticAggregate, diagnosticInvocation, interpretSupervisedExit, stageKillDecision, superviseChild, lastSampleTime, aggregateFinalSegments } = require('../eval/baselines/asr/run-product-asr.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -264,17 +264,31 @@ describe('product ASR gate — no hypothesis off the Apple recognizer', () => {
     eq(one.compileCapMs + one.runCapMs <= 3 * 60 * 1000, true);
   });
 
-  test('prepare-assets is legal only with the official one-clip path', () => {
+  test('prepare-assets is legal for one en-US sentence on the official or manual path', () => {
     const bad = diagnosticInvocation({
       prepareAssets: true, diagnosticFirst: false, diagnosticPath: '',
     });
     eq(bad.ok, false);
     eq(bad.processExit, 2);
     eq(bad.hypotheses, null);
-    const alsoBad = diagnosticInvocation({
+    const manualBare = diagnosticInvocation({
+      prepareAssets: true, diagnosticFirst: false, diagnosticPath: 'manual',
+    });
+    eq(manualBare.ok, false);
+    const both = diagnosticInvocation({
+      prepareAssets: true, diagnosticFirst: true, diagnosticPath: 'both',
+    });
+    eq(both.ok, false);
+    eq(both.hypotheses, null);
+    const manual = diagnosticInvocation({
       prepareAssets: true, diagnosticFirst: true, diagnosticPath: 'manual',
     });
-    eq(alsoBad.ok, false);
+    eq(manual.ok, true);
+    eq(manual.prepare, true);
+    eq(manual.sameProcess, true);
+    eq(manual.path, 'manual');
+    eq(manual.productMetric, false);
+    eq(manual.hypotheses, null);
     const okCall = diagnosticInvocation({
       prepareAssets: true, diagnosticFirst: true, diagnosticPath: 'apple-file',
     });
@@ -286,6 +300,54 @@ describe('product ASR gate — no hypothesis off the Apple recognizer', () => {
     });
     eq(installOnly.ok, true);
     eq(installOnly.prepare, false);
+  });
+
+  test('the manual through-time is the last sample, not the exclusive buffer end', () => {
+    const official = lastSampleTime({ startFrame: 0, frameCount: 170880, sampleRate: 16000 });
+    eq(official.ok, true);
+    eq(official.value, 170879);
+    eq(official.timescale, 16000);
+    eq(official.seconds, 170879 / 16000);
+    eq(official.exclusiveEndSeconds, 170880 / 16000);
+    eq(official.hypotheses, null);
+    eq(official.rates, null);
+    eq(official.productMetric, false);
+    const one = lastSampleTime({ startFrame: 100, frameCount: 1, sampleRate: 16000 });
+    eq(one.ok, true);
+    eq(one.value, 100);
+    const none = lastSampleTime({ startFrame: 0, frameCount: 0, sampleRate: 16000 });
+    eq(none.ok, false);
+    eq(none.code, 'zero-input');
+    eq(none.value, undefined);
+    const badStart = lastSampleTime({ startFrame: -1, frameCount: 4, sampleRate: 16000 });
+    eq(badStart.ok, false);
+    eq(badStart.code, 'bad-start');
+  });
+
+  test('final segments are joined in order and volatile revisions are not concatenated', () => {
+    const joined = aggregateFinalSegments([
+      { isFinal: true, text: 'Hello', rangeStart: 0, rangeEnd: 1, reference: 'unused reference' },
+      { isFinal: false, text: ' Schleg', rangeStart: 8, rangeEnd: 9 },
+      { isFinal: false, text: ' Schlege', rangeStart: 8, rangeEnd: 9 },
+      { isFinal: true, text: ' world', rangeStart: 1, rangeEnd: 2 },
+      { isFinal: true, text: ' Schlegel.', rangeStart: 8, rangeEnd: 9 },
+    ]);
+    eq(joined.text, 'Hello world Schlegel.');
+    eq(joined.finalCount, 3);
+    eq(joined.hypotheses, null);
+    eq(joined.rates, null);
+    eq(joined.productMetric, false);
+    const replaced = aggregateFinalSegments([
+      { isFinal: true, text: 'Helo', rangeStart: 0, rangeEnd: 1 },
+      { isFinal: true, text: 'Hello', rangeStart: 0, rangeEnd: 1 },
+    ]);
+    eq(replaced.text, 'Hello');
+    eq(replaced.finalCount, 1);
+    const volatileOnly = aggregateFinalSegments([
+      { isFinal: false, text: ' Schlegel.', rangeStart: 8, rangeEnd: 9 },
+    ]);
+    eq(volatileOnly.text, '');
+    eq(volatileOnly.finalCount, 0);
   });
 
   test('a fake child exit 2 is not wrapped as success, and exit 0 is not a product score', () => {
@@ -504,6 +566,17 @@ describe('product ASR gate — no hypothesis off the Apple recognizer', () => {
     ok(body.includes('nil-request-not-installed'));
     ok(body.includes('"downloadBytes": "unknown"'));
     ok(src.includes('en_us/1660/12742373433258665797.wav'));
+    ok(src.includes('origin + fed - 1'));
+    ok(src.includes('CMTime(value: lastSampleFrame'));
+    ok(src.includes('final class SegmentText'));
+    ok(!src.includes('if result.isFinal { last = String(result.text.characters) }'));
+    const manualAt = src.indexOf('static func prepareAndRecognizeManual');
+    const manualEnd = src.indexOf('static func writeDiagnostic');
+    ok(manualAt > 0 && manualEnd > manualAt);
+    const manualBody = src.slice(manualAt, manualEnd);
+    eq(manualBody.split('speechModule(').length - 1, 1);
+    ok(manualBody.includes('speech: speech'));
+    ok(!manualBody.includes('analyzeSequence'));
     ok(!body.includes('withThrowingTaskGroup'));
     ok(!body.includes('AssetInventory.release'));
     ok(!body.includes('AssetInventory.reserve'));

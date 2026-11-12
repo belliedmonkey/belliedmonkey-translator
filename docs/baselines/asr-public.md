@@ -157,9 +157,15 @@ node eval/baselines/asr/run-product-asr.js --out-dir <output-dir>
 
 Node 把子进程退出码 2 收成总退出 0，并把顶层 `swiftExit` 写成 0。子进程的 2 只留在 `paths[0]`。这是包装错误，不是 Swift 退出 0。
 
-t10u（15:14+08）要求换一次可证伪实验，不是重跑 15:08 的命令。选项 `--diagnostic-prepare-assets` 只在同时有 `--diagnostic-first` 和 `--diagnostic-path apple-file` 时合法。默认 16 句和单独的 `--install-assets` 不变。它只对公开英文首句 `en_us/1660/12742373433258665797.wav` 做一次 en-US 准备：状态已是 `installed` 就不下载；是 `supported` 就按官方 `assetInstallationRequest(supporting:)` 加一次 `downloadAndInstall()`。请求为 nil 时按官方含义不再下载，并立刻复查；复查仍不是 `installed` 就失败退出，不把 nil 或 `supported` 当成就绪。不调用 `release` / `reserve`，不碰其他语言。准备和 `analyzeSequence` 使用同一份编译出的 binary、同一个进程、同一个 `speechModule` 实例。`swiftc` 上限 90 秒。该进程的硬上限是 `min(180 秒, 4 分钟 − 编译用时)`。到点先发 `SIGTERM`；若 5 秒后进程还在，再发 `SIGKILL`。记录里的 `signal` 是实际结束进程的那个，`swiftExit` 为 null。阶段文件里的准备 120 秒、识别 45 秒是轮询杀掉，不是三套叠在一起的时钟；没有阶段文件时只剩进程硬上限。这一项还没有在 Mac 上跑。
+t10u（15:14+08）要求换一次可证伪实验，不是重跑 15:08 的命令。选项 `--diagnostic-prepare-assets` 当时只在同时有 `--diagnostic-first` 和 `--diagnostic-path apple-file` 时合法。默认 16 句和单独的 `--install-assets` 不变。它只对公开英文首句 `en_us/1660/12742373433258665797.wav` 做一次 en-US 准备：状态已是 `installed` 就不下载；是 `supported` 就按官方 `assetInstallationRequest(supporting:)` 加一次 `downloadAndInstall()`。请求为 nil 时按官方含义不再下载，并立刻复查；复查仍不是 `installed` 就失败退出，不把 nil 或 `supported` 当成就绪。不调用 `release` / `reserve`，不碰其他语言。准备和 `analyzeSequence` 使用同一份编译出的 binary、同一个进程、同一个 `speechModule` 实例。`swiftc` 上限 90 秒。该进程的硬上限是 `min(180 秒, 4 分钟 − 编译用时)`。到点先发 `SIGTERM`；若 5 秒后进程还在，再发 `SIGKILL`。记录里的 `signal` 是实际结束进程的那个，`swiftExit` 为 null。阶段文件里的准备 120 秒、识别 45 秒是轮询杀掉，不是三套叠在一起的时钟；没有阶段文件时只剩进程硬上限。
 
-唯一假设：上述同进程序列可以返回。返回只证明这一次同进程能走完，不能证明 en-US 为什么从 `installed` 变成 `supported`。进程退出 0 仍不是产品分数，`hypotheses` 和 `rates` 为 null，`completeSet` 为 false。准备成功不是识别成功。若这次仍不能走完，就停：缺的证据是同实例上 `analyzeSequence` 有没有进入并返回；若停在准备，缺的是官方请求的真实 error，或 nil 之后的 status。
+15:31:08–15:31:11，这条官方命令在 Mac 上编译和运行都是退出码 0。en-US `statusBefore` 为 `supported`，`assetInstallationRequest` 一次返回 nil，没有下载，复查为 `installed`。准备后、识别前、结束时都是 `installed`。同一个 `speechModule`，同一份编译出的 binary。`analyzeSequence` 返回 `lastSampleSeconds` 10.679937499999999，即 170879/16000；文件是 170880 帧、16000 Hz。`finalizeAndFinish` 返回，reader 结束，37 个事件。`diagnosticText` 只有 `" Schlegel."`，`lastResultEndSeconds` 为 9。`success` 仍是 false。这不是整集分数，也不是产品分数。它只证明这次同进程序列能返回，不解释状态为什么从 `installed` 变成 `supported`。
+
+[`finalize(through:)`](https://developer.apple.com/documentation/speech/speechanalyzer/finalize(through:)) 会等到分析器消费到给定时间码，含该点，才返回。`analyzeSequence` 返回的是最后一个被消费采样的时间码。这次就是 170879/16000，不是缓冲的独占终点 170880/16000。手动路径原来把帧数之和 `fed` 当作 through。那个时间码不是一个采样，按文档不会被消费，等待没有上界。手动 PCM 的 through 现已改成起点加帧数减一，时基仍是缓冲的采样率；帧数为 0 时直接失败，不把时间减成负数。从 0 起的 170880 帧对应 170879。这还没有在 Mac 上单变量复验，所以不称已经根治。手动输入仍走 `finalize(through:)`，没有改成 `finalizeAndFinish`，也没有改成 `analyzeSequence`。
+
+[`SpeechTranscriber.Result`](https://developer.apple.com/documentation/speech/speechtranscriber/result) 是按顺序送来的一段。`isFinal` 为 false 时是这段的修订，不进入定稿；为 true 时是这段的定稿。同一时间范围后来的定稿替换该段，不把修订重复拼上。评测原先只用最后一条 `isFinal` 的文本覆盖整句，所以接口走完后 `diagnosticText` 仍只有 `" Schlegel."`。定稿现按段拼接。这只改评测提取。产品桥仍是每条 final 单独送出。接口返回不表示转写正确。
+
+`--diagnostic-prepare-assets` 现在也可以配 `--diagnostic-first --diagnostic-path manual`，仍然只准备这一句 en-US，不默认安装。下一次只验证两件事：最后采样点的 `finalize(through:)` 是否返回，以及定稿分段是否拼完整。`swiftc` 仍是 90 秒。该进程硬上限仍是 `min(180 秒, 4 分钟 − 编译用时)`，识别阶段轮询 45 秒。进程内的 task group 取消不了 `finalize(through:)`，硬停止仍是 Node 的 `SIGTERM` / `SIGKILL`。
 
 产品实施建议（不在本 PR 改 App）：给现有 `MTDeviceTranscriber` / `MTE1B1Transcriber` 加一条文件 PCM 入口，而不是再写一套识别器。
 

@@ -199,6 +199,49 @@ function diagnosticPlan(input) {
   };
 }
 
+function lastSampleTime(spec) {
+  const start = spec && spec.startFrame;
+  const count = spec && spec.frameCount;
+  const rate = spec && spec.sampleRate;
+  const blank = { hypotheses: null, rates: null, productMetric: false };
+  if (!Number.isInteger(start) || start < 0) {
+    return Object.assign(blank, { ok: false, code: 'bad-start' });
+  }
+  if (!Number.isInteger(count) || count <= 0) {
+    return Object.assign(blank, { ok: false, code: 'zero-input' });
+  }
+  if (typeof rate !== 'number' || !(rate > 0) || !Number.isFinite(rate)) {
+    return Object.assign(blank, { ok: false, code: 'bad-rate' });
+  }
+  const value = start + count - 1;
+  return Object.assign(blank, {
+    ok: true,
+    code: 'ok',
+    value: value,
+    timescale: rate,
+    seconds: value / rate,
+    exclusiveEndSeconds: (start + count) / rate,
+  });
+}
+
+function aggregateFinalSegments(events) {
+  const pieces = [];
+  for (const ev of events || []) {
+    if (!ev || ev.isFinal !== true) continue;
+    const text = typeof ev.text === 'string' ? ev.text : '';
+    const idx = pieces.findIndex((piece) => piece.rangeStart === ev.rangeStart && piece.rangeEnd === ev.rangeEnd);
+    if (idx >= 0) pieces[idx].text = text;
+    else pieces.push({ rangeStart: ev.rangeStart, rangeEnd: ev.rangeEnd, text: text });
+  }
+  return {
+    text: pieces.map((piece) => piece.text).join(''),
+    finalCount: pieces.length,
+    hypotheses: null,
+    rates: null,
+    productMetric: false,
+  };
+}
+
 function diagnosticInvocation(input) {
   const prepare = input.prepareAssets === true;
   const first = input.diagnosticFirst === true;
@@ -210,10 +253,10 @@ function diagnosticInvocation(input) {
     sameProductProcess: false,
     endToEnd: false,
   };
-  if (prepare && !(first && pathName === 'apple-file')) {
+  if (prepare && !(first && (pathName === 'apple-file' || pathName === 'manual'))) {
     return Object.assign(base, {
       ok: false,
-      code: 'prepare-assets-requires-apple-file',
+      code: 'prepare-assets-requires-one-sentence',
       processExit: 2,
       prepare: false,
       sameProcess: false,
@@ -246,7 +289,7 @@ function interpretSupervisedExit(result) {
   const failed = killedByCap || swiftExit !== 0;
   return {
     ok: !failed,
-    path: 'apple-analyzeSequence-file',
+    path: result.path || 'apple-analyzeSequence-file',
     phase: result.phase || (killedByCap ? 'killed' : 'exited'),
     timedOut: killedByCap,
     signal: signal,
@@ -643,7 +686,7 @@ async function main(argv) {
     const watched = await superviseChild(bin, [
       '--set', setPath, '--out', hypPath,
       '--status-out', path.join(dest, 'asset-status.json'),
-      '--diagnostic-first', '--diagnostic-path', 'apple-file', '--diagnostic-prepare-assets',
+      '--diagnostic-first', '--diagnostic-path', diagnosticPath, '--diagnostic-prepare-assets',
       '--source-sha256', sourceSha, '--runtime-kind', 'compiled-binary',
     ], {
       phaseFile: path.join(dest, 'diagnostic-phase.json'),
@@ -651,7 +694,9 @@ async function main(argv) {
       prepareCapMs: 120 * 1000,
       recognizeCapMs: 45 * 1000,
     });
-    const view = interpretSupervisedExit(watched);
+    const view = interpretSupervisedExit(Object.assign({}, watched, {
+      path: diagnosticPath === 'manual' ? 'manual-pcm-analyzer-input' : 'apple-analyzeSequence-file',
+    }));
     const agg = diagnosticAggregate([view]);
     meta.paths = agg.paths;
     meta.hypotheses = null;
@@ -779,4 +824,5 @@ module.exports = {
   pcmReadAction, readThrownAction, converterOutputAction, childFailure,
   diagnosticPlan, coverageReport, diagnosticProcesses, pathTimeoutRecord, diagnosticAggregate,
   diagnosticInvocation, interpretSupervisedExit, stageKillDecision, superviseChild,
+  lastSampleTime, aggregateFinalSegments,
 };
