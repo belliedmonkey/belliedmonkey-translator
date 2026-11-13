@@ -26,12 +26,27 @@ SenseVoice 沿用 `app/device-models.config.js` 里的表，不另抄一份会�
 
 ```bash
 node eval/baselines/asr/run-reviewed-36.js --check
-node eval/baselines/asr/run-reviewed-36.js --run --backend sa --out <新目录>
-node eval/baselines/asr/run-reviewed-36.js --run --backend sensevoice --out <新目录>
+node eval/baselines/asr/run-reviewed-36.js --run --backend sa --out <新目录> \
+  --fleurs-cache <FLEURS 缓存根> --ascend-cache <ASCEND 缓存根>
+node eval/baselines/asr/run-reviewed-36.js --run --backend sensevoice --out <新目录> \
+  --sensevoice-dir <含 model.int8.onnx 与 tokens.txt 的目录> \
+  --fleurs-cache <FLEURS 缓存根> --ascend-cache <ASCEND 缓存根>
 node eval/baselines/asr/run-reviewed-36.js --pack-existing <已有目录>
 node eval/baselines/asr/run-reviewed-36.js --prefetch-sensevoice <显式 URL>
 ```
 
-`--check` 核对 36 条原始缓存和对应听审。缺文件、坏 hash、缺听审都是非零，并且没有分数。`--run` 在 Linux 上对 SA 写 `unavailable`，退出码 2，`rates` 为 null。在 darwin 上这一轮写 `sa-not-executed`：Swift 源码仍是 `product-asr-mac.swift`，它要一个 `--audio-root`，而这 36 条原始文件分在两个缓存目录，子进程还没有从这里启动。SenseVoice 的 zip 不在本机时同样是 `unavailable`。空 hypothesis 不会变成错误率 0。`--pack-existing` 只打包，不重新识别。超时清理仍用 `run-sa-file.js` 的进程组 TERM/KILL，旁观者测试在 `test/sa-file-run.test.js`。
+第一次真跑用上面的单次命令，不要加 `--repeats`。少于 5 次只记探索性，不排名。
 
-Mac 上的真实识别还没在这台环境跑过。云端 Linux 不能报 SA 分数。预先准备 SenseVoice 时只能给与钉住 sha256 相同的 zip，并且要显式写 URL。不调用产品中继。
+`--check` 核对 36 条原始缓存和对应听审。缺文件、坏 hash、缺听审都是非零，并且没有分数。
+
+`--run --backend sa` 在 Linux 上写 `unavailable`，退出码 2，`rates` 为 null。在 darwin 上、并且 `swiftc` 存在时，它会把 36 条原文件拷进该次运行目录下的 `audio-root`，拷完再对字节做 sha256，然后编译 `product-asr-mac.swift`，先 `--install-assets`，再跑识别。ASCEND 在交给 Swift 时的 `config` 是 `cmn_hans_cn`，对应 locale `zh-CN`，只这一次，不另跑 `en-US`。冻结 16 句不进这个 set。超时仍走 `run-sa-file.js` 的进程组 TERM/KILL。检测到达尔文不等于已经执行；没有 `swiftc` 时退出码是 `missing-swiftc`。
+
+SenseVoice 没有模型目录时写 `model-missing`。目录里有 `model.int8.onnx` 和 `tokens.txt` 时先记录这两份 sha256；本机没有 `sherpa-onnx-offline` 时写 `backend-missing`，仍然没有分数。两者都不阻挡 SA 的准备。二进制存在时，子进程参数固定为 cpu、2 线程、`--sense-voice-language=zh`、`--sense-voice-use-itn=1`，36 条 wav 一次传入。`recognizeMs` 是这个子进程的墙钟，含模型加载；stderr 里的 `recognizer created in` 另记为 `modelLoadMs`。预先下载只接受与钉住 sha256、大小相同的 zip。仓库里的地址是产品中继，实验不调用它。公开的 tar.bz2 会被拒绝。显式 URL 是：
+
+```bash
+node eval/baselines/asr/run-reviewed-36.js --prefetch-sensevoice https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.zip
+```
+
+同一步失败两次就停。2026-11-13 对上面这个 zip URL 做了两次 HEAD，两次都是 HTTP 404，`content-type: text/plain`，最终 URL 没有跳到别的文件。没有下载，也没有用 tar.bz2 顶替。SenseVoice 这一项是 blocked。SA 的 staging、编译和子进程路径不依赖它。
+
+Mac 上的真实识别还没在这台环境跑过。云端 Linux 不能报 SA 分数。合成夹具的 `rates` 保持 null。

@@ -5,11 +5,13 @@ const os = require('os');
 const path = require('path');
 const { describe, test, eq } = require('./harness');
 const { signalProcessGroup } = require('../eval/baselines/asr/run-sa-file.js');
+const crypto = require('crypto');
+const { spawn } = require('child_process');
 const {
-  loadSet, checkCaches, senseVoicePin, perfSchedule, summarizeLatencies, conversionRecord,
+  loadSet, checkCaches, stageReviewedAudio, senseVoicePin, perfSchedule, summarizeLatencies, conversionRecord,
 } = require('../eval/baselines/asr/reviewed-36.js');
 const { mixedTokens, scoreReviewed } = require('../eval/baselines/asr/codeswitch-score.js');
-const { runReviewed36, prefetchSenseVoice, signalProcessGroup: reusedSignal } = require('../eval/baselines/asr/run-reviewed-36.js');
+const { runReviewed36, prefetchSenseVoice, signalProcessGroup: reusedSignal, SENSEVOICE_ZIP_URL, senseVoiceChildArgs } = require('../eval/baselines/asr/run-reviewed-36.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -117,16 +119,23 @@ describe('reviewed 36 — selection, score, and unavailable runs', () => {
         return { arrayBuffer: async () => Buffer.from('nope') };
       },
     });
-    eq(calls, 1);
+    eq(calls, 2);
+    eq(mismatch.attempts, 2);
     eq(mismatch.code, 'checksum-mismatch');
+    eq(SENSEVOICE_ZIP_URL.endsWith('.zip'), true);
+    const tar = await prefetchSenseVoice({ url: SENSEVOICE_ZIP_URL.replace(/\.zip$/, '.tar.bz2'), root: ROOT, fetch: () => { throw new Error('called'); } });
+    eq(tar.code, 'tar-bz2-refused');
+    eq(tar.attempts, 0);
+    const { inspectSenseVoiceDir } = require('../eval/baselines/asr/reviewed-36.js');
+    eq(inspectSenseVoiceDir('').code, 'model-missing');
   });
 
-  test('Linux SA is unavailable and pack-existing does not recognize again', () => {
+  test('Linux SA is unavailable and pack-existing does not recognize again', async () => {
     eq(reusedSignal, signalProcessGroup);
     const out = fs.mkdtempSync(path.join(os.tmpdir(), 'r36-run-'));
     const runDir = path.join(out, 'run');
     let calls = 0;
-    const result = runReviewed36({
+    const result = await runReviewed36({
       command: 'run',
       backend: 'sa',
       platform: 'linux',
@@ -141,7 +150,7 @@ describe('reviewed 36 — selection, score, and unavailable runs', () => {
     eq(result.rates, null);
     eq(result.phases.recognizeMs, null);
     eq(fs.existsSync(path.join(runDir, 'evidence.tar.gz')), true);
-    const again = runReviewed36({ command: 'pack-existing', packDir: runDir, recognize: () => { calls += 1; } });
+    const again = await runReviewed36({ command: 'pack-existing', packDir: runDir, recognize: () => { calls += 1; } });
     eq(calls, 0);
     eq(again.recognizeStarted, false);
     eq(again.processExit, 0);
@@ -149,15 +158,160 @@ describe('reviewed 36 — selection, score, and unavailable runs', () => {
     eq(conv.converted, true);
     eq(conv.sha256 === 'abc', false);
     eq(conversionRecord('abc', null).converted, false);
-    const mac = fs.mkdtempSync(path.join(os.tmpdir(), 'r36-mac-'));
-    const macRun = runReviewed36({
-      command: 'run', backend: 'sa', platform: 'darwin', swiftc: '/usr/bin/false',
-      outDir: path.join(mac, 'run'), root: ROOT, skipAudio: true,
-      recognize: () => { calls += 1; },
+  });
+
+  function fixtureItems(dir) {
+    const items = [];
+    function add(id, config, lang, stratum, reference) {
+      const audioName = id.replace(/[^A-Za-z0-9._-]/g, '_') + '.wav';
+      const body = Buffer.from('wav-bytes-' + id);
+      const sourcePath = path.join(dir, audioName);
+      fs.writeFileSync(sourcePath, body);
+      items.push({
+        id: id,
+        config: config,
+        lang: lang,
+        stratum: stratum,
+        reference: reference,
+        audioName: audioName,
+        audioSha256: crypto.createHash('sha256').update(body).digest('hex'),
+        sourcePath: sourcePath,
+      });
+    }
+    for (let i = 0; i < 15; i++) add('read/en/' + i, 'en_us', 'en', 'read-speech', 'one two');
+    for (let i = 0; i < 15; i++) add('read/zh/' + i, 'cmn_hans_cn', 'zh', 'read-speech', '甲乙');
+    for (let i = 0; i < 6; i++) add('ascend/' + i, 'ascend', 'mixed', 'code-switch', '呃what');
+    return items;
+  }
+
+  function scriptBin(kind) {
+    return (bin) => {
+      const body = [
+        '#!/usr/bin/env node',
+        'const fs = require("fs");',
+        'const args = process.argv;',
+        'if (args.includes("--install-assets")) process.exit(0);',
+        kind === 'fail' ? 'process.exit(2);' : '',
+        kind === 'sleep' ? 'setInterval(function () {}, 1000);' : '',
+        'const set = JSON.parse(fs.readFileSync(args[args.indexOf("--set") + 1], "utf8"));',
+        'const rows = set.items.map(function (item) { return { id: item.id, hypothesis: "one two" }; });',
+        'fs.writeFileSync(args[args.indexOf("--out") + 1], JSON.stringify(rows));',
+      ].filter(Boolean).join('\n');
+      fs.writeFileSync(bin, body);
+      fs.chmodSync(bin, 0o755);
+      return { code: 0 };
+    };
+  }
+
+  test('a mock SA child can succeed, fail, and time out without a real Apple result', async () => {
+    const src = fs.mkdtempSync(path.join(os.tmpdir(), 'r36-src-'));
+    const items = fixtureItems(src);
+    const staged = stageReviewedAudio(items, path.join(src, 'stage'), (item) => item.sourcePath);
+    eq(staged.ok, true);
+    eq(staged.items[30].swiftConfig, 'cmn_hans_cn');
+    eq(staged.items[30].stagedSha256, items[30].audioSha256);
+    const successDir = path.join(src, 'ok');
+    const success = await runReviewed36({
+      command: 'run', backend: 'sa', platform: 'linux', execute: true, synthetic: true,
+      fixtureItems: items, outDir: successDir, root: ROOT,
+      compile: scriptBin('ok'),
+      processCapMs: 5000, itemCapMs: 5000, killGraceMs: 50, pollMs: 20,
     });
-    eq(calls, 0);
-    eq(macRun.code, 'sa-not-executed');
-    eq(macRun.rates, null);
-    eq(macRun.phases.recognizeMs, null);
+    eq(success.code, 'ok');
+    eq(success.synthetic, true);
+    eq(success.rates, null);
+    eq(success.appleResult, false);
+    eq(success.recognizeStarted, true);
+    eq(typeof success.phases.recognizeMs, 'number');
+    eq(typeof success.phases.compileMs, 'number');
+    eq(success.saLocaleApplied.searched, false);
+    const set = JSON.parse(fs.readFileSync(path.join(successDir, 'set-for-run.json'), 'utf8'));
+    eq(set.items.length, 36);
+    eq(set.items.some((item) => String(item.id).indexOf('1660') !== -1), false);
+    const failDir = path.join(src, 'fail');
+    const failed = await runReviewed36({
+      command: 'run', backend: 'sa', platform: 'linux', execute: true, synthetic: true,
+      fixtureItems: items, outDir: failDir, root: ROOT,
+      compile: scriptBin('fail'),
+      processCapMs: 5000, itemCapMs: 5000, killGraceMs: 50, pollMs: 20,
+    });
+    eq(failed.code, 'recognition-failed');
+    eq(failed.rates, null);
+    eq(failed.recognizeStarted, true);
+    const sentinel = spawn(process.execPath, ['-e', 'setInterval(function(){}, 1000)'], { detached: true, stdio: 'ignore' });
+    const timeoutDir = path.join(src, 'timeout');
+    try {
+      const timed = await runReviewed36({
+        command: 'run', backend: 'sa', platform: 'linux', execute: true, synthetic: true,
+        fixtureItems: items, outDir: timeoutDir, root: ROOT,
+        compile: scriptBin('sleep'),
+        processCapMs: 300, itemCapMs: 300, killGraceMs: 80, pollMs: 20,
+      });
+      eq(timed.timedOut, true);
+      eq(timed.rates, null);
+      eq(timed.recognizeStarted, true);
+      const model = path.join(src, 'sv-model');
+      fs.mkdirSync(model);
+      fs.writeFileSync(path.join(model, 'model.int8.onnx'), Buffer.from('onnx-bytes'));
+      fs.writeFileSync(path.join(model, 'tokens.txt'), Buffer.from('tok\n'));
+      const absent = await runReviewed36({
+        command: 'run', backend: 'sensevoice', outDir: path.join(src, 'sv-absent'), root: ROOT, skipAudio: true,
+      });
+      eq(absent.code, 'model-missing');
+      eq(absent.rates, null);
+      const hashed = await runReviewed36({
+        command: 'run', backend: 'sensevoice', sensevoiceDir: model,
+        outDir: path.join(src, 'sv-nobin'), root: ROOT, skipAudio: true,
+      });
+      eq(hashed.code, 'backend-missing');
+      eq(hashed.rates, null);
+      eq(typeof hashed.modelSha256, 'string');
+      eq(hashed.modelSha256, crypto.createHash('sha256').update(Buffer.from('onnx-bytes')).digest('hex'));
+      const mock = path.join(src, 'sherpa-mock');
+      fs.writeFileSync(mock, [
+        '#!/usr/bin/env node',
+        'const fs = require("fs");',
+        'const path = require("path");',
+        'fs.writeFileSync(path.join(path.dirname(process.argv[1]), "last-argv.json"), JSON.stringify(process.argv.slice(2)));',
+        'if (process.argv.includes("--fail")) process.exit(2);',
+        'process.stderr.write("recognizer created in 0.010 s\\n");',
+        'const wavs = process.argv.slice(2).filter(function (arg) { return arg.indexOf("--") !== 0; });',
+        'for (let i = 0; i < wavs.length; i++) process.stdout.write(JSON.stringify({ text: "one two" }) + "\\n");',
+      ].join('\n'));
+      fs.chmodSync(mock, 0o755);
+      const svOk = await runReviewed36({
+        command: 'run', backend: 'sensevoice', platform: 'linux', synthetic: true,
+        fixtureItems: items, sensevoiceDir: model, sensevoiceBin: mock,
+        outDir: path.join(src, 'sv-ok'), root: ROOT,
+        processCapMs: 5000, itemCapMs: 5000, killGraceMs: 50, pollMs: 20,
+      });
+      eq(svOk.code, 'ok');
+      eq(svOk.rates, null);
+      eq(svOk.appleResult, false);
+      eq(svOk.senseVoiceResult, false);
+      eq(svOk.phases.modelLoadMs, 10);
+      const argv = JSON.parse(fs.readFileSync(path.join(src, 'last-argv.json'), 'utf8'));
+      eq(argv.indexOf('--sense-voice-language=zh') !== -1, true);
+      eq(argv.indexOf('--sense-voice-use-itn=1') !== -1, true);
+      eq(argv.indexOf('--num-threads=2') !== -1, true);
+      eq(argv.indexOf('--provider=cpu') !== -1, true);
+      eq(argv.filter((arg) => arg.indexOf('--') !== 0).length, 36);
+      const svFail = await runReviewed36({
+        command: 'run', backend: 'sensevoice', platform: 'linux', synthetic: true,
+        fixtureItems: items, sensevoiceDir: model, sensevoiceBin: mock,
+        outDir: path.join(src, 'sv-fail'), root: ROOT,
+        spawn: (bin, args, opts) => spawn(bin, args.concat(['--fail']), opts),
+        processCapMs: 5000, itemCapMs: 5000, killGraceMs: 50, pollMs: 20,
+      });
+      eq(svFail.code, 'recognition-failed');
+      eq(svFail.rates, null);
+      eq(svFail.recognizeStarted, true);
+      eq(senseVoiceChildArgs(model, []).indexOf('--num-threads=2') !== -1, true);
+      let alive = true;
+      try { process.kill(sentinel.pid, 0); } catch (_) { alive = false; }
+      eq(alive, true);
+    } finally {
+      try { process.kill(sentinel.pid, 'SIGKILL'); } catch (_) {}
+    }
   });
 });

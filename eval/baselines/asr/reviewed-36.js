@@ -245,10 +245,80 @@ function checkCaches(set, fleursRoot, ascendRoot) {
   return set;
 }
 
+function safeAudioRel(item) {
+  const name = item && item.audioName;
+  if (typeof name !== 'string' || !/^[A-Za-z0-9._-]+\.wav$/.test(name)) return null;
+  if (item.config === 'ascend') return 'ascend/' + name;
+  if (item.config === 'en_us' || item.config === 'cmn_hans_cn') return item.config + '/' + name;
+  return null;
+}
+
+function stageReviewedAudio(items, stageRoot, sourceOf) {
+  if (!Array.isArray(items) || items.length !== 36) return fail('need-36');
+  const seen = new Set();
+  const staged = [];
+  for (const item of items) {
+    if (!item || seen.has(item.id)) return fail('duplicate-id', { id: item && item.id });
+    seen.add(item.id);
+    if (String(item.id).indexOf('/1663') !== -1 || String(item.id).indexOf('/1660') !== -1) {
+      return fail('excluded-id', { id: item.id });
+    }
+    const rel = safeAudioRel(item);
+    if (!rel) return fail('audio-path', { id: item.id });
+    const src = sourceOf(item);
+    if (!src || !fs.existsSync(src)) return fail('missing-audio', { id: item.id });
+    const dest = path.join(stageRoot, rel);
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(src, dest);
+    const got = sha256File(dest);
+    if (got !== item.audioSha256) {
+      try { fs.unlinkSync(dest); } catch (_) {}
+      return fail('checksum-mismatch', { id: item.id });
+    }
+    const swiftConfig = item.lang === 'en' ? 'en_us' : 'cmn_hans_cn';
+    staged.push(Object.assign({}, item, {
+      stagedRel: rel,
+      stagedSha256: got,
+      converted: false,
+      convertedSha256: null,
+      swiftConfig: swiftConfig,
+    }));
+  }
+  return {
+    ok: true,
+    code: 'ok',
+    items: staged,
+    approvedPlannedSetCount: 0,
+    saLocale: SA_LOCALE,
+    note: 'ASCEND rows use swift config cmn_hans_cn so the research Swift locale is zh-CN. No second locale is run.',
+  };
+}
+
 function conversionRecord(originalSha, converted) {
   if (converted == null) return { converted: false, originalSha256: originalSha, sha256: null };
   const sha = crypto.createHash('sha256').update(converted).digest('hex');
   return { converted: true, originalSha256: originalSha, sha256: sha };
+}
+
+function inspectSenseVoiceDir(dir) {
+  const spec = {
+    model: 'model.int8.onnx',
+    tokens: 'tokens.txt',
+    threads: 2,
+    language: 'zh',
+    useInverseTextNormalization: true,
+    device: 'cpu',
+  };
+  if (!dir || !fs.existsSync(dir)) return Object.assign({ ok: false, code: 'model-missing' }, spec);
+  const model = path.join(dir, spec.model);
+  const tokens = path.join(dir, spec.tokens);
+  if (!fs.existsSync(model) || !fs.existsSync(tokens)) return Object.assign({ ok: false, code: 'model-missing' }, spec);
+  return Object.assign({
+    ok: true,
+    code: 'ok',
+    modelSha256: sha256File(model),
+    tokensSha256: sha256File(tokens),
+  }, spec);
 }
 
 function perfSchedule(repeats) {
@@ -285,6 +355,6 @@ function summarizeLatencies(values) {
 }
 
 module.exports = {
-  loadSet, checkCaches, conversionRecord, senseVoicePin, saPin, SA_LOCALE,
+  loadSet, checkCaches, stageReviewedAudio, safeAudioRel, conversionRecord, senseVoicePin, saPin, inspectSenseVoiceDir, SA_LOCALE,
   perfSchedule, summarizeLatencies, sha256File,
 };
