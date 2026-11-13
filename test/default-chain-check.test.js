@@ -3,7 +3,7 @@
 
 const { describe, test, eq } = require('./harness');
 const {
-  checkCatalog, validateRow, referenceEditAllowed, checkZh1663, checkAscendEar,
+  checkCatalog, validateRow, referenceEditAllowed, checkZh1663, checkAscendEar, checkFleursCandidateEar, checkFleursCandidateEar1103,
 } = require('../eval/baselines/default-chain-check.js');
 
 function row(extra) {
@@ -47,8 +47,10 @@ describe('default-chain catalog — blocked empty set, not a product score', () 
     eq(report.smoke.itemCount, 16);
     eq(report.smoke.productMetric, false);
     eq(report.zh1663AudioChecked, true);
-    eq(report.humanVerifiedCount, 7);
+    eq(report.humanVerifiedCount, 13);
     eq(report.ascendHumanVerifiedCount, 6);
+    eq(report.fleursCandidateHumanVerifiedCount, 6);
+    eq(report.unreviewedPublicCandidateCount, 24);
     eq(report.publicCandidateHumanVerifiedCount, 0);
     eq(report.approvedPlannedSetCount, 0);
     eq(report.code, 'empty-set');
@@ -172,5 +174,80 @@ describe('default-chain catalog — blocked empty set, not a product score', () 
     eq(heard.humanVerifiedCount, 6);
     eq(heard.approvedPlannedSetCount, 0);
     eq(heard.continuousDialogue.count, 0);
+  });
+
+  test('only the three delivered FLEURS candidate clips count, and a changed line does not', () => {
+    const pins = [
+      ['en_us', '1668', 'd6ab97bb7e3232b60b61910d3ac7e1cf37acbcbfd062773b453c76217682f49e', 'It may also be beneficial for one to buy a Wild Card, which provides entry to either selections of parks in South Africa or all of the South African National Parks.'],
+      ['cmn_hans_cn', '1668', '7b95a45446dc31d99d50232a7a6dbda26cc9c87eb26aec1263f73e7f9dd6405f', '买一张万能卡（Wild Card）也有不少好处。带着这张卡，你可以进入南非的一些公园或全部的国家公园。'],
+      ['en_us', '1669', '40d7e92df0355f4836e2b8fa2a88d7c7e047d0472f0845ca08f0c21257785390', 'Police superintendent Chandra Shekhar Solanki said the accused appeared in court with covered faces.'],
+    ];
+    const frozen = pins.map((row) => ({ config: row[0], sentenceId: row[1], audioSha256: row[2], raw: row[3] }));
+    eq(checkFleursCandidateEar(null, frozen).code, 'fleurs-candidate-missing');
+    eq(checkFleursCandidateEar(null, frozen).humanVerifiedCount, 0);
+    const review = {
+      reviewer: 'ZHAO ZHANG',
+      reviewedAt: '2026-11-13T10:59+08:00',
+      timezone: 'Asia/Shanghai',
+      verbatim: '前面的都通过。',
+      items: pins.map((row) => ({
+        source: 'fleurs-public-candidates',
+        config: row[0],
+        sentenceId: row[1],
+        audioSha256: row[2],
+        raw: row[3],
+      })),
+    };
+    const passed = checkFleursCandidateEar(review, frozen);
+    eq(passed.humanVerifiedCount, 3);
+    eq(passed.approvedPlannedSetCount, 0);
+    const badHash = JSON.parse(JSON.stringify(review));
+    badHash.items[2].audioSha256 = 'a'.repeat(64);
+    eq(checkFleursCandidateEar(badHash, frozen).code, 'fleurs-candidate-hash');
+    const badText = JSON.parse(JSON.stringify(review));
+    badText.items[0].raw = 'Wild Card only';
+    eq(checkFleursCandidateEar(badText, frozen).code, 'fleurs-candidate-text');
+    const extra = JSON.parse(JSON.stringify(review));
+    extra.items.push({
+      source: 'fleurs-public-candidates',
+      config: 'cmn_hans_cn',
+      sentenceId: '1669',
+      audioSha256: 'de149c29bdb3dd88f3befb247a99b2866aaa9c196f08818d8f2bba06c1ce0c53',
+      raw: '未发音频',
+    });
+    eq(checkFleursCandidateEar(extra, frozen).code, 'fleurs-candidate-scope');
+  });
+
+  test('the 11:03 reply counts only the three newly delivered clips and keeps usgc', () => {
+    const pins = [
+      ['cmn_hans_cn', '1669', 'de149c29bdb3dd88f3befb247a99b2866aaa9c196f08818d8f2bba06c1ce0c53', '警察局长钱德拉·谢卡尔·索兰基说，被告人出庭时都蒙住了脸。'],
+      ['en_us', '1670', '6dc676eae80109d088233f838226d4164f76befd8aafc772e1a6cb9eaa0d31df', 'Their thermal behavior is not as steady as large caves on Earth that often maintain a fairly constant temperature, but it is consistent with these being deep holes in the ground," said Glen Cushing of the United States Geological Survey (USGS) Astrogeology Team and of Northern Arizona University located in Flagstaff, Arizona.'],
+      ['cmn_hans_cn', '1670', 'ba4d6b659f00765bd39fe3952b1da421733923ee0c9774c4a18d871f4fc4f73c', '“它们的热行为不像地球上的大型洞穴那么稳定，这些大型洞穴通常会保持相当恒定的温度，但它们与地下深穴的情况很相似，”亚利桑那州旗杆镇美国地质调查局 (USGS) 太空地质团队和北亚利桑那大学的格伦·库欣说道。'],
+    ];
+    const frozen = pins.map((row) => ({ config: row[0], sentenceId: row[1], audioSha256: row[2], raw: row[3] }));
+    eq(checkFleursCandidateEar1103(null, frozen).code, 'fleurs-candidate-missing');
+    const review = {
+      reviewer: 'ZHAO ZHANG',
+      reviewedAt: '2026-11-13T11:03+08:00',
+      timezone: 'Asia/Shanghai',
+      verbatim: '确认。都是对的。usgc也读出了',
+      items: pins.map((row) => ({
+        source: 'fleurs-public-candidates',
+        config: row[0],
+        sentenceId: row[1],
+        audioSha256: row[2],
+        raw: row[3],
+        userParenthetical: row[1] === '1670' ? 'usgc也读出了' : '',
+      })),
+    };
+    const passed = checkFleursCandidateEar1103(review, frozen);
+    eq(passed.humanVerifiedCount, 3);
+    eq(passed.verbatim, '确认。都是对的。usgc也读出了');
+    const spelled = JSON.parse(JSON.stringify(review));
+    spelled.verbatim = '确认。都是对的。USGS也读出了';
+    eq(checkFleursCandidateEar1103(spelled, frozen).code, 'fleurs-candidate-conclusion');
+    const badText = JSON.parse(JSON.stringify(review));
+    badText.items[1].raw = badText.items[1].raw.replace('(USGS)', '(usgc)');
+    eq(checkFleursCandidateEar1103(badText, frozen).code, 'fleurs-candidate-text');
   });
 });

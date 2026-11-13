@@ -153,17 +153,104 @@ function checkAscendEar(review, frozenItems) {
     humanVerifiedCount: ASCEND_EAR.length,
     approvedPlannedSetCount: 0,
     continuousDialogue: { count: 0, status: 'unknown' },
+    keys: ASCEND_EAR.map((row) => 'ascend/' + row[0]),
   };
+}
+
+const FLEURS_CANDIDATE_EAR = [
+  ['en_us', '1668', 'd6ab97bb7e3232b60b61910d3ac7e1cf37acbcbfd062773b453c76217682f49e', 'It may also be beneficial for one to buy a Wild Card, which provides entry to either selections of parks in South Africa or all of the South African National Parks.', 'a79c8854109fff73c5a857a9824acaf8a337e1740a276a13e167eebb24dda56b'],
+  ['cmn_hans_cn', '1668', '7b95a45446dc31d99d50232a7a6dbda26cc9c87eb26aec1263f73e7f9dd6405f', '买一张万能卡（Wild Card）也有不少好处。带着这张卡，你可以进入南非的一些公园或全部的国家公园。', 'e1e696cdab62f2c8492f1af404c71c8afa9919976d903f97145fdffa76241184'],
+  ['en_us', '1669', '40d7e92df0355f4836e2b8fa2a88d7c7e047d0472f0845ca08f0c21257785390', 'Police superintendent Chandra Shekhar Solanki said the accused appeared in court with covered faces.', '4094b32e805260f1fddf3e3b4a210648f11388ca8d725c610407770eec108f74'],
+];
+
+function checkFleursSlice(review, frozenItems, pins, verbatim, reviewedAt, parentheticalOn1670) {
+  const blocked = { ok: false, humanVerifiedCount: 0, approvedPlannedSetCount: 0, keys: [] };
+  if (!review) return Object.assign(blocked, { code: 'fleurs-candidate-missing' });
+  if (review.reviewer !== 'ZHAO ZHANG' || review.reviewedAt !== reviewedAt || review.timezone !== 'Asia/Shanghai' || review.verbatim !== verbatim) {
+    return Object.assign(blocked, { code: 'fleurs-candidate-conclusion' });
+  }
+  if (!Array.isArray(review.items) || review.items.length !== pins.length) {
+    return Object.assign(blocked, { code: 'fleurs-candidate-scope' });
+  }
+  const frozenByKey = new Map((frozenItems || []).map((item) => [item.config + '/' + item.sentenceId, item]));
+  const seen = new Set();
+  const keys = [];
+  for (let i = 0; i < pins.length; i++) {
+    const config = pins[i][0];
+    const sentenceId = pins[i][1];
+    const hash = pins[i][2];
+    const raw = pins[i][3];
+    const playback = pins[i][4];
+    const row = review.items[i];
+    const key = 'fleurs-public-candidates/' + config + '/' + sentenceId;
+    if (!row || row.config !== config || String(row.sentenceId) !== sentenceId || row.source !== 'fleurs-public-candidates') {
+      return Object.assign(blocked, { code: 'fleurs-candidate-scope' });
+    }
+    if (seen.has(key)) return Object.assign(blocked, { code: 'fleurs-candidate-duplicate' });
+    seen.add(key);
+    const frozen = frozenByKey.get(config + '/' + sentenceId);
+    if (!frozen) return Object.assign(blocked, { code: 'fleurs-candidate-scope' });
+    if (row.audioSha256 !== hash || frozen.audioSha256 !== hash || (row.playbackSha256 && row.playbackSha256 === hash) || playback === hash) {
+      return Object.assign(blocked, { code: 'fleurs-candidate-hash' });
+    }
+    if (row.raw !== raw || frozen.raw !== raw) return Object.assign(blocked, { code: 'fleurs-candidate-text' });
+    if (parentheticalOn1670 && sentenceId === '1670' && row.userParenthetical !== 'usgc也读出了') {
+      return Object.assign(blocked, { code: 'fleurs-candidate-conclusion' });
+    }
+    keys.push(key);
+  }
+  return {
+    ok: true,
+    code: 'fleurs-candidate-checked',
+    humanVerifiedCount: keys.length,
+    approvedPlannedSetCount: 0,
+    keys: keys,
+    verbatim: verbatim,
+  };
+}
+
+function checkFleursCandidateEar(review, frozenItems) {
+  return checkFleursSlice(review, frozenItems, FLEURS_CANDIDATE_EAR, '前面的都通过。', '2026-11-13T10:59+08:00', false);
+}
+
+const FLEURS_CANDIDATE_EAR_1103 = [
+  ['cmn_hans_cn', '1669', 'de149c29bdb3dd88f3befb247a99b2866aaa9c196f08818d8f2bba06c1ce0c53', '警察局长钱德拉·谢卡尔·索兰基说，被告人出庭时都蒙住了脸。', '5d7c585f846b1be6e1b9c29e781c8bc23ead79335fa9b0faaf383e56f9297a20'],
+  ['en_us', '1670', '6dc676eae80109d088233f838226d4164f76befd8aafc772e1a6cb9eaa0d31df', 'Their thermal behavior is not as steady as large caves on Earth that often maintain a fairly constant temperature, but it is consistent with these being deep holes in the ground," said Glen Cushing of the United States Geological Survey (USGS) Astrogeology Team and of Northern Arizona University located in Flagstaff, Arizona.', 'fe34fc8a160c54bc2cde3e014cdcb4087fe90d8e9c98efac457408988a7d810e'],
+  ['cmn_hans_cn', '1670', 'ba4d6b659f00765bd39fe3952b1da421733923ee0c9774c4a18d871f4fc4f73c', '“它们的热行为不像地球上的大型洞穴那么稳定，这些大型洞穴通常会保持相当恒定的温度，但它们与地下深穴的情况很相似，”亚利桑那州旗杆镇美国地质调查局 (USGS) 太空地质团队和北亚利桑那大学的格伦·库欣说道。', '7cb6d39639e832c05d3f9ba9bcae979dea8dcda08a6d2cecb23f35e4f14e8b98'],
+];
+
+function checkFleursCandidateEar1103(review, frozenItems) {
+  return checkFleursSlice(review, frozenItems, FLEURS_CANDIDATE_EAR_1103, '确认。都是对的。usgc也读出了', '2026-11-13T11:03+08:00', true);
+}
+
+function uniqueEarCount(groups) {
+  const seen = new Set();
+  for (let g = 0; g < groups.length; g++) {
+    const group = groups[g] || [];
+    for (let i = 0; i < group.length; i++) seen.add(group[i]);
+  }
+  return seen.size;
 }
 
 function checkCatalog() {
   const catalog = readJson(CATALOG);
   const smoke = readJson(catalog.smoke.path);
   const pub = catalog.publicCandidates ? readJson(catalog.publicCandidates.path) : null;
+  const pubAudio = catalog.publicCandidateAudio ? readJson(catalog.publicCandidateAudio.path) : null;
   const ascend = catalog.ascendCandidates ? readJson(catalog.ascendCandidates.path) : null;
   const review = catalog.zh1663Review ? readJson(catalog.zh1663Review.path) : null;
   const ascendReview = catalog.ascendReview ? readJson(catalog.ascendReview.path) : null;
   const ascendEar = checkAscendEar(ascendReview, ascend ? ascend.items : []);
+  const fleursReview = catalog.fleursCandidateReview ? readJson(catalog.fleursCandidateReview.path) : null;
+  const fleursFrozen = pub ? pub.items.map((item) => {
+    const audio = pubAudio && Array.isArray(pubAudio.items)
+      ? pubAudio.items.find((row) => row.config === item.config && String(row.sentenceId) === String(item.sentenceId))
+      : null;
+    return { config: item.config, sentenceId: String(item.sentenceId), raw: item.raw, audioSha256: audio ? audio.sha256 : '' };
+  }) : [];
+  const fleursEar = checkFleursCandidateEar(fleursReview, fleursFrozen);
+  const fleursReview1103 = catalog.fleursCandidateReview1103 ? readJson(catalog.fleursCandidateReview1103.path) : null;
+  const fleursEar1103 = checkFleursCandidateEar1103(fleursReview1103, fleursFrozen);
   const focus = smoke && Array.isArray(smoke.items)
     ? smoke.items.find((item) => item.id === 'cmn_hans_cn/1663/17125746560393607835.wav')
     : null;
@@ -180,8 +267,15 @@ function checkCatalog() {
     realFailures: catalog.realFailures,
     zh1663AudioChecked: ear.audioChecked === true,
     publicCandidateCount: pub ? pub.publicCandidateCount : 0,
-    humanVerifiedCount: ear.humanVerifiedCount + ascendEar.humanVerifiedCount,
+    humanVerifiedCount: uniqueEarCount([
+      ear.ok ? ['fleurs-frozen-16/cmn_hans_cn/1663'] : [],
+      ascendEar.keys || [],
+      fleursEar.keys || [],
+      fleursEar1103.keys || [],
+    ]),
     publicCandidateHumanVerifiedCount: pub ? pub.humanVerifiedCount : 0,
+    fleursCandidateHumanVerifiedCount: uniqueEarCount([fleursEar.keys || [], fleursEar1103.keys || []]),
+    unreviewedPublicCandidateCount: pub ? pub.publicCandidateCount - uniqueEarCount([fleursEar.keys || [], fleursEar1103.keys || []]) : 0,
     ascendHumanVerifiedCount: ascendEar.humanVerifiedCount,
     approvedPlannedSetCount: pub ? pub.approvedPlannedSetCount : 0,
     smoke: {
@@ -205,6 +299,8 @@ function checkCatalog() {
   if (catalog.zh1663AudioChecked !== true) return Object.assign(base, { code: 'zh1663' });
   if (ascend && ascend.humanVerifiedCount !== 0) return Object.assign(base, { code: 'ascend-claim' });
   if (!ascendEar.ok) return Object.assign(base, { code: ascendEar.code });
+  if (!fleursEar.ok) return Object.assign(base, { code: fleursEar.code });
+  if (!fleursEar1103.ok) return Object.assign(base, { code: fleursEar1103.code });
   if (!pub || pub.humanVerifiedCount !== 0 || pub.approvedPlannedSetCount !== 0 || pub.realFailureCount !== 0 || pub.productMetric !== false) {
     return Object.assign(base, { code: 'public-candidate-claim' });
   }
@@ -260,4 +356,7 @@ function main(argv) {
 
 if (require.main === module) main(process.argv);
 
-module.exports = { checkCatalog, validateRow, referenceEditAllowed, checkZh1663, checkAscendEar, selftest };
+module.exports = {
+  checkCatalog, validateRow, referenceEditAllowed, checkZh1663, checkAscendEar,
+  checkFleursCandidateEar, checkFleursCandidateEar1103, selftest,
+};

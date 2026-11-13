@@ -16,6 +16,18 @@
     "path": "eval/baselines/asr/public-candidates-v1.json",
     "role": "public-candidate-intake"
   },
+  "publicCandidateAudio": {
+    "path": "eval/baselines/asr/public-candidates-audio-v1.json",
+    "role": "public-candidate-audio"
+  },
+  "fleursCandidateReview": {
+    "path": "eval/baselines/asr/fleurs-candidate-ear-2026-11-13.json",
+    "role": "ear-review"
+  },
+  "fleursCandidateReview1103": {
+    "path": "eval/baselines/asr/fleurs-candidate-ear-2026-11-13-1103.json",
+    "role": "ear-review"
+  },
   "ascendCandidates": {
     "path": "eval/baselines/ascend/ascend-test-v1.json",
     "role": "text-screen-only"
