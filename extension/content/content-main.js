@@ -15,6 +15,9 @@
     'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'engineChosen',
     'textColor', 'ytTextColor', 'fontSize', 'showFab',
     'learnEnabled', 'learnDailyNew', 'learnRules',
+    // BEL-257：四把 flow key（凭证归属）。内容脚本不写它们，只读来设 owner 门；
+    // 迁移在下面就地补写，免得老安装的第一条路径没有 owner 可判。
+    'apiKeyOwner', 'ttsKeyOwner', 'sttKeyOwner', 'notesKeyOwner',
     // 跨面交接用的**不透明 id**（learning-design §8.4.1.1，2026-09-02 用户裁定）。
     // ⚠️ 这里加进来的是 `learnUserId`，**不是** `learnAuth` —— 后者装着 access /
     // refresh token，永不进任何一份键列表。两边比一下 id 相不相等，是发现「扩展登 A、
@@ -38,6 +41,18 @@
       settings.provider = fixed;
       try { chrome.storage.local.set({ provider: fixed }); } catch (_) {}
     }
+  }
+
+  // BEL-257：迁移 owner。老安装没有 apiKeyOwner —— 就地补一个再让 RequestShape
+  // 重读缓存，否则「A 的 key 发给 B」这条门在升级后的第一次请求上看不见。
+  // `bmg_` 的 owner 一律是 grant id（即使当前 provider 是 vendor）：保留令牌但
+  // 让第一条请求命中 grant_token_wrong_engine，零外发；用户点「改回免费额度」即可恢复。
+  if (settings.apiKeyOwner === undefined) {
+    const k = String(settings.apiKey || '');
+    const owner = !k ? '' : (/^bmg_/i.test(k) ? 'grant' : TranslationAPI.resolveProvider(settings.provider));
+    settings.apiKeyOwner = owner;
+    try { chrome.storage.local.set({ apiKeyOwner: owner }); } catch (_) {}
+    try { RequestShape.refresh(); } catch (_) {}
   }
 
   const cfg = {

@@ -636,7 +636,9 @@ export function bootShell() {
   // await 到的就是这一整段，中间插不进第二次 claim。
   let _autoClaimed = null;
   const SWITCH_KEYS = ['apiKey', 'apiModel', 'ttsApiKey', 'ttsModel', 'ttsEngine',
-    'sttApiKey', 'sttModel', 'sttEngine', 'grantTail', 'grantBalance', 'grant'];
+    'sttApiKey', 'sttModel', 'sttEngine', 'grantTail', 'grantBalance', 'grant',
+    // BEL-257：退出/换号只清 bmg_ 的 owner（用户 key 的 owner 一个字节不动）。
+    'apiKeyOwner', 'ttsKeyOwner', 'sttKeyOwner', 'notesKeyOwner'];
   const runAccountSwitch = createAccountSwitch({
     enabled: () => typeof LearnGrant !== 'undefined' && LearnGrant.enabled(),
     read: () => new Promise((res) => {

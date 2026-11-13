@@ -276,8 +276,12 @@ function plan(input) {
   const writes = {};
   const skipped = [];
   const tests = [];
+  // BEL-257：凭证归属。owner 是 [flow] key（不进 SAVE_KEYS / saveNow），所以走
+  // `marks` —— 与 grantTail 同一条通道：宿主在写完 writes 之后单独落盘。
+  // 只给**真的写了 key 的槽**记 owner；跳过的槽（用户自己的 key）不动归属。
+  const marks = {};
 
-  if (!p || !key) return { writes, skipped, tests, replaced };
+  if (!p || !key) return { writes, skipped, tests, replaced, marks };
 
   // 平台可以不带朗读 / 转写（中国版的免费额度只有翻译，grant.js platform()）。缺的那一槽
   // **不写、不测**，记成 skipped/absent —— 绝不能拿翻译的 key 去配一个不存在的引擎。
@@ -293,6 +297,7 @@ function plan(input) {
     if (p.custom && !has(input.baseUrl)) return { writes: {}, skipped, tests: [], replaced };
     writes.provider = p.chat.id;
     writes.apiKey = key;
+    marks.apiKeyOwner = p.chat.id;
     // 非自定义平台写空 = 走注册表默认（wire-format 两分支合同）；自定义写用户填的那一条。
     writes.apiBaseUrl = p.custom ? String(input.baseUrl).trim() : '';
     writes.apiModel = pinModel ? (p.chat.defaultModel || '') : '';
@@ -306,6 +311,7 @@ function plan(input) {
   } else if (st.tts === 'empty') {
     writes.ttsEngine = ttsEngine;
     writes.ttsApiKey = key;
+    marks.ttsKeyOwner = ttsEngine;
     writes.ttsBaseUrl = '';
     writes.ttsModel = pinModel ? (p.tts.defaultModel || '') : '';
     writes.ttsVoice = '';
@@ -328,6 +334,7 @@ function plan(input) {
   } else if (st.stt === 'empty') {
     writes.sttEngine = sttEngine;
     writes.sttApiKey = key;
+    marks.sttKeyOwner = sttEngine;
     writes.sttBaseUrl = '';
     writes.sttModel = pinModel ? (p.stt.defaultModel || '') : '';
     tests.push('stt');
@@ -340,7 +347,7 @@ function plan(input) {
   // 默认。写 notesProvider 会永久打断 follow 关系：用户以后换翻译引擎，解析会
   // 留在这个平台上。结果区仍要**显式说出来**，不说它看起来就像被漏了。
 
-  return { writes, skipped, tests, replaced };
+  return { writes, skipped, tests, replaced, marks };
 }
 
 // summarize(results) → { done, failed, ok }

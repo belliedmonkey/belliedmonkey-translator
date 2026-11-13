@@ -116,6 +116,9 @@ Rules:
       chrome.runtime.sendMessage({
         action: 'proxyFetch', url,
         init: { method: o.method || 'GET', headers: o.headers, body: o.body },
+        // BEL-257 纵深：后台转发前要判「header 里有 bmg_ 且 host 不是中继」。
+        // 中继 host 由**本 flavor 的注册表**解析，不在 background.js 里写死东京/境内。
+        relayHosts: RequestShape.grantHosts(),
       }),
       new Promise((_, reject) => {
         timer = setTimeout(() => reject(new Error('background did not answer in time')),
@@ -471,6 +474,10 @@ Rules:
       // 自定义参数按引擎条目存，所以要把引擎 id 带进去。为 A 网关写的字段不该在
       // 切到 B 引擎时跟着发出去。
       providerId: provider,
+      // BEL-257：凭证守卫要的三件事。needsKey 从注册表来（不是「key 空就拦」——
+      // 本地语音端点合法地不要 key）；owner 来自 apiKeyOwner 这条 flow key。
+      needsKey: EngineState.needsKey({ provider }),
+      keyOwner: RequestShape.ownerOf('chat'),
       system: buildSystemPrompt(targetLang), user: text,
       // translate-compat 用它替代提示词里的目标语言；别的形状忽略它。
       targetLang,
@@ -651,7 +658,7 @@ Rules:
       if (!url) { const e = new Error(`${p.label || provider}: missing endpoint URL`); e.status = 0; e.code = 'no_base'; throw e; }
       const mdl = model || p.defaultModel;
       const fmt = WireFormat.formatFor(url, p.type, mdl);
-      const req = RequestShape.build(fmt, { url, apiKey, model: mdl, providerId: provider, system: OCR_SYSTEM, user: 'Transcribe the text in this image.', image: dataUri, budget: MAX_OUT_TRANSLATION * 2 });
+      const req = RequestShape.build(fmt, { url, apiKey, model: mdl, providerId: provider, needsKey: EngineState.needsKey({ provider }), keyOwner: RequestShape.ownerOf('chat'), system: OCR_SYSTEM, user: 'Transcribe the text in this image.', image: dataUri, budget: MAX_OUT_TRANSLATION * 2 });
       if (req.error) { const e = new Error(req.error); e.status = 0; e.code = req.error; e.retryable = false; throw e; }
       const diag = opts && opts.diag;
       if (diag) { diag.url = url; diag.paramRow = req.caps.id; diag.bodyKeys = Object.keys(req.body); }
@@ -690,7 +697,7 @@ Rules:
       if (!url) { const e = new Error(`${p.label || provider}: missing endpoint URL`); e.status = 0; e.code = 'no_base'; throw e; }
       const mdl = model || p.defaultModel;
       const fmt = WireFormat.formatFor(url, p.type, mdl);
-      const req = RequestShape.build(fmt, { url, apiKey, model: mdl, providerId: provider, system: prompt.system, user: prompt.user, budget: o.budget != null ? o.budget : MAX_OUT_TRANSLATION });
+      const req = RequestShape.build(fmt, { url, apiKey, model: mdl, providerId: provider, needsKey: EngineState.needsKey({ provider }), keyOwner: RequestShape.ownerOf('chat'), system: prompt.system, user: prompt.user, budget: o.budget != null ? o.budget : MAX_OUT_TRANSLATION });
       if (req.error) { const e = new Error(req.error); e.status = 0; e.code = req.error; e.retryable = false; throw e; }
       const diag = o.diag;
       if (diag) { diag.url = url; diag.paramRow = req.caps.id; diag.bodyKeys = Object.keys(req.body); }
