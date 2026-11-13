@@ -148,6 +148,7 @@ function checkDocs() {
     'docs/baselines/forms/documents.md',
     'docs/baselines/asr-public.md',
     'docs/baselines/reviewed-36.md',
+    'docs/baselines/llm-judge.md',
   ];
   for (const rel of tree) {
     const text = read(rel);
