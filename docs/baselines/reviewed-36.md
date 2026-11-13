@@ -78,3 +78,17 @@ node run-reviewed-36.js --run --backend sensevoice --out /tmp/r36-sv-smoke \
 证据在 chair 拷到的 `/workspace/baseline-sa-sv-36-20261113/results/aef9aa8f/`，30 个文件。SHA256SUMS 的 sha256 是 `2ed0e67861ac02c64e2d3ae83ed0b588e8202e6bc75c15d5adbeadd8d36a563c`。hypothesis `255454cfc218d05bc30a1d8c7b07fde057071313e7549a828d91b529507dfa57`，score `96009a49c36813d71d24f46f8a58f9f28727546fac8d3f4771eb929b14bd94bc`，summary `b9e3d4814d5a7878fdb08fbc78dc5154676b408ae1a1bf51fb1b58b012bd19e2`。16:31:42 `--pack-existing` 退出 0，这三份哈希没变；打包后的 evidence 是 `253e3901ec48619be45a4c30bef1de794b42eb52ed4afa12dcbb59c8d0d92c79`。本仓库没有读取那个目录里的原始文件。load `3.45/3.23/3.28` 到 `3.68/3.29/3.29` 来自外部 wrapper，因为那次成功运行没有写 `env.json`。summary 顶层 `recognizeMs` 是 null，`phases.recognizeMs` 才是 9262.119。成功的 `stage` 是 null。`item-progress` 停在最后一条的 `item-start`。`--pack-existing` 覆盖了第一次的 evidence。这些缺口记在这里，不回填、不改那 30 个文件，也不为补元数据重跑识别。
 
 云端 Linux 不能报 SA 分数。合成夹具的 `rates` 保持 null。
+
+## 只读误差审计
+
+chair 对 `aef9aa8f` 的 36 条结果做了只读误差审计。本仓库没有打开 `/workspace/baseline-sa-sv-36-20261113/analysis-aef9aa8f/` 里的原件。记录的哈希是：`AUDIT.md` `1d444394bfbd49488e698927ad7656999ac86812f632f9ad3912fb23fe07a1be`，`audit-report.json` `6694c3f22474e0d8469da0abb9bc785a48567660e7b99c3dc802afbc11ee5726`，`ASCEND-6.md` `d44a4e4c1a8f1ac5240b760b0a2296bc9ed6c23ec76c2e7dc41eea4b41379d8d`。36 条原始 hypothesis、score、summary 的哈希没有因这次审计改动。
+
+冻结重算与已公布的分数相同，只补了操作计数：英文 36/363 = 28 替换、4 删除、4 插入，正确 331。中文 57/624 = 30 替换、18 删除、9 插入，正确 576。ASCEND 24/42 = 15 替换、6 删除、3 插入，正确 21。`00068` 是 6/3，编辑率可以大于 1。这不是新的排名。
+
+v1 归一把 `29¾` 收成英文 token `293`、`4`，不是 `29`、`3`、`4`。这是 NFKC 把分数粘到前面的数字上，属于结构问题。当前 `score.js` 保持这个行为，回归只锁住它，不把它改成新分数。`24½` 同样粘成 `241`、`2`。数字词和数字、中文数字和阿拉伯数字、`i s m` 和 `ISM` 的表面差异都先记着。正式的下一版只能对同一段冻结的声音内容写对称等价，并先写适用面和反例。不能按这次 SA 的错例挑选规则。`thirteen`/`13`、`five`/`5`、`一`/`1`、`十三`/`13` 都还不是已批准的替换。
+
+中文 CER 保留拉丁字母，这是冻结规范，不是待删的缺陷。1668 中文里的 Wild Card 删除是 8/9，审计数出中文路径上的拉丁相关误差 21 次。听审通过的是声音和官方原文一致，并且 USGS、`cmn_hans_cn/1663` 里的拉丁字母是读出来的。删掉括注或拉丁字母会把真实的漏读藏起来。删拉丁之后的 40/595 只是标明「不是识别一致性分」的诊断，不能当修正成绩，也不能替换已记录的 57/624。`um`/`嗯` 同样不是听审授权的替换。英文大小写和标点在 v1 里已经对齐：`OK` 与 `ok` 同为 `ok`。没有控制字符 token。`2005/10` 分成 `2005` 和 `10`，不因此误罚。
+
+ASCEND 里确有识别错误：`00004` 5/5，`00068` 6/3，几乎没有重叠；`00055` 的 `um`/`嗯`，`00066` 的 `technical`/`technicle`。`00009` 的官方原文就是分开的 `i s m`，把它收成 `ISM` 会改变冻结参考。
+
+v1 永久保留。下一版如果要改归一，单独成文，带盲测和反例，然后对 SA 和 SenseVoice 用同一套规则重算已有 hypothesis。不必为了改归一而重跑模型。这次没有新的分数，也没有对照排名。
