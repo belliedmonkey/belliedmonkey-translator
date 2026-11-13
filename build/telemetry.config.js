@@ -29,6 +29,11 @@ const COMMON = {
 // web_caption（网页字幕）。新增值 = 改提案 + 过评审 + 同步 docs §3，不是顺手加。
 const SURFACES = ['listen', 'live_caption', 'quick', 'doc', 'web_caption'];
 
+// BEL-247（2026-11-13）：translate_ok 与 translate_fail 共用的**同一个** kind 枚举。
+// 以前只有 ok 有 kind，失败那条无法按功能面拆成功率；复制一份枚举就是下一次漂移的起点，
+// 所以抽成常量、两边引用。加一个值 = 改这里 + docs/telemetry-design.md §3。
+const TRANSLATE_KINDS = ['page', 'subtitle', 'doc', 'quick'];
+
 const EVENTS = {
   installed: {},
   heartbeat: {},
@@ -86,9 +91,12 @@ const EVENTS = {
     launch_id: 'id',
     surface: SURFACES,
   },
-  translate_ok: { provider: 'id', kind: ['page', 'subtitle', 'doc', 'quick'], ms: 'int' },   // doc：文档翻译（2026-09-11，learning-design §9.7）
+  translate_ok: { provider: 'id', kind: TRANSLATE_KINDS, ms: 'int' },   // doc：文档翻译（2026-09-11，learning-design §9.7）
   translate_fail: {
     provider: 'id',
+    // BEL-247：与 translate_ok 共用 TRANSLATE_KINDS —— 「哪个功能面的失败」必须能
+    // 和成功数对齐，否则成功率只能按 provider 粗算。
+    kind: TRANSLATE_KINDS,
     // 免费额度那三个必须在枚举里（§8.10 / telemetry-design §3）：不在枚举里的 code
     // 会被客户端白名单**静默丢掉**，于是「有多少人把 0.2 美元用完了」这个数永远是 0
     // —— 而那正是判断这笔钱该不该继续花的唯一依据。
@@ -96,7 +104,10 @@ const EVENTS = {
       'credit_exhausted', 'grant_unavailable', 'model_not_allowed',
       // auth（2026-09-10，第八期）：401/403 且请求带了非空、非 bmg_ 额度令牌的 key ——
       // 「这把 key 被服务商拒绝」，引擎停机。5 天里 308 条 401 来自同一台机器逐段重试。
-      'auth'],
+      'auth',
+      // stalled（BEL-247）：单单元 120 s 不落地。与 timeout 分开 —— 「promise 没回来」
+      // 和「请求超时」不是同一种病，混一列会让连续超时熔断读错。
+      'stalled'],
     status: 'int',
     route: ['direct', 'proxy', ''],
     ms: 'int',
@@ -335,11 +346,11 @@ const SEAMS = {
     { host: 'app', surface: 'translate-fill', none: '同一份 translate-fill.js，同一条裁定：后台补译文不算翻译会话' },
   ],
   translate_fail: [
-    { host: 'ext', file: 'extension/content/content-webpage.js' },
-    { host: 'ext', file: 'extension/content/subtitle-adapter.js' },
-    ...SHARED('src/shared/doc-view.js'),
-    { host: 'app', file: 'src/app/listen-model.js' },
-    { host: 'app', file: 'app/handoff.js' },
+    { host: 'ext', file: 'extension/content/content-webpage.js', match: "kind: 'page'" },
+    { host: 'ext', file: 'extension/content/subtitle-adapter.js', match: "kind: 'subtitle'" },
+    ...SHARED('src/shared/doc-view.js', { match: "kind: 'doc'" }),
+    { host: 'app', file: 'src/app/listen-model.js', match: "kind: 'subtitle'" },
+    { host: 'app', file: 'app/handoff.js', match: "kind: 'quick'" },
   ],
   subtitle_on: [
     { host: 'ext', file: 'extension/content/subtitle-adapter.js' },
@@ -462,4 +473,4 @@ const FORBIDDEN_KEY_WORDS = ['url', 'href', 'text', 'title', 'email', 'user', 'u
 
 const LIMITS = { batch: 50, eventBytes: 1024, bodyBytes: 64 * 1024, perMinute: 60, strMax: 64 };
 
-module.exports = { COMMON, EVENTS, SEAMS, FORBIDDEN_KEY_WORDS, LIMITS };
+module.exports = { COMMON, EVENTS, SEAMS, FORBIDDEN_KEY_WORDS, LIMITS, TRANSLATE_KINDS, SURFACES };

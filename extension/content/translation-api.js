@@ -116,6 +116,9 @@ Rules:
       chrome.runtime.sendMessage({
         action: 'proxyFetch', url,
         init: { method: o.method || 'GET', headers: o.headers, body: o.body },
+        // BEL-257 纵深：后台转发前要判「header 里有 bmg_ 且 host 不是中继」。
+        // 中继 host 由**本 flavor 的注册表**解析，不在 background.js 里写死东京/境内。
+        relayHosts: RequestShape.grantHosts(),
       }),
       new Promise((_, reject) => {
         timer = setTimeout(() => reject(new Error('background did not answer in time')),
@@ -123,7 +126,16 @@ Rules:
       }),
     ]).finally(() => { if (timer) clearTimeout(timer); });
     if (!r) throw new Error('background did not answer the proxied request');
-    if (r.error) throw new Error(r.error);
+    if (r.error) {
+      const err = new Error(r.error);
+      // 后台在 message 边界上只能传字段，Response/Error 都过不去。ABORT 的名字必须
+      // 还原：上层靠 `name==='AbortError'` 把这次失败归成 timeout（BEL-247、ACCEPT-6），
+      // 不然一个「代理超时」会被记成 network，还会被当成「换条路再发一次」的信号。
+      if (r.name) err.name = r.name;
+      if (r.code) err.code = r.code;
+      if (r.name === 'AbortError') err.fromProxyTimeout = true;
+      throw err;
+    }
     return {
       ok: !!r.ok, status: r.status, statusText: r.statusText || '',
       // The RAW header travels, not a parsed number: parseRetryAfter() below is the
@@ -145,7 +157,14 @@ Rules:
   // page echoes it — the single most useful fact when an endpoint is misconfigured.
   function transportError(e, url) {
     const err = new Error(String((e && e.message) || e));
+    // 保留 name：BEL-247 / ACCEPT-6 要遥测仍能看见 `AbortError`（而不是被冲成
+    // 泛泛的 Error）。`code` 仍是 timeout，分类与遥测的既有判据不变。
+    if (e && e.name) err.name = e.name;
     err.code = (e && e.name === 'AbortError') ? 'timeout' : 'network';
+    // ACCEPT-6：proxy 超时走的是「**保留原回退**」那一条 —— 名字还原成 AbortError
+    // 之后，如果只看 code!=='network' 就不再回退直连，等于改了 BEL-114 的路由策略。
+    // 这个标志让 apiFetchInner 仍然执行原来的回退，遥测同时拿到 AbortError。
+    if (e && e.fromProxyTimeout) err.fromProxyTimeout = true;
     err.url = url;
     return err;
   }
@@ -261,7 +280,10 @@ Rules:
       } catch (e) {
         const firstErr = transportError(e, url);
         // `timeout` 说明请求确实出去了，只是没回来——换条路再发一遍只会把等待翻倍。
-        if (firstErr.code !== 'network') { firstErr.route = first.tag; throw firstErr; }
+        // **例外（ACCEPT-6）**：fromProxyTimeout 是「后台替我们等超时」的那一条，
+        // 它必须保留原来的「换直连再试一次」行为；只把遥测类别从 network 改成
+        // timeout。超时数值与重试次数一个字都没改（BEL-114 不动）。
+        if (firstErr.code !== 'network' && !firstErr.fromProxyTimeout) { firstErr.route = first.tag; throw firstErr; }
         if (first.tag === 'proxy') proxyProbe = null;   // 后台这次不灵，下次重新问
         try {
           resp = await second.run();
@@ -471,6 +493,10 @@ Rules:
       // 自定义参数按引擎条目存，所以要把引擎 id 带进去。为 A 网关写的字段不该在
       // 切到 B 引擎时跟着发出去。
       providerId: provider,
+      // BEL-257：凭证守卫要的三件事。needsKey 从注册表来（不是「key 空就拦」——
+      // 本地语音端点合法地不要 key）；owner 来自 apiKeyOwner 这条 flow key。
+      needsKey: EngineState.needsKey({ provider }),
+      keyOwner: RequestShape.ownerOf('chat'),
       system: buildSystemPrompt(targetLang), user: text,
       // translate-compat 用它替代提示词里的目标语言；别的形状忽略它。
       targetLang,
@@ -651,7 +677,7 @@ Rules:
       if (!url) { const e = new Error(`${p.label || provider}: missing endpoint URL`); e.status = 0; e.code = 'no_base'; throw e; }
       const mdl = model || p.defaultModel;
       const fmt = WireFormat.formatFor(url, p.type, mdl);
-      const req = RequestShape.build(fmt, { url, apiKey, model: mdl, providerId: provider, system: OCR_SYSTEM, user: 'Transcribe the text in this image.', image: dataUri, budget: MAX_OUT_TRANSLATION * 2 });
+      const req = RequestShape.build(fmt, { url, apiKey, model: mdl, providerId: provider, needsKey: EngineState.needsKey({ provider }), keyOwner: RequestShape.ownerOf('chat'), system: OCR_SYSTEM, user: 'Transcribe the text in this image.', image: dataUri, budget: MAX_OUT_TRANSLATION * 2 });
       if (req.error) { const e = new Error(req.error); e.status = 0; e.code = req.error; e.retryable = false; throw e; }
       const diag = opts && opts.diag;
       if (diag) { diag.url = url; diag.paramRow = req.caps.id; diag.bodyKeys = Object.keys(req.body); }
@@ -690,7 +716,7 @@ Rules:
       if (!url) { const e = new Error(`${p.label || provider}: missing endpoint URL`); e.status = 0; e.code = 'no_base'; throw e; }
       const mdl = model || p.defaultModel;
       const fmt = WireFormat.formatFor(url, p.type, mdl);
-      const req = RequestShape.build(fmt, { url, apiKey, model: mdl, providerId: provider, system: prompt.system, user: prompt.user, budget: o.budget != null ? o.budget : MAX_OUT_TRANSLATION });
+      const req = RequestShape.build(fmt, { url, apiKey, model: mdl, providerId: provider, needsKey: EngineState.needsKey({ provider }), keyOwner: RequestShape.ownerOf('chat'), system: prompt.system, user: prompt.user, budget: o.budget != null ? o.budget : MAX_OUT_TRANSLATION });
       if (req.error) { const e = new Error(req.error); e.status = 0; e.code = req.error; e.retryable = false; throw e; }
       const diag = o.diag;
       if (diag) { diag.url = url; diag.paramRow = req.caps.id; diag.bodyKeys = Object.keys(req.body); }

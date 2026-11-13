@@ -32,6 +32,69 @@ var RequestShape = (() => {
   // 唯一的一份。原来 translation-api.js 与 notes.js 各写了一个 0.3。
   const DEFAULT_TEMPERATURE = 0.3;
 
+  // ─── 凭证类别 / 归属 / 端点（BEL-257）─────────────────────────────────
+  //
+  // 这一层回答的是「这把凭证属于谁、能不能发到这个地址」，不是「发哪些字段」。
+  // 它必须在 `fetch` 之前抛错：端点选择只决定 URL，而 vendor URL 本身是合法的
+  // （用户就是选了那家 vendor），只是那把 `bmg_` 令牌不该去。`return {error}` 不行 ——
+  // callProvider / tts.js 都不检查 req.error，漏一次就是一次外发。
+  //
+  // 三个 grant id 从注册表取（build/providers.config.js、tts.config.js、stt.config.js
+  // 生成到 providers.gen.js / tts.gen.js / stt.gen.js）。中继 host **不在这里写死**：
+  // 它由 flavor 解析后的 grant 条目 defaultEndpoint 决定，东京与境内各是各的。
+  const GRANT_IDS = Object.freeze(['grant', 'grant_speech', 'grant_stt']);
+  const GRANT_PREFIX = /^bmg_/i;
+
+  function registryList() {
+    const out = [];
+    try {
+      if (typeof window !== 'undefined') {
+        for (const k of ['MT_PROVIDERS', 'MT_TTS_ENGINES', 'MT_STT_ENGINES']) {
+          const l = window[k];
+          if (Array.isArray(l)) for (const e of l) if (e) out.push(e);
+        }
+      }
+    } catch (_) { /* 注册表未加载 ⇒ 下面 fail-closed */ }
+    return out;
+  }
+
+  function hostOfUrl(url) {
+    const u = String(url == null ? '' : url).trim();
+    if (!u) return '';
+    try {
+      if (typeof WireFormat !== 'undefined' && WireFormat.hostOf) return WireFormat.hostOf(u);
+    } catch (_) {}
+    try { return new URL(u).hostname.toLowerCase(); } catch (_) { return ''; }
+  }
+
+  // 本 flavor 的 grant 中继 host 集合。注册表没有（或没有 grant 条目）⇒ 空集，
+  // 于是任何 `bmg_` 都会被判成 wrong_endpoint —— 安全方向。
+  function grantHosts() {
+    const hosts = [];
+    for (const e of registryList()) {
+      if (GRANT_IDS.indexOf(String(e.id || '')) < 0) continue;
+      const h = hostOfUrl(e.defaultEndpoint || '');
+      if (h && hosts.indexOf(h) < 0) hosts.push(h);
+    }
+    return hosts;
+  }
+
+  function isGrantEndpoint(url) {
+    const h = hostOfUrl(url);
+    return !!h && grantHosts().indexOf(h) >= 0;
+  }
+
+  function preflightError(code, detail) {
+    const e = new Error(detail || code);
+    e.code = code;
+    // 不可重试：同样的凭证 + 同样的引擎，重试三次还是同一个结果，只是把失败
+    // 推迟十几秒。preflight=true 让引擎直接进 error 态，不计数、不发 translate_fail
+    // （它不是一次 provider 失败，而是一次「根本没发出去」的配置错误）。
+    e.retryable = false;
+    e.preflight = true;
+    return e;
+  }
+
   // 表外 = 三个字段全是「不知道」，**不是「不支持」**。这个区别撑起上面那张三态表。
   const UNKNOWN = Object.freeze({
     id: null, temperature: undefined, budget: undefined, systemRole: undefined,
@@ -155,6 +218,14 @@ var RequestShape = (() => {
   const ADV_KEYS = ['reqTemperature', 'reqMaxTokens', 'reqTimeoutSec', 'reqConcurrency',
     'reqCustomParams'];
 
+  // BEL-257：四把 flow key，记录每个槽里的凭证属于哪个引擎。**不进 SAVE_KEYS**
+  // （它们是流程元数据，不是设置页字段；宿主单独写，见 src/store/schema.js）。
+  // 它们与 ADV_KEYS 一起读、一起被 onChanged 刷新 —— 用一个缓存就够，切引擎后
+  // 下一次 fetch 之前就能看见新归属。
+  const OWNER_KEYS = ['apiKeyOwner', 'ttsKeyOwner', 'sttKeyOwner', 'notesKeyOwner'];
+  const OWNER_OF_SLOT = { chat: 'apiKeyOwner', tts: 'ttsKeyOwner', stt: 'sttKeyOwner', notes: 'notesKeyOwner' };
+  let _owners = Object.freeze({});
+
   // ─── 自定义请求参数：给能力表的一个**用户可控的逃生口** ──────────────────
   //
   // 这张表的默认态是「表外 = 最小必要」，那对私域端点是安全的，但也意味着用户**没有
@@ -275,9 +346,12 @@ var RequestShape = (() => {
   }
 
   function readOnce() {
-    return storageGet(ADV_KEYS, {}).then((res) => {
+    return storageGet(ADV_KEYS.concat(OWNER_KEYS), {}).then((res) => {
       // 读失败/超时 = 空 = 「用户什么都没设」= 最小必要集。安全方向。
       try { _prefs = normalizePrefs(res || {}); } catch (_) { _prefs = {}; }
+      const owners = {};
+      for (const k of OWNER_KEYS) owners[k] = String((res || {})[k] == null ? '' : (res || {})[k]);
+      _owners = Object.freeze(owners);
       return _prefs;
     });
   }
@@ -285,10 +359,16 @@ var RequestShape = (() => {
   function ready() { return _ready || (_ready = readOnce()); }
   function refresh() { _ready = readOnce(); return _ready; }
   function prefs() { return _prefs; }
+  // 调用方不给 keyOwner 时的兜底。注意：缓存未就绪时是 ''，也就是「不判归属」——
+  // 因此真正的外发保护仍然靠 `bmg_` 前缀那一条（它不需要任何存储读取）。
+  function ownerOf(slot) {
+    const k = OWNER_OF_SLOT[slot] || '';
+    return k ? String(_owners[k] || '') : '';
+  }
 
   try {
     chrome.storage.onChanged.addListener((changes) => {
-      if (ADV_KEYS.some((k) => k in changes)) refresh();
+      if (ADV_KEYS.concat(OWNER_KEYS).some((k) => k in changes)) refresh();
     });
   } catch (_) { /* 无 chrome（测试/Node）时不装监听 */ }
 
@@ -413,8 +493,38 @@ var RequestShape = (() => {
   //   o.prefs   省略则用模块缓存（ready() 读过的）
   function build(fmt, o) {
     const p = o.prefs || _prefs;
+
+    // ─── 凭证守卫：**在构造任何 header 之前**（BEL-257）──────────────────
+    // 顺序即优先级。三个 throw 都会在 fetch 之前发生，四条传输（chat / messages /
+    // speech / transcribe）全部经过这里，所以不存在「某个适配器忘了检查」的旁路。
+    const key = String(o.apiKey == null ? '' : o.apiKey).trim();
+    const role = GRANT_PREFIX.test(key) ? 'grant' : (key ? 'byok' : '');
+    const pid = String(o.providerId || '');
+    // 调用方没传 keyOwner 时读 flow-key 缓存；speech / transcribe / notes 的调用方
+    // 会显式传对应槽的 owner（见 tts.js / speech-input.js / notes.js）。
+    const owner = String(o.keyOwner != null ? o.keyOwner : ownerOf('chat')).trim();
+    if (role === 'grant') {
+      // grant 令牌只准去 grant 引擎 + 中继 host。`bmg_` 留在槽里而引擎被换成
+      // 第三方，是这次要堵的那条路 —— 令牌发出去不是「格式不对」，是泄密。
+      if (GRANT_IDS.indexOf(pid) < 0) {
+        throw preflightError('grant_token_wrong_engine',
+          'grant token cannot be sent to provider "' + (pid || '(none)') + '"');
+      }
+      if (!isGrantEndpoint(o.url)) {
+        throw preflightError('grant_token_wrong_endpoint',
+          'grant token cannot be sent to a non-relay endpoint');
+      }
+    }
+    if (!key && o.needsKey) throw preflightError('no_key_for_provider', 'no API key for this provider');
+    // byok 归属门：A 的 key 不许发给 B。owner 为空 = 旧配置还没迁移 —— 不判，
+    // 由迁移补上 owner 后从下一次请求开始生效（不阻断已有用户）。
+    if (role === 'byok' && owner && pid && owner !== pid) {
+      throw preflightError('key_owner_mismatch',
+        'API key belongs to "' + owner + '", not to "' + pid + '"');
+    }
+
     const caps = paramsFor(o.url, o.model);
-    const bearer = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + o.apiKey };
+    const bearer = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key };
     // 文档翻译的识图（learning-design §9.7）：o.image 是 data URL。第一版只做 chat-compat 的
     // `image_url` 内容块（各家兼容层都收）；messages-compat 与其余
     // 形状具名回 vision_unsupported —— 调用方据此说「当前引擎不支持识别图片」，0 次请求。
@@ -425,7 +535,7 @@ var RequestShape = (() => {
       return {
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': o.apiKey,
+          'x-api-key': key,
           // 协议头，不是品牌引用（build.js 的合规门注释里写明了这一点）。
           'anthropic-version': '2023-06-01',
           'anthropic-dangerous-direct-browser-access': 'true',
@@ -493,7 +603,7 @@ var RequestShape = (() => {
       // 字段发给语音端点，最好的结果是被忽略，最坏的是 400 打断一条本来能用的路。
       return {
         headers: Object.assign({ 'Content-Type': 'application/json' },
-          o.apiKey ? { Authorization: 'Bearer ' + o.apiKey } : {}),
+          key ? { Authorization: 'Bearer ' + key } : {}),
         body, extract: null, caps,
       };
     }
@@ -506,7 +616,7 @@ var RequestShape = (() => {
       // **没有** CORS 头，普通网页取不到，扩展页可以。
       return {
         headers: Object.assign({ 'Content-Type': 'application/json' },
-          o.apiKey ? { Authorization: 'Bearer ' + o.apiKey } : {}),
+          key ? { Authorization: 'Bearer ' + key } : {}),
         body: { model: o.model, input: { text: o.input, voice: o.voice } },
         // 调用方据此判断要不要走第二步。没有这个字段的形状一步就拿到字节。
         //
@@ -536,7 +646,7 @@ var RequestShape = (() => {
       const say = String(o.input == null ? '' : o.input);
       return {
         headers: Object.assign({ 'Content-Type': 'application/json' },
-          o.apiKey ? { Authorization: 'Bearer ' + o.apiKey } : {}),
+          key ? { Authorization: 'Bearer ' + key } : {}),
         body: {
           model: o.model,
           stream: true,
@@ -569,7 +679,7 @@ var RequestShape = (() => {
       // 会让服务端解不出分段。这是一个经典坑，所以写在这里而不是靠调用方记得。
       // 同上：转写也不合并。而且这条是 multipart，往里塞任意 JSON 字段无从谈起。
       return {
-        headers: o.apiKey ? { Authorization: 'Bearer ' + o.apiKey } : {},
+        headers: key ? { Authorization: 'Bearer ' + key } : {},
         body: fd, isForm: true, extract: null, caps,
         extractCues: o.wantCues ? extractCuesSegments : null,
         // verbose_json 报 duration —— 分块上传时下一块的时间偏移就靠它
@@ -588,7 +698,7 @@ var RequestShape = (() => {
       const tc = { mode: { type: 'verbatim' }, timestamp_granularities: ['word'] };
       if (o.language) tc.language_codes = [o.language];
       return {
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': o.apiKey || '', 'Api-Revision': '2026-05-20' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key, 'Api-Revision': '2026-05-20' },
         body: JSON.stringify({ model: o.model, input: [audio], generation_config: { transcription_config: tc } }),
         isForm: false,
         extract: (d) => (d && (d.output_text || (Array.isArray(d.output) ? d.output.map((x) => x.text || '').join('') : ''))) || '',
@@ -614,7 +724,7 @@ var RequestShape = (() => {
       return {
         headers: {
           'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + (o.apiKey || ''),
+          Authorization: 'Bearer ' + key,
         },
         body: JSON.stringify({
           model: o.model,
@@ -643,7 +753,7 @@ var RequestShape = (() => {
       return {
         headers: {
           'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + (o.apiKey || ''),
+          Authorization: 'Bearer ' + key,
         },
         body: JSON.stringify({
           model: o.model,
@@ -755,6 +865,9 @@ var RequestShape = (() => {
     // 读扩展存储的唯一安全入口（带截止时间）。translation-api 与 content-main
     // 都必须走它 —— 三份各写一遍的话，下一次只会修好其中一份。
     storageGet, STORAGE_TIMEOUT_MS,
+    // BEL-257：凭证类别 / 归属 / 端点。translation-api 把它们传给后台做纵深检查；
+    // 测试直接对它们断言，避免再抄一份 grant id 列表。
+    GRANT_IDS, grantHosts, isGrantEndpoint, ownerOf, preflightError, hostOfUrl,
     extractChat, extractMessages, extractResponses, stripThink,
     DEFAULT_TEMPERATURE, UNKNOWN, ADV_KEYS, CLAMP, translateLang, starvedByReasoning, applyReasoning,
     // 设置页用 CUSTOM_FORBIDDEN 来告诉用户「哪些键会被忽略」。它必须是**同一份**常量 ——

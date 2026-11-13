@@ -304,6 +304,7 @@ const DocView = (() => {
           failSent = true;
           const fail = {
             provider: String(s.provider || ''),
+            kind: 'doc',
             code: (e && typeof e.code === 'string') ? e.code : 'network',
             status: Number.isInteger(e && e.status) ? e.status : 0,
             route: (e && e.route === 'proxy') ? 'proxy' : ((e && e.route === 'direct') ? 'direct' : ''),

@@ -15,7 +15,7 @@
 // EXTENSION PAGES ONLY (and the app's WKWebView) — same hosts as tts.js.
 
 var LearnSpeech = (() => {
-  let cfg = { engineId: '', baseUrl: '', apiKey: '', model: '' };
+  let cfg = { engineId: '', baseUrl: '', apiKey: '', keyOwner: '', model: '' };
 
   function configure(c) { cfg = Object.assign({}, cfg, c || {}); }
 
@@ -128,6 +128,10 @@ var LearnSpeech = (() => {
     const audioDataUri = RequestShape.wantsAudioDataUri(fmt) ? await blobToDataUri(blob) : '';
     const req = RequestShape.build(fmt, {
       url, apiKey: cfg.apiKey,
+      // BEL-257：转写也要过同一个凭证守卫（multipart 形状同样不能带 bmg_ 去 vendor）。
+      providerId: (eng && eng.id) || cfg.engineId || '',
+      needsKey: !!(eng && eng.needsKey),
+      keyOwner: cfg.keyOwner || RequestShape.ownerOf('stt'),
       model: cfg.model || eng.defaultModel,
       file: blob, filename: 'speech.' + (ext || 'webm'),
       audioDataUri, audioFormat: ext || 'wav',

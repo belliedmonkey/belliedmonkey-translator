@@ -143,7 +143,9 @@ export function plan(claimed, settings, reg, opts) {
   return Object.assign({}, out, {
     // 这三个键**不进** SETTINGS_KEYS（同 optDetailMode 的先例）：宿主 saveAll()
     // 之后单独 storage.set。放进去会让每一次普通保存都把它们重写一遍。
-    marks: {
+    // BEL-257：qsPlan 也会把 apiKeyOwner / ttsKeyOwner / sttKeyOwner 放进 marks
+    // （只有真的写了那一槽才写），这里合并而不是覆盖。
+    marks: Object.assign({}, out.marks || {}, {
       grantTail: tail(key),
       grant: {
         vendor: sp.vendor,
@@ -152,7 +154,7 @@ export function plan(claimed, settings, reg, opts) {
         reused: !!claimed.reused,
       },
       grantBalance: { spentUsd: claimed.spentUsd, limitUsd: claimed.limitUsd, at: Date.now() },
-    },
+    }),
   });
 }
 
@@ -261,11 +263,39 @@ const isGrantToken = (st, v) => {
 const grantTokenWrites = (st) => {
   const s = st || {};
   const writes = {};
-  if (isGrantToken(s, s.apiKey)) { writes.apiKey = ''; writes.apiModel = ''; }
-  if (isGrantToken(s, s.ttsApiKey)) { writes.ttsApiKey = ''; writes.ttsModel = ''; }
-  if (isGrantToken(s, s.sttApiKey)) { writes.sttApiKey = ''; writes.sttModel = ''; writes.sttEngine = ''; }
+  // BEL-257：只清**属于 bmg_ 的 owner**。用户自己的 key 与它的 owner 一个字节不动
+  // —— 这是 BEL-230 Q1 那条回归要守住的东西（清额度不能顺手清用户 key）。
+  if (isGrantToken(s, s.apiKey)) { writes.apiKey = ''; writes.apiModel = ''; writes.apiKeyOwner = ''; }
+  if (isGrantToken(s, s.ttsApiKey)) { writes.ttsApiKey = ''; writes.ttsModel = ''; writes.ttsKeyOwner = ''; }
+  if (isGrantToken(s, s.sttApiKey)) { writes.sttApiKey = ''; writes.sttModel = ''; writes.sttEngine = ''; writes.sttKeyOwner = ''; }
+  if (isGrantToken(s, s.notesApiKey)) { writes.notesApiKey = ''; writes.notesModel = ''; writes.notesKeyOwner = ''; }
   return writes;
 };
+
+// BEL-257 迁移：老安装没有 owner key。只补**缺的**，不覆盖已有值；`bmg_` 一律
+// 归到 grant id（这样升级后的第一条请求就被 grant_token_wrong_engine 拦住），
+// 用户 key 归到当前的 provider / engine。不删、不改任何旧 key。
+export function migrateOwners(s) {
+  const st = s || {};
+  const g = /^bmg_/i;
+  const out = {};
+  const one = (key, ownerKey, grantId, engineKey) => {
+    if (st[ownerKey] !== undefined) return;
+    const v = String(st[key] == null ? '' : st[key]).trim();
+    let owner = String(st[engineKey] || '');
+    // chat 的 provider 要归一化（跨 flavor 的旧 id 会落到注册表第一条）；tts/stt
+    // 的 engine id 不在 MT_PROVIDERS 里，绝不能拿去 resolve。
+    if (owner && key === 'apiKey' && typeof EngineState !== 'undefined' && EngineState.resolve) {
+      owner = EngineState.resolve(owner) || owner;
+    }
+    out[ownerKey] = !v ? '' : (g.test(v) ? grantId : owner);
+  };
+  one('apiKey', 'apiKeyOwner', 'grant', 'provider');
+  one('ttsApiKey', 'ttsKeyOwner', 'grant_speech', 'ttsEngine');
+  one('sttApiKey', 'sttKeyOwner', 'grant_stt', 'sttEngine');
+  one('notesApiKey', 'notesKeyOwner', 'grant', 'notesProvider');
+  return out;
+}
 
 export function clearOnSignOut(s) {
   // 不写 grant:null —— 退出保留领取记录，换号才由 clearForAccountSwitch 清。
@@ -454,5 +484,5 @@ export function popupRow(settings, opts) {
 
 export default {
   spec, enabled, claim, plan, platform, status, active, activeIn,
-  fresh, leftUsd, spentText, clearOnSignOut, clearForAccountSwitch, tail, cardFor, officialCard, popupRow, toastKey, CACHE_MS, LOW_USD,
+  fresh, leftUsd, spentText, clearOnSignOut, clearForAccountSwitch, migrateOwners, tail, cardFor, officialCard, popupRow, toastKey, CACHE_MS, LOW_USD,
 };

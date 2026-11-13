@@ -47,6 +47,13 @@ const SETTINGS_SCHEMA = (() => {
     apiKey:          { default: '',       surfaces: ['background', 'options', 'popup', 'review', 'docs', 'listen', 'quick', 'onboard', 'app'] },
     apiBaseUrl:      { default: '',       surfaces: ['options', 'review', 'docs', 'listen', 'quick', 'onboard', 'app'] },
     apiModel:        { default: '',       surfaces: ['options', 'popup', 'review', 'docs', 'listen', 'quick', 'onboard', 'app'] },
+    // BEL-257 凭证归属（[flow]）：槽里的 key 属于哪个 provider / engine。**不是设置**
+    // —— 不进 SAVE_KEYS（saveNow 没有对应控件），由 claim / 粘贴 key 的 handler 单独写。
+    // 读口覆盖所有会发请求的面：content 做 chat 守卫，其余面各有 TTS / STT / notes。
+    apiKeyOwner:     { default: '', surfaces: ['background', 'options', 'popup', 'review', 'docs', 'listen', 'quick', 'onboard', 'app', 'content'], note: '[flow] chat key owner provider id; bmg_ => grant' },
+    ttsKeyOwner:     { default: '', surfaces: ['options', 'popup', 'review', 'docs', 'listen', 'quick', 'onboard', 'app'], note: '[flow] tts key owner engine id; bmg_ => grant_speech' },
+    sttKeyOwner:     { default: '', surfaces: ['options', 'popup', 'review', 'docs', 'listen', 'quick', 'onboard', 'app'], note: '[flow] stt key owner engine id; bmg_ => grant_stt' },
+    notesKeyOwner:   { default: '', surfaces: ['options', 'review', 'docs', 'listen', 'quick', 'app'], note: '[flow] notes key owner provider id; bmg_ => grant' },
     engineChosen:    { default: false,    surfaces: ['options', 'popup', 'onboard', 'app'] },
     textColor:       { default: textColor, surfaces: ['background', 'options', 'popup'] },
     ytTextColor:     { default: ytColor,  surfaces: ['options', 'review', 'content', 'popup'] },

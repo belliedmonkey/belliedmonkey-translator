@@ -117,6 +117,24 @@ chrome.runtime.onInstalled.addListener((details) => {
 // where `apiFetch` always tries direct first; registering a handler nobody calls costs
 // nothing and creates no dependency.
 const PROXY_TIMEOUT_MS = 20000;   // matches REQUEST_TIMEOUT_MS in translation-api.js
+
+// BEL-257 纵深：内容层已经在 RequestShape.build 里 throw，这里是第二道。
+// 一个 `bmg_` 额度令牌只能去本 flavor 的中继 host；其他任何 host 一律不 fetch。
+// host 集合由调用方从**生成注册表**里取（translation-api → RequestShape.grantHosts），
+// 所以这里不写死东京或境内主机 —— 换后端只改 backend.config.js。
+function headerCarriesGrant(headers) {
+  const h = headers || {};
+  for (const k of Object.keys(h)) {
+    const lk = String(k).toLowerCase();
+    if (lk !== 'authorization' && lk !== 'x-api-key' && lk !== 'x-goog-api-key') continue;
+    const v = String(h[k] == null ? '' : h[k]).trim().replace(/^bearer\s+/i, '');
+    if (/^bmg_/i.test(v)) return true;
+  }
+  return false;
+}
+function hostOfUrl(url) {
+  try { return new URL(String(url)).hostname.toLowerCase(); } catch (_) { return ''; }
+}
 {
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // 「在吗」探针。内容脚本用它在**发第一个请求之前**判断后台是否可达，从而选路
@@ -125,6 +143,14 @@ const PROXY_TIMEOUT_MS = 20000;   // matches REQUEST_TIMEOUT_MS in translation-a
     // 是不是死了」——真死了的话每段都要干等 20 秒。探针是纯本地 IPC，毫秒级。
     if (msg && msg.action === 'ping') { sendResponse({ ok: true }); return; }
     if (!msg || msg.action !== 'proxyFetch') return;
+    // **在 fetch 之前**判。没有中继 host 列表 = fail-closed（老内容脚本/缓存页在
+    // 升级窗口里会看到一次具名失败，但令牌不会外发；刷新页面即恢复）。
+    if (headerCarriesGrant(msg.init && msg.init.headers)) {
+      const host = hostOfUrl(msg.url);
+      const allowed = Array.isArray(msg.relayHosts)
+        ? msg.relayHosts.map((h) => String(h || '').toLowerCase()).filter(Boolean) : [];
+      if (!host || allowed.indexOf(host) < 0) { sendResponse({ error: 'grant_token_wrong_endpoint' }); return; }
+    }
     (async () => {
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), PROXY_TIMEOUT_MS);
@@ -138,7 +164,9 @@ const PROXY_TIMEOUT_MS = 20000;   // matches REQUEST_TIMEOUT_MS in translation-a
           text: await r.text(),
         });
       } catch (e) {
-        sendResponse({ error: String((e && e.message) || e) });
+        // 名字与码必须跨 message 边界保留：代理自己的 20 秒 abort 是 AbortError，
+        // 内容层据此把这次失败归成 timeout（BEL-247 / ACCEPT-6），而不是 network。
+        sendResponse({ error: String((e && e.message) || e), name: (e && e.name) || '', code: (e && e.code) || '' });
       } finally {
         clearTimeout(timer);
       }

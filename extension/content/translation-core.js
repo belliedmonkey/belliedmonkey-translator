@@ -37,6 +37,9 @@ var TranslationCore = (() => {
   const FAIL_CODES = Object.freeze([
     'timeout', 'network', 'http', 'reasoning_starved', 'no_base', 'unknown_provider',
     'credit_exhausted', 'grant_unavailable', 'model_not_allowed', 'auth',
+    // 单单元卡死（BEL-247）：120 s 不落地，与 timeout 分开记 —— 「一个 promise 不
+    // 落地」和「请求超时」不是同一件事，混在一列里会让熔断与用户重试都读错。
+    'stalled',
   ]);
   const FAIL_CODE_SET = new Set(FAIL_CODES);
   // 一次失败就停泵。timeout 不在这里 —— 它要连续 TIMEOUT_STREAK_MAX 次单元级失败。
@@ -525,6 +528,10 @@ var TranslationCore = (() => {
           it._tries = 0;
           if (cfg.onFail) { try { cfg.onFail({ code: 'reasoning_starved' }); } catch (_) {} }
         }).catch((e) => {
+          // BEL-257：preflight（凭证/归属/端点守卫）不是一次 provider 失败 ——
+          // 请求根本没发出去。直接进 error 态给「去配置」的出口，不计数、不重试、
+          // **不进 translate_fail**（那会让「配置错误」冒充「翻译失败」）。
+          if (e && e.preflight) { it._err = true; it._tries = 0; return; }
           const code = classifyFail(e);
           // 即停四码：一次就停泵，不再计重试（§8.10 / 第八期 / N26）。
           // 判据是码，不是 e.grant / e.halt —— 429 的 busy 也带 grant 位，但它必须留在行上重试。
@@ -534,7 +541,7 @@ var TranslationCore = (() => {
             noteFail(e, code);
             return;
           }
-          if (e && e.stalled) { it._err = true; it._tries = 0; if (cfg.onFail) { try { cfg.onFail({ code: 'timeout', stalled: true }); } catch (_) {} } return; }  // 卡死 → 直接可重试，不进连续超时
+          if (e && e.stalled) { it._err = true; it._tries = 0; if (cfg.onFail) { try { cfg.onFail({ code: 'stalled' }); } catch (_) {} } return; }  // 卡死 → 直接可重试，不进连续超时（code 独立，不是 timeout）
           it._tries = (it._tries || 0) + 1;
           if (it._tries >= win.MAX_RETRIES) {
             it._err = true;   // exhausted → error UI

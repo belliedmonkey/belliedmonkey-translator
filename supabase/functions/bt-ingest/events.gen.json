@@ -119,6 +119,12 @@
     },
     "translate_fail": {
       "provider": "id",
+      "kind": [
+        "page",
+        "subtitle",
+        "doc",
+        "quick"
+      ],
       "code": [
         "timeout",
         "network",
@@ -129,7 +135,8 @@
         "credit_exhausted",
         "grant_unavailable",
         "model_not_allowed",
-        "auth"
+        "auth",
+        "stalled"
       ],
       "status": "int",
       "route": [

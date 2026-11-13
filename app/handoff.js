@@ -122,20 +122,22 @@
     const m = msg || {};
     const T = tracker || (typeof MTTelemetry !== 'undefined' ? MTTelemetry : null);
     if (!T) return '';
-    const ms = Number.isInteger(m.ms) && m.ms >= 0 ? m.ms : 0;
+    // BEL-247：不再把缺省 ms 补成假 0。非负整数才发；没有就不发（缺席看得出来）。
+    const ms = Number.isInteger(m.ms) && m.ms >= 0 ? m.ms : null;
     const provider = String(m.provider || '');
+    const withMs = (o) => { if (ms != null) o.ms = ms; return o; };
     try {
       if (m.ok === true) {
-        T.track('translate_ok', { provider, kind: 'quick', ms });
+        T.track('translate_ok', withMs({ provider, kind: 'quick' }));
         // 收获时刻（telemetry-design §3.12 ④）：Mac 快速翻译出了译文。
         try { if (typeof MTFeedback !== 'undefined' && MTFeedback.noteValueMoment) MTFeedback.noteValueMoment('quick').catch(() => {}); } catch (_) {}
         return 'ok';
       }
-      T.track('translate_fail', {
-        provider, code: typeof m.code === 'string' && m.code ? m.code : 'network',
+      T.track('translate_fail', withMs({
+        provider, kind: 'quick', code: typeof m.code === 'string' && m.code ? m.code : 'network',
         status: Number.isInteger(m.status) ? m.status : 0,
-        route: m.route === 'proxy' ? 'proxy' : (m.route === 'direct' ? 'direct' : ''), ms,
-      });
+        route: m.route === 'proxy' ? 'proxy' : (m.route === 'direct' ? 'direct' : ''),
+      }));
       return 'fail';
     } catch (_) { return ''; }
   }
