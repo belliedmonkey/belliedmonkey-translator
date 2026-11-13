@@ -3,7 +3,7 @@
 
 const { describe, test, eq } = require('./harness');
 const {
-  checkCatalog, validateRow, referenceEditAllowed, checkZh1663, checkAscendEar, checkFleursCandidateEar, checkFleursCandidateEar1103,
+  checkCatalog, validateRow, referenceEditAllowed, checkZh1663, checkAscendEar, checkFleursCandidateEar, checkFleursCandidateEar1103, checkFleursCandidateEar1109,
 } = require('../eval/baselines/default-chain-check.js');
 
 function row(extra) {
@@ -47,10 +47,10 @@ describe('default-chain catalog — blocked empty set, not a product score', () 
     eq(report.smoke.itemCount, 16);
     eq(report.smoke.productMetric, false);
     eq(report.zh1663AudioChecked, true);
-    eq(report.humanVerifiedCount, 13);
+    eq(report.humanVerifiedCount, 19);
     eq(report.ascendHumanVerifiedCount, 6);
-    eq(report.fleursCandidateHumanVerifiedCount, 6);
-    eq(report.unreviewedPublicCandidateCount, 24);
+    eq(report.fleursCandidateHumanVerifiedCount, 12);
+    eq(report.unreviewedPublicCandidateCount, 18);
     eq(report.publicCandidateHumanVerifiedCount, 0);
     eq(report.approvedPlannedSetCount, 0);
     eq(report.code, 'empty-set');
@@ -249,5 +249,44 @@ describe('default-chain catalog — blocked empty set, not a product score', () 
     const badText = JSON.parse(JSON.stringify(review));
     badText.items[1].raw = badText.items[1].raw.replace('(USGS)', '(usgc)');
     eq(checkFleursCandidateEar1103(badText, frozen).code, 'fleurs-candidate-text');
+  });
+
+  test('the 11:09 reply is an overall pass and does not invent an FBI answer', () => {
+    const pins = [
+      ['en_us', '1671', 'd60875a908926028d9f6f6821af974effbf091116400f6d52dc86e2cae96cd25', 'Congress began funding the obscenity initiative in fiscal 2005 and specified that the FBI must devote 10 agents to adult pornography.'],
+      ['cmn_hans_cn', '1671', 'c7719ea621b9262f207178fe430a8625b220127fc19a9d3f5be8577cbfba8caf', '国会从 2005 财年开始资助该扫黄倡议，并规定联邦调查局 (FBI) 必须指派 10 名探员专门打击成人色情。'],
+      ['en_us', '1672', 'cd58bbf4d2aff767cdfb29bc175a4c7ece18c7769248af337f68e6cb645ddc93', 'Be careful not to allow fabric to become too hot (which can cause shrinkage, or in extreme cases, scorch).'],
+      ['cmn_hans_cn', '1672', '420a62e5d34c0dde3a8e438bc4ee1249612b5119cbf7758280bf184405e01883', '小心不要让衣服变得太热（这可能会产生收缩现象，在极端情况下会把衣服烤焦）。'],
+      ['en_us', '1673', '1518970aa8eb571854f94481fb8bc1056b112ed4724021402ed608e3794a4de3', 'During the Revolutionary War, the thirteen states first formed a weak central government—with the Congress being its only component—under the Articles of Confederation.'],
+      ['cmn_hans_cn', '1673', '0513421059b64bafbb0587fdfa72ac706e4f1e303a79b6d226b2dd9db43b2c41', '在独立战争期间，十三个州最初根据《联邦条例》组成了弱小的中央政府（国会是其唯一的组成部分）。'],
+    ];
+    const frozen = pins.map((row) => ({ config: row[0], sentenceId: row[1], audioSha256: row[2], raw: row[3] }));
+    eq(pins[1][3].includes('(FBI)'), true);
+    eq(checkFleursCandidateEar1109(null, frozen).code, 'fleurs-candidate-missing');
+    const review = {
+      reviewer: 'ZHAO ZHANG',
+      reviewedAt: '2026-11-13T11:09+08:00',
+      timezone: 'Asia/Shanghai',
+      verbatim: '全部人审通过',
+      items: pins.map((row) => ({
+        source: 'fleurs-public-candidates',
+        config: row[0],
+        sentenceId: row[1],
+        audioSha256: row[2],
+        raw: row[3],
+      })),
+    };
+    const passed = checkFleursCandidateEar1109(review, frozen);
+    eq(passed.humanVerifiedCount, 6);
+    eq(passed.verbatim, '全部人审通过');
+    const claimed = JSON.parse(JSON.stringify(review));
+    claimed.items[1].userParenthetical = 'FBI也读出了';
+    eq(checkFleursCandidateEar1109(claimed, frozen).code, 'fleurs-candidate-conclusion');
+    const rewritten = JSON.parse(JSON.stringify(review));
+    rewritten.items[1].raw = rewritten.items[1].raw.replace('(FBI)', 'FBI');
+    eq(checkFleursCandidateEar1109(rewritten, frozen).code, 'fleurs-candidate-text');
+    const overlap = JSON.parse(JSON.stringify(review));
+    overlap.items[0].sentenceId = '1668';
+    eq(checkFleursCandidateEar1109(overlap, frozen).code, 'fleurs-candidate-scope');
   });
 });

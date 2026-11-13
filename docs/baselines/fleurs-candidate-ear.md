@@ -1,4 +1,4 @@
-# FLEURS 候选三条人耳记录
+# FLEURS 候选人耳记录
 
 机器可读记录是 [`eval/baselines/asr/fleurs-candidate-ear-2026-11-13.json`](../../eval/baselines/asr/fleurs-candidate-ear-2026-11-13.json)。30 条文字清单和空白听审包不改。
 
@@ -16,6 +16,10 @@
 
 2026-11-13 11:03（同一时区），这三条音频已经完整交过。ZHAO ZHANG 的原话是：「确认。都是对的。usgc也读出了」。记录保留 usgc，不把官方原文里的 USGS 改掉，也不另写一版用户拼写。这三条与官方原文相符；1670 的中英括注按这句原话记为读出。另见 [`fleurs-candidate-ear-2026-11-13-1103.json`](../../eval/baselines/asr/fleurs-candidate-ear-2026-11-13-1103.json)。10:59 的那份记录不改。
 
-两份合起来是 1668、1669、1670 的中英共 6 条。其余 24 条候选仍未审。口音、噪声、连续对话仍不记成已覆盖。
+前两份合起来是 1668、1669、1670 的中英共 6 条。那两句原话不改。
 
-校验命令是 `node eval/baselines/default-chain-check.js`。加上 `cmn_hans_cn/1663` 和 ASCEND 的 6 条，去重后 `humanVerifiedCount` 是 13。批准计划仍是 30 条、实际 0 条，命令仍退出码 2。端到端仍 **待测**。
+2026-11-13 11:09（同一时区），刚完整交过的是 1671、1672、1673 的中英，和上一批不重叠。ZHAO ZHANG 的原话是：「全部人审通过」。只记这一句整体通过。1671 中文冻结原文是「联邦调查局 (FBI)」，英文冻结原文里的 FBI 没有括注。这两处原文都不改，也不另写一句「FBI 有没有被念出」。另见 [`fleurs-candidate-ear-2026-11-13-1109.json`](../../eval/baselines/asr/fleurs-candidate-ear-2026-11-13-1109.json)。
+
+三份合起来是 1668–1673 的中英共 12 条。其余 18 条候选仍未审。口音、噪声、连续对话仍不记成已覆盖。
+
+校验命令是 `node eval/baselines/default-chain-check.js`。加上 `cmn_hans_cn/1663` 和 ASCEND 的 6 条，去重后 `humanVerifiedCount` 是 19。批准计划仍是 30 条、实际 0 条，命令仍退出码 2。端到端仍 **待测**。

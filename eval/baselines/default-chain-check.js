@@ -163,10 +163,13 @@ const FLEURS_CANDIDATE_EAR = [
   ['en_us', '1669', '40d7e92df0355f4836e2b8fa2a88d7c7e047d0472f0845ca08f0c21257785390', 'Police superintendent Chandra Shekhar Solanki said the accused appeared in court with covered faces.', '4094b32e805260f1fddf3e3b4a210648f11388ca8d725c610407770eec108f74'],
 ];
 
-function checkFleursSlice(review, frozenItems, pins, verbatim, reviewedAt, parentheticalOn1670) {
+function checkFleursSlice(review, frozenItems, pins, verbatim, reviewedAt, parentheticalOn1670, forbidDedicatedParenthetical) {
   const blocked = { ok: false, humanVerifiedCount: 0, approvedPlannedSetCount: 0, keys: [] };
   if (!review) return Object.assign(blocked, { code: 'fleurs-candidate-missing' });
   if (review.reviewer !== 'ZHAO ZHANG' || review.reviewedAt !== reviewedAt || review.timezone !== 'Asia/Shanghai' || review.verbatim !== verbatim) {
+    return Object.assign(blocked, { code: 'fleurs-candidate-conclusion' });
+  }
+  if (forbidDedicatedParenthetical && (Object.prototype.hasOwnProperty.call(review, 'fbiFinding') || review.latinParentheticalSpoken)) {
     return Object.assign(blocked, { code: 'fleurs-candidate-conclusion' });
   }
   if (!Array.isArray(review.items) || review.items.length !== pins.length) {
@@ -197,6 +200,13 @@ function checkFleursSlice(review, frozenItems, pins, verbatim, reviewedAt, paren
     if (parentheticalOn1670 && sentenceId === '1670' && row.userParenthetical !== 'usgc也读出了') {
       return Object.assign(blocked, { code: 'fleurs-candidate-conclusion' });
     }
+    if (forbidDedicatedParenthetical && (
+      Object.prototype.hasOwnProperty.call(row, 'userParenthetical')
+      || Object.prototype.hasOwnProperty.call(row, 'fbiSpoken')
+      || Object.prototype.hasOwnProperty.call(row, 'latinParentheticalSpoken')
+    )) {
+      return Object.assign(blocked, { code: 'fleurs-candidate-conclusion' });
+    }
     keys.push(key);
   }
   return {
@@ -221,6 +231,19 @@ const FLEURS_CANDIDATE_EAR_1103 = [
 
 function checkFleursCandidateEar1103(review, frozenItems) {
   return checkFleursSlice(review, frozenItems, FLEURS_CANDIDATE_EAR_1103, '确认。都是对的。usgc也读出了', '2026-11-13T11:03+08:00', true);
+}
+
+const FLEURS_CANDIDATE_EAR_1109 = [
+  ['en_us', '1671', 'd60875a908926028d9f6f6821af974effbf091116400f6d52dc86e2cae96cd25', 'Congress began funding the obscenity initiative in fiscal 2005 and specified that the FBI must devote 10 agents to adult pornography.', '4bf19e41281880b51e215819d22a39cbd6006c7c98e68d54b2c40d5891d28641'],
+  ['cmn_hans_cn', '1671', 'c7719ea621b9262f207178fe430a8625b220127fc19a9d3f5be8577cbfba8caf', '国会从 2005 财年开始资助该扫黄倡议，并规定联邦调查局 (FBI) 必须指派 10 名探员专门打击成人色情。', 'c3847710b4bf1efac4f92b7fb1d79229236ed81a3b4b462b4e524686ed08775e'],
+  ['en_us', '1672', 'cd58bbf4d2aff767cdfb29bc175a4c7ece18c7769248af337f68e6cb645ddc93', 'Be careful not to allow fabric to become too hot (which can cause shrinkage, or in extreme cases, scorch).', '5d25e409da4c98fa065015ade796d00e502da931ef3f66fffa83fad34901bad6'],
+  ['cmn_hans_cn', '1672', '420a62e5d34c0dde3a8e438bc4ee1249612b5119cbf7758280bf184405e01883', '小心不要让衣服变得太热（这可能会产生收缩现象，在极端情况下会把衣服烤焦）。', '9020920634b82a69b6567002267491cf1b77a5652c0a4e91f79f2dd487eb57c3'],
+  ['en_us', '1673', '1518970aa8eb571854f94481fb8bc1056b112ed4724021402ed608e3794a4de3', 'During the Revolutionary War, the thirteen states first formed a weak central government—with the Congress being its only component—under the Articles of Confederation.', '09b80e3d54f225d6e501b083dec94e9ec3c876c7ef4b348f4bb92fa669f0a28f'],
+  ['cmn_hans_cn', '1673', '0513421059b64bafbb0587fdfa72ac706e4f1e303a79b6d226b2dd9db43b2c41', '在独立战争期间，十三个州最初根据《联邦条例》组成了弱小的中央政府（国会是其唯一的组成部分）。', '8b680ce2552026b35453490c436f3ef11902dde9ab40c0c81a3e5aaa9d58e55b'],
+];
+
+function checkFleursCandidateEar1109(review, frozenItems) {
+  return checkFleursSlice(review, frozenItems, FLEURS_CANDIDATE_EAR_1109, '全部人审通过', '2026-11-13T11:09+08:00', false, true);
 }
 
 function uniqueEarCount(groups) {
@@ -251,6 +274,8 @@ function checkCatalog() {
   const fleursEar = checkFleursCandidateEar(fleursReview, fleursFrozen);
   const fleursReview1103 = catalog.fleursCandidateReview1103 ? readJson(catalog.fleursCandidateReview1103.path) : null;
   const fleursEar1103 = checkFleursCandidateEar1103(fleursReview1103, fleursFrozen);
+  const fleursReview1109 = catalog.fleursCandidateReview1109 ? readJson(catalog.fleursCandidateReview1109.path) : null;
+  const fleursEar1109 = checkFleursCandidateEar1109(fleursReview1109, fleursFrozen);
   const focus = smoke && Array.isArray(smoke.items)
     ? smoke.items.find((item) => item.id === 'cmn_hans_cn/1663/17125746560393607835.wav')
     : null;
@@ -272,10 +297,11 @@ function checkCatalog() {
       ascendEar.keys || [],
       fleursEar.keys || [],
       fleursEar1103.keys || [],
+      fleursEar1109.keys || [],
     ]),
     publicCandidateHumanVerifiedCount: pub ? pub.humanVerifiedCount : 0,
-    fleursCandidateHumanVerifiedCount: uniqueEarCount([fleursEar.keys || [], fleursEar1103.keys || []]),
-    unreviewedPublicCandidateCount: pub ? pub.publicCandidateCount - uniqueEarCount([fleursEar.keys || [], fleursEar1103.keys || []]) : 0,
+    fleursCandidateHumanVerifiedCount: uniqueEarCount([fleursEar.keys || [], fleursEar1103.keys || [], fleursEar1109.keys || []]),
+    unreviewedPublicCandidateCount: pub ? pub.publicCandidateCount - uniqueEarCount([fleursEar.keys || [], fleursEar1103.keys || [], fleursEar1109.keys || []]) : 0,
     ascendHumanVerifiedCount: ascendEar.humanVerifiedCount,
     approvedPlannedSetCount: pub ? pub.approvedPlannedSetCount : 0,
     smoke: {
@@ -301,6 +327,7 @@ function checkCatalog() {
   if (!ascendEar.ok) return Object.assign(base, { code: ascendEar.code });
   if (!fleursEar.ok) return Object.assign(base, { code: fleursEar.code });
   if (!fleursEar1103.ok) return Object.assign(base, { code: fleursEar1103.code });
+  if (!fleursEar1109.ok) return Object.assign(base, { code: fleursEar1109.code });
   if (!pub || pub.humanVerifiedCount !== 0 || pub.approvedPlannedSetCount !== 0 || pub.realFailureCount !== 0 || pub.productMetric !== false) {
     return Object.assign(base, { code: 'public-candidate-claim' });
   }
@@ -358,5 +385,5 @@ if (require.main === module) main(process.argv);
 
 module.exports = {
   checkCatalog, validateRow, referenceEditAllowed, checkZh1663, checkAscendEar,
-  checkFleursCandidateEar, checkFleursCandidateEar1103, selftest,
+  checkFleursCandidateEar, checkFleursCandidateEar1103, checkFleursCandidateEar1109, selftest,
 };
