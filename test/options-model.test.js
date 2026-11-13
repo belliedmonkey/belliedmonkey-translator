@@ -24,14 +24,16 @@ describe('SAVE_KEYS 对账 schema（saveNow 的键域）', () => {
     deepEq(miss, [], 'SAVE_KEYS 里有 schema 不认识的键 —— setMany 会拒绝整份 patch');
   });
 
-  test('与 keysFor("options") 的差集恰好是 5 个有名有姓的例外', () => {
+  test('与 keysFor("options") 的差集恰好是 9 个有名有姓的例外', () => {
     const opt = new Set(SCHEMA.keysFor('options'));
     const diff = [...opt].filter((k) => !M.SAVE_KEYS.includes(k)).sort();
-    deepEq(diff, ['bilingualMode', 'enabled', 'engineChosen', 'learnRules', 'reqCustomParams'],
+    deepEq(diff, ['apiKeyOwner', 'bilingualMode', 'enabled', 'engineChosen', 'learnRules',
+      'notesKeyOwner', 'reqCustomParams', 'sttKeyOwner', 'ttsKeyOwner'],
       '差集变了 —— 每一条都要在这里说得出为什么不归 saveNow 写：'
       + ' enabled 归 background.js；engineChosen 由 provider 变更单独写；'
       + ' bilingualMode 这页没有控件；learnRules 走治理区的响应式写入；'
-      + ' reqCustomParams 是 schema 注明的 read-only（adv-custom 单独落盘）。');
+      + ' reqCustomParams 是 schema 注明的 read-only（adv-custom 单独落盘）；'
+      + ' 四把 *KeyOwner 是 BEL-257 的 [flow] 元数据（粘贴 key / claim 时单独写，没有控件）。');
   });
 });
 

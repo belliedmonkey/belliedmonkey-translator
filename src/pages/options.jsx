@@ -99,6 +99,28 @@ const INPUT_KEYS = {
   'stt-api-key': 'sttApiKey', 'stt-base-url': 'sttBaseUrl', 'stt-model': 'sttModel',
   'tts-api-key': 'ttsApiKey', 'tts-base-url': 'ttsBaseUrl', 'tts-model': 'ttsModel',
 };
+
+// BEL-257：粘贴/输入 key 时同步写 owner。**切引擎不清 key、不改 owner**；只有用户
+// 在 B 里主动粘贴新 key 才覆盖槽并把 owner 改成 B —— 那是一次显式替换，不是静默删除。
+const OWNER_FOR_KEY = {
+  apiKey: 'apiKeyOwner', ttsApiKey: 'ttsKeyOwner', sttApiKey: 'sttKeyOwner', notesApiKey: 'notesKeyOwner',
+};
+const OWNER_ENGINE_KEY = {
+  apiKey: 'provider', ttsApiKey: 'ttsEngine', sttApiKey: 'sttEngine', notesApiKey: 'notesProvider',
+};
+function keyOwnerFor(key, value) {
+  const ownerKey = OWNER_FOR_KEY[key];
+  if (!ownerKey) return {};
+  const v = String(value == null ? '' : value).trim();
+  if (!v) return { [ownerKey]: '' };
+  if (/^bmg_/i.test(v)) return null;            // 令牌不能手填：见下面的拒绝分支
+  const engine = String(SettingsStore.get(OWNER_ENGINE_KEY[key]) || '');
+  // notes 跟随翻译引擎时 owner 留空（由 resolveConfig 用 apiKeyOwner 判）。
+  if (key === 'notesApiKey') return { [ownerKey]: engine };
+  // 只有 chat provider 需要跑 EngineState 归一化；tts/stt 的 engine id 不在
+  // MT_PROVIDERS 里，拿它去 resolve 会落成默认 chat provider（一个错误的归属）。
+  return { [ownerKey]: key === 'apiKey' ? (EngineState.resolve(engine) || engine) : engine };
+}
 // 文本框失焦时的专属 toast（原 change 监听逐条）；不在表里 = 无 toast（notes/stt 三框）。
 // 中文一律走 t() 的兜底位 —— 零硬编码文案门禁按这个形状放行。
 function changeToastFor(id, t) {
@@ -601,6 +623,13 @@ function Options() {
     const patch = {};
     for (const k of SAVE_KEYS) if (k in w) patch[k] = w[k];
     if (Object.keys(patch).length) await SettingsStore.setMany(patch);
+    // BEL-257：owner 是 [flow] key，不在 SAVE_KEYS 里。grant 路径本来就会写
+    // plan.marks；普通一键卡也一样要写，否则粘贴的 key 没有归属。
+    const flow = {};
+    for (const k of ['apiKeyOwner', 'ttsKeyOwner', 'sttKeyOwner', 'notesKeyOwner']) {
+      if (plan.marks && k in plan.marks) flow[k] = plan.marks[k];
+    }
+    if (Object.keys(flow).length) await SettingsStore.setMany(flow);
     // 孤岛按新值重画（layout effect 以 applyEpoch 为键重跑，values 从 store 现读）。
     setApplyEpoch((e) => e + 1);
     // 一键卡写过三槽之后额度卡的状态可能变了（用自己的 key 盖掉免费槽 ⇒ 「改回免费额度」）。
@@ -921,7 +950,13 @@ function Options() {
   const onIslInput = (e) => {
     const key = INPUT_KEYS[e.target.id];
     if (!key) return;
-    pendingPatch.current = Object.assign({}, pendingPatch.current, { [key]: String(e.target.value || '').trim() });
+    const value = String(e.target.value || '').trim();
+    const owner = keyOwnerFor(key, value);
+    if (owner === null) {
+      showToast(t('grant_err_invalid', '这份免费额度认不出来了。到设置里重新领一次。'));
+      return;
+    }
+    pendingPatch.current = Object.assign({}, pendingPatch.current, { [key]: value }, owner);
     clearTimeout(inputTimer.current);
     inputTimer.current = setTimeout(() => {
       const p = pendingPatch.current;
@@ -999,7 +1034,13 @@ function Options() {
     const key = INPUT_KEYS[id];
     if (!key) return;
     await flushPending();
-    await SettingsStore.setMany({ [key]: String(el.value || '').trim() });
+    const value = String(el.value || '').trim();
+    const owner = keyOwnerFor(key, value);
+    if (owner === null) {
+      showToast(t('grant_err_invalid', '这份免费额度认不出来了。到设置里重新领一次。'));
+      return;
+    }
+    await SettingsStore.setMany(Object.assign({ [key]: value }, owner));
     const toast = changeToastFor(id, t);
     if (toast) showToast(toast);
   };
@@ -1214,6 +1255,10 @@ function Options() {
       const cur = SettingsStore.get('provider');
       const provNow = EngineState.byId(cur) ? cur : EngineState.defaultId();
       if (provNow !== cur) await SettingsStore.set('provider', provNow);
+      // BEL-257：老安装没有 owner —— 只补缺的，不覆盖已有归属。bmg_ 一律归 grant，
+      // 于是升级后的第一条请求会被 build 拦住（grant_token_wrong_engine），零外发。
+      const ownerPatch = LearnGrant.migrateOwners(s0);
+      if (Object.keys(ownerPatch).length) await SettingsStore.setMany(ownerPatch);
 
       // 默认「快速」，除非用户上次切到过详细。
       let d = false;
@@ -1359,6 +1404,7 @@ function Options() {
       engineId: s.ttsEngine,
       baseUrl: String(s.ttsBaseUrl || '').trim(),
       apiKey: String(s.ttsApiKey || '').trim(),
+      keyOwner: String(s.ttsKeyOwner || ''),
       model: String(s.ttsModel || '').trim(),
       voice: s.ttsVoice || '',
       rate: Number(s.ttsRate) > 0 ? Number(s.ttsRate) : 1,
