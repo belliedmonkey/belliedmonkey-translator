@@ -12,7 +12,7 @@ const {
   recognitionCaps, AUDIO_SECONDS, canonicalAudioRel,
 } = require('../eval/baselines/asr/reviewed-36.js');
 const { mixedTokens, scoreReviewed } = require('../eval/baselines/asr/codeswitch-score.js');
-const { runReviewed36, prefetchSenseVoice, signalProcessGroup: reusedSignal, SENSEVOICE_ZIP_URL, senseVoiceChildArgs } = require('../eval/baselines/asr/run-reviewed-36.js');
+const { runReviewed36, prefetchSenseVoice, signalProcessGroup: reusedSignal, SENSEVOICE_ZIP_URL, senseVoiceChildArgs, modelLoadFromStderr } = require('../eval/baselines/asr/run-reviewed-36.js');
 const { packBundle } = require('../eval/baselines/asr/pack-reviewed-36-bundle.js');
 
 const ROOT = path.join(__dirname, '..');
@@ -536,5 +536,31 @@ describe('reviewed 36 — selection, score, and unavailable runs', () => {
     } finally {
       try { process.kill(sentinel.pid, 'SIGKILL'); } catch (_) {}
     }
+  });
+
+  test('the chair SenseVoice summary is not a rescore and modelLoad keeps the first line', () => {
+    const doc = JSON.parse(fs.readFileSync(path.join(ROOT, 'eval/baselines/asr/mac-sv-36-f6ec838b-2026-11-13.json'), 'utf8'));
+    eq(doc.readByThisAgent, false);
+    eq(doc.hypothesisFileCopied, false);
+    eq(doc.productMetric, false);
+    eq(doc.ranking, false);
+    eq(doc.speedRanking, false);
+    eq(doc.rates.en15.errors, 29);
+    eq(doc.rates.en15.length, 363);
+    eq(doc.rates.zh15.errors, 57);
+    eq(doc.rates.zh15.length, 624);
+    eq(doc.rates.ascend6.errors, 17);
+    eq(doc.rates.ascend6.length, 42);
+    const errors = doc.ascendItems.reduce((sum, row) => sum + row.errors, 0);
+    const length = doc.ascendItems.reduce((sum, row) => sum + row.length, 0);
+    eq(errors, 17);
+    eq(length, 42);
+    eq(doc.probe.inDenominator, false);
+    eq(doc.sourceReview.modelLoadIsSum, false);
+    eq(doc.sourceReview.comparableSpeed, false);
+    const stderr = path.join(os.tmpdir(), 'sv-load-' + process.pid + '.txt');
+    fs.writeFileSync(stderr, 'recognizer created in 0.674 s\nrecognizer created in 9.000 s\n');
+    eq(modelLoadFromStderr(stderr), 674);
+    eq(modelLoadFromStderr(stderr + '.missing'), null);
   });
 });

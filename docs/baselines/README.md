@@ -23,7 +23,7 @@
 | [ascend-candidates.md](ascend-candidates.md) | ASCEND test 的 6 条文字筛选 | 清单本身仍是文字筛选。端到端仍待测 |
 | [ascend-ear.md](ascend-ear.md) | 这 6 条的人耳结论 | 只确认混语和转写相符。不计入捐献 30。端到端仍待测 |
 | [fleurs-candidate-ear.md](fleurs-candidate-ear.md) | 1668–1682 中英共 30 条人耳结论 | 10:59 到 15:20 六句原话分开记。清单仍是 0。端到端仍待测 |
-| [reviewed-36.md](reviewed-36.md) | 这 30 条加 ASCEND 6 条的组件实验入口 | 命令和口径已写。chair 报告的 SA 探索性重算是 36/363、57/624、24/42，不是排名。SenseVoice 的 36 条还没有实测分数。端到端仍待测 |
+| [reviewed-36.md](reviewed-36.md) | 这 30 条加 ASCEND 6 条的组件实验入口 | 各一次探索。SA 36/363、57/624、24/42。SenseVoice 29/363、57/624、17/42。不是排名，不是速度对照。端到端仍待测 |
 | [llm-judge.md](llm-judge.md) | 双模型文本盲评，默认离线 | 没有真实评委调用。原始错误率不在这里重算。翻译任务不执行。端到端仍待测 |
 
 离线检查：`node eval/baselines/check.js`。它核对证据摘录仍在源码里、矩阵每一格都在、真实失败样本库仍为空、工具用合成句不能变成质量样本。公开 ASR 切片另见上表，不打产品分。

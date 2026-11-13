@@ -831,5 +831,5 @@ async function main(argv) {
 if (require.main === module) main(process.argv);
 
 module.exports = {
-  runReviewed36, prefetchSenseVoice, signalProcessGroup, monoMs, sha256File, senseVoiceChildArgs, SENSEVOICE_ZIP_URL,
+  runReviewed36, prefetchSenseVoice, signalProcessGroup, monoMs, sha256File, senseVoiceChildArgs, modelLoadFromStderr, SENSEVOICE_ZIP_URL,
 };

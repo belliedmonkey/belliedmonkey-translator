@@ -60,7 +60,7 @@ SenseVoice 没有模型目录时写 `model-missing`。目录里有 `model.int8.o
 node eval/baselines/asr/run-reviewed-36.js --prefetch-sensevoice https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.zip
 ```
 
-同一步失败两次就停。2026-11-13 对上面这个 GitHub zip URL 做了两次 HEAD，两次都是 HTTP 404，`content-type: text/plain`，最终 URL 没有跳到别的文件。那个 URL 没有再请求。配置里的 `https://api.belliedmonkey.com/models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.zip` 是静态文件地址，客户端下载不带 Authorization，也不是推理接口。一次 GET 得到 160304482 字节，sha256 `286a4b89c62be15c78f195b908bf746c80a655f07588346ee0383a8f20f21e04`。包内只有 `model.int8.onnx` 和 `tokens.txt`，哈希记在 `eval/baselines/asr/sensevoice-zip-members-2026-11-13.json`。产品表里的 zip 身份没有改。Mac 用的 `sherpa-onnx-v2.0.1-osx-arm64-static-no-tts.tar.bz2` sha256 是 `e2496931fd955ab449c2df1a6839e4c17cedf451e018cc3efd1a77180980c49b`，里面有 `bin/sherpa-onnx-offline`。这台 Linux 没有运行它。stdout 解析只按官方样例的一行一个 JSON、`text` 为字符串来测，二进制存在不算已经支持。SenseVoice 还没有 36 条分数。Mac 上的命令是解开脚本包之后：
+同一步失败两次就停。2026-11-13 对上面这个 GitHub zip URL 做了两次 HEAD，两次都是 HTTP 404，`content-type: text/plain`，最终 URL 没有跳到别的文件。那个 URL 没有再请求。配置里的 `https://api.belliedmonkey.com/models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.zip` 是静态文件地址，客户端下载不带 Authorization，也不是推理接口。一次 GET 得到 160304482 字节，sha256 `286a4b89c62be15c78f195b908bf746c80a655f07588346ee0383a8f20f21e04`。包内只有 `model.int8.onnx` 和 `tokens.txt`，哈希记在 `eval/baselines/asr/sensevoice-zip-members-2026-11-13.json`。产品表里的 zip 身份没有改。Mac 用的 `sherpa-onnx-v2.0.1-osx-arm64-static-no-tts.tar.bz2` sha256 是 `e2496931fd955ab449c2df1a6839e4c17cedf451e018cc3efd1a77180980c49b`，里面有 `bin/sherpa-onnx-offline`。这台 Linux 没有运行它。stdout 解析只按官方样例的一行一个 JSON、`text` 为字符串来测，二进制存在不算已经支持。SenseVoice 的一次探索性 smoke 记在下面，不是排名。Mac 上的命令是解开脚本包之后：
 
 ```bash
 node run-reviewed-36.js --run --backend sensevoice --out /tmp/r36-sv-smoke \
@@ -78,6 +78,26 @@ node run-reviewed-36.js --run --backend sensevoice --out /tmp/r36-sv-smoke \
 证据在 chair 拷到的 `/workspace/baseline-sa-sv-36-20261113/results/aef9aa8f/`，30 个文件。SHA256SUMS 的 sha256 是 `2ed0e67861ac02c64e2d3ae83ed0b588e8202e6bc75c15d5adbeadd8d36a563c`。hypothesis `255454cfc218d05bc30a1d8c7b07fde057071313e7549a828d91b529507dfa57`，score `96009a49c36813d71d24f46f8a58f9f28727546fac8d3f4771eb929b14bd94bc`，summary `b9e3d4814d5a7878fdb08fbc78dc5154676b408ae1a1bf51fb1b58b012bd19e2`。16:31:42 `--pack-existing` 退出 0，这三份哈希没变；打包后的 evidence 是 `253e3901ec48619be45a4c30bef1de794b42eb52ed4afa12dcbb59c8d0d92c79`。本仓库没有读取那个目录里的原始文件。load `3.45/3.23/3.28` 到 `3.68/3.29/3.29` 来自外部 wrapper，因为那次成功运行没有写 `env.json`。summary 顶层 `recognizeMs` 是 null，`phases.recognizeMs` 才是 9262.119。成功的 `stage` 是 null。`item-progress` 停在最后一条的 `item-start`。`--pack-existing` 覆盖了第一次的 evidence。这些缺口记在这里，不回填、不改那 30 个文件，也不为补元数据重跑识别。
 
 云端 Linux 不能报 SA 分数。合成夹具的 `rates` 保持 null。
+
+## SenseVoice 一次 smoke
+
+chair 报告了 `f6ec838b` 上的一次 SenseVoice 组件 smoke，时间 2026-11-13 17:11:51–17:13:11 Asia/Shanghai。授权是 t43/t44。命令退出 0，36 条 hypothesis 都非空，识别失败 0。冻结 v1 重算与这次分数一致，v1 规则没有改。本仓库没有打开 `/workspace/baseline-sa-sv-36-20261113/results/f6ec838b-sv/`，没有复制 hypothesis，下面的数字是 chair 摘要。摘要文件是 `eval/baselines/asr/mac-sv-36-f6ec838b-2026-11-13.json`。
+
+英文 15 条 WER 29/363。中文 15 条 CER 57/624。ASCEND 6 条 MER 17/42，`ranking` false。同一套规则下的 SA 是 36/363、57/624、24/42。中文合计相同，不是逐条相同。ASCEND 分条是 `00004` 4/5、`00009` 6/13、`00028` 3/3、`00055` 1/14、`00066` 1/4、`00068` 2/3，加总是 17/42。`approvedPlannedSetCount` 是 0。`productMetric` 和端到端都不成立。
+
+资源钉全部命中：zip `286a4b89c62be15c78f195b908bf746c80a655f07588346ee0383a8f20f21e04`，`model.int8.onnx` `c71f0ce00bec95b07744e116345e33d8cbbe08cef896382cf907bf4b51a2cd51`，`tokens.txt` `f449eb28dc567533d7fa59be34e2abca8784f771850c78a47fb731a31429a1dc`。后端包 `e2496931fd955ab449c2df1a6839e4c17cedf451e018cc3efd1a77180980c49b`。实际二进制是 Mach-O arm64，29996336 字节，sha256 `5a2d733a900cd6956a04432026fbf625e5912e694a8c8698fa69929659e0cf66`。参数是 cpu、2 线程、`zh`、ITN 开。没有调用 `api.belliedmonkey.com`，没有凭据、cookie 或私有 API。ModelScope 上的同一只 zip 是 `https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.zip`。chair 先遇到 Mac CopyFromBox 暂不可达，随后在 Mac 上用普通 curl 访问这个 URL，pin 再次命中。这次没有网络封锁，也没有审批拒绝。本仓库这一轮没有再下载。
+
+FLEURS 的 float32 被该二进制接受。runner 只按字节拷贝，`stage-manifest` 里的 `converted` 固定写 false，并不探测编码。
+
+墙钟 80.57 秒，user 155.45，sys 2.11。phases 毫秒：preflight 29.868，stage 55.515，compile null，assetInstall null，modelLoad 674，recognize 80146.724，score 7.579，pack 17.362。load 从 4.78/4.11/3.36 到 5.34/4.55/3.60。机器是 M2 Pro 12 核 16GB，macOS 27，Node 26.10。
+
+`modelLoadMs` 不是 36 条的合计。`modelLoadFromStderr` 只取整段 stderr 里第一处 `recognizer created in`，乘 1000 后四舍五入。后面的同类行不累加。`recognizeMs` 是这一个 `sherpa-onnx-offline` 进程的墙钟，36 条 wav 一次放进参数。它包含该进程里的模型创建，不是单条延迟。SA 也是一个进程跑完全部 36 条，但 Swift 循环里每次 `transcribe` 都新建 `SpeechTranscriber`，`modelLoadMs` 保持 null，recognize 9262.119 毫秒是安装资源之后那个进程的墙钟。两边的 80.57 秒和 12.42 秒不是同一口径，不能当成速度胜负。这一轮不是交替 5 次，没有性能排名，也不为这份报告再跑重复实验。
+
+单条 probe 是 ASCEND `00004`，退出 0，文本是「我死的。」，1.50 秒。它不进正式分母。
+
+证据目录里有 run、pack、probe、rescore、REPORT 和 SHA256SUMS。第一次 evidence sha256 `bbc4a0cae169d5e66557fc4cd73cca05055c4ec8928119ea6778ff4faacdaa0c`，pack 之后没变。新 pack 是 `8a57cea938cce2dd05cc9afc845e84a2db5a110f7dd2642163d6331705596076`。SA 旧证据没有改。
+
+LLM 评委还没有对这批 hypothesis 做真实调用。box 上另有审计在核 judge 包，本仓库不重复那一步，也不把音字听审或评委结果写成已经通过。原始 hypothesis 仍不在本仓库。若要归档原文，需要另传。
 
 ## 只读误差审计
 
