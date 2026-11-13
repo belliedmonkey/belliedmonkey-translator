@@ -16,13 +16,14 @@
 | [forms/documents.md](forms/documents.md) | 文档，以及不能并进上两类的相邻形态 | 协议；待测 |
 | [asr-public.md](asr-public.md) | FLEURS 中英 test 各 8 句的公开 ASR 参考，加离线 CER/WER | 16 条文本已冻结。`cbc0c0e1` 一键两次退出码 0，英文 WER 11/174，中文 CER 33/301。探索性组件分数，不是产品分。`3bd90f75` 的只打包已在 Mac 上退出码 0，不是再跑 16 句。端到端仍待测 |
 | [asr-file-pits.md](asr-file-pits.md) | SA 文件组件已踩的坑和回归入口 | 入口是 `node eval/baselines/asr/run-sa-file.js`。端到端仍待测 |
-| [default-chain-plan.md](default-chain-plan.md) | 国际版 Mac 中文默认臂和实时听译/字幕的后续测量方案 | 方案，不是实现。批准计划仍是 30 且 actual 0。另有 30 条未人审的 FLEURS 朗读候选，30 条 wav 只在独立缓存。端到端仍待测 |
+| [default-chain-plan.md](default-chain-plan.md) | 国际版 Mac 中文默认臂和实时听译/字幕的后续测量方案 | 方案，不是实现。批准计划仍是 30 且 actual 0。FLEURS 30 的听审在独立账上，不计入这 30。端到端仍待测 |
 | [review-pack.md](review-pack.md) | 30 条候选加 `cmn_hans_cn/1663` 的空白听审表 | 材料。表内复核列仍空。端到端仍待测 |
 | [zh1663-ear.md](zh1663-ear.md) | `cmn_hans_cn/1663` 的一条人耳结论 | 只这一条。不改参考，不重算 CER。批准集仍空。端到端仍待测 |
 | [scene-sources.md](scene-sources.md) | 口音、噪声、混语、连续对话的三份公开说明 | 只核卡片。没有新音频，没有批准。端到端仍待测 |
 | [ascend-candidates.md](ascend-candidates.md) | ASCEND test 的 6 条文字筛选 | 清单本身仍是文字筛选。端到端仍待测 |
 | [ascend-ear.md](ascend-ear.md) | 这 6 条的人耳结论 | 只确认混语和转写相符。不计入捐献 30。端到端仍待测 |
 | [fleurs-candidate-ear.md](fleurs-candidate-ear.md) | 1668–1682 中英共 30 条人耳结论 | 10:59 到 15:20 六句原话分开记。清单仍是 0。端到端仍待测 |
+| [reviewed-36.md](reviewed-36.md) | 这 30 条加 ASCEND 6 条的组件实验入口 | 命令和口径已写。SA 与 SenseVoice 都还没有这次 36 条的实测分数。端到端仍待测 |
 
 离线检查：`node eval/baselines/check.js`。它核对证据摘录仍在源码里、矩阵每一格都在、真实失败样本库仍为空、工具用合成句不能变成质量样本。公开 ASR 切片另见上表，不打产品分。
 
