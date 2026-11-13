@@ -164,7 +164,9 @@ function hostOfUrl(url) {
           text: await r.text(),
         });
       } catch (e) {
-        sendResponse({ error: String((e && e.message) || e) });
+        // 名字与码必须跨 message 边界保留：代理自己的 20 秒 abort 是 AbortError，
+        // 内容层据此把这次失败归成 timeout（BEL-247 / ACCEPT-6），而不是 network。
+        sendResponse({ error: String((e && e.message) || e), name: (e && e.name) || '', code: (e && e.code) || '' });
       } finally {
         clearTimeout(timer);
       }
