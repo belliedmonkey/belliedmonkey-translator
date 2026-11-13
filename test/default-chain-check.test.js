@@ -3,7 +3,7 @@
 
 const { describe, test, eq } = require('./harness');
 const {
-  checkCatalog, validateRow, referenceEditAllowed, checkZh1663,
+  checkCatalog, validateRow, referenceEditAllowed, checkZh1663, checkAscendEar,
 } = require('../eval/baselines/default-chain-check.js');
 
 function row(extra) {
@@ -47,7 +47,9 @@ describe('default-chain catalog — blocked empty set, not a product score', () 
     eq(report.smoke.itemCount, 16);
     eq(report.smoke.productMetric, false);
     eq(report.zh1663AudioChecked, true);
-    eq(report.humanVerifiedCount, 1);
+    eq(report.humanVerifiedCount, 7);
+    eq(report.ascendHumanVerifiedCount, 6);
+    eq(report.publicCandidateHumanVerifiedCount, 0);
     eq(report.approvedPlannedSetCount, 0);
     eq(report.code, 'empty-set');
   });
@@ -131,5 +133,44 @@ describe('default-chain catalog — blocked empty set, not a product score', () 
     eq(ok.audioChecked, true);
     eq(ok.humanVerifiedCount, 1);
     eq(ok.approvedPlannedSetCount, 0);
+  });
+
+  test('the six ASCEND ear rows fail closed when the record, a hash, or a transcription changes', () => {
+    const pins = [
+      ['00004', 'b1d784c7c355c79febc73733f61a9faa2564c9f07cdf12caa3dd470f381c0149', "呃what's the呃"],
+      ['00009', '7317a4752e95039e6f6c345ef5b15fdd18fc7f48353cc893e6f99218a682c9a3', 'no我专业是那个i s m information systems management'],
+      ['00028', 'f790b945050ccc625702f214dc7182c0c0e781a6fd5a82c7d1863c4683414842', 'ok福建'],
+      ['00055', '866d07fc22025c9450e6e8811cb6b374ab863370182922c054dfa1c1ea46a535', 'um运动啊男生一般不都喜欢运动'],
+      ['00066', 'a554fbe3692c170b6aed5a34f34095312fe4b822c1c205eaddf894ee90f21faf', '哦这么technical'],
+      ['00068', 'ddf1d1241915e223a8f46e6e00e9f5c0b6574add6d6c984fab26ee5508897958', 'computer languages是'],
+    ];
+    const frozen = pins.map((row) => ({ id: row[0], audioSha256: row[1], transcription: row[2] }));
+    eq(checkAscendEar(null, frozen).code, 'ascend-missing');
+    eq(checkAscendEar(null, frozen).humanVerifiedCount, 0);
+    const review = {
+      reviewer: 'ZHAO ZHANG',
+      reviewedAt: '2026-11-13T09:44+08:00',
+      timezone: 'Asia/Shanghai',
+      accent: { count: 0, status: 'unknown' },
+      noise: { count: 0, status: 'unknown' },
+      continuousDialogue: { count: 0, status: 'unknown' },
+      items: pins.map((row) => ({
+        id: row[0],
+        audioSha256: row[1],
+        transcription: row[2],
+        codeSwitchHeard: true,
+        transcriptMismatchOrUncertain: false,
+      })),
+    };
+    const badHash = JSON.parse(JSON.stringify(review));
+    badHash.items[0].audioSha256 = 'a'.repeat(64);
+    eq(checkAscendEar(badHash, frozen).code, 'ascend-hash');
+    const badText = JSON.parse(JSON.stringify(review));
+    badText.items[3].transcription = '运动啊男生一般不都喜欢运动';
+    eq(checkAscendEar(badText, frozen).code, 'ascend-transcription');
+    const heard = checkAscendEar(review, frozen);
+    eq(heard.humanVerifiedCount, 6);
+    eq(heard.approvedPlannedSetCount, 0);
+    eq(heard.continuousDialogue.count, 0);
   });
 });

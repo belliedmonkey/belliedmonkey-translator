@@ -106,12 +106,64 @@ function checkZh1663(review, frozenItem) {
   return { ok: true, code: 'zh1663-checked', audioChecked: true, humanVerifiedCount: 1, approvedPlannedSetCount: 0 };
 }
 
+const ASCEND_EAR = [
+  ['00004', 'b1d784c7c355c79febc73733f61a9faa2564c9f07cdf12caa3dd470f381c0149', "呃what's the呃"],
+  ['00009', '7317a4752e95039e6f6c345ef5b15fdd18fc7f48353cc893e6f99218a682c9a3', 'no我专业是那个i s m information systems management'],
+  ['00028', 'f790b945050ccc625702f214dc7182c0c0e781a6fd5a82c7d1863c4683414842', 'ok福建'],
+  ['00055', '866d07fc22025c9450e6e8811cb6b374ab863370182922c054dfa1c1ea46a535', 'um运动啊男生一般不都喜欢运动'],
+  ['00066', 'a554fbe3692c170b6aed5a34f34095312fe4b822c1c205eaddf894ee90f21faf', '哦这么technical'],
+  ['00068', 'ddf1d1241915e223a8f46e6e00e9f5c0b6574add6d6c984fab26ee5508897958', 'computer languages是'],
+];
+
+function checkAscendEar(review, frozenItems) {
+  const blocked = {
+    ok: false,
+    humanVerifiedCount: 0,
+    approvedPlannedSetCount: 0,
+    continuousDialogue: { count: 0, status: 'unknown' },
+  };
+  if (!review) return Object.assign(blocked, { code: 'ascend-missing' });
+  if (review.reviewer !== 'ZHAO ZHANG' || review.reviewedAt !== '2026-11-13T09:44+08:00' || review.timezone !== 'Asia/Shanghai') {
+    return Object.assign(blocked, { code: 'ascend-conclusion' });
+  }
+  for (const name of ['accent', 'noise', 'continuousDialogue']) {
+    const bucket = review[name] || {};
+    if (bucket.count !== 0 || bucket.status !== 'unknown') return Object.assign(blocked, { code: 'ascend-claim' });
+  }
+  if (!Array.isArray(review.items) || review.items.length !== ASCEND_EAR.length) {
+    return Object.assign(blocked, { code: 'ascend-missing' });
+  }
+  const frozenById = new Map((frozenItems || []).map((item) => [item.id, item]));
+  for (let i = 0; i < ASCEND_EAR.length; i++) {
+    const id = ASCEND_EAR[i][0];
+    const hash = ASCEND_EAR[i][1];
+    const text = ASCEND_EAR[i][2];
+    const row = review.items[i];
+    const frozen = frozenById.get(id);
+    if (!row || row.id !== id || !frozen) return Object.assign(blocked, { code: 'ascend-missing' });
+    if (row.audioSha256 !== hash || frozen.audioSha256 !== hash) return Object.assign(blocked, { code: 'ascend-hash' });
+    if (row.transcription !== text || frozen.transcription !== text) return Object.assign(blocked, { code: 'ascend-transcription' });
+    if (row.codeSwitchHeard !== true || row.transcriptMismatchOrUncertain !== false) {
+      return Object.assign(blocked, { code: 'ascend-conclusion' });
+    }
+  }
+  return {
+    ok: true,
+    code: 'ascend-checked',
+    humanVerifiedCount: ASCEND_EAR.length,
+    approvedPlannedSetCount: 0,
+    continuousDialogue: { count: 0, status: 'unknown' },
+  };
+}
+
 function checkCatalog() {
   const catalog = readJson(CATALOG);
   const smoke = readJson(catalog.smoke.path);
   const pub = catalog.publicCandidates ? readJson(catalog.publicCandidates.path) : null;
   const ascend = catalog.ascendCandidates ? readJson(catalog.ascendCandidates.path) : null;
   const review = catalog.zh1663Review ? readJson(catalog.zh1663Review.path) : null;
+  const ascendReview = catalog.ascendReview ? readJson(catalog.ascendReview.path) : null;
+  const ascendEar = checkAscendEar(ascendReview, ascend ? ascend.items : []);
   const focus = smoke && Array.isArray(smoke.items)
     ? smoke.items.find((item) => item.id === 'cmn_hans_cn/1663/17125746560393607835.wav')
     : null;
@@ -128,9 +180,9 @@ function checkCatalog() {
     realFailures: catalog.realFailures,
     zh1663AudioChecked: ear.audioChecked === true,
     publicCandidateCount: pub ? pub.publicCandidateCount : 0,
-    humanVerifiedCount: ear.humanVerifiedCount,
+    humanVerifiedCount: ear.humanVerifiedCount + ascendEar.humanVerifiedCount,
     publicCandidateHumanVerifiedCount: pub ? pub.humanVerifiedCount : 0,
-    ascendHumanVerifiedCount: ascend ? ascend.humanVerifiedCount : 0,
+    ascendHumanVerifiedCount: ascendEar.humanVerifiedCount,
     approvedPlannedSetCount: pub ? pub.approvedPlannedSetCount : 0,
     smoke: {
       role: catalog.smoke.role,
@@ -152,6 +204,7 @@ function checkCatalog() {
   if (!ear.ok) return Object.assign(base, { code: ear.code });
   if (catalog.zh1663AudioChecked !== true) return Object.assign(base, { code: 'zh1663' });
   if (ascend && ascend.humanVerifiedCount !== 0) return Object.assign(base, { code: 'ascend-claim' });
+  if (!ascendEar.ok) return Object.assign(base, { code: ascendEar.code });
   if (!pub || pub.humanVerifiedCount !== 0 || pub.approvedPlannedSetCount !== 0 || pub.realFailureCount !== 0 || pub.productMetric !== false) {
     return Object.assign(base, { code: 'public-candidate-claim' });
   }
@@ -207,4 +260,4 @@ function main(argv) {
 
 if (require.main === module) main(process.argv);
 
-module.exports = { checkCatalog, validateRow, referenceEditAllowed, checkZh1663, selftest };
+module.exports = { checkCatalog, validateRow, referenceEditAllowed, checkZh1663, checkAscendEar, selftest };

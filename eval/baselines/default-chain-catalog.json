@@ -19,5 +19,9 @@
   "ascendCandidates": {
     "path": "eval/baselines/ascend/ascend-test-v1.json",
     "role": "text-screen-only"
+  },
+  "ascendReview": {
+    "path": "eval/baselines/ascend/ascend-ear-2026-11-13.json",
+    "role": "ear-review"
   }
 }

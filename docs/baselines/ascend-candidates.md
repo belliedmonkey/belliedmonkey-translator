@@ -1,6 +1,6 @@
 # ASCEND 小批候选
 
-这是 test 划分里按转写文字筛出的 6 条，不是人审，也不是批准计划里的 30 条捐献。`donationActualCount` 是 0。口音、噪声、混语有没有被耳朵确认，都是 unknown。端到端仍 **待测**。
+这是 test 划分里按转写文字筛出的 6 条。本文件仍是文字筛选快照，`humanVerifiedCount` 仍是 0，也不是批准计划里的 30 条捐献。人耳结论另记在 [ascend-ear.md](ascend-ear.md)：只确认这 6 句听到了中英混语且转写相符。口音、噪声、连续对话仍是 unknown。端到端仍 **待测**。
 
 卡片修订和数据文件分开冻结。卡片是 `CAiRE/ASCEND` 的 `737e9800ae31be9932ba8464c80366559bd28424`。数据是 `main/test-00000-of-00001.parquet`，105756434 字节，sha256 `a4c81d2b5ed6124f052089a695972808c16e0ce0c365ec9773c5d1a8fcf043a7`，与该修订的 LFS oid 相同。许可以卡片 Licensing Information 的 CC-BY-SA-4.0 为准，链接是 <https://creativecommons.org/licenses/by-sa/4.0/>。GitHub 仓库上的 MIT 是代码许可，不是这批音频的许可。
 
