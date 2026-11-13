@@ -153,6 +153,7 @@ var SubtitleAdapter = (() => {
         // 读不到就不发这个字段 —— 退回去发一个会话年龄，等于把一个看不出错的错数入库。
         const fail = {
           provider: String((settings && settings.provider) || ''),
+          kind: 'subtitle',
           code: (e && typeof e.code === 'string') ? e.code : 'network',
           status: Number.isInteger(e && e.status) ? e.status : 0,
           route: (e && e.route === 'proxy') ? 'proxy' : ((e && e.route === 'direct') ? 'direct' : ''),

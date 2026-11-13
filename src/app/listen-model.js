@@ -614,7 +614,7 @@ const listenModel = (() => {
     session.tmOk = true;
     try {
       if (typeof MTTelemetry !== 'undefined') {
-        MTTelemetry.track('translate_ok', { provider: tmProvider(), kind: 'subtitle', ms: Math.max(0, now() - session.startedAt) });
+        MTTelemetry.track('translate_ok', { provider: tmProvider(), kind: 'subtitle' });
       }
     } catch (_) {}
   }
@@ -626,12 +626,15 @@ const listenModel = (() => {
     session.tmFailed[code] = true;
     try {
       if (typeof MTTelemetry !== 'undefined') {
-        MTTelemetry.track('translate_fail', {
-          provider: tmProvider(), code,
+        const fail = {
+          provider: tmProvider(), kind: 'subtitle', code,
           status: Number.isInteger(e.status) ? e.status : 0,
           route: e.route === 'proxy' ? 'proxy' : (e.route === 'direct' ? 'direct' : ''),
-          ms: Math.max(0, now() - session.startedAt),
-        });
+        };
+        // §3.11 A：这里原来发的是**会话时长**（now - startedAt），把 p50 拉成 962 秒。
+        // 只发 apiFetch 挂上来的本次请求耗时；没有就不发，绝不补 0。
+        if (Number.isInteger(e.ms)) fail.ms = e.ms;
+        MTTelemetry.track('translate_fail', fail);
       }
     } catch (_) {}
   }

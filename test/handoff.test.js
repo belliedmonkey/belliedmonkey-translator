@@ -140,10 +140,12 @@ describe('AppHandoff.relayResult — 面板页的遥测由主页面代发（tele
     deepEq(sent[0], { n: 'translate_ok', p: { provider: 'deepseek', kind: 'quick', ms: 640 } });
     ok(EVENTS.translate_ok.kind.indexOf('quick') >= 0, '白名单里没有 quick ⇒ 客户端会静默丢掉');
   });
-  test('失败 ⇒ translate_fail，不带 kind；缺的字段落到安全默认', () => {
+  test('失败 ⇒ translate_fail{kind:quick}；ms 只在非负整数时发（不补假 0）', () => {
     sent.length = 0; eq(H.relayResult({ ok: false, code: 'auth', provider: 'openai', status: 401, route: 'direct', ms: 12.5 }, track), 'fail');
-    deepEq(sent[0], { n: 'translate_fail', p: { provider: 'openai', code: 'auth', status: 401, route: 'direct', ms: 0 } });
+    deepEq(sent[0], { n: 'translate_fail', p: { provider: 'openai', kind: 'quick', code: 'auth', status: 401, route: 'direct' } });
     sent.length = 0; H.relayResult({ ok: false }, track);
-    deepEq(sent[0].p, { provider: '', code: 'network', status: 0, route: '', ms: 0 });
+    deepEq(sent[0].p, { provider: '', kind: 'quick', code: 'network', status: 0, route: '' });
+    sent.length = 0; H.relayResult({ ok: false, ms: 0 }, track);
+    eq(sent[0].p.ms, 0, '真实的 0 是合法读数，照发');
   });
 });
