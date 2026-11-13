@@ -20,12 +20,25 @@ SenseVoice 沿用 `app/device-models.config.js` 里的表，不另抄一份会�
 
 计时用单调时钟，分开记 preflight、编译、资源安装、模型加载、识别等待、评分、打包。识别没开始时 `recognizeMs` 是 null，不是 0。历史那次含编译的约 7 秒不是这里的延迟。性能比较要每一侧至少 5 次、交替 A/B，再报中位数、范围和失败数。次数不够就只写探索性，不排名。
 
+## 扁平包的 config
+
+`6d25fa8d` 的 `MANIFEST.json` 有 36 条，但没有 `config`。包模式的 `loadManifest` 原样收下这些行。`checkCaches` 只用 `config === 'ascend'` 决定缓存根，缺了 config 就去 FLEURS 根找 `00004.wav`。`safeAudioRel` 同样看 config，所以就算预检被绕过，staging 也会是 `audio-path`。仓库模式的 `loadSet` 本来就带 config，当时的 mock 没有走打包再解压的命令，所以没撞上。
+
+缓存布局是：FLEURS 根下的 `en_us/<audioName>` 与 `cmn_hans_cn/<audioName>`，ASCEND 根下的 `00004.wav` 这一类文件名。Mac 上已有的 `1668-<hash>.wav` 硬链接不改变这个规则。缺 `config` 是 `invalid-config`，不会改去猜路径。
+
+预检失败也会先建 `--out`。目录里有 `run-summary.json`、`env.json`、`input-manifest.json` 和 `evidence.tar.gz`。`id` 和 `stage` 在 summary 里。`--pack-existing` 只打包已经写下的文件，不再识别。没给 `--out` 时，命令自己在当前目录建 `r36-result-<pid>-<time>`。
+
+耳审记录以只读副本放进包，`audit.records` 记下源路径和 sha256。空白听写表不进包，源文件不改。
+
+识别上限默认是 36 × 45 秒。45 秒是旧 16 句的逐条上限。180 秒是那 16 句的进程上限，对这 36 句不再沿用：sidecar 时长合计 371.07 秒，36 × 45 秒也大于 180 秒。这是上限，不是延迟估计。SA 的 `modelLoadMs` 保持 null，识别子进程的墙钟只记在 `recognizeMs`。`--process-cap-ms` 和 `--item-cap-ms` 可以改这两个数。
+
 ## 命令
 
 默认离线，不访问网络。
 
 ```bash
-node eval/baselines/asr/run-reviewed-36.js --check
+node eval/baselines/asr/run-reviewed-36.js --check --out <新目录> \
+  --fleurs-cache <FLEURS 缓存根> --ascend-cache <ASCEND 缓存根>
 node eval/baselines/asr/run-reviewed-36.js --run --backend sa --out <新目录> \
   --fleurs-cache <FLEURS 缓存根> --ascend-cache <ASCEND 缓存根>
 node eval/baselines/asr/run-reviewed-36.js --run --backend sensevoice --out <新目录> \
@@ -49,4 +62,4 @@ node eval/baselines/asr/run-reviewed-36.js --prefetch-sensevoice https://github.
 
 同一步失败两次就停。2026-11-13 对上面这个 zip URL 做了两次 HEAD，两次都是 HTTP 404，`content-type: text/plain`，最终 URL 没有跳到别的文件。没有下载，也没有用 tar.bz2 顶替。SenseVoice 这一项是 blocked。SA 的 staging、编译和子进程路径不依赖它。
 
-Mac 上的真实识别还没在这台环境跑过。云端 Linux 不能报 SA 分数。合成夹具的 `rates` 保持 null。
+`6d25fa8d` 那只扁平包缺 `config`，Mac 上的 `--check` 和 `--run` 停在 preflight，没有编译、安装或识别。不要把那只包再当可执行入口。云端 Linux 不能报 SA 分数。合成夹具的 `rates` 保持 null。

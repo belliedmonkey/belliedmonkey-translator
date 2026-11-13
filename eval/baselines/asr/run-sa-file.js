@@ -398,7 +398,7 @@ function packExisting(runDir) {
   catch (_) { return { ok: false, code: 'missing-summary', processExit: 2 }; }
   const names = ['run-summary.json'];
   if (summary && summary.ok === true) names.push('score.json', 'hypotheses.json');
-  for (const name of ['child-stdout.txt', 'child-stderr.txt']) {
+  for (const name of ['child-stdout.txt', 'child-stderr.txt', 'env.json', 'input-manifest.json']) {
     if (fs.existsSync(path.join(runDir, name))) names.push(name);
   }
   for (const name of names) {

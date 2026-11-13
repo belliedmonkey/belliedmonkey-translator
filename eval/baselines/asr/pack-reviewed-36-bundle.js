@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { spawnSync } = require('child_process');
-const { loadSet, senseVoicePin, saPin } = require('./reviewed-36.js');
+const { loadSet, senseVoicePin, saPin, EAR_SOURCES, validateSet } = require('./reviewed-36.js');
 
 const ROOT = path.join(__dirname, '../../..');
 const FILES = [
@@ -24,9 +24,35 @@ function sha256(buf) {
   return crypto.createHash('sha256').update(buf).digest('hex');
 }
 
-function packBundle(outZip) {
-  const set = loadSet(ROOT);
+function auditSnapshot() {
+  const records = EAR_SOURCES.map((rel) => {
+    const body = fs.readFileSync(path.join(ROOT, rel));
+    const doc = JSON.parse(body.toString('utf8'));
+    return {
+      source: rel,
+      file: path.basename(rel),
+      sha256: sha256(body),
+      reviewer: doc.reviewer || null,
+      reviewedAt: doc.reviewedAt || null,
+      verbatim: doc.verbatim == null ? null : doc.verbatim,
+      humanVerifiedCount: doc.humanVerifiedCount,
+      approvedPlannedSetCount: doc.approvedPlannedSetCount,
+      blankSheet: false,
+    };
+  });
+  return {
+    schema: 'belliedmonkey.reviewed-36-audit.v1',
+    blankSheetsIncluded: false,
+    note: 'Byte copies of the ear records. The blank listening sheet is not included and the source files are not rewritten.',
+    records: records,
+  };
+}
+
+function packBundle(outZip, extra) {
+  const set = extra && extra.set ? extra.set : loadSet(ROOT);
   if (!set.ok) throw new Error(set.code);
+  const rows = validateSet(set.items);
+  if (!rows.ok) throw new Error(rows.code);
   const stage = fs.mkdtempSync(path.join(require('os').tmpdir(), 'r36-bundle-'));
   for (const rel of FILES) {
     const base = path.basename(rel);
@@ -34,17 +60,23 @@ function packBundle(outZip) {
     if (base.endsWith('.wav')) throw new Error('audio');
     fs.writeFileSync(path.join(stage, base), body);
   }
+  const audit = auditSnapshot();
+  for (const rec of audit.records) {
+    fs.writeFileSync(path.join(stage, rec.file), fs.readFileSync(path.join(ROOT, rec.source)));
+  }
   const manifest = {
     schema: 'belliedmonkey.reviewed-36-bundle.v1',
-    synthetic: false,
+    synthetic: !!(extra && extra.synthetic === true),
     audioIncluded: false,
     modelIncluded: false,
     approvedPlannedSetCount: 0,
     denominator: 36,
     sa: saPin(),
     sensevoice: senseVoicePin(ROOT),
+    audit: audit,
     items: set.items.map((item) => ({
       id: item.id,
+      config: item.config,
       stratum: item.stratum,
       lang: item.lang,
       reference: item.reference,
@@ -72,7 +104,10 @@ function packBundle(outZip) {
     '```',
     '',
     'That first command is one smoke. Do not pass `--repeats` until a smoke has exited 0. Fewer than five repeats is exploratory and is not a ranking.',
+    'Each manifest row carries `config`. `en_us` and `cmn_hans_cn` are read from the FLEURS cache as `config/audioName`. ASCEND is read from the ASCEND cache as `audioName` itself. A row without `config` is `invalid-config` and is not looked up under the FLEURS root.',
+    'Ear-record copies sit next to MANIFEST.json. Their sha256 is in `audit`. The blank listening sheet is not in this archive.',
     'Darwin with `swiftc` stages the 36 files, checks their sha256, compiles `product-asr-mac.swift`, runs `--install-assets`, then recognizes. Linux stays `unavailable`.',
+    'The default recognize ceiling is 36 times 45s. The old 16-clip process ceiling of 180s is not this set\'s ceiling. `--process-cap-ms` and `--item-cap-ms` override it. That number is a bound, not a measured latency, and the recognize wall is not model-load time.',
     '',
     'SenseVoice stays blocked until the pinned zip is obtained separately. A supplied model directory is checked, not downloaded:',
     '',

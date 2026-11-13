@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const {
-  loadSet, checkCaches, stageReviewedAudio, senseVoicePin, saPin, inspectSenseVoiceDir, perfSchedule, summarizeLatencies, sha256File,
+  loadSet, checkCaches, stageReviewedAudio, senseVoicePin, saPin, inspectSenseVoiceDir, perfSchedule, summarizeLatencies, recognitionCaps, sha256File,
 } = require('./reviewed-36.js');
 const { scoreReviewed } = require('./codeswitch-score.js');
 const { signalProcessGroup, writeEvidenceArchive, packExisting, watchChild } = require('./run-sa-file.js');
@@ -143,6 +143,7 @@ async function runSaChild(opts, checked, runDir, preflightMs) {
   if (!compiled || compiled.code !== 0 || compiled.cap) {
     const summary = baseSummary({
       code: compiled && compiled.cap ? 'compile-timeout' : 'compile-failed',
+      stage: 'compile',
       processExit: 2,
       recognizeStarted: false,
       phases: { preflightMs: preflightMs, stageMs: stageMs, compileMs: compileMs, recognizeMs: null },
@@ -151,13 +152,14 @@ async function runSaChild(opts, checked, runDir, preflightMs) {
     summary.runDir = runDir;
     return summary;
   }
+  const caps = recognitionCaps({ itemCapMs: opts.itemCapMs, processCapMs: opts.processCapMs });
   const watchOpts = (stdoutName, stderrName) => ({
     cwd: stageRoot,
     stdoutPath: path.join(runDir, stdoutName),
     stderrPath: path.join(runDir, stderrName),
     progressFile: path.join(runDir, 'item-progress.json'),
-    processCapMs: opts.processCapMs || 180000,
-    itemCapMs: opts.itemCapMs || 45000,
+    processCapMs: caps.processCapMs,
+    itemCapMs: caps.itemCapMs,
     killGraceMs: opts.killGraceMs,
     pollMs: opts.pollMs,
     platform: opts.platform || process.platform,
@@ -172,6 +174,7 @@ async function runSaChild(opts, checked, runDir, preflightMs) {
   if (installed.cap || installed.code !== 0) {
     const summary = baseSummary({
       code: installed.cap ? installed.cap : 'asset-install-failed',
+      stage: 'asset-install',
       processExit: 2,
       recognizeStarted: false,
       phases: { preflightMs: preflightMs, stageMs: stageMs, compileMs: compileMs, assetInstallMs: assetInstallMs, recognizeMs: null },
@@ -201,6 +204,7 @@ async function runSaChild(opts, checked, runDir, preflightMs) {
   if (watched.cap || watched.code !== 0) {
     const summary = baseSummary({
       code: watched.cap ? watched.cap : 'recognition-failed',
+      stage: 'recognize',
       processExit: 2,
       recognizeStarted: true,
       timedOut: !!watched.cap,
@@ -338,6 +342,7 @@ async function runSenseVoiceChild(opts, checked, runDir, preflightMs, looked) {
     const summary = baseSummary({
       code: watched.cap ? watched.cap : 'recognition-failed',
       backend: 'sensevoice',
+      stage: 'recognize',
       processExit: 2,
       recognizeStarted: true,
       timedOut: !!watched.cap,
@@ -417,7 +422,76 @@ async function runSenseVoiceChild(opts, checked, runDir, preflightMs, looked) {
   return summary;
 }
 
+function envSnapshot(opts) {
+  return {
+    platform: opts.platform || process.platform,
+    arch: process.arch,
+    node: process.version,
+    command: opts.command || null,
+    backend: opts.backend || null,
+    caps: recognitionCaps({ itemCapMs: opts.itemCapMs, processCapMs: opts.processCapMs }),
+  };
+}
+
+function openRunDir(opts) {
+  const runDir = opts.outDir;
+  if (!runDir) return { ok: false, summary: baseSummary({ code: 'missing-out', stage: 'preflight', processExit: 2, rates: null }) };
+  if (fs.existsSync(runDir)) {
+    return { ok: false, summary: baseSummary({ code: 'output-exists', stage: 'preflight', processExit: 2, rates: null, runDir: runDir }) };
+  }
+  fs.mkdirSync(runDir, { recursive: true });
+  return { ok: true, runDir: runDir };
+}
+
+function publishPreflight(runDir, checked, preflightMs, opts) {
+  const summary = baseSummary({
+    ok: checked.ok === true,
+    code: checked.code,
+    id: checked.id || null,
+    stage: checked.stage || 'preflight',
+    processExit: checked.ok ? 0 : 2,
+    rates: null,
+    synthetic: checked.synthetic === true,
+    phases: {
+      preflightMs: preflightMs,
+      compileMs: null,
+      assetInstallMs: null,
+      modelLoadMs: null,
+      recognizeMs: null,
+    },
+    itemCount: checked.ok && checked.items ? checked.items.length : 0,
+    caps: recognitionCaps({ itemCapMs: opts.itemCapMs, processCapMs: opts.processCapMs }),
+  });
+  writeJson(runDir, 'env.json', envSnapshot(opts));
+  writeJson(runDir, 'input-manifest.json', {
+    ok: checked.ok === true,
+    code: checked.code,
+    id: checked.id || null,
+    stage: 'preflight',
+    synthetic: checked.synthetic === true,
+    items: (checked.items || []).map((item) => ({
+      id: item.id,
+      config: item.config,
+      audioRel: item.audioRel,
+      audioName: item.audioName,
+      saLocale: item.saLocale,
+    })),
+  });
+  seal(runDir, summary, ['run-summary.json', 'env.json', 'input-manifest.json']);
+  summary.runDir = runDir;
+  return summary;
+}
+
 async function runReviewed36(opts) {
+  if (opts.command === 'pack-existing') {
+    const packed = packExisting(opts.packDir);
+    packed.recognizeStarted = false;
+    packed.rates = null;
+    return packed;
+  }
+  const opened = openRunDir(opts);
+  if (!opened.ok) return opened.summary;
+  const runDir = opened.runDir;
   const started = process.hrtime.bigint();
   const root = opts.root || ROOT;
   const fleursCache = opts.fleursCache || path.join(root, 'eval/baselines/asr/.cache/public-candidates');
@@ -426,41 +500,22 @@ async function runReviewed36(opts) {
   let checked;
   if (opts.fixtureItems) {
     if (opts.synthetic !== true) {
-      return baseSummary({ code: 'fixture-unmarked', processExit: 2, rates: null });
+      return publishPreflight(runDir, { ok: false, code: 'fixture-unmarked', id: null, items: [] }, monoMs(started), opts);
     }
     selected = { ok: true, items: opts.fixtureItems, synthetic: true, code: 'ok' };
     checked = selected;
   } else {
-    selected = loadSet(root);
+    try {
+      selected = loadSet(root);
+    } catch (err) {
+      return publishPreflight(runDir, { ok: false, code: 'load-failed', id: null, items: [] }, monoMs(started), opts);
+    }
     checked = selected.ok && !opts.skipAudio ? checkCaches(selected, fleursCache, ascendCache) : selected;
   }
   const preflightMs = monoMs(started);
-  if (opts.command === 'check') {
-    return Object.assign(baseSummary({
-      ok: checked.ok === true,
-      code: checked.code,
-      processExit: checked.ok ? 0 : 2,
-      phases: { preflightMs: preflightMs, recognizeMs: null },
-      itemCount: checked.ok ? checked.items.length : 0,
-    }), { rates: null });
+  if (opts.command === 'check' || !checked.ok) {
+    return publishPreflight(runDir, checked, preflightMs, opts);
   }
-  if (opts.command === 'pack-existing') {
-    const packed = packExisting(opts.packDir);
-    packed.recognizeStarted = false;
-    return packed;
-  }
-  if (!checked.ok) {
-    return baseSummary({
-      code: checked.code,
-      id: checked.id || null,
-      processExit: 2,
-      phases: { preflightMs: preflightMs, recognizeMs: null },
-    });
-  }
-  const runDir = opts.outDir;
-  if (!runDir) return baseSummary({ code: 'missing-out', processExit: 2 });
-  if (fs.existsSync(runDir)) return baseSummary({ code: 'output-exists', processExit: 2 });
-  fs.mkdirSync(runDir, { recursive: true });
   const backend = opts.backend;
   const pin = backend === 'sensevoice' ? senseVoicePin(root) : saPin();
   writeJson(runDir, 'backend-pin.json', pin);
@@ -631,6 +686,8 @@ async function main(argv) {
   let ascendCache = '';
   let sensevoiceDir = '';
   let sensevoiceBin = '';
+  let processCapMs = 0;
+  let itemCapMs = 0;
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--check') command = 'check';
     else if (args[i] === '--run') command = 'run';
@@ -644,6 +701,8 @@ async function main(argv) {
     else if (args[i] === '--ascend-cache') ascendCache = args[++i] || '';
     else if (args[i] === '--sensevoice-dir') sensevoiceDir = args[++i] || '';
     else if (args[i] === '--sensevoice-bin') sensevoiceBin = args[++i] || '';
+    else if (args[i] === '--process-cap-ms') processCapMs = Number(args[++i] || '0');
+    else if (args[i] === '--item-cap-ms') itemCapMs = Number(args[++i] || '0');
     else if (args[i] === '--prefetch-sensevoice') {
       command = 'prefetch';
       prefetchUrl = args[++i] || '';
@@ -658,6 +717,9 @@ async function main(argv) {
       process.exit(result.ok ? 0 : 2);
     });
     return;
+  }
+  if ((command === 'check' || command === 'run') && !outDir) {
+    outDir = path.join(process.cwd(), 'r36-result-' + process.pid + '-' + Date.now());
   }
   if (command === 'run' && backend === 'sensevoice' && sensevoiceDir && !sensevoiceBin) {
     try {
@@ -683,10 +745,14 @@ async function main(argv) {
     ascendCache: ascendCache || undefined,
     sensevoiceDir: sensevoiceDir || undefined,
     sensevoiceBin: sensevoiceBin || undefined,
+    processCapMs: processCapMs || undefined,
+    itemCapMs: itemCapMs || undefined,
   });
   console.log(JSON.stringify({
     ok: result.ok === true,
     code: result.code,
+    id: result.id || null,
+    stage: result.stage || null,
     processExit: result.processExit,
     rates: result.ok ? result.rates : null,
     approvedPlannedSetCount: 0,

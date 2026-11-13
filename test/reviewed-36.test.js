@@ -6,12 +6,14 @@ const path = require('path');
 const { describe, test, eq } = require('./harness');
 const { signalProcessGroup } = require('../eval/baselines/asr/run-sa-file.js');
 const crypto = require('crypto');
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const {
   loadSet, checkCaches, stageReviewedAudio, senseVoicePin, perfSchedule, summarizeLatencies, conversionRecord,
+  recognitionCaps, AUDIO_SECONDS, canonicalAudioRel,
 } = require('../eval/baselines/asr/reviewed-36.js');
 const { mixedTokens, scoreReviewed } = require('../eval/baselines/asr/codeswitch-score.js');
 const { runReviewed36, prefetchSenseVoice, signalProcessGroup: reusedSignal, SENSEVOICE_ZIP_URL, senseVoiceChildArgs } = require('../eval/baselines/asr/run-reviewed-36.js');
+const { packBundle } = require('../eval/baselines/asr/pack-reviewed-36-bundle.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -307,6 +309,203 @@ describe('reviewed 36 — selection, score, and unavailable runs', () => {
       eq(svFail.rates, null);
       eq(svFail.recognizeStarted, true);
       eq(senseVoiceChildArgs(model, []).indexOf('--num-threads=2') !== -1, true);
+      let alive = true;
+      try { process.kill(sentinel.pid, 0); } catch (_) { alive = false; }
+      eq(alive, true);
+    } finally {
+      try { process.kill(sentinel.pid, 'SIGKILL'); } catch (_) {}
+    }
+  });
+
+  test('the unpacked bundle keeps config and a failed check still has a directory', async () => {
+    const caps = recognitionCaps();
+    eq(caps.itemCapMs, 45000);
+    eq(caps.processCapMs, 36 * 45000);
+    eq(caps.legacy16ProcessCapMs, 180000);
+    eq(caps.modelLoadFromWall, false);
+    const fleursDoc = JSON.parse(fs.readFileSync(path.join(ROOT, 'eval/baselines/asr/public-candidates-audio-v1.json'), 'utf8'));
+    const ascendDoc = JSON.parse(fs.readFileSync(path.join(ROOT, 'eval/baselines/ascend/ascend-test-v1.json'), 'utf8'));
+    const summed = fleursDoc.items.reduce((sum, row) => sum + row.durationSeconds, 0)
+      + ascendDoc.items.reduce((sum, row) => sum + row.durationSeconds, 0);
+    eq(summed, AUDIO_SECONDS);
+    const trap = fs.mkdtempSync(path.join(os.tmpdir(), 'r36-trap-'));
+    fs.writeFileSync(path.join(trap, '00004.wav'), Buffer.from('fleurs-trap'));
+    const trapped = checkCaches({
+      ok: true,
+      items: [{ id: 'ascend/00004', audioName: '00004.wav', audioRel: '00004.wav' }],
+    }, trap, path.join(trap, 'missing-ascend'));
+    eq(trapped.code, 'invalid-config');
+    eq(trapped.id, 'ascend/00004');
+    const work = fs.mkdtempSync(path.join(os.tmpdir(), 'r36-pack-'));
+    const realTar = path.join(work, 'real.tar.gz');
+    packBundle(realTar);
+    const realFlat = path.join(work, 'real');
+    fs.mkdirSync(realFlat);
+    eq(spawnSync('tar', ['-xzf', realTar, '-C', realFlat]).status, 0);
+    const manifest = JSON.parse(fs.readFileSync(path.join(realFlat, 'MANIFEST.json'), 'utf8'));
+    const repo = loadSet(ROOT);
+    eq(manifest.synthetic, false);
+    eq(manifest.items.length, 36);
+    const ascendRow = manifest.items.find((item) => item.id === 'ascend/00004');
+    eq(ascendRow.config, 'ascend');
+    eq(ascendRow.audioRel, '00004.wav');
+    for (let i = 0; i < 36; i++) {
+      eq(manifest.items[i].config, repo.items[i].config);
+      eq(manifest.items[i].id, repo.items[i].id);
+      eq(manifest.items[i].audioRel, repo.items[i].audioRel);
+      eq(manifest.items[i].saLocale, repo.items[i].saLocale);
+      eq(manifest.items[i].reference, repo.items[i].reference);
+      eq(canonicalAudioRel(manifest.items[i].config, manifest.items[i].audioName), manifest.items[i].audioRel);
+    }
+    eq(manifest.audit.blankSheetsIncluded, false);
+    for (const rec of manifest.audit.records) {
+      const copy = fs.readFileSync(path.join(realFlat, rec.file));
+      eq(crypto.createHash('sha256').update(copy).digest('hex'), rec.sha256);
+      eq(copy.equals(fs.readFileSync(path.join(ROOT, rec.source))), true);
+    }
+    const fleursCache = path.join(work, 'fleurs');
+    const ascendCache = path.join(work, 'ascend');
+    const items = [];
+    function add(config, sentence, reference) {
+      const audioName = config === 'ascend' ? sentence + '.wav' : sentence + '.wav';
+      const id = config === 'ascend'
+        ? 'ascend/' + sentence
+        : 'fleurs-public-candidates/' + config + '/' + sentence;
+      const body = Buffer.from('bytes-' + id);
+      const rel = canonicalAudioRel(config, audioName);
+      const dest = path.join(config === 'ascend' ? ascendCache : fleursCache, rel);
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.writeFileSync(dest, body);
+      items.push({
+        id: id,
+        config: config,
+        lang: config === 'en_us' ? 'en' : config === 'cmn_hans_cn' ? 'zh' : 'mixed',
+        stratum: config === 'ascend' ? 'code-switch' : 'read-speech',
+        reference: reference,
+        audioName: audioName,
+        audioRel: rel,
+        audioSha256: crypto.createHash('sha256').update(body).digest('hex'),
+        saLocale: config === 'en_us' ? 'en-US' : 'zh-CN',
+      });
+    }
+    for (let n = 1668; n <= 1682; n++) add('en_us', String(n), 'one two');
+    for (let n = 1668; n <= 1682; n++) add('cmn_hans_cn', String(n), '甲乙');
+    for (const id of ['00004', '00009', '00028', '00055', '00066', '00068']) add('ascend', id, '呃what');
+    const synTar = path.join(work, 'syn.tar.gz');
+    packBundle(synTar, { set: { ok: true, items: items }, synthetic: true });
+    const flat = path.join(work, 'flat');
+    fs.mkdirSync(flat);
+    eq(spawnSync('tar', ['-xzf', synTar, '-C', flat]).status, 0);
+    function runCli(dir, args) {
+      return spawnSync(process.execPath, [path.join(dir, 'run-reviewed-36.js')].concat(args), { encoding: 'utf8' });
+    }
+    const okOut = path.join(work, 'ok-out');
+    const okRun = runCli(flat, ['--check', '--out', okOut, '--fleurs-cache', fleursCache, '--ascend-cache', ascendCache]);
+    eq(okRun.status, 0);
+    const okBody = JSON.parse(okRun.stdout);
+    eq(okBody.code, 'ok');
+    eq(okBody.rates, null);
+    eq(okBody.stage, 'preflight');
+    eq(fs.existsSync(path.join(okOut, 'evidence.tar.gz')), true);
+    eq(fs.existsSync(path.join(okOut, 'env.json')), true);
+    eq(fs.existsSync(path.join(okOut, 'input-manifest.json')), true);
+    function failCase(name, mutate) {
+      const cacheF = path.join(work, name + '-f');
+      const cacheA = path.join(work, name + '-a');
+      const dir = path.join(work, name + '-flat');
+      fs.cpSync(fleursCache, cacheF, { recursive: true });
+      fs.cpSync(ascendCache, cacheA, { recursive: true });
+      fs.cpSync(flat, dir, { recursive: true });
+      mutate(cacheF, cacheA, dir);
+      const out = path.join(work, name + '-out');
+      const run = runCli(dir, ['--check', '--out', out, '--fleurs-cache', cacheF, '--ascend-cache', cacheA]);
+      eq(run.status, 2);
+      const body = JSON.parse(run.stdout);
+      eq(body.rates, null);
+      eq(body.stage, 'preflight');
+      eq(typeof body.id, 'string');
+      eq(fs.existsSync(path.join(out, 'run-summary.json')), true);
+      eq(fs.existsSync(path.join(out, 'evidence.tar.gz')), true);
+      const packed = runCli(dir, ['--pack-existing', out]);
+      eq(packed.status, 0);
+      const packBody = JSON.parse(packed.stdout);
+      eq(packBody.ok, true);
+      eq(packBody.rates, null);
+      const summary = JSON.parse(fs.readFileSync(path.join(out, 'run-summary.json'), 'utf8'));
+      eq(summary.recognizeStarted, false);
+      return body;
+    }
+    const noAsc = failCase('no-asc', (cacheF, cacheA) => fs.unlinkSync(path.join(cacheA, '00004.wav')));
+    eq(noAsc.code, 'missing-audio');
+    eq(noAsc.id, 'ascend/00004');
+    const noFleurs = failCase('no-fleurs', (cacheF) => fs.unlinkSync(path.join(cacheF, 'en_us', '1668.wav')));
+    eq(noFleurs.code, 'missing-audio');
+    eq(noFleurs.id, 'fleurs-public-candidates/en_us/1668');
+    const badHash = failCase('bad-hash', (cacheF) => fs.writeFileSync(path.join(cacheF, 'en_us', '1668.wav'), Buffer.from('other')));
+    eq(badHash.code, 'checksum-mismatch');
+    const badConfig = failCase('bad-config', (cacheF, cacheA, dir) => {
+      const manPath = path.join(dir, 'MANIFEST.json');
+      const man = JSON.parse(fs.readFileSync(manPath, 'utf8'));
+      delete man.items.find((item) => item.id === 'ascend/00004').config;
+      fs.writeFileSync(manPath, JSON.stringify(man));
+    });
+    eq(badConfig.code, 'invalid-config');
+    eq(badConfig.id, 'ascend/00004');
+    const extracted = require(path.join(flat, 'run-reviewed-36.js'));
+    const src = path.join(work, 'mock-src');
+    fs.mkdirSync(src);
+    const mockItems = items.map((item) => {
+      const sourcePath = path.join(src, item.id.replace(/[^A-Za-z0-9._-]/g, '_') + '.wav');
+      const body = Buffer.from('wav-' + item.id);
+      fs.writeFileSync(sourcePath, body);
+      return Object.assign({}, item, {
+        sourcePath: sourcePath,
+        audioSha256: crypto.createHash('sha256').update(body).digest('hex'),
+      });
+    });
+    function compile(kind) {
+      return (bin) => {
+        const lines = [
+          '#!/usr/bin/env node',
+          'const fs = require("fs");',
+          'const args = process.argv;',
+          'if (args.includes("--install-assets")) process.exit(0);',
+          kind === 'fail' ? 'process.exit(2);' : '',
+          kind === 'sleep' ? 'setInterval(function () {}, 1000);' : '',
+          'const set = JSON.parse(fs.readFileSync(args[args.indexOf("--set") + 1], "utf8"));',
+          'fs.writeFileSync(args[args.indexOf("--out") + 1], JSON.stringify(set.items.map(function (item) { return { id: item.id, hypothesis: "one two" }; })));',
+        ].filter(Boolean);
+        fs.writeFileSync(bin, lines.join('\n'));
+        fs.chmodSync(bin, 0o755);
+        return { code: 0 };
+      };
+    }
+    const mockOk = await extracted.runReviewed36({
+      command: 'run', backend: 'sa', platform: 'linux', execute: true, synthetic: true,
+      fixtureItems: mockItems, outDir: path.join(work, 'mock-ok'),
+      compile: compile('ok'), processCapMs: 5000, itemCapMs: 5000, killGraceMs: 50, pollMs: 20,
+    });
+    eq(mockOk.code, 'ok');
+    eq(mockOk.rates, null);
+    eq(mockOk.appleResult, false);
+    eq(mockOk.phases.modelLoadMs, null);
+    const mockFail = await extracted.runReviewed36({
+      command: 'run', backend: 'sa', platform: 'linux', execute: true, synthetic: true,
+      fixtureItems: mockItems, outDir: path.join(work, 'mock-fail'),
+      compile: compile('fail'), processCapMs: 5000, itemCapMs: 5000, killGraceMs: 50, pollMs: 20,
+    });
+    eq(mockFail.code, 'recognition-failed');
+    eq(mockFail.rates, null);
+    eq(mockFail.stage, 'recognize');
+    const sentinel = spawn(process.execPath, ['-e', 'setInterval(function(){}, 1000)'], { detached: true, stdio: 'ignore' });
+    try {
+      const timed = await extracted.runReviewed36({
+        command: 'run', backend: 'sa', platform: 'linux', execute: true, synthetic: true,
+        fixtureItems: mockItems, outDir: path.join(work, 'mock-time'),
+        compile: compile('sleep'), processCapMs: 300, itemCapMs: 300, killGraceMs: 80, pollMs: 20,
+      });
+      eq(timed.timedOut, true);
+      eq(timed.rates, null);
       let alive = true;
       try { process.kill(sentinel.pid, 0); } catch (_) { alive = false; }
       eq(alive, true);

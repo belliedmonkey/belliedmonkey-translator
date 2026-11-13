@@ -17,6 +17,20 @@ const FLEURS_EAR = [
   'eval/baselines/asr/fleurs-candidate-ear-2026-11-13-1520.json',
 ];
 
+const EAR_SOURCES = FLEURS_EAR.concat([
+  'eval/baselines/ascend/ascend-ear-2026-11-13.json',
+]);
+
+const ITEM_CAP_MS = 45 * 1000;
+const LEGACY_16_PROCESS_CAP_MS = 180 * 1000;
+const AUDIO_SECONDS = 371.07;
+
+const CONFIGS = {
+  en_us: { lang: 'en', stratum: 'read-speech', locale: 'en-US', cache: 'fleurs' },
+  cmn_hans_cn: { lang: 'zh', stratum: 'read-speech', locale: 'zh-CN', cache: 'fleurs' },
+  ascend: { lang: 'mixed', stratum: 'code-switch', locale: 'zh-CN', cache: 'ascend' },
+};
+
 const SA_LOCALE = {
   en_us: 'en-US',
   cmn_hans_cn: 'zh-CN',
@@ -97,22 +111,85 @@ function fail(code, extra) {
   }, extra || {});
 }
 
-function loadManifest(file) {
-  const doc = readJson(file);
-  if (!doc || !Array.isArray(doc.items) || doc.items.length !== 36) return fail('need-36');
-  if (doc.audioIncluded !== false || doc.approvedPlannedSetCount !== 0) return fail('manifest-claim');
+function canonicalAudioRel(config, audioName) {
+  if (!CONFIGS[config]) return null;
+  if (typeof audioName !== 'string' || !/^[A-Za-z0-9._-]+\.wav$/.test(audioName)) return null;
+  if (config === 'ascend') return audioName;
+  return config + '/' + audioName;
+}
+
+function validateItem(item) {
+  const id = item && typeof item.id === 'string' ? item.id : null;
+  if (!item || !CONFIGS[item.config]) return fail('invalid-config', { id: id, stage: 'preflight' });
+  const rel = canonicalAudioRel(item.config, item.audioName);
+  if (!rel || item.audioRel !== rel) return fail('audio-path', { id: id, stage: 'preflight' });
+  if (item.saLocale !== CONFIGS[item.config].locale) return fail('invalid-locale', { id: id, stage: 'preflight' });
+  if (item.lang !== CONFIGS[item.config].lang || item.stratum !== CONFIGS[item.config].stratum) {
+    return fail('invalid-config', { id: id, stage: 'preflight' });
+  }
+  if (typeof item.reference !== 'string' || item.reference === '') return fail('missing-reference', { id: id, stage: 'preflight' });
+  if (typeof item.audioSha256 !== 'string' || !/^[0-9a-f]{64}$/.test(item.audioSha256)) {
+    return fail('checksum-mismatch', { id: id, stage: 'preflight' });
+  }
+  return { ok: true };
+}
+
+function validateSet(items) {
+  if (!Array.isArray(items) || items.length !== 36) return fail('need-36', { stage: 'preflight' });
   const ids = new Set();
-  for (const item of doc.items) {
-    if (!item || !item.id || ids.has(item.id)) return fail('duplicate-id', { id: item && item.id });
+  let en = 0;
+  let zh = 0;
+  let mixed = 0;
+  for (const item of items) {
+    const row = validateItem(item);
+    if (!row.ok) return row;
+    if (ids.has(item.id)) return fail('duplicate-id', { id: item.id, stage: 'preflight' });
     ids.add(item.id);
     if (String(item.id).indexOf('/1663') !== -1 || String(item.id).indexOf('/1660') !== -1) {
-      return fail('excluded-id', { id: item.id });
+      return fail('excluded-id', { id: item.id, stage: 'preflight' });
     }
+    if (item.config === 'en_us') en += 1;
+    else if (item.config === 'cmn_hans_cn') zh += 1;
+    else mixed += 1;
   }
+  if (en !== 15 || zh !== 15 || mixed !== 6) return fail('need-36', { stage: 'preflight' });
+  return { ok: true };
+}
+
+function loadAudit(dir, doc) {
+  const audit = doc && doc.audit;
+  if (!audit || audit.blankSheetsIncluded !== false || !Array.isArray(audit.records)) {
+    return fail('missing-audit', { stage: 'preflight' });
+  }
+  if (audit.records.length !== EAR_SOURCES.length) return fail('missing-audit', { stage: 'preflight' });
+  const want = new Set(EAR_SOURCES.map((rel) => path.basename(rel)));
+  const seen = new Set();
+  for (const rec of audit.records) {
+    if (!rec || typeof rec.file !== 'string' || rec.file !== path.basename(rec.file) || !want.has(rec.file) || seen.has(rec.file)) {
+      return fail('missing-audit', { id: rec && rec.file, stage: 'preflight' });
+    }
+    if (rec.blankSheet !== false || typeof rec.sha256 !== 'string') return fail('missing-audit', { id: rec.file, stage: 'preflight' });
+    seen.add(rec.file);
+    const full = path.join(dir, rec.file);
+    if (!fs.existsSync(full)) return fail('missing-audit', { id: rec.file, stage: 'preflight' });
+    if (sha256File(full) !== rec.sha256) return fail('audit-mismatch', { id: rec.file, stage: 'preflight' });
+  }
+  return { ok: true };
+}
+
+function loadManifest(file) {
+  const doc = readJson(file);
+  if (!doc || !Array.isArray(doc.items) || doc.items.length !== 36) return fail('need-36', { stage: 'preflight' });
+  if (doc.audioIncluded !== false || doc.approvedPlannedSetCount !== 0) return fail('manifest-claim', { stage: 'preflight' });
+  const rows = validateSet(doc.items);
+  if (!rows.ok) return rows;
+  const audited = loadAudit(path.dirname(file), doc);
+  if (!audited.ok) return audited;
   return {
     ok: true,
     code: 'ok',
     items: doc.items,
+    synthetic: doc.synthetic === true,
     approvedPlannedSetCount: 0,
     denominator: 36,
     excluded: ['fleurs-frozen-16', 'cmn_hans_cn/1663'],
@@ -121,7 +198,7 @@ function loadManifest(file) {
     accent: 'unknown',
     noise: 'unknown',
     continuousDialogue: 'unknown',
-    saLocale: doc.sa && doc.sa.locale ? doc.sa.locale : SA_LOCALE,
+    saLocale: SA_LOCALE,
     fromManifest: true,
   };
 }
@@ -202,9 +279,8 @@ function loadSet(root) {
       bitsPerSample: row.bitsPerSample,
     });
   }
-  if (items.length !== 36) return fail('need-36', { count: items.length });
-  const ids = new Set(items.map((item) => item.id));
-  if (ids.size !== 36) return fail('duplicate-id');
+  const rows = validateSet(items);
+  if (!rows.ok) return rows;
   return {
     ok: true,
     code: 'ok',
@@ -229,15 +305,24 @@ function cacheFile(root, rel) {
   return full;
 }
 
+function cacheRootFor(item, fleursRoot, ascendRoot) {
+  if (!item || !CONFIGS[item.config]) return null;
+  return {
+    root: CONFIGS[item.config].cache === 'ascend' ? ascendRoot : fleursRoot,
+    rel: item.audioRel,
+  };
+}
+
 function checkCaches(set, fleursRoot, ascendRoot) {
   if (!set.ok) return set;
   for (const item of set.items) {
-    const root = item.config === 'ascend' ? ascendRoot : fleursRoot;
-    const full = cacheFile(root, item.audioRel);
-    if (!full) return fail('audio-path', { id: item.id });
-    if (!fs.existsSync(full)) return fail('missing-audio', { id: item.id });
+    const picked = cacheRootFor(item, fleursRoot, ascendRoot);
+    if (!picked) return fail('invalid-config', { id: item && item.id, stage: 'preflight' });
+    const full = cacheFile(picked.root, picked.rel);
+    if (!full) return fail('audio-path', { id: item.id, stage: 'preflight' });
+    if (!fs.existsSync(full)) return fail('missing-audio', { id: item.id, stage: 'preflight' });
     const got = sha256File(full);
-    if (got !== item.audioSha256) return fail('checksum-mismatch', { id: item.id });
+    if (got !== item.audioSha256) return fail('checksum-mismatch', { id: item.id, stage: 'preflight' });
     item.audioChecked = true;
     item.converted = false;
     item.convertedSha256 = null;
@@ -321,6 +406,22 @@ function inspectSenseVoiceDir(dir) {
   }, spec);
 }
 
+function recognitionCaps(opts) {
+  const itemCapMs = opts && opts.itemCapMs ? opts.itemCapMs : ITEM_CAP_MS;
+  const processCapMs = opts && opts.processCapMs ? opts.processCapMs : 36 * itemCapMs;
+  return {
+    itemCount: 36,
+    itemCapMs: itemCapMs,
+    processCapMs: processCapMs,
+    legacy16ProcessCapMs: LEGACY_16_PROCESS_CAP_MS,
+    legacy16ItemCapMs: ITEM_CAP_MS,
+    audioSeconds: AUDIO_SECONDS,
+    bound: 'item-cap-times-count',
+    notALatencyEstimate: true,
+    modelLoadFromWall: false,
+  };
+}
+
 function perfSchedule(repeats) {
   const n = repeats == null ? 0 : repeats;
   const sequence = [];
@@ -355,6 +456,7 @@ function summarizeLatencies(values) {
 }
 
 module.exports = {
-  loadSet, checkCaches, stageReviewedAudio, safeAudioRel, conversionRecord, senseVoicePin, saPin, inspectSenseVoiceDir, SA_LOCALE,
-  perfSchedule, summarizeLatencies, sha256File,
+  loadSet, loadManifest, checkCaches, stageReviewedAudio, safeAudioRel, canonicalAudioRel, validateItem, validateSet, conversionRecord,
+  senseVoicePin, saPin, inspectSenseVoiceDir, SA_LOCALE, EAR_SOURCES, CONFIGS,
+  perfSchedule, summarizeLatencies, recognitionCaps, sha256File, AUDIO_SECONDS, ITEM_CAP_MS,
 };
