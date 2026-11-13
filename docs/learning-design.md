@@ -1956,6 +1956,16 @@ key 喂给**现有的** `QuickSetup.plan()`，平台 = 我们的中继（注册�
 教它；用完回到 BYO 与免费引擎，一字不改）；不是遥测（台账与遥测可由 `install_id` 连接，
 仅支持与滥用排查；telemetry §2 原则 7）。
 
+**凭证归属（BEL-257，2026-11-13 落码）。** 令牌与用户 key 共用三个槽，所以「槽里是什么」
+必须与「槽属于谁」分开记：`apiKeyOwner` / `ttsKeyOwner` / `sttKeyOwner` / `notesKeyOwner`
+是 flow key（不进 SAVE_KEYS）。`bmg_` 的 owner 一律是 grant id；用户 key 的 owner 是写入时的
+provider/engine。`RequestShape.build` 在 fetch 之前判：grant 令牌只准 grant 引擎 + flavor
+解析出的中继 host（否则 `grant_token_wrong_engine` / `grant_token_wrong_endpoint`）；需要 key
+却为空 `no_key_for_provider`；owner 与 provider 不符 `key_owner_mismatch`。三者
+`retryable:false` / `preflight:true`，不进 `translate_fail`、不重试。默认不删 key、不删 owner；
+用户在新引擎里主动粘贴 key 才覆盖并改归属；退出/换号只清 `bmg_` 的 owner。没有 keyVault，
+A/B 两把 key 不长期并存（ACCEPT-5）。
+
 #### 六条裁定（画布 D1–D5 + 金额，2026-09-08）
 
 | # | 裁定 | 理由 |

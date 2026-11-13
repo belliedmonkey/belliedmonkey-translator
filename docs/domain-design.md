@@ -1283,6 +1283,17 @@ is a build-time concern, not a runtime one.
 > like a corporate gateway. See [`docs/subscription-auth-research.md`](subscription-auth-research.md)
 > (2026-09-09) and the superseded [`docs/oauth-design.md`](oauth-design.md). Related: #149, #150.
 
+**Credential/endpoint pairing is enforced before `fetch` (BEL-257).** `content/request-shape.js`
+`build()` is the one place headers are constructed, so the check lives there: a `bmg_` grant
+token may go only to a grant engine id (`grant` / `grant_speech` / `grant_stt`) and to a host
+resolved from that flavor's grant `defaultEndpoint` (never a hardcoded Tokyo/China host);
+a provider that needs a key cannot be called with an empty one; a BYOK key whose recorded
+owner differs from the target provider is refused. All three throw with
+`retryable:false` / `preflight:true` — the request never leaves, the engine does not retry,
+and nothing is reported as a `translate_fail`. `background.js` repeats the host check before
+proxying, as defence in depth. Owner keys (`apiKeyOwner`, `ttsKeyOwner`, `sttKeyOwner`,
+`notesKeyOwner`) are flow metadata, not settings; switching engines does not clear them.
+
 - **Single source of truth.** `build/providers.config.js` is the one registry of
   translation providers. Each entry declares `{ id, type, flavors, needsKey,
   supportsBaseUrl, supportsModel, requiresEndpoint, defaultEndpoint, placeholder,

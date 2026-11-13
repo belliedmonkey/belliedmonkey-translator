@@ -26,7 +26,7 @@ var LearnTTS = (() => {
     // '' = **未配置**，与 sttEngine 同一套语义（不发明第二种空值）。
     // 语音要用户填了引擎/端点才有 —— 见文件头。
     engineId: '',
-    baseUrl: '', apiKey: '', model: '', voice: '',
+    baseUrl: '', apiKey: '', keyOwner: '', model: '', voice: '',
     // 「这个地址是按新语义（原样使用）存的」的戳；缺席 ⇒ 走 wire-format 的 legacy 分支。
     rate: 1, pitch: 1,
     format: 'mp3',
@@ -315,6 +315,11 @@ var LearnTTS = (() => {
     // 服务可以同时提供多种形状，用哪种只有用户的地址说了算。
     const req = RequestShape.build(WireFormat.formatFor(url, e && e.type), {
       url, apiKey: cfg.apiKey,
+      // BEL-257：TTS 与翻译走同一个 build 守卫 —— 只修 translation-api 会留下
+      // 「朗读把 bmg_ 发给 vendor」这条旁路。
+      providerId: (e && e.id) || cfg.engineId || '',
+      needsKey: !!(e && e.needsKey),
+      keyOwner: cfg.keyOwner || RequestShape.ownerOf('tts'),
       model: cfg.model || e.defaultModel,
       input: text,
       voice: cfg.voice || (e.voices && e.voices[0]) || 'alloy',

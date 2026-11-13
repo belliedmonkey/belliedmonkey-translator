@@ -185,6 +185,9 @@ function liveTtsConfigure(cfg) {
     // 拆掉了，这一处漏了：同一条规则的第二份实现，正是这一轮在消灭的东西。
     engineId: c.engineId,
     apiKey: String(c.apiKey || '').trim(),
+    // BEL-257：TTS 的 key 归属跟着一起推给在线模块，否则切到 vendor 引擎后
+    // 它只能靠 flow-key 缓存，晚一拍就会漏一次。
+    keyOwner: String(c.keyOwner || ''),
     baseUrl: String(c.baseUrl || '').trim(),
     model: String(c.model || '').trim(),
     voice: c.voice,
@@ -203,6 +206,7 @@ async function syncLiveTts(settings) {
   liveTtsConfigure({
     engineId: s.ttsEngine,
     apiKey: s.ttsApiKey,
+    keyOwner: s.ttsKeyOwner,
     baseUrl: s.ttsBaseUrl,
     model: s.ttsModel,
     voice: s.ttsVoice,

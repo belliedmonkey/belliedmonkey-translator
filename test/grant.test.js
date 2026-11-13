@@ -85,9 +85,12 @@ describe('§8.10 plan —— 只算 patch，且键必须是宿主认得的', () 
     eq(miss.length, 0, '这些键不在 saveNow 的键域里，会被静默清掉：' + miss.join(', '));
   });
 
-  test('marks 三件**不进**持久化键域 —— 宿主单独写', () => {
+  test('marks 是 [flow] 键 —— 宿主单独写（BEL-257 起含凭证归属）', () => {
     const r = G.plan(claimed, {}, REGISTRY);
-    deepEq(Object.keys(r.marks).sort(), ['grant', 'grantBalance', 'grantTail']);
+    // 空配置 ⇒ 三槽都写，于是三把 owner 也要落盘。它们与 grantTail 同一条通道：
+    // 不进 SAVE_KEYS，由宿主在 writes 之后单独 set。
+    deepEq(Object.keys(r.marks).sort(),
+      ['apiKeyOwner', 'grant', 'grantBalance', 'grantTail', 'sttKeyOwner', 'ttsKeyOwner']);
     eq(r.marks.grantTail, TOKEN.slice(-8));
     eq(r.marks.grantTail.length, 8, '只存尾八位：判定不需要更多，而少一份完整凭证就少一处泄漏面');
     ok(!String(JSON.stringify(r.marks)).includes(TOKEN), 'marks 里不许出现完整令牌');

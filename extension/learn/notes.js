@@ -17,7 +17,7 @@
 // key configured ⇒ the gate simply stays closed).
 
 var LearnNotes = (() => {
-  let cfg = { provider: '', apiKey: '', baseUrl: '', model: '' };
+  let cfg = { provider: '', apiKey: '', keyOwner: '', baseUrl: '', model: '' };
 
   function configure(c) { cfg = Object.assign({}, cfg, c || {}); }
 
@@ -30,9 +30,11 @@ var LearnNotes = (() => {
     s = s || {};
     if (s.notesProvider) {
       return { provider: s.notesProvider, apiKey: s.notesApiKey || '',
+        keyOwner: s.notesKeyOwner || '',
         baseUrl: s.notesBaseUrl || '', model: s.notesModel || '' };
     }
     return { provider: s.provider || '', apiKey: s.apiKey || '',
+      keyOwner: s.apiKeyOwner || '',
       baseUrl: s.apiBaseUrl || '', model: s.apiModel || '' };
   }
 
@@ -172,6 +174,9 @@ var LearnNotes = (() => {
       // 解析引擎默认跟随翻译引擎（§9.2），此时 cfg.provider 与翻译那边是同一个 id，
       // 于是自定义参数天然一致；用户单独选了别的引擎时，它拿到的也是自己那份。
       providerId: cfg.provider,
+      // BEL-257：解析是第三条会带 chat key 的路，同样不能把 bmg_ 发给 vendor。
+      needsKey: !!(p && p.needsKey),
+      keyOwner: cfg.keyOwner || RequestShape.ownerOf('notes'),
     });
     const resp = await fetchNamed(url, {
       method: 'POST', headers: req.headers, body: JSON.stringify(req.body),

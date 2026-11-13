@@ -594,15 +594,15 @@ describe('TranslationAPI — retry & fallback', () => {
     eq(fetch.calls.length, 3, 'exactly the 3 provider retries — no 4th Google attempt');
   });
 
-  test('an EMPTY key fails visibly instead of quietly producing Google output', async () => {
-    // The shape that hid a misconfiguration in the field: nothing validates the key
-    // up front, so an empty one is a normal 401 — which must surface, not reroute.
+  test('an EMPTY key fails BEFORE fetch (BEL-257 preflight), never quietly producing Google output', async () => {
+    // BEL-257：空 key 不再靠服务端 401 才暴露 —— RequestShape.build 在 fetch 之前
+    // 就 throw no_key_for_provider。零请求、不可重试、不进 translate_fail。
     const { API, fetch } = loadAPI([errJson(401), okJson([[['谷歌', 'hello']]])]);
     const e = await rejects(API.translate('hello', 'zh-CN', 'deepseek', '', ''));
-    eq(e.status, 401);
-    // 一次就够。401 是**永久**失败：同一把空 key 重发两遍还是空的，而整页每段各撞三次
-    // 只会把用户的报错延后十几秒。可重试的定义见 isRetryable。
-    eq(fetch.calls.length, 1, 'key 不对是永久失败，不该退避重试；更不该有第 4 次 Google');
+    eq(e.code, 'no_key_for_provider');
+    eq(e.retryable, false);
+    eq(e.preflight, true);
+    eq(fetch.calls.length, 0, '一个请求都不发；更不该有第 4 次 Google');
   });
 
   test('Google failing on all retries rejects (no fallback loop)', async () => {
