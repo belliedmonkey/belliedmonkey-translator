@@ -10,6 +10,7 @@ const { ASR_VERSION, TRANSLATION_NOTE, promptTemplateSha256 } = require('./rubri
 const { validateInput, validateConfig, reserveFor } = require('./schema.js');
 const { assignItems, sampleIds } = require('./assign.js');
 const { buildPrompt, promptContainsKey } = require('./prompt.js');
+const { checkRequest } = require('./input-bound.js');
 const { parseVerdict } = require('./parse.js');
 
 function base(extra) {
@@ -92,7 +93,12 @@ function settle(prices, model, usage) {
   const row = prices.models[model];
   if (!row || !usage || !usage.complete) return { settledUsd: null, costUnknown: true };
   if (usage.inputTokens > prices.maxInputTokens || usage.outputTokens > prices.maxOutputTokens) {
-    return { settledUsd: null, costUnknown: true, code: 'usage-over-cap' };
+    return {
+      settledUsd: null,
+      costUnknown: true,
+      code: 'usage-over-cap',
+      providerExceededDeclaredCap: true,
+    };
   }
   if (row.pricedZero === true) return { settledUsd: 0, costUnknown: false };
   const settled = money(usage.inputTokens * row.inputUsdPerToken + usage.outputTokens * row.outputUsdPerToken);
@@ -252,6 +258,9 @@ async function runJudge(opts) {
     judges: config.judges.map((judge) => ({ id: judge.id, model: judge.model, called: false })),
     itemIds: inputCheck.items.map((item) => item.id),
     omittedIds: inputCheck.items.slice(config.maxItems).map((item) => item.id),
+    maxTokensFieldProviderVerified: false,
+    inputBound: config.inputBound,
+    reserveTokens: config.prices.maxInputTokens + config.prices.maxOutputTokens,
   };
   const evidenceAssignment = {
     schema: 'belliedmonkey.llm-judge.assignment.v1',
@@ -267,8 +276,42 @@ async function runJudge(opts) {
     sample: [],
     notAssessed: inputCheck.items.map((item) => item.id),
   };
+  function persist(summary) {
+    if (!opts.out) return summary;
+    writeJson(opts.out, 'plan.json', plan);
+    writeJson(opts.out, 'assignment.json', evidenceAssignment);
+    writeJson(opts.out, 'human-review.json', summary.humanReview || notYet);
+    writeJson(opts.out, 'summary.json', summary);
+    return summary;
+  }
+  const inputChecks = [];
+  let boundStop = null;
+  for (const row of planned) {
+    for (const judge of config.judges) {
+      const probe = {
+        model: judge.model,
+        temperature: config.temperature,
+        seed: config.seed,
+        maxTokens: config.prices.maxOutputTokens,
+        messages: row.prompt.messages,
+      };
+      const checked = checkRequest(probe, config.prices, config.inputBound, opts.countTokens);
+      inputChecks.push({
+        id: row.id,
+        judgeId: judge.id,
+        ok: checked.ok,
+        code: checked.code,
+        declaredTokens: checked.declaredTokens == null ? null : checked.declaredTokens,
+        utf8Bytes: checked.utf8Bytes == null ? null : checked.utf8Bytes,
+        method: checked.method || null,
+        exact: false,
+      });
+      if (!checked.ok && !boundStop) boundStop = checked.code;
+    }
+  }
+  plan.inputChecks = inputChecks;
   if (plan.omittedIds.length) {
-    const summary = base({
+    return persist(base({
       code: 'item-cap',
       called: false,
       synthetic: synthetic,
@@ -276,17 +319,21 @@ async function runJudge(opts) {
       assignment: evidenceAssignment,
       omittedIds: plan.omittedIds,
       humanReview: notYet,
-    });
-    if (opts.out) {
-      writeJson(opts.out, 'plan.json', plan);
-      writeJson(opts.out, 'assignment.json', evidenceAssignment);
-      writeJson(opts.out, 'human-review.json', notYet);
-      writeJson(opts.out, 'summary.json', summary);
-    }
-    return summary;
+    }));
+  }
+  if (boundStop) {
+    return persist(base({
+      code: boundStop,
+      called: false,
+      synthetic: synthetic,
+      plan: plan,
+      assignment: evidenceAssignment,
+      omittedIds: [],
+      humanReview: notYet,
+    }));
   }
   if (!opts.run) {
-    const summary = base({
+    return persist(base({
       ok: true,
       code: 'dry-run',
       called: false,
@@ -295,26 +342,20 @@ async function runJudge(opts) {
       assignment: evidenceAssignment,
       omittedIds: [],
       humanReview: notYet,
-    });
-    if (opts.out) {
-      writeJson(opts.out, 'plan.json', plan);
-      writeJson(opts.out, 'assignment.json', evidenceAssignment);
-      writeJson(opts.out, 'human-review.json', notYet);
-      writeJson(opts.out, 'summary.json', summary);
-    }
-    return summary;
+    }));
   }
   const env = opts.env || {};
   for (const judge of config.judges) {
     if (!env[judge.endpointEnv] || !env[judge.keyEnv]) {
-      return base({
+      return persist(base({
         code: 'blocked',
         called: false,
         synthetic: synthetic,
         plan: plan,
         assignment: evidenceAssignment,
         detail: judge.id,
-      });
+        humanReview: notYet,
+      }));
     }
   }
   const transport = opts.transport;
@@ -333,11 +374,6 @@ async function runJudge(opts) {
       if (stop) break;
       const reserve = reserveFor(config.prices, judge.model);
       const tokenReserve = config.prices.maxInputTokens + config.prices.maxOutputTokens;
-      const chars = row.prompt.messages.map((message) => message.content).join('').length;
-      if (Math.ceil(chars / 4) > config.prices.maxInputTokens) {
-        stop = 'input-cap';
-        break;
-      }
       if (requests + 1 > config.prices.maxRequests) {
         stop = 'request-cap';
         break;
@@ -391,6 +427,12 @@ async function runJudge(opts) {
         if (bill.costUnknown) {
           costUnknown = true;
           stop = 'budget-unknown';
+          one = {
+            ok: false,
+            code: bill.code || 'budget-unknown',
+            verdict: null,
+            providerExceededDeclaredCap: bill.providerExceededDeclaredCap === true,
+          };
         } else {
           held = money(held - reserve + bill.settledUsd);
           settled = money(settled + bill.settledUsd);
@@ -415,6 +457,8 @@ async function runJudge(opts) {
         elapsedMs: result.elapsedMs,
         aborted: result.aborted === true,
         costUnknown: settledUsd === null,
+        providerExceededDeclaredCap: one.providerExceededDeclaredCap === true,
+        maxTokensFieldProviderVerified: false,
       });
       if (opts.out) {
         writeJson(path.join(opts.out, 'responses', judge.id), safeName(row.id), {

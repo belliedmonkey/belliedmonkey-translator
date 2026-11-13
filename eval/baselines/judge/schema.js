@@ -61,7 +61,7 @@ function finiteNumber(value) {
 
 function validateConfig(doc) {
   const root = extraKey(doc, [
-    'schema', 'seed', 'temperature', 'sampleCount', 'maxItems', 'timeoutMs', 'maxRetries', 'budgetUsd', 'judges', 'prices',
+    'schema', 'seed', 'temperature', 'sampleCount', 'maxItems', 'timeoutMs', 'maxRetries', 'budgetUsd', 'judges', 'prices', 'inputBound',
   ]);
   if (root === 'type') return fail('config-type');
   if (root) return fail('unknown-field', root);
@@ -71,7 +71,7 @@ function validateConfig(doc) {
   if (!Number.isInteger(doc.sampleCount) || doc.sampleCount < 0 || doc.sampleCount > 36) return fail('sampleCount');
   if (!Number.isInteger(doc.maxItems) || doc.maxItems < 1 || doc.maxItems > 200) return fail('maxItems');
   if (!Number.isInteger(doc.timeoutMs) || doc.timeoutMs < 1 || doc.timeoutMs > 120000) return fail('timeoutMs');
-  if (!Number.isInteger(doc.maxRetries) || doc.maxRetries < 0 || doc.maxRetries > 2) return fail('maxRetries');
+  if (doc.maxRetries !== 0) return fail('retries-disabled');
   if (!finiteNumber(doc.budgetUsd) || doc.budgetUsd < 0) return fail('budget-required');
   if (!Array.isArray(doc.judges) || doc.judges.length !== 2) return fail('judge-count');
   const judges = [];
@@ -96,6 +96,8 @@ function validateConfig(doc) {
   if (judges[0].id === judges[1].id) return fail('judge-id');
   const priced = validatePrices(doc.prices, models);
   if (!priced.ok) return priced;
+  const bound = validateInputBound(doc.inputBound);
+  if (!bound.ok) return bound;
   return {
     ok: true,
     seed: doc.seed,
@@ -107,6 +109,24 @@ function validateConfig(doc) {
     budgetUsd: doc.budgetUsd,
     judges: judges,
     prices: priced.prices,
+    inputBound: bound.inputBound,
+  };
+}
+
+function validateInputBound(doc) {
+  if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return fail('tokenizer-unspecified');
+  if (doc.kind === 'counter') {
+    const bad = extraKey(doc, ['kind']);
+    if (bad) return fail('unknown-field', bad === 'type' ? 'inputBound' : bad);
+    return { ok: true, inputBound: { kind: 'counter', exact: false } };
+  }
+  if (doc.kind !== 'utf8-bytes-plus-overhead') return fail('tokenizer-unspecified');
+  const bad = extraKey(doc, ['kind', 'overheadTokens']);
+  if (bad) return fail('unknown-field', bad === 'type' ? 'inputBound' : bad);
+  if (!Number.isInteger(doc.overheadTokens) || doc.overheadTokens < 0) return fail('overhead');
+  return {
+    ok: true,
+    inputBound: { kind: 'utf8-bytes-plus-overhead', overheadTokens: doc.overheadTokens, exact: false },
   };
 }
 

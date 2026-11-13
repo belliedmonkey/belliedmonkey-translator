@@ -51,6 +51,7 @@ function config(over) {
     timeoutMs: 40,
     maxRetries: 0,
     budgetUsd: 5,
+    inputBound: { kind: 'utf8-bytes-plus-overhead', overheadTokens: 0 },
     judges: [
       { id: 'judge-a', model: 'model-alpha', endpointEnv: 'JUDGE_A_URL', keyEnv: 'JUDGE_A_KEY' },
       { id: 'judge-b', model: 'model-beta', endpointEnv: 'JUDGE_B_URL', keyEnv: 'JUDGE_B_KEY' },
@@ -340,7 +341,7 @@ describe('llm judge', () => {
         item('en_us/1668', 'the cat sat', 'the cat sat', 'the dog sat'),
         item('en_us/1669', 'a small bird', 'a small bird', 'a small bird'),
       ]),
-      config: config({ timeoutMs: 20, maxRetries: 1 }),
+      config: config({ timeoutMs: 20 }),
       env: env(),
       transport: transport,
     });
@@ -370,7 +371,7 @@ describe('llm judge', () => {
         item('en_us/1668', 'the cat sat', 'the cat sat', 'the dog sat'),
         item('en_us/1669', 'a small bird', 'a small bird', 'a small bird'),
       ]),
-      config: config({ maxRetries: 1 }),
+      config: config(),
       env: env(),
       transport: transport,
     });
@@ -444,6 +445,55 @@ describe('llm judge', () => {
     eq(free.ok, true);
     eq(free.usage.spentUsd, 0);
     eq(free.usage.costUnknown, false);
+    const wide = '测'.repeat(100);
+    let wideCalled = false;
+    const over = await runJudge({
+      synthetic: true,
+      run: true,
+      input: asrInput([item('en_us/1668', wide, wide, wide)]),
+      config: config({
+        prices: Object.assign({}, prices(), { maxInputTokens: 50, maxOutputTokens: 20, maxTotalTokens: 200 }),
+      }),
+      env: env(),
+      transport: async () => { wideCalled = true; return bodyFor('en_us/1668', [clean('slot-1'), clean('slot-2')], 0); },
+    });
+    eq(wideCalled, false);
+    eq(over.code, 'input-over-bound');
+    eq(over.called, false);
+    eq(over.plan.inputChecks[0].declaredTokens > 50, true);
+    eq(over.plan.reserveTokens, 70);
+    const burst = await runJudge({
+      synthetic: true,
+      run: true,
+      input: asrInput([item('en_us/1668', 'the cat sat', 'the cat sat', 'the dog sat')]),
+      config: config(),
+      env: env(),
+      transport: scripted(async () => ({
+        content: verdict('en_us/1668', [clean('slot-1'), clean('slot-2')]),
+        usage: { prompt_tokens: 5000, completion_tokens: 800, usd: 0 },
+      })),
+    });
+    eq(burst.code, 'budget-unknown');
+    eq(burst.usage.calls.length, 1);
+    eq(burst.usage.spentUsd, 0.056);
+    eq(burst.usage.calls[0].providerExceededDeclaredCap, true);
+    eq(burst.usage.calls[0].maxTokensFieldProviderVerified, false);
+    const retryCfg = config({ maxRetries: 1 });
+    let retryCalled = false;
+    const retried = await runJudge({
+      synthetic: true,
+      run: true,
+      input: asrInput([item('en_us/1668', 'the cat sat', 'the cat sat', 'the dog sat')]),
+      config: retryCfg,
+      env: env(),
+      transport: async () => { retryCalled = true; return {}; },
+    });
+    eq(retryCalled, false);
+    eq(retried.code, 'retries-disabled');
+    const doc = fs.readFileSync(path.join(__dirname, '..', 'docs/baselines/llm-judge.md'), 'utf8');
+    eq(doc.indexOf('重试最多 2 次') === -1, true);
+    eq(doc.indexOf('预算用响应里的') === -1, true);
+    eq(fs.readFileSync(path.join(__dirname, '..', 'eval/baselines/judge/run-judge.js'), 'utf8').indexOf('chars / 4') === -1, true);
     const capped = await runJudge({
       synthetic: true,
       input: two,

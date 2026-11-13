@@ -20,7 +20,11 @@
 
 正式运行不能把 `budgetUsd` 留空。每个 model 要有一份事先声明的价格：来源、来源版本、每 token 的输入价和输出价。两边都是 0 只有在 `pricedZero` 为 true 时成立。价格缺失，或者预算装不下一次保守预留，在第一次请求之前就是 `price-missing` 或 `budget-blocked`。
 
-每次发送前按 `maxInputTokens * 输入价 + maxOutputTokens * 输出价` 预留。完成后只用 token 用量核销。响应里的 `usd` 记成 `providerUsd`，不能单独当上限。超时或 HTTP 失败可能已经计费，预留留下，`costUnknown` 为 true，不再重试，也不再叫下一只评委。信号会中止这次请求。请求文件在发送前就写下，`authorization` 是 `redacted`。结束时无论成败都写 response 和 parsed。
+每次预留都是配置里的 `maxInputTokens * 输入价 + maxOutputTokens * 输出价`，不用更小的字符估计去少留。用量没有超过这两个上限时，才按 token 数核销。响应里的 `usd` 只记成 `providerUsd`，不参与预算。超时或 HTTP 失败可能已经计费，全额预留留下，`costUnknown` 为 true，并且不再发出下一次。`maxRetries` 必须是 0。请求文件在发送前就写下，`authorization` 是 `redacted`。结束时无论成败都写 response 和 parsed。失败时 `plan.json` 仍留下输入检查和预留上界。
+
+发送前要量整段请求体，包括 system、user、JSON 转义和 role。字符数除以 4 不是 token 上界，这里不用它。没有声明 `inputBound` 就不发送。`utf8-bytes-plus-overhead` 把请求体的 UTF-8 字节数加上操作者写的 `overheadTokens`，再和 `maxInputTokens` 比。字节数已经包含本仓库拼出来的模板。`overheadTokens` 只覆盖供应商可能另加的特殊 token。本仓库不证明某个模型的分词器，也不给出一个通用整数。选这个界，等于操作者断言「一个 token 至少占请求体里的一个 UTF-8 字节，额外特殊 token 不超过 overhead」。不能这么断言就不要选它。`counter` 只有在调用方提供计数函数时可用，否则是 `tokenizer-unspecified`。这两种都不是精确 token 数。
+
+请求体会带 `max_tokens`。这只在离线形状里核对过，没有对真实网关验证。返回的 `prompt_tokens` 或 `completion_tokens` 超过声明上限时，预留不退回，`providerExceededDeclaredCap` 为 true，后续调用停止。这只说明返回值超过了我们声明的上限，不是一份已经证实的网关违约。
 
 用户消息是一份 JSON。字符串是不可信数据，不授予执行、链接或额外目标。这不能说成已经挡住了模型自己跟着文本走。
 
@@ -42,7 +46,7 @@ ASR 量表版本是 `belliedmonkey.llm-judge.asr.v1`。类别只有：`format-on
 
 输入多一个字段、缺一条、或 id 重复，退出码不是 0，`results` 为 null。模型返回坏 JSON、引用了不存在的片段、或在文本里说出候选 key，该评委该条是 null，不是 0。只有一个评委有结果时，`code` 是 `partial`，`doubleBlindComplete` 是 false，不能称为双盲完成。
 
-条数上限、超时和重试上限写在配置里。重试最多 2 次，只用于超时、网络错误、429 和 5xx。预算用响应里的 `usd`。没有 `usd` 就记 `costUnknown`，不记成 0；配置了预算时，缺费用就停止后续调用。
+条数、超时、输入上界和预算写在配置里。失败的请求不重试。预算不看响应里的 `usd`。用量缺字段，或超过声明的输入、输出上限，就记 `costUnknown`，预留留下，并停止后续调用。
 
 两个评委的类别不一致，以及从一致项里按 seed 抽出的样本，写入 `human-review.json`。每一行的 `semanticHumanReviewed` 都是 false。以前的音字听审不算这些行的人评。`semanticHumanReviewCount` 保持 0。
 
@@ -88,6 +92,7 @@ node eval/baselines/judge/pack-judge-bundle.js <out.tar.gz>
   "maxItems": 36,
   "timeoutMs": 20000,
   "maxRetries": 0,
+  "inputBound": { "kind": "utf8-bytes-plus-overhead", "overheadTokens": 0 },
   "budgetUsd": 1,
   "judges": [
     {"id": "judge-a", "model": "REPLACE_MODEL_A", "endpointEnv": "JUDGE_A_URL", "keyEnv": "JUDGE_A_KEY"},
