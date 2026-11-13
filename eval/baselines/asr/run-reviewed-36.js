@@ -13,6 +13,7 @@ const {
   loadSet, checkCaches, stageReviewedAudio, senseVoicePin, saPin, inspectSenseVoiceDir, perfSchedule, summarizeLatencies, recognitionCaps, sha256File,
 } = require('./reviewed-36.js');
 const { scoreReviewed } = require('./codeswitch-score.js');
+const { parseSenseVoiceStdout } = require('./sensevoice-stdout.js');
 const { signalProcessGroup, writeEvidenceArchive, tarCreateSpec, watchChild } = require('./run-sa-file.js');
 
 const SENSEVOICE_ZIP_URL = 'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.zip';
@@ -374,31 +375,25 @@ async function runSenseVoiceChild(opts, checked, runDir, preflightMs, looked) {
       modelSha256: looked.modelSha256,
       tokensSha256: looked.tokensSha256,
     });
-    seal(runDir, summary, ['run-summary.json', 'backend-pin.json', 'sensevoice-inspect.json', 'stage-manifest.json', 'child-stdout.txt', 'child-stderr.txt']);
-    summary.runDir = runDir;
-    return summary;
+    return finalizeRun(runDir, summary, ['backend-pin.json', 'sensevoice-inspect.json', 'stage-manifest.json', 'child-stdout.txt', 'child-stderr.txt'], opts, staged.items);
   }
-  const lines = fs.readFileSync(stdoutPath, 'utf8').split(/\n/).filter((line) => line.trim() !== '');
+  const parsed = parseSenseVoiceStdout(fs.readFileSync(stdoutPath, 'utf8'));
+  if (!parsed.ok || parsed.hypotheses.length !== staged.items.length) {
+    const summary = baseSummary({
+      code: 'output-unparsed',
+      id: staged.items[parsed.index || 0] ? staged.items[parsed.index || 0].id : null,
+      backend: 'sensevoice',
+      stage: 'recognize',
+      processExit: 2,
+      recognizeStarted: true,
+      phases: phases,
+      synthetic: checked.synthetic === true,
+    });
+    return finalizeRun(runDir, summary, ['backend-pin.json', 'sensevoice-inspect.json', 'stage-manifest.json', 'child-stdout.txt', 'child-stderr.txt'], opts, staged.items);
+  }
   const hyps = [];
   for (let i = 0; i < staged.items.length; i++) {
-    let row = null;
-    try { row = JSON.parse(lines[i]); } catch (_) { row = null; }
-    const text = row && typeof row.text === 'string' ? row.text : '';
-    if (!text) {
-      const summary = baseSummary({
-        code: 'empty-hypothesis',
-        id: staged.items[i].id,
-        backend: 'sensevoice',
-        processExit: 2,
-        recognizeStarted: true,
-        phases: phases,
-        synthetic: checked.synthetic === true,
-      });
-      seal(runDir, summary, ['run-summary.json', 'backend-pin.json', 'sensevoice-inspect.json', 'stage-manifest.json', 'child-stdout.txt', 'child-stderr.txt']);
-      summary.runDir = runDir;
-      return summary;
-    }
-    hyps.push(Object.assign({}, staged.items[i], { hypothesis: text }));
+    hyps.push(Object.assign({}, staged.items[i], { hypothesis: parsed.hypotheses[i] }));
   }
   const scoreStarted = process.hrtime.bigint();
   const scored = scoreReviewed(hyps);
@@ -414,9 +409,7 @@ async function runSenseVoiceChild(opts, checked, runDir, preflightMs, looked) {
       phases: phases,
       synthetic: checked.synthetic === true,
     });
-    seal(runDir, summary, ['run-summary.json', 'backend-pin.json', 'sensevoice-inspect.json', 'stage-manifest.json', 'hypotheses.json', 'score.json', 'child-stdout.txt', 'child-stderr.txt']);
-    summary.runDir = runDir;
-    return summary;
+    return finalizeRun(runDir, summary, ['backend-pin.json', 'sensevoice-inspect.json', 'stage-manifest.json', 'hypotheses.json', 'score.json', 'child-stdout.txt', 'child-stderr.txt'], opts, staged.items);
   }
   const summary = baseSummary({
     ok: true,
@@ -437,12 +430,17 @@ async function runSenseVoiceChild(opts, checked, runDir, preflightMs, looked) {
     modelSha256: looked.modelSha256,
     tokensSha256: looked.tokensSha256,
   });
-  const packStarted = process.hrtime.bigint();
-  seal(runDir, summary, ['run-summary.json', 'backend-pin.json', 'sensevoice-inspect.json', 'stage-manifest.json', 'hypotheses.json', 'score.json', 'child-stdout.txt', 'child-stderr.txt']);
-  summary.phases.packMs = monoMs(packStarted);
-  writeJson(runDir, 'run-summary.json', summary);
-  summary.runDir = runDir;
-  return summary;
+  return finalizeRun(runDir, summary, ['backend-pin.json', 'sensevoice-inspect.json', 'stage-manifest.json', 'hypotheses.json', 'score.json', 'child-stdout.txt', 'child-stderr.txt'], opts, staged.items);
+}
+
+function memberPins() {
+  const file = path.join(__dirname, 'sensevoice-zip-members-2026-11-13.json');
+  if (!fs.existsSync(file)) return null;
+  const doc = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const model = (doc.members || []).find((row) => row.name === 'model.int8.onnx');
+  const tokens = (doc.members || []).find((row) => row.name === 'tokens.txt');
+  if (!model || !tokens) return null;
+  return { modelSha256: model.sha256, tokensSha256: tokens.sha256 };
 }
 
 function envSnapshot(opts) {
@@ -590,7 +588,11 @@ async function runReviewed36(opts) {
     looked = inspectSenseVoiceDir(opts.sensevoiceDir);
     writeJson(runDir, 'sensevoice-inspect.json', looked);
     if (!looked.ok) code = looked.code;
-    else if (!opts.sensevoiceBin) code = 'backend-missing';
+    else if (opts.synthetic !== true) {
+      const pins = memberPins();
+      if (pins && (looked.modelSha256 !== pins.modelSha256 || looked.tokensSha256 !== pins.tokensSha256)) code = 'checksum-mismatch';
+      else if (!opts.sensevoiceBin) code = 'backend-missing';
+    } else if (!opts.sensevoiceBin) code = 'backend-missing';
   }
   if (backend !== 'sa' && backend !== 'sensevoice') code = 'missing-backend';
   if (opts.skipAudio && code === 'ok') {

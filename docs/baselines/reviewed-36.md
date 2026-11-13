@@ -60,7 +60,16 @@ SenseVoice 没有模型目录时写 `model-missing`。目录里有 `model.int8.o
 node eval/baselines/asr/run-reviewed-36.js --prefetch-sensevoice https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.zip
 ```
 
-同一步失败两次就停。2026-11-13 对上面这个 GitHub zip URL 做了两次 HEAD，两次都是 HTTP 404，`content-type: text/plain`，最终 URL 没有跳到别的文件。那个 URL 没有再请求。配置里的 `https://api.belliedmonkey.com/models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.zip` 是静态文件地址，客户端下载不带 Authorization，也不是推理接口。一次 GET 得到 160304482 字节，sha256 `286a4b89c62be15c78f195b908bf746c80a655f07588346ee0383a8f20f21e04`。包内只有 `model.int8.onnx` 和 `tokens.txt`，哈希记在 `eval/baselines/asr/sensevoice-zip-members-2026-11-13.json`。产品表里的 zip 身份没有改。Mac 用的 `sherpa-onnx-v2.0.1-osx-arm64-static-no-tts.tar.bz2` sha256 是 `e2496931fd955ab449c2df1a6839e4c17cedf451e018cc3efd1a77180980c49b`，里面有 `bin/sherpa-onnx-offline`。这台 Linux 没有运行它。stdout 解析只按官方样例的一行一个 JSON、`text` 为字符串来测，二进制存在不算已经支持。SenseVoice 还没有 36 条分数。
+同一步失败两次就停。2026-11-13 对上面这个 GitHub zip URL 做了两次 HEAD，两次都是 HTTP 404，`content-type: text/plain`，最终 URL 没有跳到别的文件。那个 URL 没有再请求。配置里的 `https://api.belliedmonkey.com/models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.zip` 是静态文件地址，客户端下载不带 Authorization，也不是推理接口。一次 GET 得到 160304482 字节，sha256 `286a4b89c62be15c78f195b908bf746c80a655f07588346ee0383a8f20f21e04`。包内只有 `model.int8.onnx` 和 `tokens.txt`，哈希记在 `eval/baselines/asr/sensevoice-zip-members-2026-11-13.json`。产品表里的 zip 身份没有改。Mac 用的 `sherpa-onnx-v2.0.1-osx-arm64-static-no-tts.tar.bz2` sha256 是 `e2496931fd955ab449c2df1a6839e4c17cedf451e018cc3efd1a77180980c49b`，里面有 `bin/sherpa-onnx-offline`。这台 Linux 没有运行它。stdout 解析只按官方样例的一行一个 JSON、`text` 为字符串来测，二进制存在不算已经支持。SenseVoice 还没有 36 条分数。Mac 上的命令是解开脚本包之后：
+
+```bash
+node run-reviewed-36.js --run --backend sensevoice --out /tmp/r36-sv-smoke \
+  --sensevoice-dir /ABS/model-dir \
+  --sensevoice-bin /ABS/sherpa-onnx-v2.0.1-osx-arm64-static-no-tts/bin/sherpa-onnx-offline \
+  --fleurs-cache /ABS/fleurs-cache --ascend-cache /ABS/ascend-cache
+```
+
+这只脚本包和 `aef9aa8f` 的 SA 包不是同一个文件。
 
 `6d25fa8d` 那只扁平包缺 `config`，Mac 上的 `--check` 和 `--run` 停在 preflight，没有编译、安装或识别。不要把那只包再当可执行入口。
 

@@ -277,7 +277,7 @@ describe('reviewed 36 — selection, score, and unavailable runs', () => {
         command: 'run', backend: 'sensevoice', sensevoiceDir: model,
         outDir: path.join(src, 'sv-nobin'), root: ROOT, skipAudio: true,
       });
-      eq(hashed.code, 'backend-missing');
+      eq(hashed.code, 'checksum-mismatch');
       eq(hashed.rates, null);
       eq(typeof hashed.modelSha256, 'string');
       eq(hashed.modelSha256, crypto.createHash('sha256').update(Buffer.from('onnx-bytes')).digest('hex'));
