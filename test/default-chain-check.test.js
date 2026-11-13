@@ -3,7 +3,7 @@
 
 const { describe, test, eq } = require('./harness');
 const {
-  checkCatalog, validateRow, referenceEditAllowed,
+  checkCatalog, validateRow, referenceEditAllowed, checkZh1663,
 } = require('../eval/baselines/default-chain-check.js');
 
 function row(extra) {
@@ -46,7 +46,10 @@ describe('default-chain catalog — blocked empty set, not a product score', () 
     eq(report.smoke.role, 'sa-file-component-smoke');
     eq(report.smoke.itemCount, 16);
     eq(report.smoke.productMetric, false);
-    eq(report.zh1663AudioChecked, false);
+    eq(report.zh1663AudioChecked, true);
+    eq(report.humanVerifiedCount, 1);
+    eq(report.approvedPlannedSetCount, 0);
+    eq(report.code, 'empty-set');
   });
 
   test('a synthetic complete row is not a published product score', () => {
@@ -86,8 +89,47 @@ describe('default-chain catalog — blocked empty set, not a product score', () 
     eq(validateRow(row({ translation: { input: 'same-string', blindCount: 2, arbitration: 'agreed', stringEqual: false } })).code, 'translation-input');
   });
 
-  test('cmn_hans_cn/1663 cannot be edited from a hypothesis', () => {
+  test('cmn_hans_cn/1663 cannot be edited from a hypothesis or from a matching ear check', () => {
     eq(referenceEditAllowed({ id: 'cmn_hans_cn/1663', audioChecked: false, hypothesis: 'x' }), false);
-    eq(referenceEditAllowed({ id: 'cmn_hans_cn/1663', audioChecked: true, humanTranscript: 'heard', synthetic: false }), true);
+    eq(referenceEditAllowed({
+      id: 'cmn_hans_cn/1663',
+      audioChecked: true,
+      humanTranscript: 'heard',
+      synthetic: false,
+      transcriptMismatchOrUncertain: false,
+    }), false);
+  });
+
+  test('the 1663 ear record fails closed when it is missing, rehashed, or the reference moves', () => {
+    const frozen = {
+      id: 'cmn_hans_cn/1663/17125746560393607835.wav',
+      raw: '智利首选登山目的地科茶莫山谷 (Cochamó Valley) 被称为南美洲的优胜美地 (Yosemite)，这里有各式各样的花岗岩大石壁和峭壁。',
+      referenceSha256: 'd726ed1cc7579ab6956c65da8d9b8baba44cc53353264af38cc3198200dabb1a',
+      audioSha256: '0b242eb4c06512556915e53463bb712beaffc56bcee751865c7461d79e93e95c',
+      audioBytes: 856378,
+    };
+    eq(checkZh1663(null, frozen).code, 'zh1663-missing');
+    eq(checkZh1663(null, frozen).humanVerifiedCount, 0);
+    const review = {
+      id: 'cmn_hans_cn/1663',
+      reviewer: 'ZHAO ZHANG',
+      reviewedAt: '2026-11-13T09:23+08:00',
+      timezone: 'Asia/Shanghai',
+      raw: frozen.raw,
+      audio: { sha256: frozen.audioSha256, bytes: 856378 },
+      questions: { latinParentheticalSpoken: '两处都读出', transcriptMismatchOrUncertain: false },
+    };
+    const badHash = JSON.parse(JSON.stringify(review));
+    badHash.audio.sha256 = 'f'.repeat(64);
+    eq(checkZh1663(badHash, frozen).code, 'zh1663-hash');
+    const moved = JSON.parse(JSON.stringify(review));
+    moved.raw = frozen.raw + '。';
+    eq(checkZh1663(moved, frozen).code, 'zh1663-reference');
+    const changedFrozen = Object.assign({}, frozen, { referenceSha256: 'a'.repeat(64) });
+    eq(checkZh1663(review, changedFrozen).code, 'zh1663-reference');
+    const ok = checkZh1663(review, frozen);
+    eq(ok.audioChecked, true);
+    eq(ok.humanVerifiedCount, 1);
+    eq(ok.approvedPlannedSetCount, 0);
   });
 });

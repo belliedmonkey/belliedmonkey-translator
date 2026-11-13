@@ -141,7 +141,8 @@ describe('public candidates — not the frozen 16 and not a reviewed set', () =>
     eq(report.plannedTarget, 30);
     eq(report.realFailures, 0);
     eq(report.approvedPlannedSetCount, 0);
-    eq(report.humanVerifiedCount, 0);
+    eq(report.humanVerifiedCount, 1);
+    eq(report.publicCandidateHumanVerifiedCount, 0);
     eq(report.productMetric, null);
     eq(report.rates, null);
     const manifest = summarizeCandidates();

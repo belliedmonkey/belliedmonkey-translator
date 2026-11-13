@@ -7,9 +7,17 @@
   "plannedTarget": 30,
   "records": [],
   "realFailures": 0,
-  "zh1663AudioChecked": false,
+  "zh1663AudioChecked": true,
+  "zh1663Review": {
+    "path": "eval/baselines/asr/zh1663-ear-2026-11-13.json",
+    "role": "ear-review"
+  },
   "publicCandidates": {
     "path": "eval/baselines/asr/public-candidates-v1.json",
     "role": "public-candidate-intake"
+  },
+  "ascendCandidates": {
+    "path": "eval/baselines/ascend/ascend-test-v1.json",
+    "role": "text-screen-only"
   }
 }

@@ -73,15 +73,49 @@ function validateRow(row) {
   };
 }
 
+const ZH1663_RAW = '智利首选登山目的地科茶莫山谷 (Cochamó Valley) 被称为南美洲的优胜美地 (Yosemite)，这里有各式各样的花岗岩大石壁和峭壁。';
+const ZH1663_AUDIO_SHA = '0b242eb4c06512556915e53463bb712beaffc56bcee751865c7461d79e93e95c';
+const ZH1663_REFERENCE_SHA = 'd726ed1cc7579ab6956c65da8d9b8baba44cc53353264af38cc3198200dabb1a';
+
 function referenceEditAllowed(row) {
   if (!row || row.id !== 'cmn_hans_cn/1663') return false;
-  return row.audioChecked === true && row.synthetic !== true && typeof row.humanTranscript === 'string' && row.humanTranscript.length > 0;
+  return false;
+}
+
+function checkZh1663(review, frozenItem) {
+  const blocked = { ok: false, audioChecked: false, humanVerifiedCount: 0, approvedPlannedSetCount: 0 };
+  if (!review) return Object.assign(blocked, { code: 'zh1663-missing' });
+  if (!frozenItem) return Object.assign(blocked, { code: 'zh1663-missing' });
+  const audio = review.audio || {};
+  if (audio.sha256 !== ZH1663_AUDIO_SHA || audio.sha256 !== frozenItem.audioSha256 || audio.bytes !== frozenItem.audioBytes) {
+    return Object.assign(blocked, { code: 'zh1663-hash' });
+  }
+  if (review.playbackCopy && review.playbackCopy.sha256 === audio.sha256) {
+    return Object.assign(blocked, { code: 'zh1663-hash' });
+  }
+  if (review.raw !== ZH1663_RAW || review.raw !== frozenItem.raw || frozenItem.referenceSha256 !== ZH1663_REFERENCE_SHA) {
+    return Object.assign(blocked, { code: 'zh1663-reference' });
+  }
+  const questions = review.questions || {};
+  if (review.reviewer !== 'ZHAO ZHANG' || review.reviewedAt !== '2026-11-13T09:23+08:00' || review.timezone !== 'Asia/Shanghai') {
+    return Object.assign(blocked, { code: 'zh1663-conclusion' });
+  }
+  if (questions.latinParentheticalSpoken !== '两处都读出' || questions.transcriptMismatchOrUncertain !== false) {
+    return Object.assign(blocked, { code: 'zh1663-conclusion' });
+  }
+  return { ok: true, code: 'zh1663-checked', audioChecked: true, humanVerifiedCount: 1, approvedPlannedSetCount: 0 };
 }
 
 function checkCatalog() {
   const catalog = readJson(CATALOG);
   const smoke = readJson(catalog.smoke.path);
   const pub = catalog.publicCandidates ? readJson(catalog.publicCandidates.path) : null;
+  const ascend = catalog.ascendCandidates ? readJson(catalog.ascendCandidates.path) : null;
+  const review = catalog.zh1663Review ? readJson(catalog.zh1663Review.path) : null;
+  const focus = smoke && Array.isArray(smoke.items)
+    ? smoke.items.find((item) => item.id === 'cmn_hans_cn/1663/17125746560393607835.wav')
+    : null;
+  const ear = checkZh1663(review, focus);
   const actualCount = Array.isArray(catalog.records) ? catalog.records.length : null;
   const base = {
     ok: false,
@@ -92,9 +126,11 @@ function checkCatalog() {
     plannedTarget: catalog.plannedTarget,
     actualCount: actualCount,
     realFailures: catalog.realFailures,
-    zh1663AudioChecked: catalog.zh1663AudioChecked === true,
+    zh1663AudioChecked: ear.audioChecked === true,
     publicCandidateCount: pub ? pub.publicCandidateCount : 0,
-    humanVerifiedCount: pub ? pub.humanVerifiedCount : 0,
+    humanVerifiedCount: ear.humanVerifiedCount,
+    publicCandidateHumanVerifiedCount: pub ? pub.humanVerifiedCount : 0,
+    ascendHumanVerifiedCount: ascend ? ascend.humanVerifiedCount : 0,
     approvedPlannedSetCount: pub ? pub.approvedPlannedSetCount : 0,
     smoke: {
       role: catalog.smoke.role,
@@ -113,7 +149,9 @@ function checkCatalog() {
   if (catalog.plannedTarget !== 30) return Object.assign(base, { code: 'planned-target' });
   if (actualCount !== 0) return Object.assign(base, { code: 'actual-count' });
   if (catalog.realFailures !== 0) return Object.assign(base, { code: 'real-failures' });
-  if (catalog.zh1663AudioChecked !== false) return Object.assign(base, { code: 'zh1663' });
+  if (!ear.ok) return Object.assign(base, { code: ear.code });
+  if (catalog.zh1663AudioChecked !== true) return Object.assign(base, { code: 'zh1663' });
+  if (ascend && ascend.humanVerifiedCount !== 0) return Object.assign(base, { code: 'ascend-claim' });
   if (!pub || pub.humanVerifiedCount !== 0 || pub.approvedPlannedSetCount !== 0 || pub.realFailureCount !== 0 || pub.productMetric !== false) {
     return Object.assign(base, { code: 'public-candidate-claim' });
   }
@@ -169,4 +207,4 @@ function main(argv) {
 
 if (require.main === module) main(process.argv);
 
-module.exports = { checkCatalog, validateRow, referenceEditAllowed, selftest };
+module.exports = { checkCatalog, validateRow, referenceEditAllowed, checkZh1663, selftest };

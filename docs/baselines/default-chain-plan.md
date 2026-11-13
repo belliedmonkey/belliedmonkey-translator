@@ -46,7 +46,7 @@
 | 噪声 | 2 | 2 | 2 |
 | 连续对话 | 2 | 2 | 2 |
 
-每条记录来源、license、revision、文件哈希、同意、隐私处理、参考转写、参考译文，以及人审。`cmn_hans_cn/1663` 的括注仍未对照音频，校验器保持 `zh1663AudioChecked: false`。核对方法是：一个人在看不到假设的情况下听 wav 做转写，第二个人把它和冻结的 `reference`、`raw` 比较。不一致就开数据问题，不按识别结果改参考。
+每条记录来源、license、revision、文件哈希、同意、隐私处理、参考转写、参考译文，以及人审。`cmn_hans_cn/1663` 已有一条人耳记录，校验器里 `zh1663AudioChecked` 为 true。结论是两处括注都读出，整句与官方原文相符，所以不改参考，也不重算已有 CER。批准集合仍是空的。
 
 离线契约是 `node eval/baselines/default-chain-check.js`。空的批准集合退出码 2，`rates` 为 null。`--selftest` 是合成夹具，不能发布成实测。`node eval/baselines/asr/fetch-public-candidates.js --offline` 核对另一批 30 条公开朗读的文本和缓存 wav；缺一条就失败。它不增加 `actualCount`，也不代替人审。产品桥仍等另一次批准。端到端仍 **待测**。
 
@@ -63,7 +63,7 @@
 ## 顺序
 
 1. 协议里写明三行不能混：`sa` 文件组件、`e1_b1` partial、`e1_b1` final。
-2. 人耳核对 1663。
+2. 人耳核对 1663。这一条已记在 `eval/baselines/asr/zh1663-ear-2026-11-13.json`。其余样本仍没有人审。
 3. 样本规则和空的失败集保持为零，直到真的有同意捐献。
 4. 产品桥停在批准门。
 5. 批准之后才做同一音频的阶段输出，再做实时听译，然后实时字幕。
