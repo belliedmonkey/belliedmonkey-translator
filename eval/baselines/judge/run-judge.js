@@ -7,7 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const { ASR_VERSION, TRANSLATION_NOTE, promptTemplateSha256 } = require('./rubric.js');
-const { validateInput, validateConfig } = require('./schema.js');
+const { validateInput, validateConfig, reserveFor } = require('./schema.js');
 const { assignItems, sampleIds } = require('./assign.js');
 const { buildPrompt, promptContainsKey } = require('./prompt.js');
 const { parseVerdict } = require('./parse.js');
@@ -49,7 +49,7 @@ function reviewList(items, byId, judges, seed, sampleCount) {
     const left = byId.get(judges[0].id + ':' + item.id);
     const right = byId.get(judges[1].id + ':' + item.id);
     if (!left || !left.ok || !right || !right.ok) {
-      if (left || right) unparsed.push(item.id);
+      unparsed.push(item.id);
       continue;
     }
     const mismatch = ['slot-1', 'slot-2'].some((slot) => {
@@ -61,36 +61,42 @@ function reviewList(items, byId, judges, seed, sampleCount) {
     else agreed.push(item.id);
   }
   const sampled = sampleIds(agreed, seed, sampleCount);
-  const rows = disagreements.map((id) => ({
-    id: id,
-    reason: 'disagreement',
-    semanticHumanReviewed: false,
-  })).concat(unparsed.map((id) => ({
-    id: id,
-    reason: 'unparsed',
-    semanticHumanReviewed: false,
-  }))).concat(sampled.map((id) => ({
-    id: id,
-    reason: 'sample',
-    semanticHumanReviewed: false,
-  })));
   return {
     schema: 'belliedmonkey.llm-judge.human-review.v1',
     semanticHumanReviewCount: 0,
     earReviewUsedAsSemanticReview: false,
-    rows: rows,
+    disagreement: disagreements,
+    sample: sampled,
+    notAssessed: unparsed,
   };
 }
 
 function usageOf(body) {
   const usage = body && body.usage;
+  const providerUsd = body && Number.isFinite(body.providerUsd) ? body.providerUsd
+    : (usage && Number.isFinite(usage.usd) ? usage.usd : null);
   if (!usage || typeof usage !== 'object') {
-    return { inputTokens: null, outputTokens: null, usd: null, costUnknown: true };
+    return { inputTokens: null, outputTokens: null, providerUsd: providerUsd, complete: false };
   }
   const inputTokens = Number.isFinite(usage.prompt_tokens) ? usage.prompt_tokens : null;
   const outputTokens = Number.isFinite(usage.completion_tokens) ? usage.completion_tokens : null;
-  const usd = Number.isFinite(usage.usd) ? usage.usd : null;
-  return { inputTokens: inputTokens, outputTokens: outputTokens, usd: usd, costUnknown: usd === null };
+  return {
+    inputTokens: inputTokens,
+    outputTokens: outputTokens,
+    providerUsd: providerUsd,
+    complete: inputTokens !== null && outputTokens !== null,
+  };
+}
+
+function settle(prices, model, usage) {
+  const row = prices.models[model];
+  if (!row || !usage || !usage.complete) return { settledUsd: null, costUnknown: true };
+  if (usage.inputTokens > prices.maxInputTokens || usage.outputTokens > prices.maxOutputTokens) {
+    return { settledUsd: null, costUnknown: true, code: 'usage-over-cap' };
+  }
+  if (row.pricedZero === true) return { settledUsd: 0, costUnknown: false };
+  const settled = money(usage.inputTokens * row.inputUsdPerToken + usage.outputTokens * row.outputUsdPerToken);
+  return { settledUsd: settled, costUnknown: false };
 }
 
 async function once(transport, req, timeoutMs) {
@@ -104,7 +110,8 @@ async function once(transport, req, timeoutMs) {
       reject(err);
     }, timeoutMs);
   });
-  const pending = Promise.resolve(transport(Object.assign({}, req, { signal: ac.signal })));
+  req.signal = ac.signal;
+  const pending = Promise.resolve(transport(req));
   pending.catch(() => {});
   try {
     return await Promise.race([pending, timeout]);
@@ -126,10 +133,11 @@ async function httpTransport(req) {
       'content-type': 'application/json',
       authorization: 'Bearer ' + req.key,
     },
-    body: JSON.stringify({
+      body: JSON.stringify({
       model: req.model,
       temperature: req.temperature,
       seed: req.seed,
+      max_tokens: req.maxTokens,
       messages: req.messages,
     }),
   });
@@ -153,39 +161,31 @@ async function httpTransport(req) {
   return { content: content, responseModel: json.model || null, usage: usage };
 }
 
-function retryable(err) {
-  if (!err) return false;
-  if (err.code === 'timeout' || err.code === 'network') return true;
-  if (err.code === 'http' && (err.status === 429 || err.status >= 500)) return true;
-  return false;
+async function callJudge(transport, req, timeoutMs) {
+  const started = Date.now();
+  try {
+    const body = await once(transport, req, timeoutMs);
+    return {
+      ok: true,
+      body: body,
+      elapsedMs: Date.now() - started,
+      aborted: !!(req.signal && req.signal.aborted),
+      code: null,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      body: null,
+      elapsedMs: Date.now() - started,
+      aborted: !!(req.signal && req.signal.aborted) || (err && err.code === 'timeout'),
+      code: err && err.code ? err.code : 'transport',
+      status: err && err.status ? err.status : null,
+    };
+  }
 }
 
-async function callJudge(transport, req, timeoutMs, maxRetries) {
-  const attempts = [];
-  let last = null;
-  const total = maxRetries + 1;
-  for (let n = 1; n <= total; n++) {
-    try {
-      const body = await once(transport, req, timeoutMs);
-      const usage = usageOf(body);
-      attempts.push(Object.assign({ attempt: n, ok: true }, usage));
-      return { ok: true, body: body, attempts: attempts };
-    } catch (err) {
-      last = err;
-      attempts.push({
-        attempt: n,
-        ok: false,
-        code: err && err.code ? err.code : 'transport',
-        status: err && err.status ? err.status : null,
-        inputTokens: null,
-        outputTokens: null,
-        usd: null,
-        costUnknown: true,
-      });
-      if (!retryable(err) || n === total) break;
-    }
-  }
-  return { ok: false, code: last && last.code ? last.code : 'transport', attempts: attempts };
+function money(n) {
+  return Math.round(n * 1e9) / 1e9;
 }
 
 function safeName(id) {
@@ -236,8 +236,22 @@ async function runJudge(opts) {
     timeoutMs: config.timeoutMs,
     maxRetries: config.maxRetries,
     budgetUsd: config.budgetUsd,
+    prices: {
+      source: config.prices.source,
+      sourceVersion: config.prices.sourceVersion,
+      maxInputTokens: config.prices.maxInputTokens,
+      maxOutputTokens: config.prices.maxOutputTokens,
+      maxTotalTokens: config.prices.maxTotalTokens,
+      maxRequests: config.prices.maxRequests,
+      reserveUsd: config.judges.map((judge) => ({
+        model: judge.model,
+        usd: reserveFor(config.prices, judge.model),
+        pricedZero: config.prices.models[judge.model].pricedZero,
+      })),
+    },
     judges: config.judges.map((judge) => ({ id: judge.id, model: judge.model, called: false })),
     itemIds: inputCheck.items.map((item) => item.id),
+    omittedIds: inputCheck.items.slice(config.maxItems).map((item) => item.id),
   };
   const evidenceAssignment = {
     schema: 'belliedmonkey.llm-judge.assignment.v1',
@@ -245,6 +259,32 @@ async function runJudge(opts) {
     items: assignment,
     note: 'This mapping stays in the evidence directory. It is not part of the judge request.',
   };
+  const notYet = {
+    schema: 'belliedmonkey.llm-judge.human-review.v1',
+    semanticHumanReviewCount: 0,
+    earReviewUsedAsSemanticReview: false,
+    disagreement: [],
+    sample: [],
+    notAssessed: inputCheck.items.map((item) => item.id),
+  };
+  if (plan.omittedIds.length) {
+    const summary = base({
+      code: 'item-cap',
+      called: false,
+      synthetic: synthetic,
+      plan: plan,
+      assignment: evidenceAssignment,
+      omittedIds: plan.omittedIds,
+      humanReview: notYet,
+    });
+    if (opts.out) {
+      writeJson(opts.out, 'plan.json', plan);
+      writeJson(opts.out, 'assignment.json', evidenceAssignment);
+      writeJson(opts.out, 'human-review.json', notYet);
+      writeJson(opts.out, 'summary.json', summary);
+    }
+    return summary;
+  }
   if (!opts.run) {
     const summary = base({
       ok: true,
@@ -253,10 +293,13 @@ async function runJudge(opts) {
       synthetic: synthetic,
       plan: plan,
       assignment: evidenceAssignment,
+      omittedIds: [],
+      humanReview: notYet,
     });
     if (opts.out) {
       writeJson(opts.out, 'plan.json', plan);
       writeJson(opts.out, 'assignment.json', evidenceAssignment);
+      writeJson(opts.out, 'human-review.json', notYet);
       writeJson(opts.out, 'summary.json', summary);
     }
     return summary;
@@ -276,71 +319,118 @@ async function runJudge(opts) {
   }
   const transport = opts.transport;
   if (typeof transport !== 'function') return base({ code: 'transport-missing', synthetic: synthetic, plan: plan });
-  const limited = planned.slice(0, config.maxItems);
-  const skipped = planned.slice(config.maxItems);
   const calls = [];
   const parsed = new Map();
-  let spent = 0;
-  let sawUsd = false;
+  let held = 0;
+  let settled = 0;
+  let requests = 0;
+  let tokensHeld = 0;
   let costUnknown = false;
   let stop = null;
-  for (const row of limited) {
+  for (const row of planned) {
     if (stop) break;
     for (const judge of config.judges) {
       if (stop) break;
-      if (sawUsd && config.budgetUsd !== null && spent >= config.budgetUsd) {
-        stop = 'budget-truncated';
+      const reserve = reserveFor(config.prices, judge.model);
+      const tokenReserve = config.prices.maxInputTokens + config.prices.maxOutputTokens;
+      const chars = row.prompt.messages.map((message) => message.content).join('').length;
+      if (Math.ceil(chars / 4) > config.prices.maxInputTokens) {
+        stop = 'input-cap';
         break;
       }
+      if (requests + 1 > config.prices.maxRequests) {
+        stop = 'request-cap';
+        break;
+      }
+      if (tokensHeld + tokenReserve > config.prices.maxTotalTokens) {
+        stop = 'token-cap';
+        break;
+      }
+      if (money(held + reserve) > config.budgetUsd) {
+        stop = 'budget-blocked';
+        break;
+      }
+      held = money(held + reserve);
+      tokensHeld += tokenReserve;
+      requests += 1;
       const req = {
         judgeId: judge.id,
         model: judge.model,
         temperature: config.temperature,
         seed: config.seed,
+        maxTokens: config.prices.maxOutputTokens,
         timeoutMs: config.timeoutMs,
         messages: row.prompt.messages,
         url: env[judge.endpointEnv],
         key: env[judge.keyEnv],
+        signal: null,
       };
-      const result = await callJudge(transport, req, config.timeoutMs, config.maxRetries);
-      let usdThis = null;
-      if (result.ok) {
-        const usage = usageOf(result.body);
-        usdThis = usage.usd;
-        if (usage.costUnknown) costUnknown = true;
-        else {
-          sawUsd = true;
-          spent += usage.usd;
-        }
-        const text = result.body && typeof result.body.content === 'string' ? result.body.content : '';
-        const one = parseVerdict(text, row.item, row.assignment);
-        parsed.set(judge.id + ':' + row.id, one);
-        if (opts.out) {
-          writeJson(path.join(opts.out, 'requests', judge.id), safeName(row.id), {
-            judgeId: judge.id,
-            model: judge.model,
-            temperature: config.temperature,
-            seed: config.seed,
-            messages: row.prompt.messages,
-            authorization: 'redacted',
-            urlStored: false,
-          });
-          writeJson(path.join(opts.out, 'responses', judge.id), safeName(row.id), {
-            content: text,
-            responseModel: result.body.responseModel || null,
-            usage: usage,
-          });
-          writeJson(path.join(opts.out, 'parsed', judge.id), safeName(row.id), one);
-        }
-      } else {
-        parsed.set(judge.id + ':' + row.id, { ok: false, code: result.code, verdict: null });
+      if (opts.out) {
+        writeJson(path.join(opts.out, 'requests', judge.id), safeName(row.id), {
+          stage: 'reserved',
+          judgeId: judge.id,
+          model: judge.model,
+          temperature: config.temperature,
+          seed: config.seed,
+          maxTokens: req.maxTokens,
+          reserveUsd: reserve,
+          messages: row.prompt.messages,
+          authorization: 'redacted',
+          urlStored: false,
+        });
+      }
+      const result = await callJudge(transport, req, config.timeoutMs);
+      const usage = result.ok ? usageOf(result.body) : { inputTokens: null, outputTokens: null, providerUsd: null, complete: false };
+      let one = { ok: false, code: result.code || 'transport', verdict: null };
+      let settledUsd = null;
+      if (!result.ok || !usage.complete) {
         costUnknown = true;
+        stop = 'budget-unknown';
+      } else {
+        const bill = settle(config.prices, judge.model, usage);
+        if (bill.costUnknown) {
+          costUnknown = true;
+          stop = 'budget-unknown';
+        } else {
+          held = money(held - reserve + bill.settledUsd);
+          settled = money(settled + bill.settledUsd);
+          tokensHeld = tokensHeld - tokenReserve + usage.inputTokens + usage.outputTokens;
+          settledUsd = bill.settledUsd;
+          const text = typeof result.body.content === 'string' ? result.body.content : '';
+          one = parseVerdict(text, row.item, row.assignment);
+          if (!one.ok) one = { ok: false, code: one.code, verdict: null };
+        }
       }
-      for (const attempt of result.attempts) {
-        calls.push(Object.assign({ judgeId: judge.id, itemId: row.id }, attempt));
+      parsed.set(judge.id + ':' + row.id, one);
+      calls.push({
+        judgeId: judge.id,
+        itemId: row.id,
+        ok: result.ok && settledUsd !== null,
+        code: result.code,
+        reserveUsd: reserve,
+        settledUsd: settledUsd,
+        providerUsd: usage.providerUsd,
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
+        elapsedMs: result.elapsedMs,
+        aborted: result.aborted === true,
+        costUnknown: settledUsd === null,
+      });
+      if (opts.out) {
+        writeJson(path.join(opts.out, 'responses', judge.id), safeName(row.id), {
+          stage: 'finished',
+          ok: result.ok,
+          code: result.code,
+          status: result.status || null,
+          elapsedMs: result.elapsedMs,
+          aborted: result.aborted === true,
+          content: result.ok ? result.body.content : null,
+          providerUsd: usage.providerUsd,
+          usage: usage,
+          settledUsd: settledUsd,
+        });
+        writeJson(path.join(opts.out, 'parsed', judge.id), safeName(row.id), one);
       }
-      if (config.budgetUsd !== null && sawUsd && spent >= config.budgetUsd) stop = 'budget-truncated';
-      if (config.budgetUsd !== null && result.ok && usdThis === null) stop = 'budget-unknown';
     }
   }
   const itemResults = inputCheck.items.map((item) => {
@@ -361,12 +451,9 @@ async function runJudge(opts) {
   const anyParsed = itemResults.some((row) => Object.keys(row.judges).some((id) => row.judges[id]));
   let code = 'complete';
   if (stop && !both) code = stop;
-  else if (skipped.length) code = 'item-cap';
   else if (!both && anyParsed) code = 'partial';
-  else if (!both) code = 'no-verdict';
-  const human = both || anyParsed
-    ? reviewList(planned, parsed, config.judges, config.seed, config.sampleCount)
-    : { schema: 'belliedmonkey.llm-judge.human-review.v1', semanticHumanReviewCount: 0, earReviewUsedAsSemanticReview: false, rows: [] };
+  else if (!both) code = stop || 'no-verdict';
+  const human = reviewList(planned, parsed, config.judges, config.seed, config.sampleCount);
   const summary = base({
     ok: code === 'complete',
     code: code,
@@ -376,10 +463,13 @@ async function runJudge(opts) {
     results: itemResults,
     plan: plan,
     assignment: evidenceAssignment,
+    omittedIds: [],
     usage: {
       calls: calls,
-      spentUsd: sawUsd ? spent : null,
-      costUnknown: costUnknown || !sawUsd,
+      spentUsd: held,
+      settledUsd: costUnknown ? null : settled,
+      costUnknown: costUnknown,
+      providerUsdIgnored: true,
     },
     humanReview: human,
   });

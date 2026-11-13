@@ -61,7 +61,7 @@ function finiteNumber(value) {
 
 function validateConfig(doc) {
   const root = extraKey(doc, [
-    'schema', 'seed', 'temperature', 'sampleCount', 'maxItems', 'timeoutMs', 'maxRetries', 'budgetUsd', 'judges',
+    'schema', 'seed', 'temperature', 'sampleCount', 'maxItems', 'timeoutMs', 'maxRetries', 'budgetUsd', 'judges', 'prices',
   ]);
   if (root === 'type') return fail('config-type');
   if (root) return fail('unknown-field', root);
@@ -72,7 +72,7 @@ function validateConfig(doc) {
   if (!Number.isInteger(doc.maxItems) || doc.maxItems < 1 || doc.maxItems > 200) return fail('maxItems');
   if (!Number.isInteger(doc.timeoutMs) || doc.timeoutMs < 1 || doc.timeoutMs > 120000) return fail('timeoutMs');
   if (!Number.isInteger(doc.maxRetries) || doc.maxRetries < 0 || doc.maxRetries > 2) return fail('maxRetries');
-  if (!(doc.budgetUsd === null || (finiteNumber(doc.budgetUsd) && doc.budgetUsd > 0))) return fail('budgetUsd');
+  if (!finiteNumber(doc.budgetUsd) || doc.budgetUsd < 0) return fail('budget-required');
   if (!Array.isArray(doc.judges) || doc.judges.length !== 2) return fail('judge-count');
   const judges = [];
   const models = [];
@@ -94,6 +94,8 @@ function validateConfig(doc) {
     });
   }
   if (judges[0].id === judges[1].id) return fail('judge-id');
+  const priced = validatePrices(doc.prices, models);
+  if (!priced.ok) return priced;
   return {
     ok: true,
     seed: doc.seed,
@@ -104,7 +106,63 @@ function validateConfig(doc) {
     maxRetries: doc.maxRetries,
     budgetUsd: doc.budgetUsd,
     judges: judges,
+    prices: priced.prices,
   };
+}
+
+function validatePrices(doc, models) {
+  const root = extraKey(doc, [
+    'schema', 'source', 'sourceVersion', 'maxInputTokens', 'maxOutputTokens', 'maxTotalTokens', 'maxRequests', 'models',
+  ]);
+  if (root === 'type') return fail('price-missing');
+  if (root) return fail('unknown-field', root);
+  if (!doc || doc.schema !== 'belliedmonkey.llm-judge.prices.v1') return fail('price-schema');
+  if (typeof doc.source !== 'string' || !doc.source || typeof doc.sourceVersion !== 'string' || !doc.sourceVersion) {
+    return fail('price-source');
+  }
+  if (!Number.isInteger(doc.maxInputTokens) || doc.maxInputTokens < 1) return fail('maxInputTokens');
+  if (!Number.isInteger(doc.maxOutputTokens) || doc.maxOutputTokens < 1) return fail('maxOutputTokens');
+  if (!Number.isInteger(doc.maxTotalTokens) || doc.maxTotalTokens < doc.maxInputTokens + doc.maxOutputTokens) {
+    return fail('maxTotalTokens');
+  }
+  if (!Number.isInteger(doc.maxRequests) || doc.maxRequests < 1) return fail('maxRequests');
+  const table = {};
+  for (const model of models) {
+    const row = doc.models && doc.models[model];
+    if (!row) return fail('price-missing', model);
+    const bad = extraKey(row, ['inputUsdPerToken', 'outputUsdPerToken', 'pricedZero']);
+    if (bad) return fail('unknown-field', bad === 'type' ? 'price' : bad);
+    if (!finiteNumber(row.inputUsdPerToken) || row.inputUsdPerToken < 0) return fail('price-rate');
+    if (!finiteNumber(row.outputUsdPerToken) || row.outputUsdPerToken < 0) return fail('price-rate');
+    if (row.pricedZero !== true && row.pricedZero !== false) return fail('price-zero-unmarked');
+    if (row.pricedZero === true && (row.inputUsdPerToken !== 0 || row.outputUsdPerToken !== 0)) return fail('price-zero-unmarked');
+    if (row.pricedZero === false && row.inputUsdPerToken === 0 && row.outputUsdPerToken === 0) return fail('price-zero-unmarked');
+    const reserveUsd = doc.maxInputTokens * row.inputUsdPerToken + doc.maxOutputTokens * row.outputUsdPerToken;
+    table[model] = {
+      inputUsdPerToken: row.inputUsdPerToken,
+      outputUsdPerToken: row.outputUsdPerToken,
+      pricedZero: row.pricedZero,
+      reserveUsd: reserveUsd,
+    };
+  }
+  return {
+    ok: true,
+    prices: {
+      schema: doc.schema,
+      source: doc.source,
+      sourceVersion: doc.sourceVersion,
+      maxInputTokens: doc.maxInputTokens,
+      maxOutputTokens: doc.maxOutputTokens,
+      maxTotalTokens: doc.maxTotalTokens,
+      maxRequests: doc.maxRequests,
+      models: table,
+    },
+  };
+}
+
+function reserveFor(prices, model) {
+  const row = prices.models[model];
+  return row ? row.reserveUsd : null;
 }
 
 module.exports = {
@@ -114,4 +172,5 @@ module.exports = {
   FINDING_KINDS,
   validateInput,
   validateConfig,
+  reserveFor,
 };

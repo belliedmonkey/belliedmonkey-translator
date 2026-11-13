@@ -12,9 +12,23 @@
 
 两个评委必须是两个不同的 model 字符串。缺端点、缺密钥、或两个 id 相同，结果是 `blocked` 或 `same-model`。不会用同一个模型假装两个评委。本仓库不登记新账号，不订阅，不把密钥写进文件。`--run` 才读配置里点名的环境变量，证据里的 Authorization 只写 `redacted`。
 
-默认是 dry-run。它不读环境变量，不访问网络，`called` 为 false，`results` 为 null。
+默认是 dry-run。它不读环境变量，不访问网络，`called` 为 false，`results` 为 null。条数超过 `maxItems` 时 dry-run 也是 `item-cap`，不是成功。被略过的 id 在 `omittedIds`，人审表的 `notAssessed` 列出全部未评 id。`disagreement` 和 `sample` 是另外两栏。`semanticHumanReviewCount` 保持 0。
 
-本文件不指定已经选中的模型，也没有已经发生的调用。model、temperature、seed 和提示词模板 sha256 由当次配置和 `rubric.js` 记下来。响应里如果带回了模型名，另记为 `responseModel`，不拿它回填成事先声明。
+本文件不指定已经选中的模型，也没有已经发生的调用。配置里的 model 字符串只是占位，直到操作者填上两只不同的 id。temperature、seed 和提示词模板 sha256 由当次配置和 `rubric.js` 记下来。
+
+## 费用
+
+正式运行不能把 `budgetUsd` 留空。每个 model 要有一份事先声明的价格：来源、来源版本、每 token 的输入价和输出价。两边都是 0 只有在 `pricedZero` 为 true 时成立。价格缺失，或者预算装不下一次保守预留，在第一次请求之前就是 `price-missing` 或 `budget-blocked`。
+
+每次发送前按 `maxInputTokens * 输入价 + maxOutputTokens * 输出价` 预留。完成后只用 token 用量核销。响应里的 `usd` 记成 `providerUsd`，不能单独当上限。超时或 HTTP 失败可能已经计费，预留留下，`costUnknown` 为 true，不再重试，也不再叫下一只评委。信号会中止这次请求。请求文件在发送前就写下，`authorization` 是 `redacted`。结束时无论成败都写 response 和 parsed。
+
+用户消息是一份 JSON。字符串是不可信数据，不授予执行、链接或额外目标。这不能说成已经挡住了模型自己跟着文本走。
+
+## 审计
+
+chair 审计了包 `f4a58b85f79c7e8da13d2049f987802bcd0fbebbdb70320c85b0aaf422302d55`。`AUDIT.md` 的 sha256 是 `74c8c620ee7ca56ebbd9a1e89a1f790c3cd64f90e489dbed27af69c9980c432b`。本仓库没有打开 `/workspace/baseline-sa-sv-36-20261113/judge-prep/audit/AUDIT.md`。上面的费用和文本边界就是那次审计指出的阻塞。真实评委没有调用。
+
+chair 的 36 条双臂输入 sha256 是 `1a44cca3bf05662c8701d943702a35e7fd1a303f9bcd931764775d9057c795a1`，配对清单是 `2e5d95d1b61e16f9e0b3506f3e949b94c9717d577e1cc8c41fe72e3b6e221bb7`。身份在单独的映射里，不进请求。那次 dry-run 是 `called` false、`results` null，seed `20261113` 有 18/36 对调。本仓库没有这份输入，没有重跑它，也没有第二只假臂。
 
 ## 固定量表
 
@@ -73,14 +87,29 @@ node eval/baselines/judge/pack-judge-bundle.js <out.tar.gz>
   "sampleCount": 1,
   "maxItems": 36,
   "timeoutMs": 20000,
-  "maxRetries": 1,
+  "maxRetries": 0,
   "budgetUsd": 1,
   "judges": [
     {"id": "judge-a", "model": "REPLACE_MODEL_A", "endpointEnv": "JUDGE_A_URL", "keyEnv": "JUDGE_A_KEY"},
     {"id": "judge-b", "model": "REPLACE_MODEL_B", "endpointEnv": "JUDGE_B_URL", "keyEnv": "JUDGE_B_KEY"}
-  ]
+  ],
+  "prices": {
+    "schema": "belliedmonkey.llm-judge.prices.v1",
+    "source": "REPLACE_PRICE_SOURCE",
+    "sourceVersion": "REPLACE_PRICE_VERSION",
+    "maxInputTokens": 4000,
+    "maxOutputTokens": 800,
+    "maxTotalTokens": 200000,
+    "maxRequests": 72,
+    "models": {
+      "REPLACE_MODEL_A": {"inputUsdPerToken": 0.000001, "outputUsdPerToken": 0.000002, "pricedZero": false},
+      "REPLACE_MODEL_B": {"inputUsdPerToken": 0.000001, "outputUsdPerToken": 0.000002, "pricedZero": false}
+    }
+  }
 }
 ```
+
+上面的价格数字是占位，不是一份已选定的价目。`pricedZero` 为 false 且单价都是 0 时，配置直接无效。真正免费必须把 `pricedZero` 设为 true，并写明来源。当前提示词模板 sha256 是 `a955cddc61e16ef988ee7c4290437218df4653f88ec9a8a45d6cb38adca5bdd6`。
 
 ## 限度
 

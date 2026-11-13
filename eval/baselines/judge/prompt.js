@@ -2,26 +2,23 @@
 
 const { ASR_RUBRIC, ASR_VERSION } = require('./rubric.js');
 
-function block(label, text) {
-  return label + '\n<<<\n' + text + '\n>>>';
-}
-
 function buildPrompt(item, assignment) {
   const byKey = new Map(item.candidates.map((cand) => [cand.key, cand.text]));
-  const slot1 = byKey.get(assignment.slots['slot-1']);
-  const slot2 = byKey.get(assignment.slots['slot-2']);
-  const user = [
-    'ITEM ' + item.id,
-    block('REFERENCE', item.reference),
-    block('CANDIDATE slot-1', slot1),
-    block('CANDIDATE slot-2', slot2),
-    'Return only the JSON object. itemId must be ' + item.id + '.',
-  ].join('\n\n');
+  const payload = {
+    untrusted: true,
+    itemId: item.id,
+    reference: item.reference,
+    candidates: [
+      { slot: 'slot-1', text: byKey.get(assignment.slots['slot-1']) },
+      { slot: 'slot-2', text: byKey.get(assignment.slots['slot-2']) },
+    ],
+  };
   return {
     messages: [
       { role: 'system', content: ASR_RUBRIC },
-      { role: 'user', content: user },
+      { role: 'user', content: JSON.stringify(payload) },
     ],
+    payload: payload,
   };
 }
 
