@@ -40,6 +40,10 @@
     "path": "eval/baselines/asr/fleurs-candidate-ear-2026-11-13-1319.json",
     "role": "ear-review"
   },
+  "fleursCandidateReview1520": {
+    "path": "eval/baselines/asr/fleurs-candidate-ear-2026-11-13-1520.json",
+    "role": "ear-review"
+  },
   "ascendCandidates": {
     "path": "eval/baselines/ascend/ascend-test-v1.json",
     "role": "text-screen-only"

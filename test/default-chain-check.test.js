@@ -3,7 +3,7 @@
 
 const { describe, test, eq } = require('./harness');
 const {
-  checkCatalog, validateRow, referenceEditAllowed, checkZh1663, checkAscendEar, checkFleursCandidateEar, checkFleursCandidateEar1103, checkFleursCandidateEar1109, checkFleursCandidateEar1240, checkFleursCandidateEar1319,
+  checkCatalog, validateRow, referenceEditAllowed, checkZh1663, checkAscendEar, checkFleursCandidateEar, checkFleursCandidateEar1103, checkFleursCandidateEar1109, checkFleursCandidateEar1240, checkFleursCandidateEar1319, checkFleursCandidateEar1520,
 } = require('../eval/baselines/default-chain-check.js');
 
 function row(extra) {
@@ -47,10 +47,10 @@ describe('default-chain catalog — blocked empty set, not a product score', () 
     eq(report.smoke.itemCount, 16);
     eq(report.smoke.productMetric, false);
     eq(report.zh1663AudioChecked, true);
-    eq(report.humanVerifiedCount, 31);
+    eq(report.humanVerifiedCount, 37);
     eq(report.ascendHumanVerifiedCount, 6);
-    eq(report.fleursCandidateHumanVerifiedCount, 24);
-    eq(report.unreviewedPublicCandidateCount, 6);
+    eq(report.fleursCandidateHumanVerifiedCount, 30);
+    eq(report.unreviewedPublicCandidateCount, 0);
     eq(report.publicCandidateHumanVerifiedCount, 0);
     eq(report.approvedPlannedSetCount, 0);
     eq(report.code, 'empty-set');
@@ -375,5 +375,35 @@ describe('default-chain catalog — blocked empty set, not a product score', () 
     const rewritten = JSON.parse(JSON.stringify(review));
     rewritten.items[3].raw = rewritten.items[3].raw.replace(' (Oliver Sacks)', '');
     eq(checkFleursCandidateEar1319(rewritten, frozen).code, 'fleurs-candidate-text');
+  });
+
+  test('the 15:20 reply covers the last six clips without approving the plan', () => {
+    const stored = require('../eval/baselines/asr/fleurs-candidate-ear-2026-11-13-1520.json');
+    const pub = require('../eval/baselines/asr/public-candidates-v1.json');
+    const audio = require('../eval/baselines/asr/public-candidates-audio-v1.json');
+    const frozen = pub.items.map((item) => {
+      const wav = audio.items.find((row) => row.config === item.config && String(row.sentenceId) === String(item.sentenceId));
+      return { config: item.config, sentenceId: String(item.sentenceId), raw: item.raw, audioSha256: wav ? wav.sha256 : '' };
+    });
+    eq(checkFleursCandidateEar1520(null, frozen).code, 'fleurs-candidate-missing');
+    const passed = checkFleursCandidateEar1520(stored, frozen);
+    eq(passed.humanVerifiedCount, 6);
+    eq(passed.approvedPlannedSetCount, 0);
+    eq(passed.verbatim, '全部通过');
+    const short = JSON.parse(JSON.stringify(stored));
+    short.items.pop();
+    eq(checkFleursCandidateEar1520(short, frozen).code, 'fleurs-candidate-scope');
+    const dup = JSON.parse(JSON.stringify(stored));
+    dup.items[1] = JSON.parse(JSON.stringify(dup.items[0]));
+    eq(checkFleursCandidateEar1520(dup, frozen).code, 'fleurs-candidate-duplicate');
+    const quality = JSON.parse(JSON.stringify(stored));
+    quality.translationQualityJudged = true;
+    eq(checkFleursCandidateEar1520(quality, frozen).code, 'fleurs-candidate-conclusion');
+    const spoken = JSON.parse(JSON.stringify(stored));
+    spoken.items[4].fractionSpoken = '29又4分之3';
+    eq(checkFleursCandidateEar1520(spoken, frozen).code, 'fleurs-candidate-conclusion');
+    const rewritten = JSON.parse(JSON.stringify(stored));
+    rewritten.items[2].raw = 'A tidy English sentence.';
+    eq(checkFleursCandidateEar1520(rewritten, frozen).code, 'fleurs-candidate-text');
   });
 });

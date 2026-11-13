@@ -22,7 +22,7 @@
 | [scene-sources.md](scene-sources.md) | 口音、噪声、混语、连续对话的三份公开说明 | 只核卡片。没有新音频，没有批准。端到端仍待测 |
 | [ascend-candidates.md](ascend-candidates.md) | ASCEND test 的 6 条文字筛选 | 清单本身仍是文字筛选。端到端仍待测 |
 | [ascend-ear.md](ascend-ear.md) | 这 6 条的人耳结论 | 只确认混语和转写相符。不计入捐献 30。端到端仍待测 |
-| [fleurs-candidate-ear.md](fleurs-candidate-ear.md) | 1668–1679 中英共 24 条人耳结论 | 10:59、11:03、11:09、12:40、13:19 五句原话分开记。端到端仍待测 |
+| [fleurs-candidate-ear.md](fleurs-candidate-ear.md) | 1668–1682 中英共 30 条人耳结论 | 10:59 到 15:20 六句原话分开记。清单仍是 0。端到端仍待测 |
 
 离线检查：`node eval/baselines/check.js`。它核对证据摘录仍在源码里、矩阵每一格都在、真实失败样本库仍为空、工具用合成句不能变成质量样本。公开 ASR 切片另见上表，不打产品分。
 

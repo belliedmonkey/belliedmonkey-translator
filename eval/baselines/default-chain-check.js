@@ -190,12 +190,16 @@ function checkFleursSlice(review, frozenItems, pins, verbatim, reviewedAt, paren
     const raw = pins[i][3];
     const playback = pins[i][4];
     const row = review.items[i];
-    const key = 'fleurs-public-candidates/' + config + '/' + sentenceId;
-    if (!row || row.config !== config || String(row.sentenceId) !== sentenceId || row.source !== 'fleurs-public-candidates') {
+    if (!row || row.source !== 'fleurs-public-candidates') {
       return Object.assign(blocked, { code: 'fleurs-candidate-scope' });
     }
-    if (seen.has(key)) return Object.assign(blocked, { code: 'fleurs-candidate-duplicate' });
-    seen.add(key);
+    const rowKey = 'fleurs-public-candidates/' + row.config + '/' + String(row.sentenceId);
+    if (seen.has(rowKey)) return Object.assign(blocked, { code: 'fleurs-candidate-duplicate' });
+    seen.add(rowKey);
+    if (row.config !== config || String(row.sentenceId) !== sentenceId) {
+      return Object.assign(blocked, { code: 'fleurs-candidate-scope' });
+    }
+    const key = rowKey;
     const frozen = frozenByKey.get(config + '/' + sentenceId);
     if (!frozen) return Object.assign(blocked, { code: 'fleurs-candidate-scope' });
     if (row.audioSha256 !== hash || frozen.audioSha256 !== hash || (row.playbackSha256 && row.playbackSha256 === hash) || playback === hash) {
@@ -292,6 +296,33 @@ function checkFleursCandidateEar1319(review, frozenItems) {
   return got;
 }
 
+
+const FLEURS_CANDIDATE_EAR_1520 = [
+["en_us", "1680", "7df2a964d8ce3931be897abeac59dd02669c709163fe23e928d917d31cf27601", "A well rounded athlete, the tiger can climb (though not well), swim, leap great distances and pull with five times the force of a strong human.", "eedff692b614b30e356de75d846cff2100d75939a121cc6cff105c0875f7bdf0"],
+  ["cmn_hans_cn", "1680", "79721ab0386d30676690498bacee2f0032f97028c0bd63ae86e33862c8ad8879", "老虎是全能运动员，它会攀爬（虽然攀爬能力不是很强）、游泳、跳远，拉力能达到人类大力士的五倍。", "658316a2e1bb4a5842f2b74780da38a14c8b765338835e265f60389b2322d807"],
+  ["en_us", "1681", "8752cda5cc51f24c718320f30ee0e4dcd86df3bb794c3bd122e391cca9516048", "It isn’t alone though, experimentation, and an experiment is a test that is used to eliminate one or more of the possible hypotheses, asking questions, and making observations also guide scientific research.", "ae5db8cf34367d0a922758dadf0d682872afd705ba88f1907ff23dcd17fb73a4"],
+  ["cmn_hans_cn", "1681", "6cd9c8019accd4b3fad799c8faf41770341085f5cb7b75b3bf8123b3abf3779b", "实验是一种用来消除一个或多个可能性假设的试验，不过，实验并不是唯一的方法。提出问题及进行观察也可以指导科学研究。", "4365e543ae2ff45dec8f420be02f4c335904979928c66ee5bb37af01ec18371f"],
+  ["en_us", "1682", "7f8e2186df44065aba3331c5fc2f2af07402be60914d255747665be8075d0cb1", "While no one knows for certain who wrote it, it is known that early in its life, the large parchment document (it measures 29¾ inches by 24½ inches) was rolled up for storage.", "c1e545a58707d9c503a0acf1ffdc25f0a286cd2dc312a4425fd874f6b0afec8b"],
+  ["cmn_hans_cn", "1682", "7cda7193eb573699c81b116c916c2ba869b8c1926a2db04fa0e8ae869854a080", "虽然没有人能确定作者是谁，但这个大型羊皮纸文档（尺寸为 29¾ 英寸乘以 24½ 英寸）据称在刚写成的时候是卷起来存放的。", "6f88adfbbd4670918ffc6060faf6b36cd369f9945ac4ef75b9f6483a309ae98d"],
+];
+
+function checkFleursCandidateEar1520(review, frozenItems) {
+  const blocked = { ok: false, humanVerifiedCount: 0, approvedPlannedSetCount: 0, keys: [], code: 'fleurs-candidate-conclusion' };
+  const got = checkFleursSlice(review, frozenItems, FLEURS_CANDIDATE_EAR_1520, '全部通过', '2026-11-13T15:20+08:00', false, true);
+  if (!got.ok) return got;
+  if (review.scope !== 'audio-transcript-consistency' || review.translationQualityJudged !== false) return blocked;
+  const banned = ['parentheticalSpoken', 'fractionSpoken', 'numberSpoken'];
+  for (let b = 0; b < banned.length; b++) {
+    if (Object.prototype.hasOwnProperty.call(review, banned[b])) return blocked;
+  }
+  for (let i = 0; i < review.items.length; i++) {
+    for (let b = 0; b < banned.length; b++) {
+      if (Object.prototype.hasOwnProperty.call(review.items[i], banned[b])) return blocked;
+    }
+  }
+  return got;
+}
+
 function uniqueEarCount(groups) {
   const seen = new Set();
   for (let g = 0; g < groups.length; g++) {
@@ -326,6 +357,8 @@ function checkCatalog() {
   const fleursEar1240 = checkFleursCandidateEar1240(fleursReview1240, fleursFrozen);
   const fleursReview1319 = catalog.fleursCandidateReview1319 ? readJson(catalog.fleursCandidateReview1319.path) : null;
   const fleursEar1319 = checkFleursCandidateEar1319(fleursReview1319, fleursFrozen);
+  const fleursReview1520 = catalog.fleursCandidateReview1520 ? readJson(catalog.fleursCandidateReview1520.path) : null;
+  const fleursEar1520 = checkFleursCandidateEar1520(fleursReview1520, fleursFrozen);
   const focus = smoke && Array.isArray(smoke.items)
     ? smoke.items.find((item) => item.id === 'cmn_hans_cn/1663/17125746560393607835.wav')
     : null;
@@ -350,10 +383,11 @@ function checkCatalog() {
       fleursEar1109.keys || [],
       fleursEar1240.keys || [],
       fleursEar1319.keys || [],
+      fleursEar1520.keys || [],
     ]),
     publicCandidateHumanVerifiedCount: pub ? pub.humanVerifiedCount : 0,
-    fleursCandidateHumanVerifiedCount: uniqueEarCount([fleursEar.keys || [], fleursEar1103.keys || [], fleursEar1109.keys || [], fleursEar1240.keys || [], fleursEar1319.keys || []]),
-    unreviewedPublicCandidateCount: pub ? pub.publicCandidateCount - uniqueEarCount([fleursEar.keys || [], fleursEar1103.keys || [], fleursEar1109.keys || [], fleursEar1240.keys || [], fleursEar1319.keys || []]) : 0,
+    fleursCandidateHumanVerifiedCount: uniqueEarCount([fleursEar.keys || [], fleursEar1103.keys || [], fleursEar1109.keys || [], fleursEar1240.keys || [], fleursEar1319.keys || [], fleursEar1520.keys || []]),
+    unreviewedPublicCandidateCount: pub ? pub.publicCandidateCount - uniqueEarCount([fleursEar.keys || [], fleursEar1103.keys || [], fleursEar1109.keys || [], fleursEar1240.keys || [], fleursEar1319.keys || [], fleursEar1520.keys || []]) : 0,
     ascendHumanVerifiedCount: ascendEar.humanVerifiedCount,
     approvedPlannedSetCount: pub ? pub.approvedPlannedSetCount : 0,
     smoke: {
@@ -382,6 +416,7 @@ function checkCatalog() {
   if (!fleursEar1109.ok) return Object.assign(base, { code: fleursEar1109.code });
   if (!fleursEar1240.ok) return Object.assign(base, { code: fleursEar1240.code });
   if (!fleursEar1319.ok) return Object.assign(base, { code: fleursEar1319.code });
+  if (!fleursEar1520.ok) return Object.assign(base, { code: fleursEar1520.code });
   if (!pub || pub.humanVerifiedCount !== 0 || pub.approvedPlannedSetCount !== 0 || pub.realFailureCount !== 0 || pub.productMetric !== false) {
     return Object.assign(base, { code: 'public-candidate-claim' });
   }
@@ -439,5 +474,5 @@ if (require.main === module) main(process.argv);
 
 module.exports = {
   checkCatalog, validateRow, referenceEditAllowed, checkZh1663, checkAscendEar,
-  checkFleursCandidateEar, checkFleursCandidateEar1103, checkFleursCandidateEar1109, checkFleursCandidateEar1240, checkFleursCandidateEar1319, selftest,
+  checkFleursCandidateEar, checkFleursCandidateEar1103, checkFleursCandidateEar1109, checkFleursCandidateEar1240, checkFleursCandidateEar1319, checkFleursCandidateEar1520, selftest,
 };
