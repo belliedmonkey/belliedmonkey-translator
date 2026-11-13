@@ -197,6 +197,7 @@ enum FileASR {
                 let audio = URL(fileURLWithPath: item.audioCache, relativeTo: root)
                 let text = try await transcribe(url: audio, locale: locale(for: item.config), sampleId: item.id, statusURL: statusURL)
                 rows.append(["id": item.id, "hypothesis": text])
+                writeItemProgress(statusURL, index: index, id: item.id, stage: "item-end")
             }
             let body = try JSONSerialization.data(withJSONObject: rows, options: [.prettyPrinted, .sortedKeys])
             try body.write(to: outURL, options: .atomic)

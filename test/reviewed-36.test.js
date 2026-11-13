@@ -152,10 +152,14 @@ describe('reviewed 36 — selection, score, and unavailable runs', () => {
     eq(result.rates, null);
     eq(result.phases.recognizeMs, null);
     eq(fs.existsSync(path.join(runDir, 'evidence.tar.gz')), true);
-    const again = await runReviewed36({ command: 'pack-existing', packDir: runDir, recognize: () => { calls += 1; } });
+    const evidence = fs.readFileSync(path.join(runDir, 'evidence.tar.gz'));
+    const packOut = path.join(out, 'pack');
+    const again = await runReviewed36({ command: 'pack-existing', packDir: runDir, packOut: packOut, recognize: () => { calls += 1; } });
     eq(calls, 0);
     eq(again.recognizeStarted, false);
     eq(again.processExit, 0);
+    eq(fs.readFileSync(path.join(runDir, 'evidence.tar.gz')).equals(evidence), true);
+    eq(fs.existsSync(path.join(packOut, 'evidence.tar.gz')), true);
     const conv = conversionRecord('abc', Buffer.from('pcm'));
     eq(conv.converted, true);
     eq(conv.sha256 === 'abc', false);
@@ -220,9 +224,17 @@ describe('reviewed 36 — selection, score, and unavailable runs', () => {
       processCapMs: 5000, itemCapMs: 5000, killGraceMs: 50, pollMs: 20,
     });
     eq(success.code, 'ok');
+    eq(success.stage, 'completed');
     eq(success.synthetic, true);
     eq(success.rates, null);
     eq(success.appleResult, false);
+    eq(Object.prototype.hasOwnProperty.call(success, 'recognizeMs'), false);
+    eq(typeof success.phases.recognizeMs, 'number');
+    eq(success.phases.modelLoadMs, null);
+    eq(fs.existsSync(path.join(successDir, 'env.json')), true);
+    eq(fs.existsSync(path.join(successDir, 'input-manifest.json')), true);
+    const env = JSON.parse(fs.readFileSync(path.join(successDir, 'env.json'), 'utf8'));
+    eq(env.loadavg.length, 3);
     eq(success.recognizeStarted, true);
     eq(typeof success.phases.recognizeMs, 'number');
     eq(typeof success.phases.compileMs, 'number');
@@ -425,9 +437,13 @@ describe('reviewed 36 — selection, score, and unavailable runs', () => {
       eq(body.stage, 'preflight');
       eq(typeof body.id, 'string');
       eq(fs.existsSync(path.join(out, 'run-summary.json')), true);
+      eq(fs.existsSync(path.join(out, 'env.json')), true);
       eq(fs.existsSync(path.join(out, 'evidence.tar.gz')), true);
-      const packed = runCli(dir, ['--pack-existing', out]);
+      const evidence = fs.readFileSync(path.join(out, 'evidence.tar.gz'));
+      const packed = runCli(dir, ['--pack-existing', out, '--out', out + '-pack']);
       eq(packed.status, 0);
+      eq(fs.readFileSync(path.join(out, 'evidence.tar.gz')).equals(evidence), true);
+      eq(fs.existsSync(path.join(out + '-pack', 'evidence.tar.gz')), true);
       const packBody = JSON.parse(packed.stdout);
       eq(packBody.ok, true);
       eq(packBody.rates, null);
@@ -489,6 +505,14 @@ describe('reviewed 36 — selection, score, and unavailable runs', () => {
     eq(mockOk.rates, null);
     eq(mockOk.appleResult, false);
     eq(mockOk.phases.modelLoadMs, null);
+    eq(mockOk.stage, 'completed');
+    eq(Object.prototype.hasOwnProperty.call(mockOk, 'recognizeMs'), false);
+    eq(fs.existsSync(path.join(work, 'mock-ok', 'env.json')), true);
+    const swift = fs.readFileSync(path.join(ROOT, 'eval/baselines/asr/product-asr-mac.swift'), 'utf8');
+    const startAt = swift.indexOf('stage: "item-start"');
+    const endAt = swift.indexOf('stage: "item-end"');
+    eq(startAt > 0, true);
+    eq(endAt > startAt, true);
     const mockFail = await extracted.runReviewed36({
       command: 'run', backend: 'sa', platform: 'linux', execute: true, synthetic: true,
       fixtureItems: mockItems, outDir: path.join(work, 'mock-fail'),
