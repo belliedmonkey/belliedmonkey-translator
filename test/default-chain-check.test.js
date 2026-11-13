@@ -3,7 +3,7 @@
 
 const { describe, test, eq } = require('./harness');
 const {
-  checkCatalog, validateRow, referenceEditAllowed, checkZh1663, checkAscendEar, checkFleursCandidateEar, checkFleursCandidateEar1103, checkFleursCandidateEar1109,
+  checkCatalog, validateRow, referenceEditAllowed, checkZh1663, checkAscendEar, checkFleursCandidateEar, checkFleursCandidateEar1103, checkFleursCandidateEar1109, checkFleursCandidateEar1240,
 } = require('../eval/baselines/default-chain-check.js');
 
 function row(extra) {
@@ -47,10 +47,10 @@ describe('default-chain catalog — blocked empty set, not a product score', () 
     eq(report.smoke.itemCount, 16);
     eq(report.smoke.productMetric, false);
     eq(report.zh1663AudioChecked, true);
-    eq(report.humanVerifiedCount, 19);
+    eq(report.humanVerifiedCount, 25);
     eq(report.ascendHumanVerifiedCount, 6);
-    eq(report.fleursCandidateHumanVerifiedCount, 12);
-    eq(report.unreviewedPublicCandidateCount, 18);
+    eq(report.fleursCandidateHumanVerifiedCount, 18);
+    eq(report.unreviewedPublicCandidateCount, 12);
     eq(report.publicCandidateHumanVerifiedCount, 0);
     eq(report.approvedPlannedSetCount, 0);
     eq(report.code, 'empty-set');
@@ -288,5 +288,52 @@ describe('default-chain catalog — blocked empty set, not a product score', () 
     const overlap = JSON.parse(JSON.stringify(review));
     overlap.items[0].sentenceId = '1668';
     eq(checkFleursCandidateEar1109(overlap, frozen).code, 'fleurs-candidate-scope');
+  });
+
+  test('the 12:40 reply is an overall pass and does not accept the 1675 parallel text', () => {
+    const pins = [
+      ['en_us', '1674', 'ed78d88661c8f76d7b8951665a3c2e9adea23828fe3e70fd9df95465cb8f8ede', 'In some areas boiling water for a minute is enough, in others several minutes are needed.'],
+      ['cmn_hans_cn', '1674', '75ab88f7bfc76e18bb8355139d72f02f4ba87ec3b08d1b14d581822c1576925e', '在某些地区，水煮一分钟就足够了，在其他地区则需要几分钟的时间。'],
+      ['en_us', '1675', '7603cae3294309ef70d234180cefccc3b13865ee525262228a636069b9b62841', 'All nouns, alongside the word Sie for you, always begin with a capital letter, even in the middle of a sentence.'],
+      ['cmn_hans_cn', '1675', 'b7caf9b78e8e09ec6732a061c3615c61634b6ffbf78a5dcea717510185cb1046', '除去表示您的“Sie”之外的所有名词都应以大写字母开头，即使在句子中间也应如此。'],
+      ['en_us', '1676', '82dffe62952ceca62fb92118b8c1226d3a45eaba7b95ccdb466b6656efec91f6', 'As with all South African National Parks, there are daily conservation and entry fees for the park.'],
+      ['cmn_hans_cn', '1676', 'b28ffcf7fbb8978db09ad0007aca48f93506084f379db7a1081f618a96494605', '与所有南非国家公园一样，该公园每天都收取养护费和门票费。'],
+    ];
+    const frozen = pins.map((row) => ({ config: row[0], sentenceId: row[1], audioSha256: row[2], raw: row[3] }));
+    eq(pins[2][3].includes('alongside'), true);
+    eq(pins[3][3].includes('除去'), true);
+    const review = {
+      reviewer: 'ZHAO ZHANG',
+      reviewedAt: '2026-11-13T12:40+08:00',
+      timezone: 'Asia/Shanghai',
+      verbatim: '全都通过',
+      parallelReference: {
+        sentenceId: '1675',
+        status: 'potential-mismatch',
+        enCue: 'alongside',
+        zhCue: '除去…之外',
+        audioReviewIsNotReferenceAcceptance: true,
+        textEdited: false,
+      },
+      items: pins.map((row) => ({
+        source: 'fleurs-public-candidates',
+        config: row[0],
+        sentenceId: row[1],
+        audioSha256: row[2],
+        raw: row[3],
+      })),
+    };
+    const passed = checkFleursCandidateEar1240(review, frozen);
+    eq(passed.humanVerifiedCount, 6);
+    eq(passed.verbatim, '全都通过');
+    const claimed = JSON.parse(JSON.stringify(review));
+    claimed.items[2].sieSpoken = 'Sie也读出了';
+    eq(checkFleursCandidateEar1240(claimed, frozen).code, 'fleurs-candidate-conclusion');
+    const accepted = JSON.parse(JSON.stringify(review));
+    accepted.parallelReference.status = 'accepted';
+    eq(checkFleursCandidateEar1240(accepted, frozen).code, 'fleurs-candidate-conclusion');
+    const rewritten = JSON.parse(JSON.stringify(review));
+    rewritten.items[3].raw = rewritten.items[3].raw.replace('除去', '连同');
+    eq(checkFleursCandidateEar1240(rewritten, frozen).code, 'fleurs-candidate-text');
   });
 });

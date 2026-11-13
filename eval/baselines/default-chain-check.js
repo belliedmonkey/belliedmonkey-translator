@@ -169,7 +169,12 @@ function checkFleursSlice(review, frozenItems, pins, verbatim, reviewedAt, paren
   if (review.reviewer !== 'ZHAO ZHANG' || review.reviewedAt !== reviewedAt || review.timezone !== 'Asia/Shanghai' || review.verbatim !== verbatim) {
     return Object.assign(blocked, { code: 'fleurs-candidate-conclusion' });
   }
-  if (forbidDedicatedParenthetical && (Object.prototype.hasOwnProperty.call(review, 'fbiFinding') || review.latinParentheticalSpoken)) {
+  if (forbidDedicatedParenthetical && (
+    Object.prototype.hasOwnProperty.call(review, 'fbiFinding')
+    || Object.prototype.hasOwnProperty.call(review, 'sieFinding')
+    || Object.prototype.hasOwnProperty.call(review, 'sieSpoken')
+    || review.latinParentheticalSpoken
+  )) {
     return Object.assign(blocked, { code: 'fleurs-candidate-conclusion' });
   }
   if (!Array.isArray(review.items) || review.items.length !== pins.length) {
@@ -204,6 +209,7 @@ function checkFleursSlice(review, frozenItems, pins, verbatim, reviewedAt, paren
       Object.prototype.hasOwnProperty.call(row, 'userParenthetical')
       || Object.prototype.hasOwnProperty.call(row, 'fbiSpoken')
       || Object.prototype.hasOwnProperty.call(row, 'latinParentheticalSpoken')
+      || Object.prototype.hasOwnProperty.call(row, 'sieSpoken')
     )) {
       return Object.assign(blocked, { code: 'fleurs-candidate-conclusion' });
     }
@@ -246,6 +252,25 @@ function checkFleursCandidateEar1109(review, frozenItems) {
   return checkFleursSlice(review, frozenItems, FLEURS_CANDIDATE_EAR_1109, '全部人审通过', '2026-11-13T11:09+08:00', false, true);
 }
 
+const FLEURS_CANDIDATE_EAR_1240 = [
+  ['en_us', '1674', 'ed78d88661c8f76d7b8951665a3c2e9adea23828fe3e70fd9df95465cb8f8ede', 'In some areas boiling water for a minute is enough, in others several minutes are needed.', 'e91598b12a2a904bc3f00576ad2849753dcf96e3ebbcdc3d8b878951cf3eb57e'],
+  ['cmn_hans_cn', '1674', '75ab88f7bfc76e18bb8355139d72f02f4ba87ec3b08d1b14d581822c1576925e', '在某些地区，水煮一分钟就足够了，在其他地区则需要几分钟的时间。', 'b915460074da3f60ecc49813ca1386f919398f92fc7e9d56181413e4e19a5024'],
+  ['en_us', '1675', '7603cae3294309ef70d234180cefccc3b13865ee525262228a636069b9b62841', 'All nouns, alongside the word Sie for you, always begin with a capital letter, even in the middle of a sentence.', 'f289c1a52b5503e77d6fee25d793940817d5f0d64dc0ec24642b5c41840eeb7a'],
+  ['cmn_hans_cn', '1675', 'b7caf9b78e8e09ec6732a061c3615c61634b6ffbf78a5dcea717510185cb1046', '除去表示您的“Sie”之外的所有名词都应以大写字母开头，即使在句子中间也应如此。', 'e58cc6a579a8bc73bf245b9ce83ec985154132c791e0627402ad3ec52846c683'],
+  ['en_us', '1676', '82dffe62952ceca62fb92118b8c1226d3a45eaba7b95ccdb466b6656efec91f6', 'As with all South African National Parks, there are daily conservation and entry fees for the park.', '69dc7adbb2012b1b65bbaa8c19214c15eabe6072f393d042f769f37afbac840d'],
+  ['cmn_hans_cn', '1676', 'b28ffcf7fbb8978db09ad0007aca48f93506084f379db7a1081f618a96494605', '与所有南非国家公园一样，该公园每天都收取养护费和门票费。', '9219de33a2cf9f37d28fc34282d06df352713101e6679099cd2c076231760399'],
+];
+
+function checkFleursCandidateEar1240(review, frozenItems) {
+  const got = checkFleursSlice(review, frozenItems, FLEURS_CANDIDATE_EAR_1240, '全都通过', '2026-11-13T12:40+08:00', false, true);
+  if (!got.ok) return got;
+  const note = review.parallelReference;
+  if (!note || note.sentenceId !== '1675' || note.status !== 'potential-mismatch' || note.enCue !== 'alongside' || note.zhCue !== '除去…之外' || note.audioReviewIsNotReferenceAcceptance !== true || note.textEdited !== false) {
+    return { ok: false, humanVerifiedCount: 0, approvedPlannedSetCount: 0, keys: [], code: 'fleurs-candidate-conclusion' };
+  }
+  return got;
+}
+
 function uniqueEarCount(groups) {
   const seen = new Set();
   for (let g = 0; g < groups.length; g++) {
@@ -276,6 +301,8 @@ function checkCatalog() {
   const fleursEar1103 = checkFleursCandidateEar1103(fleursReview1103, fleursFrozen);
   const fleursReview1109 = catalog.fleursCandidateReview1109 ? readJson(catalog.fleursCandidateReview1109.path) : null;
   const fleursEar1109 = checkFleursCandidateEar1109(fleursReview1109, fleursFrozen);
+  const fleursReview1240 = catalog.fleursCandidateReview1240 ? readJson(catalog.fleursCandidateReview1240.path) : null;
+  const fleursEar1240 = checkFleursCandidateEar1240(fleursReview1240, fleursFrozen);
   const focus = smoke && Array.isArray(smoke.items)
     ? smoke.items.find((item) => item.id === 'cmn_hans_cn/1663/17125746560393607835.wav')
     : null;
@@ -298,10 +325,11 @@ function checkCatalog() {
       fleursEar.keys || [],
       fleursEar1103.keys || [],
       fleursEar1109.keys || [],
+      fleursEar1240.keys || [],
     ]),
     publicCandidateHumanVerifiedCount: pub ? pub.humanVerifiedCount : 0,
-    fleursCandidateHumanVerifiedCount: uniqueEarCount([fleursEar.keys || [], fleursEar1103.keys || [], fleursEar1109.keys || []]),
-    unreviewedPublicCandidateCount: pub ? pub.publicCandidateCount - uniqueEarCount([fleursEar.keys || [], fleursEar1103.keys || [], fleursEar1109.keys || []]) : 0,
+    fleursCandidateHumanVerifiedCount: uniqueEarCount([fleursEar.keys || [], fleursEar1103.keys || [], fleursEar1109.keys || [], fleursEar1240.keys || []]),
+    unreviewedPublicCandidateCount: pub ? pub.publicCandidateCount - uniqueEarCount([fleursEar.keys || [], fleursEar1103.keys || [], fleursEar1109.keys || [], fleursEar1240.keys || []]) : 0,
     ascendHumanVerifiedCount: ascendEar.humanVerifiedCount,
     approvedPlannedSetCount: pub ? pub.approvedPlannedSetCount : 0,
     smoke: {
@@ -328,6 +356,7 @@ function checkCatalog() {
   if (!fleursEar.ok) return Object.assign(base, { code: fleursEar.code });
   if (!fleursEar1103.ok) return Object.assign(base, { code: fleursEar1103.code });
   if (!fleursEar1109.ok) return Object.assign(base, { code: fleursEar1109.code });
+  if (!fleursEar1240.ok) return Object.assign(base, { code: fleursEar1240.code });
   if (!pub || pub.humanVerifiedCount !== 0 || pub.approvedPlannedSetCount !== 0 || pub.realFailureCount !== 0 || pub.productMetric !== false) {
     return Object.assign(base, { code: 'public-candidate-claim' });
   }
@@ -385,5 +414,5 @@ if (require.main === module) main(process.argv);
 
 module.exports = {
   checkCatalog, validateRow, referenceEditAllowed, checkZh1663, checkAscendEar,
-  checkFleursCandidateEar, checkFleursCandidateEar1103, checkFleursCandidateEar1109, selftest,
+  checkFleursCandidateEar, checkFleursCandidateEar1103, checkFleursCandidateEar1109, checkFleursCandidateEar1240, selftest,
 };
