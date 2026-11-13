@@ -1,6 +1,6 @@
 'use strict';
 
-const { VERDICT_SCHEMA, FINDING_KINDS } = require('./schema.js');
+const { VERDICT_SCHEMA, FINDING_KINDS, NOTE_MAX, REASON_MAX } = require('./verdict-contract.js');
 
 function fail(code) {
   return { ok: false, code: code, verdict: null };
@@ -20,7 +20,7 @@ function checkFinding(finding, reference, hypothesis) {
   const bad = extra(finding, ['kind', 'refQuote', 'hypQuote', 'reason']);
   if (bad) return 'finding-field';
   if (FINDING_KINDS.indexOf(finding.kind) === -1) return 'finding-kind';
-  if (typeof finding.reason !== 'string' || !finding.reason.length || finding.reason.length > 400) return 'reason';
+  if (typeof finding.reason !== 'string' || !finding.reason.length || finding.reason.length > REASON_MAX) return 'reason';
   if (!isSlice(reference, finding.refQuote) || !isSlice(hypothesis, finding.hypQuote)) return 'quote';
   if (finding.kind === 'omission' && !finding.refQuote) return 'quote';
   if (finding.kind === 'addition' && !finding.hypQuote) return 'quote';
@@ -73,7 +73,7 @@ function parseVerdict(text, item, assignment) {
     if (typeof slot.confidence !== 'number' || !Number.isFinite(slot.confidence) || slot.confidence < 0 || slot.confidence > 1) {
       return fail('confidence');
     }
-    if (typeof slot.note !== 'string' || slot.note.length > 400) return fail('note');
+    if (typeof slot.note !== 'string' || slot.note.length > NOTE_MAX) return fail('note');
     if (!Array.isArray(slot.findings)) return fail('findings');
     if (slot.abstain && (slot.findings.length || !slot.note.length)) return fail('abstain');
     const findings = [];

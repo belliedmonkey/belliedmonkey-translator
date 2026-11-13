@@ -1,9 +1,8 @@
 'use strict';
 
+const { VERDICT_SCHEMA, FINDING_KINDS } = require('./verdict-contract.js');
 const INPUT_SCHEMA = 'belliedmonkey.llm-judge.input.v1';
 const CONFIG_SCHEMA = 'belliedmonkey.llm-judge.config.v1';
-const VERDICT_SCHEMA = 'belliedmonkey.llm-judge.verdict.v1';
-const FINDING_KINDS = ['format-only', 'entity', 'number', 'negation', 'semantic', 'omission', 'addition'];
 const KEY_RE = /^[a-z][a-z0-9-]{2,31}$/;
 const ID_RE = /^[A-Za-z0-9][A-Za-z0-9_./:-]{0,80}$/;
 const ENV_RE = /^[A-Z][A-Z0-9_]{2,40}$/;

@@ -78,7 +78,7 @@ function abstain(slot) {
 }
 
 function verdict(id, slots) {
-  return JSON.stringify({ schema: 'belliedmonkey.llm-judge.verdict.v1', itemId: id, slots: slots });
+  return JSON.stringify({ schema: 'belliedmonkey.llm-judge.verdict.v2', itemId: id, slots: slots });
 }
 
 function bodyFor(id, slots, usd) {
@@ -558,7 +558,7 @@ describe('llm judge', () => {
     ok(request.indexOf('redacted') !== -1);
     ok(request.indexOf('secret-a') === -1);
     const raw = fs.readFileSync(path.join(dir, 'responses', 'judge-a', 'en_us_1668.json'), 'utf8');
-    ok(raw.indexOf('belliedmonkey.llm-judge.verdict.v1') !== -1);
+    ok(raw.indexOf('belliedmonkey.llm-judge.verdict.v2') !== -1);
     eq(summary.usage.calls[0].inputTokens, 10);
     eq(summary.usage.spentUsd, 0.0004);
   });

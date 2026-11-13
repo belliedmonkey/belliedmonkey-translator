@@ -36,7 +36,15 @@ chair 的 36 条双臂输入 sha256 是 `1a44cca3bf05662c8701d943702a35e7fd1a303
 
 ## 固定量表
 
-ASR 量表版本是 `belliedmonkey.llm-judge.asr.v1`。类别只有：`format-only`、`entity`、`number`、`negation`、`semantic`、`omission`、`addition`。评委可以 `abstain`。每条非弃权发现都要引用参考或候选里的原片段。置信度是 0 到 1 的数。
+当前发送的量表版本是 `belliedmonkey.llm-judge.asr.v2`。判决 schema 是 `belliedmonkey.llm-judge.verdict.v2`。`slots` 必须是长度为 2 的 JSON 数组，不是以 slot 名为键的对象。`note` 和 `reason` 最长 400。kind 只有 `format-only`、`entity`、`number`、`negation`、`semantic`、`omission`、`addition`。这些句子和一份完整示例都在实际发送的 system 提示里，和解析器用同一份 `verdict-contract.js`。`refQuote` 必须出现在 reference 里，`hypQuote` 必须出现在同一槽的候选里。缺引用就弃权，不能编造。
+
+## 2026-11-13 首轮 partial
+
+父侧离线摘要：72 次请求都结算了。GPT 官方解析 0/36，其中 35 条把 `slots` 写成对象，1 条 `ascend/00066` 是非法 JSON。Qwen 官方解析 32/36。冻结提示句是 “slots has one object for slot-1 and one for slot-2.”，没有数组示例，400 字上限当时只在解析器里。那个提示的 sha256 仍是 `a955cddc61e16ef988ee7c4290437218df4653f88ec9a8a45d6cb38adca5bdd6`，对应包 `74258e362de80cf39986717b32b65ef6ec9d3719bd60d21b91af54c1d441a9fe`。本仓库没有打开父侧 box 里的其他原件。官方结果保持 `partial`，不回填。ASR 的 29/363、57/624、17/42 与 SA 的 36/363、57/624、24/42 都不改。
+
+对象改成数组的适配只在 `slots-object-adapter.js`，标记为诊断。它不进入正式解析，也不把那 30 条事后双有效写成正式双盲。非法 JSON、超长 note、跨槽引用、多出来的标点和未允许的 kind 仍然是 null。
+
+v2 的新判断必须两只评委都用这份新提示重跑。不能把修提示后的 GPT 和旧的 Qwen 拼成同一轮。一次完整计划是 36 条乘 2 只评委，共 72 次请求。每次预留仍是配置里的全部 `maxInputTokens + maxOutputTokens`，72 次都一样，不按短文本少留。不要沿用任何 40 次的混跑预算。当前 v2 system 提示是 2507 个 UTF-8 字节，sha256 `a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923`。这只是模板。真实 36 条文本不在本仓库，逐条 user 字节要等父侧对自己的输入做 dry-run。`maxInputTokens` 必须盖住整段请求体加 `overheadTokens`，不能把 2507 直接当成 36 条的输入上限。
 
 评委没有听过音频。不能用常识把听到的内容改对，不能删掉括注里的拉丁字母，也不能把 `um` 从参考里拿掉。原始编辑率不由这个入口重算，`editRates` 保持 null。
 
@@ -114,7 +122,7 @@ node eval/baselines/judge/pack-judge-bundle.js <out.tar.gz>
 }
 ```
 
-上面的价格数字是占位，不是一份已选定的价目。`pricedZero` 为 false 且单价都是 0 时，配置直接无效。真正免费必须把 `pricedZero` 设为 true，并写明来源。当前提示词模板 sha256 是 `a955cddc61e16ef988ee7c4290437218df4653f88ec9a8a45d6cb38adca5bdd6`。
+上面的价格数字是占位，不是一份已选定的价目。`pricedZero` 为 false 且单价都是 0 时，配置直接无效。真正免费必须把 `pricedZero` 设为 true，并写明来源。当前 v2 提示词模板 sha256 写在下一节，由测试核对。冻结 v1 模板 sha256 是 `a955cddc61e16ef988ee7c4290437218df4653f88ec9a8a45d6cb38adca5bdd6`。
 
 ## 限度
 

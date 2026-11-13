@@ -12,6 +12,8 @@ const FILES = [
   'eval/baselines/judge/run-judge.js',
   'eval/baselines/judge/input-bound.js',
   'eval/baselines/judge/rubric.js',
+  'eval/baselines/judge/verdict-contract.js',
+  'eval/baselines/judge/slots-object-adapter.js',
   'eval/baselines/judge/schema.js',
   'eval/baselines/judge/assign.js',
   'eval/baselines/judge/prompt.js',
