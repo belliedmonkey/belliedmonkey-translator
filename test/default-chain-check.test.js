@@ -3,7 +3,7 @@
 
 const { describe, test, eq } = require('./harness');
 const {
-  checkCatalog, validateRow, referenceEditAllowed, checkZh1663, checkAscendEar, checkFleursCandidateEar, checkFleursCandidateEar1103, checkFleursCandidateEar1109, checkFleursCandidateEar1240,
+  checkCatalog, validateRow, referenceEditAllowed, checkZh1663, checkAscendEar, checkFleursCandidateEar, checkFleursCandidateEar1103, checkFleursCandidateEar1109, checkFleursCandidateEar1240, checkFleursCandidateEar1319,
 } = require('../eval/baselines/default-chain-check.js');
 
 function row(extra) {
@@ -47,10 +47,10 @@ describe('default-chain catalog — blocked empty set, not a product score', () 
     eq(report.smoke.itemCount, 16);
     eq(report.smoke.productMetric, false);
     eq(report.zh1663AudioChecked, true);
-    eq(report.humanVerifiedCount, 25);
+    eq(report.humanVerifiedCount, 31);
     eq(report.ascendHumanVerifiedCount, 6);
-    eq(report.fleursCandidateHumanVerifiedCount, 18);
-    eq(report.unreviewedPublicCandidateCount, 12);
+    eq(report.fleursCandidateHumanVerifiedCount, 24);
+    eq(report.unreviewedPublicCandidateCount, 6);
     eq(report.publicCandidateHumanVerifiedCount, 0);
     eq(report.approvedPlannedSetCount, 0);
     eq(report.code, 'empty-set');
@@ -335,5 +335,45 @@ describe('default-chain catalog — blocked empty set, not a product score', () 
     const rewritten = JSON.parse(JSON.stringify(review));
     rewritten.items[3].raw = rewritten.items[3].raw.replace('除去', '连同');
     eq(checkFleursCandidateEar1240(rewritten, frozen).code, 'fleurs-candidate-text');
+  });
+
+  test('the 13:19 reply is an audio-text pass and does not judge Oliver Sacks or translation quality', () => {
+    const pins = [
+      ['en_us', '1677', '5a5a12d06c0a6acaf0a0d737d7c980bce91ec3f652cfa537b3cbaf8e10845dbc', 'Today, the only insects that cannot fold back their wings are dragon flies and mayflies.'],
+      ['cmn_hans_cn', '1677', '04940c7dca3b3189eb51f410f514673259dd9b35243a9a7e3d3472de1c5f0c81', '如今，唯一不能向后折叠翅膀的昆虫是蜻蜓和蜉蝣。'],
+      ['en_us', '1678', '2ec0ade3595e05c1e91a751fc73811f69606b9682a23b2eeb48c6840e959bee9', "Oliver Sacks, in his paper The President's Speech, indicated how people who are unable to understand speech because of brain damage are nevertheless able to assess sincerity accurately."],
+      ['cmn_hans_cn', '1678', '07ffccbe5c1fa2e1ee942770abfdb23ad8e3d450b0a1a9eed5d9e039233082e4', '奥利弗·萨克斯 (Oliver Sacks) 在他的论文《总统的演讲》中指出，那些因为脑损伤而无法理解语言的人仍然能够准确地判断说话人是否有诚意。'],
+      ['en_us', '1679', '0f72a68d17c6b3a08bba8591d71aef50d1e72ff6d1634269c095985868f7a09c', 'Aerosmith have cancelled their remaining concerts on their tour.'],
+      ['cmn_hans_cn', '1679', '49d3217d97b9aca836c9d69cdffa68830f987d126669c0fe69bb22507b20cd51', '空中铁匠乐队已经取消了他们巡回演唱会的剩余场次。'],
+    ];
+    const frozen = pins.map((row) => ({ config: row[0], sentenceId: row[1], audioSha256: row[2], raw: row[3] }));
+    eq(pins[3][3].includes('(Oliver Sacks)'), true);
+    const review = {
+      reviewer: 'ZHAO ZHANG',
+      reviewedAt: '2026-11-13T13:19+08:00',
+      timezone: 'Asia/Shanghai',
+      verbatim: '全过',
+      scope: 'audio-transcript-consistency',
+      translationQualityJudged: false,
+      items: pins.map((row) => ({
+        source: 'fleurs-public-candidates',
+        config: row[0],
+        sentenceId: row[1],
+        audioSha256: row[2],
+        raw: row[3],
+      })),
+    };
+    const passed = checkFleursCandidateEar1319(review, frozen);
+    eq(passed.humanVerifiedCount, 6);
+    eq(passed.verbatim, '全过');
+    const claimed = JSON.parse(JSON.stringify(review));
+    claimed.items[3].oliverSacksSpoken = '括注也读出了';
+    eq(checkFleursCandidateEar1319(claimed, frozen).code, 'fleurs-candidate-conclusion');
+    const quality = JSON.parse(JSON.stringify(review));
+    quality.translationQualityJudged = true;
+    eq(checkFleursCandidateEar1319(quality, frozen).code, 'fleurs-candidate-conclusion');
+    const rewritten = JSON.parse(JSON.stringify(review));
+    rewritten.items[3].raw = rewritten.items[3].raw.replace(' (Oliver Sacks)', '');
+    eq(checkFleursCandidateEar1319(rewritten, frozen).code, 'fleurs-candidate-text');
   });
 });

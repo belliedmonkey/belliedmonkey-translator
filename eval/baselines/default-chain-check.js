@@ -271,6 +271,27 @@ function checkFleursCandidateEar1240(review, frozenItems) {
   return got;
 }
 
+const FLEURS_CANDIDATE_EAR_1319 = [
+  ['en_us', '1677', '5a5a12d06c0a6acaf0a0d737d7c980bce91ec3f652cfa537b3cbaf8e10845dbc', 'Today, the only insects that cannot fold back their wings are dragon flies and mayflies.', '504c6b7cbf356e5f63c51e42e122f4acdbc3ab834b66cc7196bd4568ae14cb2c'],
+  ['cmn_hans_cn', '1677', '04940c7dca3b3189eb51f410f514673259dd9b35243a9a7e3d3472de1c5f0c81', '如今，唯一不能向后折叠翅膀的昆虫是蜻蜓和蜉蝣。', 'b863ea8830a0656e0975a17fdc05427d742e232c8075bf4f7e9cba811453a33e'],
+  ['en_us', '1678', '2ec0ade3595e05c1e91a751fc73811f69606b9682a23b2eeb48c6840e959bee9', 'Oliver Sacks, in his paper The President\'s Speech, indicated how people who are unable to understand speech because of brain damage are nevertheless able to assess sincerity accurately.', '7b4ec4c54ce5dc3ceb6c419cfe26250916fd351a885d7cf8acbc93824f4016a7'],
+  ['cmn_hans_cn', '1678', '07ffccbe5c1fa2e1ee942770abfdb23ad8e3d450b0a1a9eed5d9e039233082e4', '奥利弗·萨克斯 (Oliver Sacks) 在他的论文《总统的演讲》中指出，那些因为脑损伤而无法理解语言的人仍然能够准确地判断说话人是否有诚意。', '6ad773564470d982de3b7d9a2b30fec31079c2da57aa28c2aad00816f30257d0'],
+  ['en_us', '1679', '0f72a68d17c6b3a08bba8591d71aef50d1e72ff6d1634269c095985868f7a09c', 'Aerosmith have cancelled their remaining concerts on their tour.', 'b1fe8038bf23cf8395c25aa399a7a27dfba7e2690ea9de765c202e3a3130626a'],
+  ['cmn_hans_cn', '1679', '49d3217d97b9aca836c9d69cdffa68830f987d126669c0fe69bb22507b20cd51', '空中铁匠乐队已经取消了他们巡回演唱会的剩余场次。', '2f75f18d611fa13c5b9663b036b9f02f4dc26dd8d933026caf12b3f6cdda8de8'],
+];
+
+function checkFleursCandidateEar1319(review, frozenItems) {
+  const blocked = { ok: false, humanVerifiedCount: 0, approvedPlannedSetCount: 0, keys: [], code: 'fleurs-candidate-conclusion' };
+  const got = checkFleursSlice(review, frozenItems, FLEURS_CANDIDATE_EAR_1319, '全过', '2026-11-13T13:19+08:00', false, true);
+  if (!got.ok) return got;
+  if (review.scope !== 'audio-transcript-consistency' || review.translationQualityJudged !== false) return blocked;
+  if (Object.prototype.hasOwnProperty.call(review, 'oliverSacksSpoken')) return blocked;
+  for (let i = 0; i < review.items.length; i++) {
+    if (Object.prototype.hasOwnProperty.call(review.items[i], 'oliverSacksSpoken')) return blocked;
+  }
+  return got;
+}
+
 function uniqueEarCount(groups) {
   const seen = new Set();
   for (let g = 0; g < groups.length; g++) {
@@ -303,6 +324,8 @@ function checkCatalog() {
   const fleursEar1109 = checkFleursCandidateEar1109(fleursReview1109, fleursFrozen);
   const fleursReview1240 = catalog.fleursCandidateReview1240 ? readJson(catalog.fleursCandidateReview1240.path) : null;
   const fleursEar1240 = checkFleursCandidateEar1240(fleursReview1240, fleursFrozen);
+  const fleursReview1319 = catalog.fleursCandidateReview1319 ? readJson(catalog.fleursCandidateReview1319.path) : null;
+  const fleursEar1319 = checkFleursCandidateEar1319(fleursReview1319, fleursFrozen);
   const focus = smoke && Array.isArray(smoke.items)
     ? smoke.items.find((item) => item.id === 'cmn_hans_cn/1663/17125746560393607835.wav')
     : null;
@@ -326,10 +349,11 @@ function checkCatalog() {
       fleursEar1103.keys || [],
       fleursEar1109.keys || [],
       fleursEar1240.keys || [],
+      fleursEar1319.keys || [],
     ]),
     publicCandidateHumanVerifiedCount: pub ? pub.humanVerifiedCount : 0,
-    fleursCandidateHumanVerifiedCount: uniqueEarCount([fleursEar.keys || [], fleursEar1103.keys || [], fleursEar1109.keys || [], fleursEar1240.keys || []]),
-    unreviewedPublicCandidateCount: pub ? pub.publicCandidateCount - uniqueEarCount([fleursEar.keys || [], fleursEar1103.keys || [], fleursEar1109.keys || [], fleursEar1240.keys || []]) : 0,
+    fleursCandidateHumanVerifiedCount: uniqueEarCount([fleursEar.keys || [], fleursEar1103.keys || [], fleursEar1109.keys || [], fleursEar1240.keys || [], fleursEar1319.keys || []]),
+    unreviewedPublicCandidateCount: pub ? pub.publicCandidateCount - uniqueEarCount([fleursEar.keys || [], fleursEar1103.keys || [], fleursEar1109.keys || [], fleursEar1240.keys || [], fleursEar1319.keys || []]) : 0,
     ascendHumanVerifiedCount: ascendEar.humanVerifiedCount,
     approvedPlannedSetCount: pub ? pub.approvedPlannedSetCount : 0,
     smoke: {
@@ -357,6 +381,7 @@ function checkCatalog() {
   if (!fleursEar1103.ok) return Object.assign(base, { code: fleursEar1103.code });
   if (!fleursEar1109.ok) return Object.assign(base, { code: fleursEar1109.code });
   if (!fleursEar1240.ok) return Object.assign(base, { code: fleursEar1240.code });
+  if (!fleursEar1319.ok) return Object.assign(base, { code: fleursEar1319.code });
   if (!pub || pub.humanVerifiedCount !== 0 || pub.approvedPlannedSetCount !== 0 || pub.realFailureCount !== 0 || pub.productMetric !== false) {
     return Object.assign(base, { code: 'public-candidate-claim' });
   }
@@ -414,5 +439,5 @@ if (require.main === module) main(process.argv);
 
 module.exports = {
   checkCatalog, validateRow, referenceEditAllowed, checkZh1663, checkAscendEar,
-  checkFleursCandidateEar, checkFleursCandidateEar1103, checkFleursCandidateEar1109, checkFleursCandidateEar1240, selftest,
+  checkFleursCandidateEar, checkFleursCandidateEar1103, checkFleursCandidateEar1109, checkFleursCandidateEar1240, checkFleursCandidateEar1319, selftest,
 };
