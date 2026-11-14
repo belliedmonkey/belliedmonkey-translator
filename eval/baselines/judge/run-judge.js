@@ -6,6 +6,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { ASR_VERSION, TRANSLATION_NOTE, promptTemplateSha256 } = require('./rubric.js');
 const { validateInput, validateConfig, reserveFor } = require('./schema.js');
 const { assignItems, sampleIds } = require('./assign.js');
@@ -156,15 +157,48 @@ async function httpTransport(req) {
     err.status = res.status;
     throw err;
   }
-  const content = json && json.choices && json.choices[0] && json.choices[0].message && json.choices[0].message.content;
-  if (typeof content !== 'string') {
+  const choice = json && json.choices && json.choices[0];
+  const content = choice && choice.message && choice.message.content;
+  const finishReason = choice && (choice.finish_reason || choice.finishReason) || null;
+  const providerError = json && json.error ? json.error : null;
+  if (typeof content !== 'string' && !providerError && finishReason !== 'error') {
     const err = new Error('output-unparsed');
     err.code = 'output-unparsed';
     throw err;
   }
   const usage = json && json.usage ? Object.assign({}, json.usage) : null;
   if (usage && Number.isFinite(json.usd)) usage.usd = json.usd;
-  return { content: content, responseModel: json.model || null, usage: usage };
+  return {
+    content: typeof content === 'string' ? content : null,
+    responseModel: json.model || null,
+    usage: usage,
+    finishReason: finishReason,
+    providerError: providerError,
+  };
+}
+
+function classifyCall(result, usage, parsed) {
+  const body = result && result.body;
+  const finishReason = body && (body.finishReason || body.finish_reason) || null;
+  const providerError = body && body.providerError || null;
+  const transportOk = !!(result && result.ok);
+  const generationOk = transportOk && !providerError && (finishReason === 'stop' || finishReason === 'length');
+  const usageComplete = !!(usage && usage.complete);
+  const parseOk = !!(parsed && parsed.ok);
+  const parseCode = parsed && parsed.code || null;
+  const modelFormatFault = finishReason === 'stop' && !providerError && !parseOk && (
+    parseCode === 'bad-json' || parseCode === 'slots' || parseCode === 'verdict-schema'
+  );
+  return {
+    transportOk: transportOk,
+    generationOk: generationOk,
+    finishReason: finishReason,
+    providerError: providerError ? true : false,
+    usageComplete: usageComplete,
+    parseOk: parseOk,
+    parseCode: parseCode,
+    modelFormatFault: modelFormatFault,
+  };
 }
 
 async function callJudge(transport, req, timeoutMs) {
@@ -188,6 +222,39 @@ async function callJudge(transport, req, timeoutMs) {
       status: err && err.status ? err.status : null,
     };
   }
+}
+
+function selectionKey(judgeId, itemId) {
+  return judgeId + '\n' + itemId;
+}
+
+function validateSelection(doc, items, judges) {
+  if (doc == null) return { ok: true, pairs: null, list: null, hash: null };
+  if (!doc || doc.schema !== 'belliedmonkey.llm-judge.selection.v1' || !Array.isArray(doc.pairs) || !doc.pairs.length) {
+    return { ok: false, code: 'selection' };
+  }
+  const itemIds = {};
+  for (let i = 0; i < items.length; i++) itemIds[items[i].id] = true;
+  const judgeIds = {};
+  for (let i = 0; i < judges.length; i++) judgeIds[judges[i].id] = true;
+  const seen = {};
+  const list = [];
+  for (let i = 0; i < doc.pairs.length; i++) {
+    const pair = doc.pairs[i];
+    if (!pair || typeof pair.itemId !== 'string' || typeof pair.judgeId !== 'string') return { ok: false, code: 'selection' };
+    if (!itemIds[pair.itemId] || !judgeIds[pair.judgeId]) return { ok: false, code: 'selection' };
+    const key = selectionKey(pair.judgeId, pair.itemId);
+    if (seen[key]) return { ok: false, code: 'selection' };
+    seen[key] = true;
+    list.push({ itemId: pair.itemId, judgeId: pair.judgeId });
+  }
+  const canonical = JSON.stringify({ schema: doc.schema, pairs: list });
+  return {
+    ok: true,
+    pairs: seen,
+    list: list,
+    hash: crypto.createHash('sha256').update(canonical, 'utf8').digest('hex'),
+  };
 }
 
 function money(n) {
@@ -216,6 +283,8 @@ async function runJudge(opts) {
   }
   const config = validateConfig(opts.config);
   if (!config.ok) return base({ code: config.code, detail: config.detail, synthetic: synthetic });
+  const selected = validateSelection(opts.selection, inputCheck.items, config.judges);
+  if (!selected.ok) return base({ code: selected.code, synthetic: synthetic });
   const assignment = assignItems(inputCheck.items, config.seed);
   const byAssignment = new Map(assignment.map((row) => [row.id, row]));
   const planned = inputCheck.items.map((item) => {
@@ -261,6 +330,8 @@ async function runJudge(opts) {
     maxTokensFieldProviderVerified: false,
     inputBound: config.inputBound,
     reserveTokens: config.prices.maxInputTokens + config.prices.maxOutputTokens,
+    selectionSha256: selected.hash,
+    selectedPairs: selected.list,
   };
   const evidenceAssignment = {
     schema: 'belliedmonkey.llm-judge.assignment.v1',
@@ -358,6 +429,21 @@ async function runJudge(opts) {
       }));
     }
   }
+  let originSummarySha256 = null;
+  if (opts.origin) {
+    const originFile = path.join(opts.origin, 'summary.json');
+    if (!fs.existsSync(originFile)) {
+      return persist(base({
+        code: 'origin-missing',
+        called: false,
+        synthetic: synthetic,
+        plan: plan,
+        assignment: evidenceAssignment,
+        humanReview: notYet,
+      }));
+    }
+    originSummarySha256 = crypto.createHash('sha256').update(fs.readFileSync(originFile)).digest('hex');
+  }
   const transport = opts.transport;
   if (typeof transport !== 'function') return base({ code: 'transport-missing', synthetic: synthetic, plan: plan });
   const calls = [];
@@ -372,6 +458,7 @@ async function runJudge(opts) {
     if (stop) break;
     for (const judge of config.judges) {
       if (stop) break;
+      if (selected.pairs && !selected.pairs[selectionKey(judge.id, row.id)]) continue;
       const reserve = reserveFor(config.prices, judge.model);
       const tokenReserve = config.prices.maxInputTokens + config.prices.maxOutputTokens;
       if (requests + 1 > config.prices.maxRequests) {
@@ -416,12 +503,18 @@ async function runJudge(opts) {
         });
       }
       const result = await callJudge(transport, req, config.timeoutMs);
-      const usage = result.ok ? usageOf(result.body) : { inputTokens: null, outputTokens: null, providerUsd: null, complete: false };
+      const usage = usageOf(result.body);
       let one = { ok: false, code: result.code || 'transport', verdict: null };
       let settledUsd = null;
+      const text = result.body && typeof result.body.content === 'string' ? result.body.content : '';
+      if (text) {
+        const parsedNow = parseVerdict(text, row.item, row.assignment);
+        one = parsedNow.ok ? parsedNow : { ok: false, code: parsedNow.code, verdict: null };
+      }
       if (!result.ok || !usage.complete) {
         costUnknown = true;
         stop = 'budget-unknown';
+        if (!text) one = { ok: false, code: result.code || 'transport', verdict: null };
       } else {
         const bill = settle(config.prices, judge.model, usage);
         if (bill.costUnknown) {
@@ -429,7 +522,7 @@ async function runJudge(opts) {
           stop = 'budget-unknown';
           one = {
             ok: false,
-            code: bill.code || 'budget-unknown',
+            code: one.code && one.code !== 'parsed' ? one.code : (bill.code || 'budget-unknown'),
             verdict: null,
             providerExceededDeclaredCap: bill.providerExceededDeclaredCap === true,
           };
@@ -438,16 +531,24 @@ async function runJudge(opts) {
           settled = money(settled + bill.settledUsd);
           tokensHeld = tokensHeld - tokenReserve + usage.inputTokens + usage.outputTokens;
           settledUsd = bill.settledUsd;
-          const text = typeof result.body.content === 'string' ? result.body.content : '';
-          one = parseVerdict(text, row.item, row.assignment);
           if (!one.ok) one = { ok: false, code: one.code, verdict: null };
         }
       }
+      const status = classifyCall(result, usage, one);
+      if (!status.generationOk) one = Object.assign({}, one, { ok: false, verdict: null });
+      one.observation = status;
       parsed.set(judge.id + ':' + row.id, one);
       calls.push({
         judgeId: judge.id,
         itemId: row.id,
-        ok: result.ok && settledUsd !== null,
+        ok: one.ok === true && settledUsd !== null,
+        transportOk: status.transportOk,
+        generationOk: status.generationOk,
+        finishReason: status.finishReason,
+        providerError: status.providerError,
+        usageComplete: status.usageComplete,
+        parseCode: status.parseCode,
+        modelFormatFault: status.modelFormatFault,
         code: result.code,
         reserveUsd: reserve,
         settledUsd: settledUsd,
@@ -463,7 +564,13 @@ async function runJudge(opts) {
       if (opts.out) {
         writeJson(path.join(opts.out, 'responses', judge.id), safeName(row.id), {
           stage: 'finished',
-          ok: result.ok,
+          transportOk: status.transportOk,
+          generationOk: status.generationOk,
+          finishReason: status.finishReason,
+          providerError: status.providerError,
+          usageComplete: status.usageComplete,
+          parseCode: status.parseCode,
+          modelFormatFault: status.modelFormatFault,
           code: result.code,
           status: result.status || null,
           elapsedMs: result.elapsedMs,
@@ -493,17 +600,26 @@ async function runJudge(opts) {
   });
   const both = itemResults.every((row) => row.complete);
   const anyParsed = itemResults.some((row) => Object.keys(row.judges).some((id) => row.judges[id]));
+  const selectedOk = !selected.list || selected.list.every((pair) => {
+    const one = parsed.get(pair.judgeId + ':' + pair.itemId);
+    return one && one.ok === true;
+  });
   let code = 'complete';
-  if (stop && !both) code = stop;
+  if (selected.list) {
+    if (stop) code = stop;
+    else code = selectedOk ? 'supplement-complete' : 'supplement-partial';
+  } else if (stop && !both) code = stop;
   else if (!both && anyParsed) code = 'partial';
   else if (!both) code = stop || 'no-verdict';
   const human = reviewList(planned, parsed, config.judges, config.seed, config.sampleCount);
   const summary = base({
-    ok: code === 'complete',
+    ok: code === 'complete' || code === 'supplement-complete',
     code: code,
     called: calls.length > 0,
     synthetic: synthetic,
+    singleRunComplete: code === 'complete',
     doubleBlindComplete: code === 'complete',
+    supplementComplete: code === 'supplement-complete',
     results: itemResults,
     plan: plan,
     assignment: evidenceAssignment,
@@ -516,7 +632,39 @@ async function runJudge(opts) {
       providerUsdIgnored: true,
     },
     humanReview: human,
+    provenance: selected.list ? {
+      schema: 'belliedmonkey.llm-judge.provenance.v1',
+      official: false,
+      singleRunComplete: false,
+      originSummarySha256: originSummarySha256,
+      selectionSha256: selected.hash,
+      promptTemplateSha256: promptTemplateSha256(),
+      seed: config.seed,
+    } : null,
   });
+  if (opts.out && selected.list) {
+    writeJson(opts.out, 'supplement.json', {
+      schema: 'belliedmonkey.llm-judge.supplement.v1',
+      official: false,
+      singleRunComplete: false,
+      supplementComplete: code === 'supplement-complete',
+      originSummarySha256: originSummarySha256,
+      selectionSha256: selected.hash,
+      pairs: selected.list,
+      note: 'This supplement does not overwrite the origin partial and does not pick a best response.',
+    });
+    if (originSummarySha256) {
+      writeJson(opts.out, 'derived-merge.json', {
+        schema: 'belliedmonkey.llm-judge.derived-merge.v1',
+        official: false,
+        singleRunComplete: false,
+        supplementComplete: code === 'supplement-complete',
+        originSummarySha256: originSummarySha256,
+        selectionSha256: selected.hash,
+        note: 'Derived view only. Unselected pairs stay on the origin. A failed supplement pair is not replaced by an older success.',
+      });
+    }
+  }
   if (opts.out) {
     writeJson(opts.out, 'plan.json', plan);
     writeJson(opts.out, 'assignment.json', evidenceAssignment);
@@ -540,20 +688,26 @@ async function main(argv, env, transport) {
     else if (token === '--input') args.input = argv[++i];
     else if (token === '--config') args.config = argv[++i];
     else if (token === '--out') args.out = argv[++i];
+    else if (token === '--select') args.select = argv[++i];
+    else if (token === '--origin') args.origin = argv[++i];
     else return base({ code: 'usage' });
   }
   if (!args.input || !args.config || !args.out) return base({ code: 'usage' });
   let input;
   let config;
+  let selection = null;
   try {
     input = readJson(args.input);
     config = readJson(args.config);
+    if (args.select) selection = readJson(args.select);
   } catch (_) {
     return base({ code: 'unreadable', synthetic: args.synthetic });
   }
   return runJudge({
     input: input,
     config: config,
+    selection: selection,
+    origin: args.origin,
     out: args.out,
     run: args.run,
     synthetic: args.synthetic,

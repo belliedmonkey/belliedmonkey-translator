@@ -46,6 +46,17 @@ chair 的 36 条双臂输入 sha256 是 `1a44cca3bf05662c8701d943702a35e7fd1a303
 
 v2 的新判断必须两只评委都用这份新提示重跑。不能把修提示后的 GPT 和旧的 Qwen 拼成同一轮。一次完整计划是 36 条乘 2 只评委，共 72 次请求。每次预留仍是配置里的全部 `maxInputTokens + maxOutputTokens`，72 次都一样，不按短文本少留。不要沿用任何 40 次的混跑预算。当前 v2 system 提示是 2507 个 UTF-8 字节，sha256 `a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923`。这只是模板。真实 36 条文本不在本仓库，逐条 user 字节要等父侧对自己的输入做 dry-run。`maxInputTokens` 必须盖住整段请求体加 `overheadTokens`，不能把 2507 直接当成 36 条的输入上限。
 
+## 错误记录和定点补评
+
+`usageComplete` 只表示 token 字段齐全。`generationOk` 只在 `finish_reason` 为 `stop` 或 `length`、且没有供应商错误时为 true。二者都不是判决成功。`finish_reason=stop` 且正文不是合法判决时，`modelFormatFault` 为 true，解析码仍是原来的 `bad-json`。`finish_reason=error` 即使正文不闭合，也不是模型格式过错。没有完整 token 用量时费用仍是未知，预留留下，后续调用停止，并且不自动重试。缺 `note`、精确引用失败、`length` 都各自留在 `parseCode` 或 `finishReason` 里。
+
+父侧 v2 首轮仍是 partial。本仓库不回填那次 run。定点补评用 `--select`，输入仍是原来的 36 条，seed 和 assignment 不变。allowlist 只决定哪几个 `itemId` 加 `judgeId` 会发出。成功项不重跑，失败项也不从多条成功里挑一条。新目录写 `supplement.json`。给了 `--origin` 才另外写 `derived-merge.json`。`supplement-complete` 不是原来的 `singleRunComplete`。人审不在这个入口里。
+
+```bash
+node run-judge.js --run --input full-input.json --config config.json \
+  --select selection.json --origin /path/to/origin-run --out /tmp/judge-supplement
+```
+
 评委没有听过音频。不能用常识把听到的内容改对，不能删掉括注里的拉丁字母，也不能把 `um` 从参考里拿掉。原始编辑率不由这个入口重算，`editRates` 保持 null。
 
 翻译量表的名字留着：`belliedmonkey.llm-judge.translation.v1`。没有待评译文时任务直接是 `translation-not-open`，不生成分数。1675 的中英平行原文意思并不相同，不能当翻译 gold。

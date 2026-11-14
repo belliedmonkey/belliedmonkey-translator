@@ -84,6 +84,7 @@ function verdict(id, slots) {
 function bodyFor(id, slots, usd) {
   return {
     content: verdict(id, slots),
+    finishReason: 'stop',
     responseModel: 'response-model',
     providerUsd: usd == null ? 0 : usd,
     usage: { prompt_tokens: 10, completion_tokens: 5, usd: usd == null ? 0 : usd },
