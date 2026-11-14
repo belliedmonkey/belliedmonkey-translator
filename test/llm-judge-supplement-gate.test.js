@@ -92,7 +92,19 @@ function world(n) {
   const assigned = assignItems(input.items, cfg.seed);
   const inputSha = sha(JSON.stringify(input));
   const originDir = fs.mkdtempSync(path.join(os.tmpdir(), 'judge-origin-'));
-  const summaryBody = JSON.stringify({ code: 'partial', official: true, singleRunComplete: false, doubleBlindComplete: false }) + '\n';
+  // A real origin summary carries one outcome per item and judge. judge-a failed every
+  // pair here and judge-b produced a contract v2 verdict, which is what the lock claims.
+  const results = input.items.map((row) => ({
+    id: row.id,
+    judges: { 'judge-a': null, 'judge-b': JSON.parse(legal(row.id)) },
+  }));
+  const summaryBody = JSON.stringify({
+    code: 'partial',
+    official: true,
+    singleRunComplete: false,
+    doubleBlindComplete: false,
+    results: results,
+  }) + '\n';
   fs.writeFileSync(path.join(originDir, 'summary.json'), summaryBody);
   const summarySha = sha(fs.readFileSync(path.join(originDir, 'summary.json')));
   const failed = input.items.map((row) => ({ itemId: row.id, judgeId: 'judge-a' }));
@@ -461,5 +473,110 @@ describe('llm judge supplement refuses before any request', () => {
     eq(derived.pairs.filter((row) => row.source === 'origin' && row.verdict === null).length, 15);
     eq(derived.pairs.filter((row) => row.source === 'supplement' && row.verdict).length, 15);
     eq(sha(fs.readFileSync(path.join(box.originDir, 'summary.json'))), box.summarySha);
+  });
+
+  test('a lock that relabels an origin success as failed is not sent', async () => {
+    const box = world(2);
+    const stolen = box.succeeded[0];
+    box.lock.succeededPairs = box.lock.succeededPairs
+      .filter((p) => p.itemId !== stolen.itemId || p.judgeId !== stolen.judgeId);
+    box.lock.failedPairs = box.lock.failedPairs.concat([stolen]);
+    let calls = 0;
+    const summary = await runJudge({
+      synthetic: true,
+      run: true,
+      input: box.input,
+      config: box.cfg,
+      selection: { schema: 'belliedmonkey.llm-judge.selection.v1', pairs: [stolen] },
+      origin: box.originDir,
+      originLock: box.lock,
+      inputSha256: box.inputSha,
+      out: box.out,
+      env: env(),
+      transport: async () => { calls += 1; return reply(legal(stolen.itemId)); },
+    });
+    eq(summary.code, 'origin-lock-mismatch');
+    eq(summary.called, false);
+    eq(calls, 0);
+    untouched(box, box.summarySha);
+  });
+
+  test('a lock that swaps one success for one failure keeps its counts but is not sent', async () => {
+    const box = world(2);
+    const stolen = box.succeeded[0];
+    const given = box.failed[0];
+    box.lock.succeededPairs = box.lock.succeededPairs
+      .filter((p) => p.itemId !== stolen.itemId || p.judgeId !== stolen.judgeId)
+      .concat([given]);
+    box.lock.failedPairs = box.lock.failedPairs
+      .filter((p) => p.itemId !== given.itemId || p.judgeId !== given.judgeId)
+      .concat([stolen]);
+    eq(box.lock.succeededPairs.length, 2);
+    eq(box.lock.failedPairs.length, 2);
+    let calls = 0;
+    const summary = await runJudge({
+      synthetic: true,
+      run: true,
+      input: box.input,
+      config: box.cfg,
+      selection: { schema: 'belliedmonkey.llm-judge.selection.v1', pairs: [stolen] },
+      origin: box.originDir,
+      originLock: box.lock,
+      inputSha256: box.inputSha,
+      out: box.out,
+      env: env(),
+      transport: async () => { calls += 1; return reply(legal(stolen.itemId)); },
+    });
+    eq(summary.code, 'origin-lock-mismatch');
+    eq(calls, 0);
+    untouched(box, box.summarySha);
+  });
+
+  test('a lock that duplicates a pair is not sent', async () => {
+    const box = world(2);
+    box.lock.failedPairs = box.lock.failedPairs.concat([box.failed[0]]);
+    eq(box.lock.failedPairs.length, 3);
+    let calls = 0;
+    const summary = await runJudge({
+      synthetic: true,
+      run: true,
+      input: box.input,
+      config: box.cfg,
+      selection: { schema: 'belliedmonkey.llm-judge.selection.v1', pairs: [box.failed[0]] },
+      origin: box.originDir,
+      originLock: box.lock,
+      inputSha256: box.inputSha,
+      out: box.out,
+      env: env(),
+      transport: async () => { calls += 1; return reply(legal('fixture-01')); },
+    });
+    eq(summary.code, 'origin-lock-mismatch');
+    eq(calls, 0);
+    untouched(box, box.summarySha);
+  });
+
+  test('an origin summary without results cannot bind a lock', async () => {
+    const box = world(1);
+    const header = JSON.stringify({ code: 'partial', official: true, singleRunComplete: false, doubleBlindComplete: false }) + '\n';
+    fs.writeFileSync(path.join(box.originDir, 'summary.json'), header);
+    box.lock.summarySha256 = sha(header);
+    let calls = 0;
+    const summary = await runJudge({
+      synthetic: true,
+      run: true,
+      input: box.input,
+      config: box.cfg,
+      selection: { schema: 'belliedmonkey.llm-judge.selection.v1', pairs: [box.failed[0]] },
+      origin: box.originDir,
+      originLock: box.lock,
+      inputSha256: box.inputSha,
+      out: box.out,
+      env: env(),
+      transport: async () => { calls += 1; return reply(legal('fixture-01')); },
+    });
+    eq(summary.code, 'origin-results-missing');
+    eq(summary.called, false);
+    eq(calls, 0);
+    eq(sha(fs.readFileSync(path.join(box.originDir, 'summary.json'))), box.lock.summarySha256);
   });
 });

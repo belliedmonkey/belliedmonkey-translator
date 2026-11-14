@@ -281,6 +281,33 @@ function nested(parent, child) {
   return child === parent || child.startsWith(parent + path.sep);
 }
 
+// Derive the real succeeded and failed pairs from the origin summary whose sha256 has
+// already been checked. The lock lists are a claim; the summary is the evidence.
+// A pair is succeeded only when the judge produced a contract v2 verdict, and failed
+// only when the judge produced nothing (null). Anything else fails closed.
+function originOutcomeFromSummary(summary, judgeIds) {
+  if (!summary || !Array.isArray(summary.results)) return { ok: false, code: 'origin-results-missing' };
+  const succeeded = {};
+  const failed = {};
+  for (let i = 0; i < summary.results.length; i++) {
+    const item = summary.results[i];
+    if (!item || typeof item.id !== 'string') return { ok: false, code: 'origin-results-malformed' };
+    const judges = item.judges;
+    if (!judges || typeof judges !== 'object' || Array.isArray(judges)) return { ok: false, code: 'origin-results-malformed' };
+    for (let k = 0; k < judgeIds.length; k++) {
+      const judgeId = judgeIds[k];
+      if (!Object.prototype.hasOwnProperty.call(judges, judgeId)) return { ok: false, code: 'origin-results-missing' };
+      const key = judgeId + '\n' + item.id;
+      if (succeeded[key] || failed[key]) return { ok: false, code: 'origin-results-duplicate' };
+      const verdict = judges[judgeId];
+      if (verdict === null) failed[key] = true;
+      else if (verdict && typeof verdict === 'object' && !Array.isArray(verdict) && verdict.schema === 'belliedmonkey.llm-judge.verdict.v2') succeeded[key] = true;
+      else return { ok: false, code: 'origin-results-malformed' };
+    }
+  }
+  return { ok: true, succeeded: succeeded, failed: failed };
+}
+
 function gateSupplement(opts, config, selected, assignmentItems) {
   if (!selected.list) return { ok: true };
   if (!opts.origin) return { ok: false, code: 'origin-required' };
@@ -335,6 +362,25 @@ function gateSupplement(opts, config, selected, assignmentItems) {
   if (!summary || summary.code === 'complete' || summary.code === 'supplement-complete' || summary.doubleBlindComplete === true || summary.singleRunComplete === true) {
     return { ok: false, code: 'origin-not-partial' };
   }
+  // Bind the lock lists to the pinned origin. A correct summary hash does not make the
+  // lock honest: a list that relabels an official success as failed would buy that pair
+  // a second time. The lists must be exactly the summary's own outcome, pair by pair.
+  const outcome = originOutcomeFromSummary(summary, config.judges.map((judge) => judge.id));
+  if (!outcome.ok) return { ok: false, code: outcome.code };
+  const lockSucceededKeys = Object.keys(succeeded);
+  const lockFailedKeys = Object.keys(failed);
+  // A duplicated pair means the list is not a set: it inflates derived coverage counts
+  // and shows the lock was not deduplicated.
+  if (lockSucceededKeys.length !== lock.succeededPairs.length) return { ok: false, code: 'origin-lock-mismatch' };
+  if (lockFailedKeys.length !== lock.failedPairs.length) return { ok: false, code: 'origin-lock-mismatch' };
+  if (lockSucceededKeys.length !== Object.keys(outcome.succeeded).length) return { ok: false, code: 'origin-lock-mismatch' };
+  if (lockFailedKeys.length !== Object.keys(outcome.failed).length) return { ok: false, code: 'origin-lock-mismatch' };
+  for (let i = 0; i < lockSucceededKeys.length; i++) {
+    if (!outcome.succeeded[lockSucceededKeys[i]]) return { ok: false, code: 'origin-lock-mismatch' };
+  }
+  for (let i = 0; i < lockFailedKeys.length; i++) {
+    if (!outcome.failed[lockFailedKeys[i]]) return { ok: false, code: 'origin-lock-mismatch' };
+  }
   if (opts.out) {
     const outReal = resolvedDir(opts.out);
     if (!outReal) return { ok: false, code: 'out-parent' };
@@ -360,6 +406,9 @@ function gateSupplement(opts, config, selected, assignmentItems) {
     summaryHash: summaryHash,
     succeededPairs: lock.succeededPairs,
     failedPairs: lock.failedPairs,
+    lockBound: true,
+    originSucceededPairs: lockSucceededKeys.length,
+    originFailedPairs: lockFailedKeys.length,
   };
 }
 

@@ -58,6 +58,8 @@ lock 要钉住这些字节：`summarySha256` 是 origin 目录里 `summary.json`
 
 origin 的 `summary.json` 若写成 `code` 为 `complete`，或 `singleRunComplete` / `doubleBlindComplete` 为 true，直接拒绝。一份任意摘要不能变成完整双盲。
 
+lock 的列表不靠自己说了算。`summary.json` 的 sha256 对上之后，入口从这份 summary 的 `results` 推出真实成功与失败：`verdict.v2` 记为成功，`null` 记为失败，其它形态一律 fail-closed。`failedPairs` 和 `succeededPairs` 必须与它逐对一致，条数、去重、每一对都要对得上，否则在任何请求之前返回 `origin-lock-mismatch`。只凭 hash 正确而列表被改写，把官方成功项标成失败，会把已经付过费的 pair 再买一次。summary 缺 `results` 时返回 `origin-results-missing`。
+
 派生表写在新目录的 `derived-merge.json`。有效 pair 的 `source` 是 `origin`，`verdict` 保持 null，只表示原件引用。选中的失败 pair 的 `source` 是 `supplement`，只用这一次请求的解析结果；解析无效就是 null。`singleRunComplete` 和 `originSingleRunComplete` 保持 false。`supplementComplete` 与 `coverage` 分开记。`coverage.cherryPick` 是 false。人审不在这个入口里。
 
 ```bash
