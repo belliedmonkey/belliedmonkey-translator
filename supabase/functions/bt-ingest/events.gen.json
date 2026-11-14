@@ -218,7 +218,10 @@
         "live_caption",
         "quick",
         "doc",
-        "web_caption"
+        "web_caption",
+        "login",
+        "packs",
+        "app_home"
       ],
       "auth_state": [
         "signed_in",
