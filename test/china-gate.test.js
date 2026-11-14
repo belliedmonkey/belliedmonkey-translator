@@ -60,6 +60,27 @@ describe('这道门本身能红（返回 file:line，不是静默 true/false）'
   });
 });
 
+// ─── BEL-260（2026-11-14 用户认关）：哨兵保持 .invalid，公开门不许开豁免 ──────
+describe('BEL-260：previousUrl 哨兵与公开不变量', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const SRC = fs.readFileSync(path.join(__dirname, '..', 'build', 'china-gate.js'), 'utf8');
+
+  test('东京 previousUrl 行默认仍红 —— 没有 allow-list', () => {
+    ok(scan("  previousUrl: 'https://cavezcufztzqsohpjmup.supabase.co',").length === 1,
+      'previousUrl 里的东京 host 被放过了 —— 公开不变量被削弱');
+  });
+
+  test('.invalid 哨兵不是 supabase host，默认不红（这就是不选东京的理由）', () => {
+    ok(scan("  previousUrl: 'https://backend.invalid',").length === 0);
+  });
+
+  test('★ build/china-gate.js 没有 previousUrl / allowPreviousUrl 豁免', () => {
+    ok(!/previousUrl|allowPreviousUrl/.test(SRC),
+      'china-gate 出现了 previousUrl 豁免 —— 用户裁定保持 .invalid，不削弱公开不变量');
+  });
+});
+
 describe('中国合规门：泰语 Grok / xAI 剥门（2026-10-23）', () => {
   test('api.x.ai / wss / grok-stt-open 红', () => {
     ok(scan('const U = "wss://api.x.ai/v1/stt"').length === 1, 'wss://api.x.ai 没被拦');

@@ -81,4 +81,44 @@ describe('build/app-bundle.js — 后端配置在拼进 Script.js 之前已注�
     ok(seg.includes(CHINA_URL), '这一段里没有 env 给的 MT_CHINA_BACKEND_URL —— 注入值不对');
     ok(seg.includes(CHINA_KEY), '这一段里没有 env 给的 MT_CHINA_BACKEND_ANON_KEY —— 注入值不对');
   });
+
+  test('★ CN App：switchBackend 在 Script.js 里写 previousUrl（第二条发射路径）', () => {
+    const GLOBAL_URL = 'https://app-bundle-prev.supabase.co';
+    const GLOBAL_KEY = 'app-bundle-prev-anon-key';
+    const CHINA_URL = 'https://app-bundle-cn-prev.example';
+    const CHINA_KEY = 'app-bundle-cn-prev-anon-key';
+    const out = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-app-prev-'));
+    try {
+      const js = withEnv({
+        MT_BACKEND_URL: GLOBAL_URL,
+        MT_BACKEND_ANON_KEY: GLOBAL_KEY,
+        MT_CHINA_BACKEND_URL: CHINA_URL,
+        MT_CHINA_BACKEND_ANON_KEY: CHINA_KEY,
+      }, () => {
+        const { buildAppBundle } = require('../build/app-bundle.js');
+        // 与 build.js 的 switchBackend 同形：prev 读顶层 url，再把它写进 previousUrl。
+        const switchBackend = (text) => {
+          const prev = (/^  url: '([^']*)',/m.exec(text) || [])[1] || '';
+          if (!prev) throw new Error('empty previousUrl');
+          return text
+            .replace(/^(  url: '[^']*',.*)$/m, `$1\n  previousUrl: '${prev}', // test`)
+            .replace(/^  url: '[^']*',/m, `  url: '${CHINA_URL}',`)
+            .replace(/^  anonKey: '[^']*',/m, `  anonKey: '${CHINA_KEY}',`);
+        };
+        buildAppBundle(out, () => {}, { switchBackend });
+        return fs.readFileSync(path.join(out, 'Script.js'), 'utf8');
+      });
+      const HEAD = '// ─── extension/learn/backend.config.js ';
+      const start = js.indexOf(HEAD);
+      const nextBanner = js.indexOf('\n// ─── ', start + HEAD.length);
+      ok(start >= 0 && nextBanner > start, 'backend.config.js 段边界找不到');
+      const seg = js.slice(start, nextBanner);
+      ok(seg.includes(`previousUrl: '${GLOBAL_URL}'`),
+        'CN App 的 Script.js 没有 previousUrl —— 第二条发射路径漏了');
+      ok(seg.includes(`url: '${CHINA_URL}'`), 'CN App 的 url 没有切到境内');
+      ok(!seg.includes(`url: '${GLOBAL_URL}'`), 'CN App 还留着切之前的顶层 url');
+    } finally {
+      fs.rmSync(out, { recursive: true, force: true });
+    }
+  });
 });

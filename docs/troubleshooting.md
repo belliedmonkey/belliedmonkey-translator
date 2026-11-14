@@ -43,9 +43,10 @@
 | 客户端地址来源 | `extension/learn/backend.config.js` 的 `china.url`；构建时 `build.js` 的 `switchBackend()` 写进产物 |
 | 容器 | `db` · `auth`(GoTrue) · `rest`(PostgREST) · `fn` · `grant` · `ledger` · `proxy`(Caddy) |
 
-**中国版与说好的不一样时，先看这一条**：产物里 `MT_BACKEND.url` 必须是 `api.belliedmonkey.com`，
-`previousUrl` 是东京 `*.supabase.co`（**只用于归属比较，从不发请求**，合规门为它开了豁免）。
-国际版反过来。
+**中国版与说好的不一样时，先看这一条**：产物里 `MT_BACKEND.url` 必须是 `api.belliedmonkey.com`。
+`previousUrl` 是哨兵 `https://backend.invalid`（`.invalid` 主机，DNS 永远解析不到），**只用于归属比较**，
+功能上等价于「上一后端 ≠ CN」；不做跨后端的数据导入/导出、从不发请求、也从不写回 storage。BEL-259
+的构建门只查本 flavor 生效的 `url` / `anonKey`，`previousUrl` 在判据之外。国际版反过来。
 
 ### 1.2 怎么上机（**不要试 SSH**）
 
@@ -382,6 +383,8 @@ update public.bt_model_sources set active = false, updated_at = now()
 - **不要把中国版遥测指到东京来查问题。** 中国版已经发与国际版同一份白名单，入口只能是境内
   `api.belliedmonkey.com/.../bt-ingest`（`AGENTS.md` 规则 4，2026-10-29）。指到 `*.supabase.co` 是跨境，合规门会红。
   设备根本发不出请求时，服务端和遥测都没有这一行（§0）；Phase B 未回读前，404 不是「遥测关着」。
-- **不要动 `previousUrl`。** 合规门（`build/china-gate.js`）为它开了豁免，它是归属比较用的，删了会让
-  老用户的库挂到一个登不上的身份下（`docs/learning-design.md` §8.4.3）。
+- **不要动 `previousUrl`。** 它是哨兵 `https://backend.invalid`，只用于归属比较（功能上等价于「上一后端
+  ≠ CN」），从不发请求、不做跨后端的数据导入/导出、也从不写回 storage，删了会让老用户的库挂到一个登不上的
+  身份下（`docs/learning-design.md` §8.4.3）。`build/china-gate.js` **没有**为它开豁免：默认扫描照旧，
+  中国版产物里任何 `*.supabase.co` 主机仍红 —— 哨兵本身是 `.invalid`，所以不需要豁免。
 - **不要把 `172.18.x.x` 当用户。** 见 §1.3。
