@@ -418,6 +418,19 @@ describe('ListenCore — 回声闸（朗读被自己录回去）', () => {
     // 不能另抄一份模型表 —— 否则「没勾泰语不下 105 MB」这条又会在另一条路上破。
     ok(/function ttsUnitDefs\(s\)[\s\S]{0,220}firstRunLocales\(s\)/.test(model),
       'ttsUnitDefs 没有从 firstRunLocales(s) 取语言 —— 会绕过「只下所选语言」的判据');
+    // BEL-226：设备 TTS 包只有 zh/en 共用包与 th 单包（device-models.config.js 三个模型）。
+    // 静态钉住单元集合：只有两个 units.push，且没有 else/switch/default 这类 catch-all
+    // —— 否则不在这三语里的语言会凭空多出一个「下载包」，就是行为回退。
+    const ttsFn = model.slice(model.indexOf('function ttsUnitDefs(s)'), model.indexOf('function ttsUnitReady('));
+    ok(ttsFn.length > 0 && ttsFn.length < 1000, 'ttsUnitDefs 代码段切不出来 —— 下面的静态判据会失去意义');
+    ok(ttsFn.indexOf("pack_id: 'tts_zh_en'") >= 0 && ttsFn.indexOf("locale: 'zh-en'") >= 0,
+      'ttsUnitDefs 没有 zh/en 共用包（tts_zh_en / zh-en）');
+    ok(ttsFn.indexOf("pack_id: 'tts_th'") >= 0 && ttsFn.indexOf("locale: 'th'") >= 0,
+      'ttsUnitDefs 没有 th 单包（tts_th / th）');
+    ok((ttsFn.match(/units\.push\(/g) || []).length === 2,
+      'ttsUnitDefs 除了 zh/en 共用包与 th 单包还有别的下载单元 —— 出现 catch-all/其它语言分支');
+    ok(!/\belse\b|\bswitch\b|\bdefault\b/.test(ttsFn),
+      'ttsUnitDefs 出现了 else/switch/default 分支 —— 无法保证只产出 zh/en 与 th');
     const tts = read('extension/learn/tts.js');
     ok(/Array\.isArray\(langOpt\)/.test(tts),
       'deviceStatus 没有接受数组形式的 langOpt —— 语言对是一对（两个语言），单个 string 不够');
