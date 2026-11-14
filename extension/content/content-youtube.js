@@ -198,6 +198,10 @@ var YouTubeTranslator = (() => {
   });
 
   const T = TranslationCore.t;
+  const translate = (text, s, ctl) => TranslationAPI.translate(
+    text, s.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
+    TranslationAPI.resolveProvider(s.provider), s.apiKey || '', s.apiBaseUrl || '', s.apiModel || '', ctl);
+  translate.__mtDeadlineAware = true;
   const ui = SubtitleAdapter.createSubtitleUI({
     telemetrySite: 'youtube',
     ids: { overlay: 'mt-yt-overlay', orig: 'mt-yt-orig', trans: 'mt-yt-trans', btn: 'mt-yt-btn', menu: 'mt-yt-menu', meas: 'mt-yt-meas', history: 'mt-yt-history' },
@@ -239,9 +243,7 @@ var YouTubeTranslator = (() => {
     showButton: () => IS_EMBED || (!!document.querySelector(RIGHT_CONTROLS) && !TranslationCore.isMobileLayout()),
     buttonCss: () => floatingBtnCss(IS_EMBED ? 10 : 150),
     srtName: () => document.title.replace(/ - YouTube$/, ''),
-    translate: (text, s) => TranslationAPI.translate(
-      text, s.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
-      TranslationAPI.resolveProvider(s.provider), s.apiKey || '', s.apiBaseUrl || '', s.apiModel || ''),
+    translate,
     labels: {
       btnTitle: T('yt_btn_title', '大肚猴翻译 · 视频字幕'),
       subOn: T('yt_sub_on', '开启视频字幕翻译'),

@@ -67,6 +67,17 @@ const DocView = (() => {
     const el = (tag, cls, txt) => { const n = doc.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; };
     const state = { view: 'list', doc: null, reader: null, cur: 1, units: [], engine: null, timer: null, epoch: 0, counters: null, settings: null, okSent: false, pageMsg: '' };
     let settingsCache = null;
+    // 页级 OCR 的在飞表：同一份文档同一页同一引擎复用同一个请求（去重），换页/换文档
+    // 时 abort 掉旧请求（省请求、释放并发槽）。epoch guard 仍然保留为最后一道防线。
+    const ocrJobs = new Map();   // key -> { ctrl, promise }
+    function ocrKeyFor(n, s) { return `${state.doc ? state.doc.id : ''}:${n}:${deps.engineTriple(s)}`; }
+    function abortOcrJobs(keepKey) {
+      for (const [key, job] of ocrJobs) {
+        if (keepKey && key === keepKey) continue;
+        try { job.ctrl.abort(); } catch (_) {}
+        ocrJobs.delete(key);
+      }
+    }
     async function settings() { settingsCache = await deps.readSettings(); return settingsCache; }
 
     container.textContent = '';
@@ -76,6 +87,7 @@ const DocView = (() => {
     // ── 列表 ────────────────────────────────────────────────────────────
     async function showList(msg, bad) {
       stopEngine();
+      abortOcrJobs('');   // 离开文档：在飞的识图请求没有接收方了，取消掉
       state.view = 'list'; state.doc = null;
       wrap.textContent = '';
       const top = el('div', 'docv-top');
@@ -135,6 +147,8 @@ const DocView = (() => {
       stopEngine();
       const rec = await deps.store.get(id);
       if (!rec) { showList(t('doc_missing', '这份文档已不在本机。'), true); return; }
+      // 换文档：旧文档的 OCR 不再有用；重开同一份文档则保留在飞请求供下面去重复用。
+      if (!state.doc || state.doc.id !== rec.id) abortOcrJobs('');
       state.view = 'doc'; state.doc = rec; state.epoch++;
       const epoch = state.epoch;
       wrap.textContent = '';
@@ -229,9 +243,25 @@ const DocView = (() => {
           if (deps.grantActive(s)) { pageMessage(t('doc_grant_no_image', '免费额度不能识别图片 —— 用自己的 API key。'), true, '#quick'); return null; }
           if (deps.visionOf(s) === false) { pageMessage(t('doc_no_vision', '当前引擎不支持识别图片 · 去设置换模型'), true, '#engine'); return null; }
           pageMessage(t('doc_ocr_running', '正在识别这一页…'), false);
+          const ocrKey = ocrKeyFor(n, s);
+          // 换页/换文档/换引擎 ⇒ 取消其他在飞 OCR；同一页同一引擎 ⇒ 复用（去重）。
+          abortOcrJobs(ocrKey);
           try {
-            const dataUri = await state.reader.imageOf(n, 1600);
-            const text = await deps.ocr(dataUri, s);
+            let job = ocrJobs.get(ocrKey);
+            if (!job) {
+              const dataUri = await state.reader.imageOf(n, 1600);
+              if (epoch !== state.epoch) return null;
+              // imageOf 也是异步的：等它回来时另一次 openDoc 可能已登记了同一个键。
+              job = ocrJobs.get(ocrKey);
+              if (!job) {
+                const ctrl = new AbortController();
+                const promise = Promise.resolve().then(() => deps.ocr(dataUri, s, { signal: ctrl.signal }));
+                job = { ctrl, promise };
+                ocrJobs.set(ocrKey, job);
+                promise.then(() => {}, () => {}).finally(() => { if (ocrJobs.get(ocrKey) === job) ocrJobs.delete(ocrKey); });
+              }
+            }
+            const text = await job.promise;
             if (epoch !== state.epoch) return null;
             paras = String(text || '').split(/\n\s*\n/).map((x) => x.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean).map((x) => ({ text: x }));
             ocrUsed = true;
@@ -239,6 +269,7 @@ const DocView = (() => {
           } catch (e) {
             if (epoch !== state.epoch) return null;
             if (e && e.code === 'vision_unsupported') pageMessage(t('doc_no_vision', '当前引擎不支持识别图片 · 去设置换模型'), true, '#engine');
+            else if (e && e.name === 'AbortError') return null;
             else pageMessage(t('doc_ocr_failed', '识别失败：') + ((e && e.message) || ''), true);
             return null;
           }

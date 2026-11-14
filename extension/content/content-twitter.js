@@ -232,6 +232,10 @@ var TwitterTranslator = (() => {
   }
 
   const T = TranslationCore.t;
+  const translate = (text, s, ctl) => TranslationAPI.translate(
+    text, s.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
+    TranslationAPI.resolveProvider(s.provider), s.apiKey || '', s.apiBaseUrl || '', s.apiModel || '', ctl);
+  translate.__mtDeadlineAware = true;
   const ui = SubtitleAdapter.createSubtitleUI({
     ids: { overlay: 'mt-tw-overlay', orig: 'mt-tw-orig', trans: 'mt-tw-trans', btn: 'mt-tw-btn', menu: 'mt-tw-menu', meas: 'mt-tw-meas', history: 'mt-tw-history' },
     hasMedia: () => !!activeVideo(),
@@ -245,9 +249,7 @@ var TwitterTranslator = (() => {
     anchorButton,
     fontPx,
     textWidth,
-    translate: (text, s) => TranslationAPI.translate(
-      text, s.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
-      TranslationAPI.resolveProvider(s.provider), s.apiKey || '', s.apiBaseUrl || '', s.apiModel || ''),
+    translate,
     showButton: () => !TranslationCore.isMobileLayout(), // mobile: page FAB drives it
     syncNative,
     srtName: () => document.title,

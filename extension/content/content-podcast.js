@@ -276,6 +276,10 @@ var PodcastTranslator = (() => {
   }
 
   const T = TranslationCore.t;
+  const translate = (text, s, ctl) => TranslationAPI.translate(
+    text, s.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
+    TranslationAPI.resolveProvider(s.provider), s.apiKey || '', s.apiBaseUrl || '', s.apiModel || '', ctl);
+  translate.__mtDeadlineAware = true;
   ui = SubtitleAdapter.createSubtitleUI({
     telemetrySite: /(^|\.)substack\.com$/.test(location.hostname) ? 'substack' : 'podcast',
     ids: { overlay: 'mt-pod-overlay', orig: 'mt-pod-orig', trans: 'mt-pod-trans', btn: 'mt-pod-btn', menu: 'mt-pod-menu', meas: 'mt-pod-meas', history: 'mt-pod-history' },
@@ -294,9 +298,7 @@ var PodcastTranslator = (() => {
     unavailableAction: IS_SPOTIFY ? null : AsrSource.offerFor(mediaEl, () => ui, () => ui.settings),
     syncNative,
     srtName: () => document.title,
-    translate: (text, s) => TranslationAPI.translate(
-      text, s.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
-      TranslationAPI.resolveProvider(s.provider), s.apiKey || '', s.apiBaseUrl || '', s.apiModel || ''),
+    translate,
     labels: { btnTitle: T('podcast_sub_off', '关闭播客字幕翻译') },
   });
 

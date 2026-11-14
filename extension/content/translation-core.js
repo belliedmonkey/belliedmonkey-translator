@@ -19,7 +19,8 @@ var TranslationCore = (() => {
   // 有一个 promise 不落地，`.then/.catch/.finally` 一个都不会跑，重试逻辑也就永远
   // 不会被触发。所以最终的保证只能长在这里：**超过上限一律进 error 态，把重试交还
   // 给用户**。取 120 秒是为了绝不误伤真慢的请求：传输层默认 20 秒超时 × 3 次重试
-  // 加退避，最坏也就 ~90 秒。
+  // 加退避，最坏也就 ~90 秒 —— 那个数没有把 proxy→direct 回退的第二个 20 秒算进去。
+  // 现在传输层另有一条总截止（STALL_MS - STALL_RESERVE_MS），不再让 watchdog 先开枪。
   // HOLD_MS: how long a sentence stays "active" past its end (docs/domain-design.md
   // §2.4). 0 = today's behaviour for every fetched transcript; the live ASR source sets
   // it because a sentence can only close after it was spoken, so its pair would
@@ -28,7 +29,11 @@ var TranslationCore = (() => {
   // 取证 issue #472）。5 的意思是「不止一个单元、也不止一次重试都超时了」——
   // 单个单元已经允许 MAX_RETRIES(3) 次重试，所以 5 次单元级失败约为 2 个单元的彻底失败。
   const TIMEOUT_STREAK_MAX = 5;
-  const WINDOW = { AHEAD_MS: 60000, MAX_PER_TICK: 6, MAX_RETRIES: 3, RETRY_GAP_MS: 800, GRACE_MS: 700, MAX_DETECT_WAITS: 3, STALL_MS: 120000, HOLD_MS: 0,
+  // STALL_RESERVE_MS：传输必须在 watchdog 之前收口，留 10 s 给取消与收尾。
+  // 于是传输的总预算 = 110 s。**不是把 120 s 加大去盖住 123 s**；是给传输一个更小的
+  // 绝对截止，并让它贯穿传输重试与引擎重试。
+  const STALL_RESERVE_MS = 10000;
+  const WINDOW = { AHEAD_MS: 60000, MAX_PER_TICK: 6, MAX_RETRIES: 3, RETRY_GAP_MS: 800, GRACE_MS: 700, MAX_DETECT_WAITS: 3, STALL_MS: 120000, STALL_RESERVE_MS, HOLD_MS: 0,
     TIMEOUT_STREAK_MAX };
   const MERGE = { GAP_MS: 1200, MAX_LEN: 160 };
 
@@ -504,14 +509,36 @@ var TranslationCore = (() => {
         }
         it._fetching = true;
         started++;
-        // 看门狗：和 translate() 赛跑。它先落地就照常走；它不落地，我们自己落地。
-        // 卡死**不进重试计数** —— 重试是为「可能自己好起来」的瞬时失败准备的，而一个
-        // 不落地的 promise 再等 3 个 120 秒只是让用户多等 6 分钟。直接给可点的重试。
+        // 看门狗只量「执行中」，不量「排队等待」：adapter 在真正开始执行时调用
+        // ctl.onStart（TranslationAPI 在 enqueue 出队后才调）。没有声明
+        // __mtDeadlineAware 的旧 adapter 仍从调用时计时 —— 安全网不消失。
+        // 它先落地就照常走；它不落地，我们自己落地并 abort 掉传输/队列里的工作。
+        const stallMs = win.STALL_MS;
+        const ac = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const ctl = {
+          budgetMs: Math.max(1, stallMs - (win.STALL_RESERVE_MS != null ? win.STALL_RESERVE_MS : STALL_RESERVE_MS)),
+          signal: ac ? ac.signal : null,
+          deadline: 0,
+          onStart: null,
+        };
         let stallTimer = null;
-        const stall = new Promise((_, reject) => {
-          stallTimer = setTimeout(() => { const e = new Error('translate stalled'); e.stalled = true; reject(e); }, win.STALL_MS);
-        });
-        Promise.race([translate(it.text), stall]).then((t) => {
+        let startedWatchdog = false;
+        let stallReject = null;
+        const stall = new Promise((_, reject) => { stallReject = reject; });
+        function armWatchdog() {
+          if (startedWatchdog) return;
+          startedWatchdog = true;
+          if (!ctl.deadline) ctl.deadline = Date.now() + ctl.budgetMs;
+          stallTimer = setTimeout(() => {
+            const e = new Error('translate stalled');
+            e.stalled = true;
+            if (ac) { try { ac.abort(); } catch (_) {} }
+            stallReject(e);
+          }, stallMs);
+        }
+        ctl.onStart = armWatchdog;
+        if (translate.__mtDeadlineAware !== true) armWatchdog();
+        Promise.race([translate(it.text, ctl), stall]).then((t) => {
           // 成功即清零「连续超时」—— 熔断只认**连成一条**的失败（§7，2026-09-27）。
           if (isTranslated(it.text, t)) { it.tr = t; it._tries = 0; timeoutStreak = 0; if (cfg.onOk) { try { cfg.onOk(); } catch (_) {} } return; }
           // 空正文是失败，不是「这段没东西可翻」——两者必须分开（2026-08-13 真机）。
@@ -532,6 +559,17 @@ var TranslationCore = (() => {
           // 请求根本没发出去。直接进 error 态给「去配置」的出口，不计数、不重试、
           // **不进 translate_fail**（那会让「配置错误」冒充「翻译失败」）。
           if (e && e.preflight) { it._err = true; it._tries = 0; return; }
+          // 总预算耗尽 / 被调用方取消：这是终态，不是「再试一次可能好」的瞬时失败。
+          // 截止错误带着 apiFetch 挂上的 ms/route，因此不会退回「timeout 无 ms/route」。
+          if (e && e.deadline) {
+            it._err = true; it._tries = 0;
+            const c = classifyFail(e);
+            timeoutStreak = c === 'timeout' ? timeoutStreak + 1 : 0;
+            if (timeoutStreak >= win.TIMEOUT_STREAK_MAX) enterHalt('timeout');
+            noteFail(e, c);
+            return;
+          }
+          if (e && e.aborted) { it._err = true; it._tries = 0; return; }
           const code = classifyFail(e);
           // 即停四码：一次就停泵，不再计重试（§8.10 / 第八期 / N26）。
           // 判据是码，不是 e.grant / e.halt —— 429 的 busy 也带 grant 位，但它必须留在行上重试。

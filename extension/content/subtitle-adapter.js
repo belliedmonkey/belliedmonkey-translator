@@ -135,6 +135,8 @@ var SubtitleAdapter = (() => {
       if (code === 'timeout') return null;
       return { text: TranslationCore.haltMessage(code), anchor: TranslationCore.haltAnchor(code), retry: false };
     }
+    const translate = (text, ctl) => spec.translate(text, settings, ctl);
+    translate.__mtDeadlineAware = true;
     const engine = TranslationCore.createSubtitleEngine({
       getCurrentTime: () => spec.getCurrentTime(),
       onOk: () => {
@@ -161,7 +163,7 @@ var SubtitleAdapter = (() => {
         if (Number.isInteger(e && e.ms)) fail.ms = e.ms;
         MTTelemetry.track('translate_fail', fail);
       },
-      translate: (text) => spec.translate(text, settings), // harness owns settings; backend reads it
+      translate, // harness owns settings; backend reads it; ctl carries signal/deadline
       // Cues already in the target language are skipped before the request, so a
       // native-language video shows one line instead of the same line twice.
       //

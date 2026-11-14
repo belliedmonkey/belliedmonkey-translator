@@ -167,6 +167,10 @@ const listenModel = (() => {
   let cameFrom = '';
   let sessionGetter = null;      // wire({ session })：shell 的 currentSession getter
   let gen = 0;              // 会话代际：旧会话的异步回调按它作废
+  // 本场 listenPass 的取消闸：gen 每变一次（开场/离场/换号）就 abort 旧的一个。
+  // 只丢弃迟到 UI 结果不够 —— 请求还在飞就等于继续占槽、继续花额度。
+  let passCtl = null;
+  function abortPasses() { if (passCtl) { try { passCtl.abort(); } catch (_) {} passCtl = null; } }
   // BEL-230 Q1：**账号**代际，与会话 gen 分开。gen 回答「这一场还算不算」，
   // acctEpoch 回答「这一刻登录的是不是开场时那个人」。换号/退出都要递增：cfg 在
   // start() 只读一次（:2244），旧快照里是 A 的 provider/apiKey，不递增就会继续
@@ -704,10 +708,11 @@ const listenModel = (() => {
       context: C.contextRows(session ? session.rows : [], row),
     });
     let reply = '', passErr = null;
+    const passSignal = passCtl ? passCtl.signal : undefined;
     const t0 = now();
     noteTranslateStart();
     try {
-      reply = await TranslationAPI.listenPass(prompt, TranslationAPI.resolveProvider(c.tr.provider), c.tr.apiKey, c.tr.baseUrl || '', c.tr.model || '');
+      reply = await TranslationAPI.listenPass(prompt, TranslationAPI.resolveProvider(c.tr.provider), c.tr.apiKey, c.tr.baseUrl || '', c.tr.model || '', { signal: passSignal });
       if (myEpoch === acctEpoch && reply) notePumpSuccess(myGen);
     } catch (e) { reply = ''; passErr = e; if (myEpoch === acctEpoch) notePumpFailure(e, myGen); }
     // 账号在 await 期间变了：回复属于 A，不能写进 B 的界面。
@@ -802,7 +807,7 @@ const listenModel = (() => {
     noteTranslateStart();
     return TranslationAPI.listenPass(prompt,
       TranslationAPI.resolveProvider(c.tr.provider), c.tr.apiKey, c.tr.baseUrl || '', c.tr.model || '',
-      { budget: 512, timeoutMs: 12000 }).then((raw) => {
+      { budget: 512, timeoutMs: 12000, signal: passCtl ? passCtl.signal : undefined }).then((raw) => {
       if (myEpoch !== acctEpoch) throw staleAccountError();
       if (raw) notePumpSuccess(myGen);
       return raw;
@@ -2307,6 +2312,7 @@ const listenModel = (() => {
   function accountChanged() {
     acctEpoch++;
     gen++;
+    abortPasses();
     cfg = null;
     sq.clear(); speakingRid = 0;
     // 旧账号的断句路由器还挂着计时器/在途请求：先停掉。它的 emit/fallback 本来就会
@@ -2319,6 +2325,8 @@ const listenModel = (() => {
   async function start() {
     if (phase !== 'idle' && phase !== 'ended') return;
     gen++;
+    abortPasses();
+    passCtl = new AbortController();
     trHalt = createHalt();
     pttAbort();            // 新一场：按住态与强制语言清零（含原生「恢复判定」）
     cfg = await readCfg();
@@ -2786,6 +2794,7 @@ const listenModel = (() => {
       await end();   // 「结束并离开」也走 end 流程：最多等 3 秒收尾，再清理（第四轮 P1-3）
     }
     gen++;
+    abortPasses();
     if (clockTimer) { clearInterval(clockTimer); clockTimer = 0; }
     session = null; phase = 'idle';
     if (seg) { try { seg.dispose(); } catch (_) {} }   // P1-1：清掉计时器，停掉旧会话的在途

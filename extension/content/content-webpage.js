@@ -35,6 +35,13 @@ var WebpageTranslator = (() => {
   }
 
   function makeEngine() {
+    // 引擎把 ctl 交给 adapter；TranslationAPI 在**出队真正开始执行**时调 ctl.onStart，
+    // 所以 watchdog 不会再把排队等待算进 120 s。声明 __mtDeadlineAware 后引擎才
+    // 等 onStart 再启动计时。
+    const translate = (text, ctl) => TranslationAPI.translate(
+      text, settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
+      TranslationAPI.resolveProvider(settings.provider), settings.apiKey || '', settings.apiBaseUrl || '', settings.apiModel || '', ctl);
+    translate.__mtDeadlineAware = true;
     return TranslationCore.createEngine({
       // 用量事件（docs/telemetry-design.md §3）：每个页面会话一次 translate_ok；每次最终失败
       // 一条 translate_fail（引擎 id + 错误码 + 状态码 + 通路，没有原文、没有地址）。
@@ -69,9 +76,7 @@ var WebpageTranslator = (() => {
         if (Number.isInteger(e && e.ms)) fail.ms = e.ms;
         MTTelemetry.track('translate_fail', fail);
       },
-      translate: (text) => TranslationAPI.translate(
-        text, settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
-        TranslationAPI.resolveProvider(settings.provider), settings.apiKey || '', settings.apiBaseUrl || '', settings.apiModel || ''),
+      translate,
       // Text already in the target language never reaches the provider (engine skips it
       // before the request) and therefore renders no sibling at all. Read late (getter,
       // not value) per docs/domain-design.md §4 — the engine must never hold a stale copy.
