@@ -19,13 +19,13 @@ function loadRegistry() {
   return window;
 }
 
-function loadAPI(program, chromeOpts = {}, flavor) {
+function loadAPI(program, chromeOpts = {}, flavor, extra = {}) {
   const chrome = makeChrome(chromeOpts);
   const fetch = makeFetch(program);
   const window = loadRegistry();
   if (flavor) window.MT_FLAVOR = flavor;
   const ctx = loadModule(['engine-state.js', 'request-shape.js', 'translation-api.js'],
-    { fetch, chrome, AbortController, URLSearchParams, window, WireFormat });
+    Object.assign({ fetch, chrome, AbortController, URLSearchParams, window, WireFormat }, extra));
   return { API: ctx.TranslationAPI, fetch, chrome };
 }
 
@@ -623,6 +623,56 @@ describe('TranslationAPI — retry & fallback', () => {
 // translateBatch 的三条用例随函数一起删除（2026-08-22）：它没有任何调用方，而它的
 // `provider === 'google'` 分支直接调 translateGoogleBatch，绕过 callProvider —— 未知
 // 引擎守卫管不到它。「已删除」本身由上面那条 typeof 断言守着。
+
+// BEL-224：relay 的 grant_debited 认 header `x-mt-install-id`；客户端只在自家 relay
+// URL 上补这一个头。vendor 请求一个字节都不许带 —— 这条断言就是隐私边界本身。
+describe('TranslationAPI — relay 请求带 install_id，vendor 不带（BEL-224）', () => {
+  const INSTALL = '11111111-1111-4111-8111-111111111111';
+  const RELAY = 'https://backend.example/functions/v1/bt-relay/chat/completions';
+  const VENDOR = 'https://api.openai.com/v1/chat/completions';
+  const okChat = () => okJson({ choices: [{ message: { content: '你好' } }] });
+  const telemetry = (seen) => ({
+    relayHeaders: async (url) => {
+      seen.push(url);
+      return /\/bt-relay(?:\/|$)/i.test(String(url || '')) ? { 'x-mt-install-id': INSTALL } : {};
+    },
+  });
+
+  test('直连：relay 带 x-mt-install-id，vendor 不带', async () => {
+    const seen = [];
+    const { API, fetch } = loadAPI([okChat(), okChat()], {}, null, { MTTelemetry: telemetry(seen) });
+    eq(await API.translate('hello', 'zh-CN', 'openai', 'KEY', RELAY), '你好');
+    eq(fetch.calls[0].opts.headers['x-mt-install-id'], INSTALL);
+    eq(await API.translate('hello', 'zh-CN', 'openai', 'KEY', VENDOR), '你好');
+    ok(!('x-mt-install-id' in fetch.calls[1].opts.headers), 'vendor 请求绝不能带 install_id');
+    deepEq(seen, [RELAY, VENDOR], '两条路都问过 relayHeaders，判定在它自己手里');
+  });
+
+  test('proxy（Firefox）通路同样带 —— header 在选路之前合并', async () => {
+    const proxied = [];
+    const seen = [];
+    const { API } = loadAPI([], {
+      extensionOrigin: 'moz-extension://uuid/',
+      onMessage: (m) => {
+        proxied.push(m);
+        return m.action === 'ping' ? { ok: true }
+          : { ok: true, status: 200, text: JSON.stringify({ choices: [{ message: { content: '你好' } }] }) };
+      },
+    }, null, { MTTelemetry: telemetry(seen) });
+    eq(await API.translate('hello', 'zh-CN', 'openai', 'KEY', RELAY), '你好');
+    const real = proxied.find((m) => m.action === 'proxyFetch');
+    ok(real, '应当走后台代理');
+    eq(real.init.headers['x-mt-install-id'], INSTALL);
+  });
+
+  test('relayHeaders 抛错 ⇒ 请求照常，且没有 header（归因不能挡住翻译）', async () => {
+    const { API, fetch } = loadAPI([okChat()], {}, null, {
+      MTTelemetry: { relayHeaders: async () => { throw new Error('boom'); } },
+    });
+    eq(await API.translate('hello', 'zh-CN', 'openai', 'KEY', RELAY), '你好');
+    ok(!('x-mt-install-id' in fetch.calls[0].opts.headers));
+  });
+});
 
 // ─── domain-design §5.4: Firefox routes through the background ────────────────
 // Firefox applies the HOST PAGE's CSP to a content script's fetch; Chrome and WebKit

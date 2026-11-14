@@ -126,8 +126,21 @@ var LearnNotes = (() => {
   // this transport did not, so every such failure reached the UI as the raw string.
   // `url` rides along so the settings page can echo the address it actually requested.
   async function fetchNamed(url, init) {
+    // BEL-224：只给自家中继补匿名 install_id（vendor URL 返回 {}，init 原样不动）。
+    // 归因失败 / 遥测关掉都静默跳过 —— 不能因为少一个 header 让解析失败。
+    let opts = init;
+    if (typeof MTTelemetry !== 'undefined' && MTTelemetry && MTTelemetry.relayHeaders) {
+      try {
+        const extra = await MTTelemetry.relayHeaders(url);
+        if (extra && Object.keys(extra).length) {
+          opts = Object.assign({}, init, {
+            headers: Object.assign({}, (init && init.headers) || {}, extra),
+          });
+        }
+      } catch (_) {}
+    }
     try {
-      return await fetch(url, init);
+      return await fetch(url, opts);
     } catch (netErr) {
       const e = new Error(String((netErr && netErr.message) || netErr));
       e.code = 'network';

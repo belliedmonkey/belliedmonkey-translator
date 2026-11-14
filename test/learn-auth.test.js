@@ -585,3 +585,102 @@ describe('登录失败埋点 auth_fail（§3.14）', () => {
     ok(/noteAuthFail\('apple',\s*'native'/.test(app), 'Apple 原生失败那条断了');
   });
 });
+
+// ─── BEL-223：auth_ok.method 由 GoTrue 登录响应时间戳当场判定（2026-11-14）──────
+//
+// GoTrue 在登录响应里带 user.created_at / user.last_sign_in_at（都是服务端时间）：
+// 首次签发 token 时两者接近，再次登录才明显拉开。method 只在这一个返回对象里活一次，
+// 不进 storage、不进 cached、不通知 listeners；identities 不读不存。
+describe('BEL-223 auth_ok.method：GoTrue 登录响应时间戳', () => {
+  const C = '2026-11-01T00:00:00.000Z';
+  const at = (ms) => new Date(Date.parse(C) + ms).toISOString();
+  const resp = (created, last) => ({
+    access_token: 'a', refresh_token: 'r', expires_in: 3600,
+    user: { id: 'u-1', email: 'x@y.com', created_at: created, last_sign_in_at: last },
+  });
+  const loginAs = async (body, seed) =>
+    loadWith(async () => okResponse(body), seed).A.verify('x@y.com', '123456');
+
+  test('created_at = last_sign_in_at ⇒ signup（首次签发）', async () => {
+    eq((await loginAs(resp(C, C))).authMethod, 'signup');
+  });
+
+  test('last_sign_in_at = created_at + 1h ⇒ signin（再次登录）', async () => {
+    eq((await loginAs(resp(C, at(3600000)))).authMethod, 'signin');
+  });
+
+  test('±5s 边界：恰好 5000ms ⇒ signup，5001ms ⇒ signin', async () => {
+    eq((await loginAs(resp(C, at(5000)))).authMethod, 'signup');
+    eq((await loginAs(resp(C, at(5001)))).authMethod, 'signin');
+  });
+
+  test('last_sign_in_at 缺失/null ⇒ signup（从未签过）', async () => {
+    eq((await loginAs(resp(C, null))).authMethod, 'signup');
+    const noLast = resp(C, undefined);
+    delete noLast.user.last_sign_in_at;
+    eq((await loginAs(noLast)).authMethod, 'signup');
+  });
+
+  test('created_at 缺失/不可解析 ⇒ \'\'（不知道，不猜）', async () => {
+    const missing = resp(undefined, C);
+    delete missing.user.created_at;
+    eq((await loginAs(missing)).authMethod, '');
+    eq((await loginAs(resp('not-a-date', C))).authMethod, '');
+  });
+
+  test('四条登录路径都带 authMethod（收到响应时算）', async () => {
+    const body = resp(C, at(3600000));
+
+    const { A: otp } = loadWith(async () => okResponse(body));
+    eq((await otp.verify('x@y.com', '123456')).authMethod, 'signin');
+
+    const { A: pw } = loadWith(async () => okResponse(body));
+    eq((await pw.signInPassword('x@y.com', 'pw')).authMethod, 'signin');
+
+    const { A: native } = loadWith(async () => okResponse(body));
+    eq((await native.signInWithIdToken('apple', 'tok', 'nonce')).authMethod, 'signin');
+
+    const { A: pkce } = loadWith(async () => okResponse(body), {
+      learnAuthPkce: { verifier: 'v', state: 's', provider: 'google', at: Date.now() },
+      learnAuthCode: { code: 'c', state: 's' },
+    });
+    eq((await pkce.completeProviderSignIn()).authMethod, 'signin');
+  });
+
+  test('refresh 不是登录：不带 authMethod，也不落存储（静态 + 实跑）', async () => {
+    const body = resp(C, at(3600000));
+    const expired = { accessToken: 'old', refreshToken: 'r', expiresAt: Date.now() - 1000,
+      userId: 'u-1', backend: 'https://x.example' };
+    const { A, stored } = loadWith(async () => okResponse(body), { learnAuth: expired });
+    eq(await A.token(), 'a');
+    eq(stored.learnAuth.accessToken, 'a');
+    eq('authMethod' in stored.learnAuth, false);
+    eq('authMethod' in (A.cachedSession() || {}), false);
+
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(path.join(__dirname, '..', 'extension/learn/auth.js'), 'utf8');
+    eq((src.match(/sessionFrom\(json, \{ login: true \}\)/g) || []).length, 4,
+      '只有四条登录路径该传 login:true');
+    ok(/\.then\(\(json\) => store\(sessionFrom\(json\)\)\)/.test(src),
+      'refresh 那一行必须保持 sessionFrom(json)，不带 authMethod');
+  });
+
+  test('★ authMethod 只活在返回对象：storage / cached / listeners 都没有', async () => {
+    const { A, stored } = loadWith(async () => okResponse(resp(C, at(3600000))));
+    let notified = null;
+    A.onChange((s) => { notified = s; });
+    const got = await A.verify('x@y.com', '123456');
+    eq(got.authMethod, 'signin', '登录调用方必须拿得到 method');
+    eq('authMethod' in stored.learnAuth, false, 'storage 里不许有 authMethod');
+    ok(notified && !('authMethod' in notified), 'listeners 收到的不许带 authMethod');
+    eq('authMethod' in (A.cachedSession() || {}), false, 'cached 不许带 authMethod');
+
+    // 用落盘快照重建上下文 = 冷启恢复：load() 后同样没有 authMethod。
+    const snapshot = JSON.parse(JSON.stringify(stored));
+    const { A: restoredAuth } = loadWith(async () => okResponse({}), snapshot);
+    const restored = await restoredAuth.current();
+    eq(restored.userId, 'u-1');
+    eq('authMethod' in restored, false, '会话恢复后不许把上次的 method 当这次回执');
+  });
+});

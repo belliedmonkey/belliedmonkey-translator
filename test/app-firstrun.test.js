@@ -454,6 +454,17 @@ describe('改稿 F / 改稿 G · 多选语言包与听译准备中（2026-10-11�
     deepEq(FR.ttsLangsFor(['zh', 'en'], false, undefined), ['zh', 'en']);
   });
 
+  // BEL-226：设备上的朗读包只有三个模型（device-models.config.js：th / zh / en）。
+  // 旧路径 ensureDeviceReady(firstRunLocales) 本来就按模型过滤，其它语言没有包可下；
+  // 这两条把「无包语言不产出、有包语言才保留」钉死，防止以后有人加 catch-all。
+  test('TTS 语言覆盖：没有设备包的语言不产出朗读包（ja/fr/de/ko，即便开了泰语朗读）', () => {
+    deepEq(FR.ttsLangsFor(['ja', 'fr', 'de', 'ko'], true, undefined), []);
+  });
+
+  test('TTS 语言覆盖：只保留有设备包的语言（ja + zh ⇒ 只有 zh）', () => {
+    deepEq(FR.ttsLangsFor(['ja', 'zh'], true, undefined), ['zh']);
+  });
+
   test('就绪含基础组件：语种识别和人声检测都要在；说话键不看朗读包', () => {
     const need = FR.firstRunNeed(['zh', 'en'], { thaiTts: false });
     eq(need.base, true);

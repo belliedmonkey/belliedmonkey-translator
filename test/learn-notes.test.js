@@ -37,6 +37,8 @@ function setup(over) {
   };
   const ctx = loadModule(['content/request-shape.js', 'learn/notes.js'], {
     window: { MT_PROVIDERS: PROVIDERS }, LearnStore, fetch: fetchImpl, WireFormat,
+    // BEL-224：relay 请求要补 install_id；测试注入一个记录调用参数的桩。
+    MTTelemetry: over && over.MTTelemetry,
   });
   return { N: ctx.LearnNotes, notesDb, calls };
 }
@@ -114,6 +116,25 @@ describe('LearnNotes — 生词只取自原句，缓存带提示词版本 (§9.2
     const again = await N.get(ITEM, 'zh-CN');
     eq(again.cached, true, '版本一致后回到缓存');
     eq(calls.fetch.length, 1, '版本迁移每卡至多多扣一次费');
+  });
+
+  test('relay 解析带 x-mt-install-id；vendor 请求不带（BEL-224）', async () => {
+    const INSTALL = '11111111-1111-4111-8111-111111111111';
+    const { N, calls } = setup({
+      MTTelemetry: {
+        relayHeaders: async (url) => (/\/bt-relay(?:\/|$)/i.test(String(url || ''))
+          ? { 'x-mt-install-id': INSTALL } : {}),
+      },
+    });
+    N.configure({
+      provider: 'chat1', apiKey: 'k',
+      baseUrl: 'https://backend.example/functions/v1/bt-relay/chat/completions',
+    });
+    await N.get(ITEM, 'zh-CN');
+    eq(calls.fetch[0].headers['x-mt-install-id'], INSTALL);
+    N.configure({ provider: 'chat1', apiKey: 'k', baseUrl: '' });      // vendor 端点（注册表默认）
+    await N.get(Object.assign({}, ITEM, { id: 'card2' }), 'zh-CN');
+    ok(!('x-mt-install-id' in calls.fetch[1].headers), 'vendor 请求绝不能带 install_id');
   });
 
   test('cached() hides stale-version notes from the auto-render path', async () => {
