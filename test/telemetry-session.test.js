@@ -412,13 +412,32 @@ describe('BEL-226 pack_download_* / packs_ready', () => {
     eq(t4.attempt, 3, '上次断在第 2 次，这次打开必须接着数第 3 次');
   });
 
-  test('失败 reason 六值归一；旧 code 照发；原始报错/路径不落事件', async () => {
+  test('失败 reason 六值归一：显式取消优先、AbortError 不误记 network；旧 code 照发；原始报错/路径不落事件', async () => {
     const cases = [
-      [{ reason: 'offline' }, 'network'],
-      [{ reason: 'sha' }, 'hash'],
+      // 显式取消/中止（结构化字段）优先于 network/timeout → other
+      [{ name: 'AbortError', message: 'network request aborted by user' }, 'other'],
+      [{ reason: 'cancelled', message: 'connect timeout cancelled' }, 'other'],
+      [{ reason: 'canceled' }, 'other'],
+      [{ reason: 'abort' }, 'other'],
+      [{ code: 'cancelled' }, 'other'],
+      [{ code: 'abort' }, 'other'],
+      [{ cancelled: true, message: 'ECONNRESET' }, 'other'],
+      [{ canceled: true, message: 'ECONNRESET' }, 'other'],
+      [{ mtCancelled: true, message: 'network down' }, 'other'],
+      // timeout：只有超时标志/超时词才 timeout；AbortError 带超时仍 timeout
       [{ reason: 'timeout' }, 'timeout'],
+      [{ mtSttTimeout: true, name: 'AbortError' }, 'timeout'],
+      [{ name: 'AbortError', message: 'request timed out' }, 'timeout'],
+      // hash / disk / network / unsupported / other
+      [{ message: 'sha256 mismatch' }, 'hash'],
+      [{ reason: 'sha' }, 'hash'],
+      [{ message: 'ENOSPC' }, 'disk'],
       [{ reason: 'disk' }, 'disk'],
+      [{ message: 'ECONNRESET while fetching' }, 'network'],
+      [{ reason: 'offline' }, 'network'],
+      [{ reason: 'locale' }, 'unsupported'],
       [{ reason: 'no-bridge' }, 'unsupported'],
+      [{ message: 'download failed' }, 'other'],
       [{ reason: 'load' }, 'other'],
     ];
     for (const [err, want] of cases) eq(load().TS.packFailReason(err), want, JSON.stringify(err));
