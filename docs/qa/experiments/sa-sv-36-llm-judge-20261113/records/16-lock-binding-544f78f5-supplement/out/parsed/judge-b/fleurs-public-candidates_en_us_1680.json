@@ -1,0 +1,15 @@
+{
+  "ok": false,
+  "code": "bad-json",
+  "verdict": null,
+  "observation": {
+    "transportOk": true,
+    "generationOk": true,
+    "finishReason": "stop",
+    "providerError": false,
+    "usageComplete": true,
+    "parseOk": false,
+    "parseCode": "bad-json",
+    "modelFormatFault": true
+  }
+}

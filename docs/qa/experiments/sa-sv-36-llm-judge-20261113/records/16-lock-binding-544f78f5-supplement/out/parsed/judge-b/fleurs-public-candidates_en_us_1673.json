@@ -1,0 +1,48 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/en_us/1673",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "thirteen",
+            "hypQuote": "13",
+            "reason": "The word 'thirteen' in the reference is written as the numeral '13' in the candidate, which is a surface-level format difference with no change in meaning."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "thirteen",
+            "hypQuote": "13",
+            "reason": "The word 'thirteen' in the reference is written as the numeral '13' in the candidate, which is a surface-level format difference with no change in meaning."
+          }
+        ]
+      }
+    ]
+  },
+  "observation": {
+    "transportOk": true,
+    "generationOk": true,
+    "finishReason": "stop",
+    "providerError": false,
+    "usageComplete": true,
+    "parseOk": true,
+    "parseCode": "parsed",
+    "modelFormatFault": false
+  }
+}

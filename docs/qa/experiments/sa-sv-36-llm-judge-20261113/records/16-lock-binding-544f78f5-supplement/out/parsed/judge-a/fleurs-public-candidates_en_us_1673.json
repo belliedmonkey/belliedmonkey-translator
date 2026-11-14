@@ -1,0 +1,66 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/en_us/1673",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Uses digits '13' instead of words 'thirteen' and replaces an em dash with a comma, but meaning is preserved.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "the thirteen states",
+            "hypQuote": "the 13 states",
+            "reason": "Digits used instead of words for the number thirteen."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "—with the Congress being its only component—",
+            "hypQuote": ", with the Congress being its only component",
+            "reason": "Em dash replaced by a comma and no closing dash, changing punctuation format."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "Uses digits '13' instead of words 'thirteen' and omits a comma after 'government'; also omits the em dash punctuation, but meaning is preserved.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "the thirteen states",
+            "hypQuote": "the 13 states",
+            "reason": "Digits used instead of words for the number thirteen."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "—with the Congress being its only component—",
+            "hypQuote": "with the Congress being its only component",
+            "reason": "Em dash punctuation omitted entirely."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "a weak central government—with the Congress",
+            "hypQuote": "a weak central government with the Congress",
+            "reason": "Comma after 'government' omitted, changing punctuation."
+          }
+        ]
+      }
+    ]
+  },
+  "observation": {
+    "transportOk": true,
+    "generationOk": true,
+    "finishReason": "stop",
+    "providerError": false,
+    "usageComplete": true,
+    "parseOk": true,
+    "parseCode": "parsed",
+    "modelFormatFault": false
+  }
+}

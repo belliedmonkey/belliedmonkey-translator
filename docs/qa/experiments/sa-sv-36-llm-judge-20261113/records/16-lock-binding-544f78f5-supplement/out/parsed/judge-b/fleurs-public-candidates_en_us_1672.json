@@ -1,0 +1,54 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/en_us/1672",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "addition",
+            "refQuote": "Be careful not to allow fabric to become too hot",
+            "hypQuote": "All right, be careful not to allow fabric to become too hot",
+            "reason": "The phrase 'All right,' is present in the candidate but not in the reference, making it an addition."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "(which can cause shrinkage, or in extreme cases, scorch)",
+            "hypQuote": "which can cause shrinkage, or in extreme cases, scorch",
+            "reason": "The reference includes parentheses around the clause, while the candidate omits them; the content and meaning remain the same."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.98,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "(which can cause shrinkage, or in extreme cases, scorch)",
+            "hypQuote": "which can cause shrinkage or in extreme cases, scorch",
+            "reason": "The candidate omits both the parentheses and the comma after 'shrinkage' present in the reference, but the meaning is preserved; this is a minor formatting difference."
+          }
+        ]
+      }
+    ]
+  },
+  "observation": {
+    "transportOk": true,
+    "generationOk": true,
+    "finishReason": "stop",
+    "providerError": false,
+    "usageComplete": true,
+    "parseOk": true,
+    "parseCode": "parsed",
+    "modelFormatFault": false
+  }
+}

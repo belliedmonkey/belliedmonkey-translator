@@ -1,0 +1,60 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "ascend/00055",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "The candidate includes a comma and extra spaces not in the reference, but these are formatting differences that do not affect meaning.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "um",
+            "hypQuote": "嗯",
+            "reason": "The spoken filler 'um' in the reference is transcribed as '嗯' in the candidate, which is a common Mandarin equivalent; this is a surface-level difference in representation."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "运动啊男生",
+            "hypQuote": "运动啊 ，男生",
+            "reason": "The candidate inserts a comma and extra space between '运动啊' and '男生', which is a punctuation and spacing difference, not a semantic change."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "The candidate ends with a period not present in the reference, and omits the initial 'um' filler.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "um",
+            "hypQuote": "",
+            "reason": "The reference begins with 'um', a spoken filler, which is missing in the candidate."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "运动啊男生",
+            "hypQuote": "运动啊男生",
+            "reason": "The text is identical in this segment; the candidate adds a period at the end, which is a minor punctuation difference."
+          }
+        ]
+      }
+    ]
+  },
+  "observation": {
+    "transportOk": true,
+    "generationOk": true,
+    "finishReason": "stop",
+    "providerError": false,
+    "usageComplete": true,
+    "parseOk": true,
+    "parseCode": "parsed",
+    "modelFormatFault": false
+  }
+}

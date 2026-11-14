@@ -1,0 +1,72 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "ascend/00028",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "福建",
+            "hypQuote": "K附件",
+            "reason": "The reference contains '福建', which refers to the Chinese province Fujian, while the candidate has 'K附件', which is a mix of an English letter and a Chinese word meaning 'attachment'. These are different entities."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "福建",
+            "hypQuote": "",
+            "reason": "The candidate does not include the correct term '福建' as in the reference."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": "K",
+            "reason": "The candidate includes an extra letter 'K' not present in the reference."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.85,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "福建",
+            "hypQuote": "附件",
+            "reason": "The reference mentions '福建' (Fujian), a Chinese province, while the candidate says '附件', which means 'attachment' in Chinese. These are semantically different entities."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "福建",
+            "hypQuote": "",
+            "reason": "The term '福建' from the reference is missing in the candidate."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": "附件",
+            "reason": "The candidate includes '附件' (attachment), which is not present in the reference."
+          }
+        ]
+      }
+    ]
+  },
+  "observation": {
+    "transportOk": true,
+    "generationOk": true,
+    "finishReason": "stop",
+    "providerError": false,
+    "usageComplete": true,
+    "parseOk": true,
+    "parseCode": "parsed",
+    "modelFormatFault": false
+  }
+}

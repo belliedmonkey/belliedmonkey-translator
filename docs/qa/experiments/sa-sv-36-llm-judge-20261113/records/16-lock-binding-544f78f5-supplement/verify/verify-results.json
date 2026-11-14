@@ -1,0 +1,487 @@
+{
+  "ok": true,
+  "passed": true,
+  "pack": {
+    "sha256": "d5ebe767adf4b29349f92ec84f9f97b4298c5216bfe4fc5948e6859ad6a27297",
+    "bytes": 24313,
+    "id": "01-PACK-LOCK-BINDING-544f78f5"
+  },
+  "promptTemplateSha256": "a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923",
+  "selectionSha256Canonical": "c151018bfda2953d2375f8cfce25580787745f162824b66f2d7eccec641979a4",
+  "assignmentCanonicalSha256": "3cffd11608d4cf4f721ca410cbd93a2a183d1cc7f2f6659e581524e79fb5f52e",
+  "reserve15": "0.03251712",
+  "budgetUsd": 0.17905768,
+  "criticalFails": [],
+  "otherFails": [],
+  "checks": [
+    {
+      "id": "pack-sha-size",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "sha256": "d5ebe767adf4b29349f92ec84f9f97b4298c5216bfe4fc5948e6859ad6a27297",
+        "bytes": 24313
+      }
+    },
+    {
+      "id": "prompt-sha",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "promptTemplateSha256": "a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923"
+      }
+    },
+    {
+      "id": "v2-同源-contract-parser-scoring",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "assign.js": true,
+        "input-bound.js": true,
+        "parse.js": true,
+        "prompt.js": true,
+        "rubric.js": true,
+        "schema.js": true,
+        "slots-object-adapter.js": true,
+        "verdict-contract.js": true,
+        "README.md": true
+      }
+    },
+    {
+      "id": "run-judge-new-not-75266d0a",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "runJudge": "c8180376c3c35ac3dbf358a03c5f70675443a3a282773864c7c8db8f1e2a9b74"
+      }
+    },
+    {
+      "id": "input-sha",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "sha": "1a44cca3bf05662c8701d943702a35e7fd1a303f9bcd931764775d9057c795a1"
+      }
+    },
+    {
+      "id": "assignment-file-sha",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "sha": "3c54b9c2571ce63b6203d004f3ab2e109da7e7ba39feeda438c88fc8a4e79470"
+      }
+    },
+    {
+      "id": "origin-summary-sha",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "sha": "4744aef13ff5ce3a30680be4fb42604db044073a3e317202c09339d24934365f"
+      }
+    },
+    {
+      "id": "assignment-canonical-sha",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "canonical": "3cffd11608d4cf4f721ca410cbd93a2a183d1cc7f2f6659e581524e79fb5f52e",
+        "fileSha": "3c54b9c2571ce63b6203d004f3ab2e109da7e7ba39feeda438c88fc8a4e79470"
+      }
+    },
+    {
+      "id": "selection-frozen-canonical",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "selectionCanonical": "c151018bfda2953d2375f8cfce25580787745f162824b66f2d7eccec641979a4",
+        "n": 15
+      }
+    },
+    {
+      "id": "origin-parsed-57-15-matches-summary-and-selection",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "succeeded": 57,
+        "failed": 15,
+        "summaryOk": 57,
+        "summaryFail": 15,
+        "summaryMismatch": 0
+      }
+    },
+    {
+      "id": "config-and-reserve",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "reserve15": "0.03251712",
+        "budgetUsd": 0.17905768,
+        "packGpt": 0.0041113600000000005,
+        "packQwen": 0.0018687999999999999
+      }
+    },
+    {
+      "id": "pack-prompts-match-official-v2-requests",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "n": 0
+      }
+    },
+    {
+      "id": "dry-run-code-and-15-selected",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "dry-run",
+        "called": false,
+        "selected": 15,
+        "selSha": "c151018bfda2953d2375f8cfce25580787745f162824b66f2d7eccec641979a4"
+      }
+    },
+    {
+      "id": "dry-run-assignment-frozen",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "itemsEqual": true,
+        "fileSha": "3c54b9c2571ce63b6203d004f3ab2e109da7e7ba39feeda438c88fc8a4e79470"
+      }
+    },
+    {
+      "id": "dry-run-inputBounds",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "all": 72,
+        "selected": 15,
+        "min": 660,
+        "max": 889
+      }
+    },
+    {
+      "id": "synthetic-sends-only-15-not-57",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "sent": 15,
+        "unexpected": []
+      }
+    },
+    {
+      "id": "supplement-complete-does-not-set-original-complete",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "supplement-partial",
+        "ok": false,
+        "singleRunComplete": false,
+        "doubleBlindComplete": false,
+        "supplementComplete": false
+      }
+    },
+    {
+      "id": "derived-cites-origin-57-no-cherrypick",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "originKept": 57,
+        "originRows": 57,
+        "suppRows": 15,
+        "suppNull": 15,
+        "cherryPick": false
+      }
+    },
+    {
+      "id": "origin-untouched-when-out-differs",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "sha": "4744aef13ff5ce3a30680be4fb42604db044073a3e317202c09339d24934365f"
+      }
+    },
+    {
+      "id": "missing-usage-keeps-reserve-and-stops",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "budget-unknown",
+        "calls": 1,
+        "spentUsd": 0.00411136
+      }
+    },
+    {
+      "id": "reject-successful-pair",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "selection-not-failed",
+        "expected": "selection-not-failed",
+        "called": false,
+        "transportCalls": 0,
+        "originUnchanged": true,
+        "outUnchanged": true,
+        "officialUnchanged": true
+      }
+    },
+    {
+      "id": "reject-missing-origin",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "origin-required",
+        "expected": "origin-required",
+        "called": false,
+        "transportCalls": 0,
+        "originUnchanged": true,
+        "outUnchanged": true,
+        "officialUnchanged": true
+      }
+    },
+    {
+      "id": "reject-missing-origin-lock",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "origin-lock-required",
+        "expected": "origin-lock-required",
+        "called": false,
+        "transportCalls": 0,
+        "originUnchanged": true,
+        "outUnchanged": true,
+        "officialUnchanged": true
+      }
+    },
+    {
+      "id": "reject-origin-path-missing",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "origin-missing",
+        "expected": "origin-missing",
+        "called": false,
+        "transportCalls": 0,
+        "originUnchanged": true,
+        "outUnchanged": true,
+        "officialUnchanged": true
+      }
+    },
+    {
+      "id": "reject-arbitrary-summary",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "origin-hash",
+        "expected": "origin-hash",
+        "called": false,
+        "transportCalls": 0,
+        "originUnchanged": true,
+        "outUnchanged": true,
+        "officialUnchanged": true
+      }
+    },
+    {
+      "id": "reject-seed-slot-change",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "seed-mismatch",
+        "expected": "seed-mismatch",
+        "called": false,
+        "transportCalls": 0,
+        "originUnchanged": true,
+        "outUnchanged": true,
+        "officialUnchanged": true
+      }
+    },
+    {
+      "id": "reject-out-equals-origin",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "out-is-origin",
+        "expected": "out-is-origin",
+        "called": false,
+        "transportCalls": 0,
+        "originUnchanged": true,
+        "outUnchanged": true,
+        "officialUnchanged": true
+      }
+    },
+    {
+      "id": "reject-nonempty-out",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "out-not-empty",
+        "expected": "out-not-empty",
+        "called": false,
+        "transportCalls": 0,
+        "originUnchanged": true,
+        "outUnchanged": true,
+        "officialUnchanged": true
+      }
+    },
+    {
+      "id": "reject-out-symlink-to-origin",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "out-is-origin",
+        "expected": "out-is-origin",
+        "called": false,
+        "transportCalls": 0,
+        "originUnchanged": true,
+        "outUnchanged": true,
+        "officialUnchanged": true
+      }
+    },
+    {
+      "id": "reject-out-dotdot-alias-of-origin",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "out-is-origin",
+        "expected": "out-is-origin",
+        "called": false,
+        "transportCalls": 0,
+        "originUnchanged": true,
+        "outUnchanged": true,
+        "officialUnchanged": true
+      }
+    },
+    {
+      "id": "reject-out-nested-in-origin",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "out-is-origin",
+        "expected": "out-is-origin",
+        "called": false,
+        "transportCalls": 0,
+        "originUnchanged": true,
+        "outUnchanged": true,
+        "officialUnchanged": true
+      }
+    },
+    {
+      "id": "nested-out-not-created-inside-origin",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "childOut": "/var/folders/hl/tn2f_lxj3ys9xy4990rrcdb40000gn/T/gate-out-Hwhk0L/child-out"
+      }
+    },
+    {
+      "id": "reject-out-is-parent-of-origin",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "out-is-origin",
+        "expected": "out-is-origin",
+        "called": false,
+        "transportCalls": 0,
+        "originUnchanged": true,
+        "outUnchanged": true,
+        "officialUnchanged": true
+      }
+    },
+    {
+      "id": "parent-out-listing-unchanged",
+      "ok": true,
+      "severity": "critical",
+      "detail": {
+        "before": [
+          "origin"
+        ],
+        "after": [
+          "origin"
+        ]
+      }
+    },
+    {
+      "id": "reject-lock-claiming-success-as-failure-without-origin-parse",
+      "ok": true,
+      "severity": "critical",
+      "detail": {
+        "transportCalls": 0,
+        "code": "origin-lock-mismatch",
+        "called": false,
+        "note": "lock lists must not be free to relabel official successes; pack must read origin parsed/summary or equivalently bind the lists"
+      }
+    },
+    {
+      "id": "official-evidence-unchanged",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "summary": "4744aef13ff5ce3a30680be4fb42604db044073a3e317202c09339d24934365f"
+      }
+    },
+    {
+      "id": "adv-B1-equal-count-swap",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "transportCalls": 0,
+        "code": "origin-lock-mismatch",
+        "called": false,
+        "counts": [
+          57,
+          15
+        ]
+      }
+    },
+    {
+      "id": "adv-B2-duplicate-failed",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "transportCalls": 0,
+        "code": "origin-lock-mismatch",
+        "called": false,
+        "counts": [
+          57,
+          16
+        ]
+      }
+    },
+    {
+      "id": "adv-B3-under-report-failed",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "transportCalls": 0,
+        "code": "selection-not-failed",
+        "called": false,
+        "counts": [
+          57,
+          14
+        ]
+      }
+    },
+    {
+      "id": "adv-B4-all-succeeded",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "transportCalls": 0,
+        "code": "selection-not-failed",
+        "called": false,
+        "counts": [
+          72,
+          0
+        ]
+      }
+    },
+    {
+      "id": "adv-B5-honest-lock-still-accepted",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "transportCalls": 15,
+        "code": "supplement-partial"
+      }
+    }
+  ]
+}
