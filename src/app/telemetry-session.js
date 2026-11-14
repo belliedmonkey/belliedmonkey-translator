@@ -30,6 +30,13 @@ export const SURFACES = ['listen', 'live_caption', 'quick', 'doc', 'web_caption'
 // 登录墙本身不是五个功能面之一：登录墙前的 app_open 仍用这个规则给 surface。
 export const DEFAULT_SURFACE = 'listen';
 
+// BEL-223：live_gate 的取值与发送口映射（注册表同源）。放在这里是为了让「桥 / 探针
+// 的原始 reason → 票面 result」只有一处翻译表；listen-model 只报它看到的原始状态。
+const LIVE_GATE_RESULTS = ['script_missing', 'channel_missing', 'os_below_min', 'no_transcriber',
+  'locale_unsupported', 'probe_timeout', 'ok'];
+const LIVE_GATE_WINDOWS = ['main', 'quick', 'other'];
+const LIVE_GATE_COPY = ['need_os', 'switch_locale', 'other'];
+
 const K = {
   lastSurface: 'tm:lastSurface',
   setupId: 'tm:setupId',
@@ -195,6 +202,53 @@ let currentSurface = '';
 let surfaceFlight = null;
 function validSurface(s) { return SURFACES.indexOf(s) >= 0 && s !== 'web_caption'; }
 
+// BEL-223 live_gate.window：主窗口 / Mac 快译第二窗 / 其它。快译面板是同一个页面以
+// #quick 加载（AppQuick.isQuickMode），它**不走首页这道闸** —— 所以 liveGate() 在
+// quick 窗口里直接不发，避免把第二窗记成「首页灰卡」。
+function isQuickWindow() {
+  try {
+    return !!(typeof AppQuick !== 'undefined' && AppQuick
+      && typeof AppQuick.isQuickMode === 'function' && AppQuick.isQuickMode());
+  } catch (_) { return false; }
+}
+export function windowKind() {
+  if (isQuickWindow()) return 'quick';
+  return 'main';   // App 目前只有主窗与快译第二窗；'other' 留给以后的新窗口
+}
+
+// 注册表 id 型：小写字母 / 数字 / _ / -，≤32。os_version 与 probe_locale 都走
+// 这条（扩展侧 okValue 只认 数组 / int / id，带点的大写串会整条丢掉）。
+function idValue(v) {
+  return String(v == null ? '' : v).toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '_')
+    .replace(/^[_-]+|[_-]+$/g, '')
+    .slice(0, 32);
+}
+
+// os_version：只用能从 UA 可靠读到版本的平台（iOS/iPadOS）。macOS 的 UA 冻结在
+// 10_15_x，读了会得到一个假版本，所以 Mac 上宁可省略并在 RESULT 记「原生桥没报
+// 系统版本」的缺口 —— 不编一个值。
+function osVersionId() {
+  try {
+    const ua = String((typeof navigator !== 'undefined' && navigator.userAgent) || '');
+    if (!/iPhone|iPad|iPod/.test(ua)) return '';
+    const m = /OS (\d+)[._](\d+)(?:[._](\d+))?/.exec(ua);
+    if (!m) return '';
+    return idValue('ios_' + m[1] + '_' + m[2] + (m[3] ? '_' + m[3] : ''));
+  } catch (_) { return ''; }
+}
+function osMajor() {
+  const m = /^ios_(\d+)/.exec(osVersionId());
+  return m ? Number(m[1]) : null;
+}
+
+function liveCopyClass(result) {
+  if (result === 'locale_unsupported') return 'switch_locale';
+  if (result === 'os_below_min' || result === 'no_transcriber'
+      || result === 'script_missing' || result === 'channel_missing') return 'need_os';
+  return 'other';   // ok / probe_timeout：这一刻没有一句新的灰态文案
+}
+
 /** 同步读当前面（还没进过任何面时是首页默认面）。 */
 export function currentSurfaceSync() { return currentSurface || DEFAULT_SURFACE; }
 
@@ -331,18 +385,74 @@ export function noteAuthOk(o) {
     if (!(await telemetryOn())) return false;
     const method = src.method === 'signup' || src.method === 'signin'
       ? src.method : await classifyMethod(src.userId);
-    const surface = currentSurfaceSync();
-    track('auth_ok', { surface, provider, method });
+    // BEL-223：登录成功发生在登录面 —— surface 钉成 login，不再沿用「上次功能面」。
+    // launch_id 与同一次冷启的其他事件共用一个 32-hex id（installLaunchId 也会补，
+    // 这里显式带上是让发送口自身完整、可单测）。
+    track('auth_ok', { surface: 'login', provider, method, launch_id: LAUNCH_ID });
     // 开关打开时才写第一方窄口；与上面的匿名事件同进同退。
     return reportAuthOk({ accessToken: src.accessToken, provider, method });
   })().catch(() => false);
 }
 
 // ── 门 / 领取失败 ──────────────────────────────────────────────────────────
-export function liveGate(surface, ok) {
-  const s = validSurface(surface) ? surface : currentSurfaceSync();
-  // 注册表没有 bool 类型：钉成字符串枚举 'true' / 'false'，不要发 JSON 布尔。
-  track('live_gate', { surface: s, ok: (ok === true || ok === 'true') ? 'true' : 'false' });
+//
+// BEL-223 live_gate：首页入口判定。调用方只报**原始状态**（桥在不在、探针 reason、
+// 这次探针是否复用了上次结论），result / reason_copy_class 的映射收在这一处，
+// 保证「票面 result 枚举 → 代码」只有一张表：
+//   bridgeState: 'script_missing' | 'channel_missing' | 'ok'
+//   probeReason: NativeSpeech.probe() 的 reason（os / locale / timeout / no-bridge / ''）
+// 判断顺序 = 现网：先桥后探针（桥都没有就不探）。
+export function liveGate(info) {
+  const o = (info && typeof info === 'object') ? info : {};
+  // Mac 快译第二窗故意不装识别桥，也不是首页 —— 它不走这道闸，一条都不发。
+  if (isQuickWindow()) return false;
+  const surface = validSurface(o.surface) ? o.surface : currentSurfaceSync();
+  const bridge = (o.bridgeState === 'script_missing' || o.bridgeState === 'channel_missing')
+    ? o.bridgeState : '';
+  let result = LIVE_GATE_RESULTS.indexOf(o.result) >= 0 ? o.result : '';
+  if (!result) {
+    if (bridge) {
+      result = bridge;
+    } else if (o.ok === true || o.ok === 'true') {
+      result = 'ok';
+    } else {
+      const reason = String(o.probeReason || '');
+      if (reason === 'timeout') result = 'probe_timeout';
+      else if (reason === 'locale') result = 'locale_unsupported';
+      else if (reason === 'no-bridge') result = 'channel_missing';
+      // 原生 reason:'os' 同时覆盖「系统低于 26」与「SpeechTranscriber.isAvailable=false」。
+      // UA 能读到 iOS 主版本时，≥26 就归 no_transcriber，否则（含 Mac 读不到版本）归
+      // os_below_min —— 原生桥没有分开报这两个原因，缺口见 RESULT。
+      else if (reason === 'os') result = (osMajor() != null && osMajor() >= 26) ? 'no_transcriber' : 'os_below_min';
+      else result = 'no_transcriber';
+    }
+  }
+  const p = {
+    surface,
+    // 旧 P0 属性照发（1.23.3 老客户端收这个）；result 才是本轮的原因拆分。
+    ok: result === 'ok' ? 'true' : 'false',
+    result: result,
+    window: LIVE_GATE_WINDOWS.indexOf(o.window) >= 0 ? o.window : windowKind(),
+    first_refresh: (o.firstRefresh === true || o.firstRefresh === 'true') ? 'true' : 'false',
+    reused_prior_state: (o.reusedPriorState === true || o.reusedPriorState === 'true') ? 'true' : 'false',
+    launch_id: LAUNCH_ID,
+    reason_copy_class: LIVE_GATE_COPY.indexOf(o.reasonCopyClass) >= 0
+      ? o.reasonCopyClass : liveCopyClass(result),
+  };
+  const osv = idValue(o.osVersion || osVersionId());
+  if (osv) p.os_version = osv;
+  // os_meets_min：调用方能从探针确定就显式给；没给时只按 result 能确定的两种填，
+  // 桥/超时这种「不知道」就省略键 —— 不发一个猜的布尔。
+  let meets = o.osMeetsMin;
+  if (meets === undefined) {
+    if (result === 'ok' || result === 'locale_unsupported') meets = true;
+    else if (result === 'os_below_min' || result === 'no_transcriber') meets = false;
+  }
+  if (meets === true || meets === 'true') p.os_meets_min = 'true';
+  else if (meets === false || meets === 'false') p.os_meets_min = 'false';
+  const loc = idValue(o.probeLocale);
+  if (loc) p.probe_locale = loc;
+  return track('live_gate', p);
 }
 
 // 领取失败的七个码来自 extension 的 grant_err_* 文案键。服务端/传输层会抛更细的
@@ -360,8 +470,36 @@ export function grantClaimCode(code) {
   if (raw === 'busy' || raw === 'rate_limited' || raw === '429') return 'busy';
   return 'unavailable';
 }
-export function grantClaimFail(code) {
-  track('grant_claim_fail', { surface: currentSurfaceSync(), code: grantClaimCode(code) });
+
+// 真实原因（票面五值）。分类依据 = LearnGrant.claim() 抛的 code 与 HTTP status：
+//   offline / network / timeout                    → network
+//   busy / rate_limited / 429                      → busy
+//   revoked / grant_revoked / signed_out / 401/403 → revoked
+//   server / grant_unavailable / grant_misconfigured / 5xx → server
+//   其余（exhausted / invalid / model）                     → other
+export function grantClaimReason(err) {
+  const code = String((err && typeof err === 'object') ? (err.code || '') : (err || '')).toLowerCase();
+  const status = Number(err && typeof err === 'object' ? err.status : 0) || 0;
+  if (code === 'offline' || code === 'network' || code === 'timeout' || code === 'fetch') return 'network';
+  if (code === 'busy' || code === 'rate_limited' || status === 429) return 'busy';
+  if (code === 'revoked' || code === 'grant_revoked' || code === 'signed_out'
+      || code === 'auth' || status === 401 || status === 403) return 'revoked';
+  if (code === 'server' || code === 'grant_unavailable' || code === 'grant_misconfigured'
+      || status >= 500) return 'server';
+  return 'other';
+}
+export function grantClaimFail(err, path) {
+  const reason = grantClaimReason(err);
+  track('grant_claim_fail', {
+    surface: currentSurfaceSync(),
+    // 旧 P0 属性：code 七值照发（1.23.3 老客户端收这个），过渡期两套并存。
+    code: grantClaimCode((err && typeof err === 'object') ? err.code : err),
+    reason: reason,
+    // 文案类别：revoked 走「这份免费额度已经停用了」（票面明确不改）；其余归 retryable。
+    copy_class: reason === 'revoked' ? 'revoked' : 'retryable',
+    // silent = 登录/换号后的自动领取；manual = 设置页按钮。
+    path: path === 'manual' ? 'manual' : 'silent',
+  });
 }
 
 // ── 语言包：setup_id / start / ok / fail / packs_ready ─────────────────────
