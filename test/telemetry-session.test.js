@@ -248,6 +248,44 @@ describe('BEL-223 auth_ok', () => {
     deepEq(events.map((e) => e.props.method), ['signup', 'signin', 'signup']);
   });
 
+  test('登录回执已判定 method=signin ⇒ 直接用，不调用 classifyMethod（不写本机首见）', async () => {
+    const { TS, events, store } = load();
+    await TS.noteAuthOk({
+      provider: 'google', userId: 'u1', accessToken: 't',
+      method: 'signin', methodResolved: true,
+    });
+    eq(events.length, 1);
+    eq(events[0].props.method, 'signin');
+    ok(!('tm:authSeen' in store), '回执已判定时不该再写本机首见历史');
+  });
+
+  test('回执判过但 method 空 ⇒ auth_ok 省略 method 键（空串会被整条拒收）', async () => {
+    const calls = [];
+    const fetch = async (url, init) => { calls.push({ url, init }); return { ok: true, status: 200 }; };
+    const { TS, events, store } = load({ fetch, backend: { url: 'https://bt.test' } });
+    await TS.noteAuthOk({
+      provider: 'email', userId: 'u1', accessToken: 't',
+      method: '', methodResolved: true,
+    });
+    eq(events.length, 1);
+    eq(events[0].name, 'auth_ok');
+    ok(!('method' in events[0].props), 'method 为空必须省略键，不能发空串');
+    eq(events[0].props.surface, 'login');
+    ok(/^[0-9a-f]{32}$/.test(events[0].props.launch_id), 'surface/launch_id 照发');
+    ok(!('tm:authSeen' in store), 'method 判过为空时也不许回头猜');
+    // 第一方窄口：列/正文都传空串（bt_auth_ok.method 是 not null default ''）。
+    eq(calls.length, 1);
+    eq(calls[0].init.headers['x-mt-method'], '');
+    eq(JSON.parse(calls[0].init.body).method, '');
+  });
+
+  test('老调用方（无 methodResolved）仍走 classifyMethod 兼容兜底', async () => {
+    const { TS, events, store } = load();
+    await TS.noteAuthOk({ provider: 'email', userId: 'u-old', accessToken: 't' });
+    eq(events[0].props.method, 'signup');
+    deepEq(store['tm:authSeen'], ['u-old'], '老调用方应仍写本机首见历史');
+  });
+
   test('第一方窄口失败不阻塞：返回 false、不抛、匿名事件照发、debug 不含令牌', async () => {
     const logs = [];
     const fetch = async () => { const e = new Error('network down'); e.name = 'TypeError'; throw e; };
