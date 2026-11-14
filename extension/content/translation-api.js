@@ -11,6 +11,9 @@ var TranslationAPI = (() => {
   const BASE_BACKOFF_MS = 500;
   const JITTER_MS = 400;
   const MAX_RETRIES = 3;
+  // 传输总预算。引擎会通过 opts.budgetMs 传入 STALL_MS - STALL_RESERVE_MS（120s-10s）；
+  // 设置页「测试连接」这类直接调用没有引擎 ctl，用这个默认值，仍然小于 120s watchdog。
+  const DEFAULT_TRANSPORT_BUDGET_MS = 110000;
   // 翻译的输出预算。解析那条是 3000（notes.js，那里有「给推理留头寸」的论证）——
   // 两个值各自待在自己的论证旁边，是这次归并里唯一不该归并的东西。
   const MAX_OUT_TRANSLATION = 2000;
@@ -97,6 +100,43 @@ Rules:
     return proxyProbe;
   }
 
+  // 取消与总截止是两条不同的终态：aborted 是「调用方不要了」，deadline 是「预算用完」。
+  // 两者都不可重试；deadline 仍带 code/timeout + ms + route，便于遥测看到真正的耗时与通路。
+  function abortError() {
+    const e = new Error('translate aborted');
+    e.name = 'AbortError';
+    e.code = 'aborted';
+    e.retryable = false;
+    e.aborted = true;
+    return e;
+  }
+  function deadlineError(url, route) {
+    const e = new Error('translate deadline exceeded');
+    e.code = 'timeout';
+    e.retryable = false;
+    e.deadline = true;
+    if (url) e.url = url;
+    if (route) e.route = route;
+    return e;
+  }
+  function sleepWithSignal(ms, signal) {
+    return new Promise((resolve, reject) => {
+      let timer = null;
+      const onAbort = () => {
+        if (timer) clearTimeout(timer);
+        reject(abortError());
+      };
+      if (signal) {
+        if (signal.aborted) return reject(abortError());
+        signal.addEventListener('abort', onAbort, { once: true });
+      }
+      timer = setTimeout(() => {
+        if (signal) signal.removeEventListener('abort', onAbort);
+        resolve();
+      }, ms);
+    });
+  }
+
   // Same request from the background page, which no page's CSP can reach. A Response
   // cannot cross the message boundary, so the parts `apiFetch` actually reads are sent
   // and a minimal stand-in is rebuilt here — keeping ONE error shape for both paths.
@@ -109,41 +149,66 @@ Rules:
   // handler, so its timeout cannot help. Caught by layout fixture 12 (error-state-column)
   // when §5.5's fallback shipped without this: units stopped settling entirely.
   const proxyAnswerTimeoutMs = () => RequestShape.timeoutMs();
-  async function proxyFetch(url, opts, timeoutMs) {
+  let proxySeq = 0;
+  async function proxyFetch(url, opts, timeoutMs, signal) {
     const o = opts || {};
+    if (signal && signal.aborted) throw abortError();
+    const requestId = 'pf-' + (++proxySeq);
     let timer = null;
-    const r = await Promise.race([
-      chrome.runtime.sendMessage({
-        action: 'proxyFetch', url,
-        init: { method: o.method || 'GET', headers: o.headers, body: o.body },
-        // BEL-257 纵深：后台转发前要判「header 里有 bmg_ 且 host 不是中继」。
-        // 中继 host 由**本 flavor 的注册表**解析，不在 background.js 里写死东京/境内。
-        relayHosts: RequestShape.grantHosts(),
-      }),
-      new Promise((_, reject) => {
-        timer = setTimeout(() => reject(new Error('background did not answer in time')),
-          timeoutMs || proxyAnswerTimeoutMs());
-      }),
-    ]).finally(() => { if (timer) clearTimeout(timer); });
-    if (!r) throw new Error('background did not answer the proxied request');
-    if (r.error) {
-      const err = new Error(r.error);
-      // 后台在 message 边界上只能传字段，Response/Error 都过不去。ABORT 的名字必须
-      // 还原：上层靠 `name==='AbortError'` 把这次失败归成 timeout（BEL-247、ACCEPT-6），
-      // 不然一个「代理超时」会被记成 network，还会被当成「换条路再发一次」的信号。
-      if (r.name) err.name = r.name;
-      if (r.code) err.code = r.code;
-      if (r.name === 'AbortError') err.fromProxyTimeout = true;
-      throw err;
-    }
-    return {
-      ok: !!r.ok, status: r.status, statusText: r.statusText || '',
-      // The RAW header travels, not a parsed number: parseRetryAfter() below is the
-      // single place that interprets it, so the two paths cannot disagree about units.
-      headers: { get: (h) => (String(h).toLowerCase() === 'retry-after' ? (r.retryAfterHeader || null) : null) },
-      json: async () => JSON.parse(r.text || 'null'),
-      text: async () => r.text || '',
+    let onAbort = null;
+    const cancel = () => {
+      try {
+        const p = chrome.runtime.sendMessage({ action: 'cancelProxyFetch', requestId });
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      } catch (_) {}
     };
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        // 调用方已经不等了：后台的 fetch 也不该继续占着一条真实请求。
+        cancel();
+        reject(new Error('background did not answer in time'));
+      }, timeoutMs || proxyAnswerTimeoutMs());
+    });
+    const aborted = new Promise((_, reject) => {
+      if (!signal) return;
+      onAbort = () => { cancel(); reject(abortError()); };
+      signal.addEventListener('abort', onAbort, { once: true });
+    });
+    try {
+      const r = await Promise.race([
+        chrome.runtime.sendMessage({
+          action: 'proxyFetch', url, requestId,
+          init: { method: o.method || 'GET', headers: o.headers, body: o.body },
+          // BEL-257 纵深：后台转发前要判「header 里有 bmg_ 且 host 不是中继」。
+          // 中继 host 由**本 flavor 的注册表**解析，不在 background.js 里写死东京/境内。
+          relayHosts: RequestShape.grantHosts(),
+        }),
+        timeout,
+        aborted,
+      ]);
+      if (!r) throw new Error('background did not answer the proxied request');
+      if (r.error) {
+        const err = new Error(r.error);
+        // 后台在 message 边界上只能传字段，Response/Error 都过不去。ABORT 的名字必须
+        // 还原：上层靠 `name==='AbortError'` 把这次失败归成 timeout（BEL-247、ACCEPT-6），
+        // 不然一个「代理超时」会被记成 network，还会被当成「换条路再发一次」的信号。
+        if (r.name) err.name = r.name;
+        if (r.code) err.code = r.code;
+        if (r.name === 'AbortError') err.fromProxyTimeout = true;
+        throw err;
+      }
+      return {
+        ok: !!r.ok, status: r.status, statusText: r.statusText || '',
+        // The RAW header travels, not a parsed number: parseRetryAfter() below is the
+        // single place that interprets it, so the two paths cannot disagree about units.
+        headers: { get: (h) => (String(h).toLowerCase() === 'retry-after' ? (r.retryAfterHeader || null) : null) },
+        json: async () => JSON.parse(r.text || 'null'),
+        text: async () => r.text || '',
+      };
+    } finally {
+      if (timer) clearTimeout(timer);
+      if (signal && onAbort) signal.removeEventListener('abort', onAbort);
+    }
   }
 
   // A transport failure that never reached a status code. WebKit rejects a
@@ -207,13 +272,20 @@ Rules:
     return (/^http:/i.test(String(url).trim()) ? 'http://' : 'https://') + h;
   }
 
-  async function directFetch(url, opts, timeoutMs) {
+  async function directFetch(url, opts, timeoutMs, signal) {
+    if (signal && signal.aborted) throw abortError();
     const ctrl = new AbortController();
+    let onAbort = null;
+    if (signal) {
+      onAbort = () => ctrl.abort();
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
     const timer = setTimeout(() => ctrl.abort(), timeoutMs || RequestShape.timeoutMs());
     try {
       return await fetch(url, Object.assign({}, opts, { signal: ctrl.signal }));
     } finally {
       clearTimeout(timer);
+      if (signal && onAbort) signal.removeEventListener('abort', onAbort);
     }
   }
 
@@ -244,17 +316,25 @@ Rules:
   //
   // 连请求都没发的失败（no_base / unknown_provider 这类）走不到这里，因此**没有** ms，
   // 上层据此不发这个字段：缺席看得出来。
-  async function apiFetch(url, opts, label, diag, timeoutMs) {
+  async function apiFetch(url, opts, label, diag, timeoutMs, deadline, signal) {
     const startedAt = Date.now();
     try {
-      return await apiFetchInner(url, opts, label, diag, timeoutMs);
+      return await apiFetchInner(url, opts, label, diag, timeoutMs, deadline, signal);
     } catch (e) {
       if (e && typeof e === 'object' && !Number.isInteger(e.ms)) e.ms = Date.now() - startedAt;
       throw e;
     }
   }
 
-  async function apiFetchInner(url, opts, label, diag, timeoutMs) {
+  async function apiFetchInner(url, opts, label, diag, timeoutMs, deadline, signal) {
+    if (signal && signal.aborted) throw abortError();
+    // 每次实际尝试的等待 = min(单次 20s, 总预算剩余)。proxy 与 direct 两段各自重算，
+    // 所以「proxy 20s + direct 20s」不会在预算只剩 5s 时还硬等 40s。
+    const attemptMs = () => {
+      const base = timeoutMs || RequestShape.timeoutMs();
+      if (!deadline) return base;
+      return Math.max(0, Math.min(base, deadline - Date.now()));
+    };
     let resp;
     let usedRoute = null;
     const origin = originOf(url);
@@ -263,40 +343,56 @@ Rules:
     const proxyFirst = known ? known === 'proxy' : await probeProxy();
 
     if (IS_FIREFOX) {
-      try { resp = await proxyFetch(url, opts, timeoutMs); usedRoute = 'proxy'; if (diag) diag.route = 'proxy'; }
-      catch (e) { const e2 = transportError(e, url); e2.route = 'proxy'; throw e2; }
+      const t = attemptMs();
+      if (t <= 0) throw deadlineError(url, 'proxy');
+      try { resp = await proxyFetch(url, opts, t, signal); usedRoute = 'proxy'; if (diag) diag.route = 'proxy'; }
+      catch (e) {
+        if (signal && signal.aborted) throw abortError();
+        const e2 = transportError(e, url);
+        e2.route = 'proxy';
+        if (deadline && Date.now() >= deadline) { e2.deadline = true; e2.code = 'timeout'; }
+        throw e2;
+      }
     } else {
       const first = proxyFirst
-        ? { run: () => proxyFetch(url, opts, timeoutMs), tag: 'proxy' }
-        : { run: () => directFetch(url, opts, timeoutMs), tag: 'direct' };
+        ? { run: (t, sig) => proxyFetch(url, opts, t, sig), tag: 'proxy' }
+        : { run: (t, sig) => directFetch(url, opts, t, sig), tag: 'direct' };
       const second = proxyFirst
-        ? { run: () => directFetch(url, opts, timeoutMs), tag: 'direct' }
-        : { run: () => proxyFetch(url, opts, timeoutMs), tag: 'proxy' };
+        ? { run: (t, sig) => directFetch(url, opts, t, sig), tag: 'direct' }
+        : { run: (t, sig) => proxyFetch(url, opts, t, sig), tag: 'proxy' };
+      const t1 = attemptMs();
+      if (t1 <= 0) throw deadlineError(url, first.tag);
       try {
-        resp = await first.run();
+        resp = await first.run(t1, signal);
         originRoute.set(origin, first.tag);
         usedRoute = first.tag;
         if (diag) diag.route = first.tag;
       } catch (e) {
+        if (signal && signal.aborted) throw abortError();
         const firstErr = transportError(e, url);
+        if (deadline && Date.now() >= deadline) { firstErr.deadline = true; firstErr.code = 'timeout'; }
         // `timeout` 说明请求确实出去了，只是没回来——换条路再发一遍只会把等待翻倍。
         // **例外（ACCEPT-6）**：fromProxyTimeout 是「后台替我们等超时」的那一条，
         // 它必须保留原来的「换直连再试一次」行为；只把遥测类别从 network 改成
         // timeout。超时数值与重试次数一个字都没改（BEL-114 不动）。
         if (firstErr.code !== 'network' && !firstErr.fromProxyTimeout) { firstErr.route = first.tag; throw firstErr; }
         if (first.tag === 'proxy') proxyProbe = null;   // 后台这次不灵，下次重新问
+        const t2 = attemptMs();
+        if (t2 <= 0) { firstErr.deadline = true; firstErr.code = 'timeout'; firstErr.route = first.tag; throw firstErr; }
         try {
-          resp = await second.run();
+          resp = await second.run(t2, signal);
           originRoute.set(origin, second.tag);
           usedRoute = second.tag;
           if (diag) diag.route = second.tag;
         } catch (_) {
+          if (signal && signal.aborted) throw abortError();
           if (second.tag === 'proxy') proxyProbe = null;
           // 两条都不通 ⇒ 报第一条的错，并标记我们已经替用户试过另一条，免得提示里
           // 再让他去查跨域——后台那条本来就不受跨域约束。**不写入 originRoute**：
           // 失败是暂时的，写进去就会毒化后面所有请求。
           firstErr.viaProxy = true;
           firstErr.route = first.tag;
+          if (deadline && Date.now() >= deadline) { firstErr.deadline = true; firstErr.code = 'timeout'; }
           throw firstErr;
         }
       }
@@ -390,7 +486,7 @@ Rules:
   async function callChatAPI(o) {
     const resp = await apiFetch(o.url, {
       method: 'POST', headers: o.headers, body: JSON.stringify(o.body)
-    }, o.label, o.diag, o.timeoutMs);
+    }, o.label, o.diag, o.timeoutMs, o.deadline, o.signal);
     // 正文按 text 读再 parse，而不是 resp.json()：apiFetch 的错误分支也这么读，两边
     // 保持一致，且畸形正文抛的是我们能定位的 SyntaxError 而不是 fetch 内部的。
     const parsed = JSON.parse(await resp.text());
@@ -421,9 +517,9 @@ Rules:
   }
 
   // ─── Provider adapters (all go through apiFetch → uniform error/timeout) ─
-  async function translateGoogle(text, targetLang) {
+  async function translateGoogle(text, targetLang, o) {
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(text)}`;
-    const resp = await apiFetch(url, {}, 'Google');
+    const resp = await apiFetch(url, {}, 'Google', null, o && o.timeoutMs, o && o.deadline, o && o.signal);
     const data = await resp.json();
     return data[0].map(c => c[0]).join('');
   }
@@ -454,7 +550,7 @@ Rules:
 
   // The endpoint is used EXACTLY as stored — no path is appended, ever, under any
   // condition. See content/wire-format.js.
-  function callProvider(provider, text, targetLang, apiKey, baseUrl, model, diag) {
+  function callProvider(provider, text, targetLang, apiKey, baseUrl, model, diag, o) {
     const p = providerById(provider);
     // 认识的 google 引擎才走 google。**不认识的 id 一律具名报错,绝不静默兜底。**
     //
@@ -467,7 +563,7 @@ Rules:
     //
     // 默认值那一头已经由 build.js 的 defaultProviderGate 堵死;这里堵的是另一头:
     // 任何来路的未知 id(旧版本遗留、同步过来的、手改存储的)都必须**可见地失败**。
-    if (p && p.type === 'google') return translateGoogle(text, targetLang);
+    if (p && p.type === 'google') return translateGoogle(text, targetLang, o);
     if (!p) {
       const e = new Error(`unknown provider: ${provider}`);
       e.status = 0; e.code = 'unknown_provider';
@@ -506,7 +602,8 @@ Rules:
     // 没有这两行的话，「我们发了什么」又只能靠读源码或抓包去猜。
     if (diag) { diag.paramRow = req.caps.id; diag.bodyKeys = Object.keys(req.body); }
     return callChatAPI({ diag, url, headers: req.headers, body: req.body,
-      label: p.label || provider, extract: req.extract });
+      label: p.label || provider, extract: req.extract,
+      deadline: o && o.deadline, signal: o && o.signal });
   }
 
   // ─── Cache helpers ────────────────────────────────────────────────────
@@ -553,15 +650,40 @@ Rules:
   let inFlight = 0;
   const queue = [];
 
-  function enqueue(fn) {
-    return new Promise((resolve, reject) => { queue.push({ fn, resolve, reject }); drain(); });
+  function enqueue(fn, opts) {
+    const o = opts || {};
+    return new Promise((resolve, reject) => {
+      const entry = {
+        fn, resolve, reject, started: false,
+        signal: o.signal || null, onStart: o.onStart || null, onAbort: null,
+      };
+      if (entry.signal) {
+        if (entry.signal.aborted) { reject(abortError()); return; }
+        // 还在排队就被取消：直接出队，**不发**这个请求，也不占并发槽。
+        entry.onAbort = () => {
+          if (entry.started) return;
+          const i = queue.indexOf(entry);
+          if (i >= 0) queue.splice(i, 1);
+          reject(abortError());
+        };
+        entry.signal.addEventListener('abort', entry.onAbort, { once: true });
+      }
+      queue.push(entry);
+      drain();
+    });
   }
   function drain() {
     // 每轮重读：调高立刻生效。调低无法抢占已经在飞的请求 —— 那点写在设置页的 hint 里。
     while (inFlight < RequestShape.maxConcurrent() && queue.length > 0) {
-      const { fn, resolve, reject } = queue.shift();
+      const entry = queue.shift();
+      entry.started = true;
+      if (entry.signal && entry.onAbort) entry.signal.removeEventListener('abort', entry.onAbort);
+      if (entry.signal && entry.signal.aborted) { entry.reject(abortError()); continue; }
+      // onStart 是「真正开始执行」的信号：引擎的 watchdog 与传输的 deadline 都从这里起算，
+      // 排队等待不再被算成执行时间。
+      if (entry.onStart) { try { entry.onStart(); } catch (_) {} }
       inFlight++;
-      fn().then(resolve, reject).finally(() => { inFlight--; drain(); });
+      entry.fn().then(entry.resolve, entry.reject).finally(() => { inFlight--; drain(); });
     }
   }
 
@@ -605,12 +727,18 @@ Rules:
       if (stored) { memCache.set(key, { v: stored, ts: Date.now() }); return stored; }
     }
 
+    const signal = opts && opts.signal;
     const result = await enqueue(async () => {
+      // 绝对截止从**出队真正执行**时起算（enqueue 已调用 onStart）。引擎重试复用同一个
+      // 绝对 deadline，所以「传输 3 次 + 引擎 3 次」不会叠成 6 个新预算。
+      const deadline = (opts && opts.deadline) || (Date.now() + ((opts && opts.budgetMs) || DEFAULT_TRANSPORT_BUDGET_MS));
       let retries = 0;
       while (retries < MAX_RETRIES) {
+        if (signal && signal.aborted) throw abortError();
         try {
-          return await callProvider(provider, text, targetLang, apiKey, baseUrl, model, opts && opts.diag);
+          return await callProvider(provider, text, targetLang, apiKey, baseUrl, model, opts && opts.diag, { deadline, signal });
         } catch (err) {
+          if (signal && signal.aborted) throw abortError();
           retries++;
           if (retries >= MAX_RETRIES) {
             // NO SILENT FALLBACK. This used to hand a failed provider off to the free
@@ -641,11 +769,15 @@ Rules:
           // 4xx 里只有 408（超时）和 429（限流）值得再试，其余是我们发错了，重发一遍
           // 还是错。
           if (!isRetryable(err)) throw err;
+          // 截止或取消是终态：再退避/再发一轮只会把失败推得比 watchdog 更晚。
+          if (err && (err.deadline || err.aborted)) throw err;
           const backoff = (err && err.retryAfter != null) ? err.retryAfter : Math.pow(2, retries) * BASE_BACKOFF_MS;
-          await new Promise(r => setTimeout(r, backoff + Math.random() * JITTER_MS));
+          const left = deadline - Date.now();
+          if (left <= 0) { if (err && typeof err === 'object') { err.deadline = true; err.code = 'timeout'; } throw err; }
+          await sleepWithSignal(Math.min(backoff + Math.random() * JITTER_MS, left), signal);
         }
       }
-    });
+    }, { signal, onStart: opts && opts.onStart });
 
     if (!noCache) cacheSet(key, result);
     return result;

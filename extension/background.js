@@ -136,12 +136,21 @@ function hostOfUrl(url) {
   try { return new URL(String(url)).hostname.toLowerCase(); } catch (_) { return ''; }
 }
 {
+  // 内容层在 watchdog / 队列取消时会发 cancelProxyFetch。没有这张表，后台的 fetch
+  // 会继续跑到自己的 20s 超时——取消只停在了 message 边界这一侧。
+  const proxyAborts = new Map();
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // 「在吗」探针。内容脚本用它在**发第一个请求之前**判断后台是否可达，从而选路
     // （domain-design §5.5）。为什么需要它：proxyFetch 的等待上限必须覆盖整个往返
     // （后台替调用方打完 API 才回话，20 秒量级），所以那个超时没法用来判断「worker
     // 是不是死了」——真死了的话每段都要干等 20 秒。探针是纯本地 IPC，毫秒级。
     if (msg && msg.action === 'ping') { sendResponse({ ok: true }); return; }
+    if (msg && msg.action === 'cancelProxyFetch') {
+      const c = proxyAborts.get(msg.requestId);
+      if (c) { proxyAborts.delete(msg.requestId); try { c.abort(); } catch (_) {} }
+      sendResponse({ ok: true });
+      return;
+    }
     if (!msg || msg.action !== 'proxyFetch') return;
     // **在 fetch 之前**判。没有中继 host 列表 = fail-closed（老内容脚本/缓存页在
     // 升级窗口里会看到一次具名失败，但令牌不会外发；刷新页面即恢复）。
@@ -153,6 +162,7 @@ function hostOfUrl(url) {
     }
     (async () => {
       const ctrl = new AbortController();
+      if (msg.requestId) proxyAborts.set(msg.requestId, ctrl);
       const timer = setTimeout(() => ctrl.abort(), PROXY_TIMEOUT_MS);
       try {
         const r = await fetch(msg.url, Object.assign({}, msg.init, { signal: ctrl.signal }));
@@ -169,6 +179,7 @@ function hostOfUrl(url) {
         sendResponse({ error: String((e && e.message) || e), name: (e && e.name) || '', code: (e && e.code) || '' });
       } finally {
         clearTimeout(timer);
+        if (msg.requestId) proxyAborts.delete(msg.requestId);
       }
     })();
     return true;
