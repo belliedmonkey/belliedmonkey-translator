@@ -222,6 +222,15 @@ describe('build.js — 两条路都要在', () => {
       'switchBackend 丢掉了命中数检查 —— 静默替换 0 处会产出一个「说自己是中国版、'
       + '其实还在打东京」的包，而那在产物里完全看不出来');
   });
+
+  test('★ switchBackend 对空 previousUrl fail closed（BEL-260 禁止项）', () => {
+    const start = BUILD.indexOf('function switchBackend');
+    const end = BUILD.indexOf('function limitProviders');
+    ok(start >= 0 && end > start, 'switchBackend 边界变了');
+    const fn = BUILD.slice(start, end);
+    ok(/if \(!prev\)/.test(fn), '空 previousUrl 没有被拒绝 —— 它会让 priorBackend() 退成当前后端');
+    ok(/process\.exit\(1\)/.test(fn), '空 previousUrl 没有 exit 1');
+  });
 });
 
 describe('backend.config.js — build-time injection (BEL-172)', () => {
@@ -275,6 +284,30 @@ describe('backend.config.js — build-time injection (BEL-172)', () => {
     throws(() => INJECT.resolve('/tmp/no-such-root', {
       MT_BACKEND_URL: 'https://same.example', MT_CHINA_BACKEND_URL: 'https://same.example',
     }), '两个 flavor 共用同一后端');
+  });
+
+  test('resolve 记录来源 env / file / none —— 失败日志只打来源，不打值', () => {
+    const root = fs.mkdtempSync(path.join(require('os').tmpdir(), 'mt-b259-src-'));
+    try {
+      const fromEnv = INJECT.resolve(root, {
+        MT_BACKEND_URL: 'https://env-source.example',
+        MT_BACKEND_ANON_KEY: 'FAKE_NOT_A_JWT',
+      });
+      eq(fromEnv.sources.url, 'env');
+      eq(fromEnv.sources.anonKey, 'env');
+      eq(fromEnv.sources.chinaUrl, 'none');
+
+      const local = path.join(root, '.local');
+      fs.mkdirSync(local);
+      fs.writeFileSync(path.join(local, 'backend.env'),
+        'MT_CHINA_BACKEND_URL=https://file-source.example\n');
+      const fromFile = INJECT.resolve(root, {});
+      eq(fromFile.sources.chinaUrl, 'file');
+      eq(fromFile.chinaUrl, 'https://file-source.example');
+      eq(fromFile.sources.url, 'none');
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 
   test('build.js 在 copy 之后、china override 之前注入', () => {

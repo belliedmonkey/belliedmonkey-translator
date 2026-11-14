@@ -416,6 +416,44 @@ describe('后端换了 ⇒ 主库由这次登录的人接管（中国版切境�
     eq(await A.bindCorpus({ userId: 'u-cn', backend: CN }), 'mt-learn');
     eq(stored.learnDbOwnerBackend, CN); ok(!('learnRehome' in stored), '首次认领不是改户');
   });
+
+  // ─── BEL-260（2026-11-14 用户认关）：CN previousUrl 保持 .invalid 哨兵 ──────
+  //
+  // 这一组是「反向钉」：空 previousUrl 今天仍会丢可见性（所以构建门禁止空值），
+  // 而 .invalid 哨兵今天就能正确接管。两条都必须能被证伪。
+  test('★ previousUrl 为空 + 东京主库 + CN 账号 ⇒ 空库、owner 仍是 u-tokyo、无 rehome', async () => {
+    const { A, stored } = loadRehome({ learnDbOwner: 'u-tokyo' }, { url: CN, previousUrl: '' });
+    eq(await A.bindCorpus({ userId: 'u-cn', backend: CN }), 'mt-learn-u-cn',
+      '空 previousUrl 退成 CN，于是不接管、给 CN 账号一个空库');
+    eq(stored.learnDbOwner, 'u-tokyo', '空值不该动旧 owner');
+    ok(!('learnDbOwnerBackend' in stored), '空值不该写认领后端');
+    ok(!('learnRehome' in stored), '空值不该留接管待办');
+  });
+
+  test('★ .invalid 哨兵 + 同一 stored ⇒ mt-learn、owner u-cn、learnRehome=u-cn', async () => {
+    const { A, stored } = loadRehome({ learnDbOwner: 'u-tokyo' },
+      { url: CN, previousUrl: 'https://backend.invalid' });
+    eq(await A.bindCorpus({ userId: 'u-cn', backend: CN }), 'mt-learn');
+    eq(stored.learnDbOwner, 'u-cn');
+    eq(stored.learnDbOwnerBackend, CN);
+    eq(stored.learnRehome, 'u-cn');
+  });
+
+  test('已 CN 认领 + .invalid 哨兵 ⇒ 不再接管、无 rehome（防二次迁移）', async () => {
+    const { A, stored } = loadRehome({ learnDbOwner: 'u-cn', learnDbOwnerBackend: CN },
+      { url: CN, previousUrl: 'https://backend.invalid' });
+    eq(await A.bindCorpus({ userId: 'u-cn2', backend: CN }), 'mt-learn-u-cn2');
+    eq(stored.learnDbOwner, 'u-cn', '第二次登录改写了 owner');
+    ok(!('learnRehome' in stored), '第二次登录又留了 rehome');
+  });
+
+  test('★ previousUrl 从不写进 storage', async () => {
+    const { A, stored } = loadRehome({ learnDbOwner: 'u-tokyo' },
+      { url: CN, previousUrl: 'https://backend.invalid' });
+    await A.bindCorpus({ userId: 'u-cn', backend: CN });
+    ok(!('previousUrl' in stored), 'previousUrl 被写进了 storage');
+    eq(stored.learnDbOwnerBackend, CN, '写回的必须是当前后端，不是哨兵');
+  });
 });
 
 // ─── 登录失败埋点（telemetry-design §3.14，2026-10-02）──────────────────────────

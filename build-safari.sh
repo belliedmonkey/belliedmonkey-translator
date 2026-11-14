@@ -42,6 +42,17 @@ if [ "$PLATFORM" != "ios" ] && [ "$PLATFORM" != "macos" ]; then
   echo "❌ 未知 platform：$PLATFORM（可选 ios | macos）"; exit 1
 fi
 
+# BEL-259: MT_ALLOW_PLACEHOLDER_BACKEND=1 only exists for local, unpacked preview.
+# This script produces the Xcode project that is archived and uploaded, so it must
+# never inherit the escape hatch. Refuse loudly (rather than silently unsetting it)
+# so a preview shell cannot leak into a shipping build.
+if [ "${MT_ALLOW_PLACEHOLDER_BACKEND:-}" = "1" ]; then
+  echo "❌ MT_ALLOW_PLACEHOLDER_BACKEND=1 只用于本地预览，不能走 Safari 工程/归档路径。"
+  echo "   请 unset MT_ALLOW_PLACEHOLDER_BACKEND 后重跑。"
+  exit 1
+fi
+unset MT_ALLOW_PLACEHOLDER_BACKEND
+
 DISPLAY_NAME="大肚猴翻译"              # 主屏/程序坞显示名(两个 flavor 相同)
 # App Store Connect 里的主类别是「工具」——macOS 上架强制要求 Info.plist 声明,
 # 且必须与 ASC 的类别一致,否则审核会挑(缺失则直接上传失败 code 90242)。

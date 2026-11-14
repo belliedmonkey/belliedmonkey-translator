@@ -2883,3 +2883,75 @@ describe('C5 China gate: no international maas host in the China app tree', () =
     eq(hits.length, 0, '中国版 ViewController.swift 里出现了 maas：' + hits.join(', '));
   });
 });
+
+// ─── BEL-259（2026-11-14）：构建门 + 上传前产物断言 ─────────────────────────
+//
+// 这些是「流程门」：gate 必须在写产物之前、逃生阀必须带 marker 且拒绝发布上下文、
+// 三条上传路径必须接同一份产物断言。它们只能靠源码形状钉住 —— 真跑 build.js 需要
+// 一棵独立 worktree（见订单「build smoke 只在临时 worktree」）。
+describe('BEL-259: 构建门与发布前产物断言', () => {
+  const ROOT = path.join(__dirname, '..');
+  const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
+  const BUILD = read('build.js');
+  const SAFARI = read('build-safari.sh');
+  const RG = read('scripts/lib/release-gate.js');
+
+  test('★ gate 在 fs.rmSync(DIST) / copyDir(SRC, DIST) 之前', () => {
+    const gate = BUILD.indexOf('backendInject.assertShippable(');
+    const clean = BUILD.indexOf('if (fs.existsSync(DIST)) fs.rmSync(DIST');
+    const copy = BUILD.indexOf('copyDir(SRC, DIST);');
+    ok(gate >= 0, 'build.js 没有 assertShippable 调用');
+    ok(clean >= 0 && copy >= 0, 'clean/copy 锚点变了');
+    ok(gate < clean && gate < copy, 'gate 不在写产物之前 —— 失败会留下旧产物/半成品');
+  });
+
+  test('逃生阀：只认 1、发布上下文拒绝、强制 SKIP_ZIP、双 marker', () => {
+    ok(/const PLACEHOLDER = backendInject\.placeholderMode\(process\.env\)/.test(BUILD));
+    ok(/PLACEHOLDER\.refused/.test(BUILD), '发布上下文拒绝不见了');
+    ok(/SKIP_ZIP = 'placeholder backend allowed/.test(BUILD), '逃生阀没有强制 SKIP_ZIP');
+    ok(/const MARKER_DIRS = \[DIST, path\.join\(ROOT, APP_OUT_NAME\)\]/.test(BUILD),
+      'marker 没有同时覆盖 DIST 与 dist-app*');
+    ok(/fs\.writeFileSync\(path\.join\(d, '\.not-shippable'\)/.test(BUILD));
+  });
+
+  test('App 包 ad-hoc previousUrl 正则已删除，改走共享断言', () => {
+    ok(!/split\('\\n'\)\.filter\(\(l\) => !\/\^  previousUrl: '/.test(BUILD));
+    ok(/assertBackendInjected\(\{ dist: path\.join\(ROOT, APP_OUT\), flavor: 'china' \}\)/.test(BUILD));
+  });
+
+  test('build-safari.sh 拒绝并 unset 逃生阀', () => {
+    ok(/if \[ "\$\{MT_ALLOW_PLACEHOLDER_BACKEND:-\}" = "1" \]/.test(SAFARI), '没有拒绝分支');
+    ok(/unset MT_ALLOW_PLACEHOLDER_BACKEND/.test(SAFARI), '没有 unset 逃生阀');
+  });
+
+  test('三条发布路径：版本门之后、上传/发布之前调 assertBackendInjected', () => {
+    ok(/function assertBackendInjected/.test(RG), 'release-gate.js 没有共享断言');
+    ok(/function checkBackendInjected/.test(RG), 'release-gate.js 没有可测的纯检查函数');
+    const checks = [
+      ['scripts/amo-publish.js', 'const fd = new FormData()'],
+      ['scripts/cws-publish.js', "api(token, 'PUT'"],
+      ['scripts/gh-release.js', 'sh(`gh release create'],
+    ];
+    for (const [file, upload] of checks) {
+      const src = read(file);
+      const versionGate = src.indexOf('assertVersionIntegrity(');
+      const backendGate = src.indexOf('assertBackendInjected(');
+      const up = src.indexOf(upload);
+      ok(backendGate >= 0, `${file} 没接 assertBackendInjected`);
+      ok(versionGate >= 0 && backendGate > versionGate, `${file}: 后端断言没有排在版本门之后`);
+      ok(up >= 0 && backendGate < up, `${file}: 后端断言没有排在上传/发布之前`);
+    }
+  });
+
+  test('verify-backend-injected.js 是共享 checker 的 CLI，且支持 --dist', () => {
+    const src = read('scripts/verify-backend-injected.js');
+    ok(/checkBackendInjected/.test(src));
+    ok(/--dist/.test(src) && /--flavor/.test(src));
+  });
+
+  test('★ china-gate 公开门没有 previousUrl 豁免（BEL-260 保持 .invalid）', () => {
+    const gate = read('build/china-gate.js');
+    ok(!/previousUrl|allowPreviousUrl/.test(gate),
+      'china-gate 出现了 previousUrl 豁免 —— 用户裁定不削弱公开不变量');
+  });
+});
