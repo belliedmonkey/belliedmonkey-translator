@@ -29,6 +29,20 @@ const COMMON = {
 // web_caption（网页字幕）。新增值 = 改提案 + 过评审 + 同步 docs §3，不是顺手加。
 const SURFACES = ['listen', 'live_caption', 'quick', 'doc', 'web_caption'];
 
+// BEL-226（2026-11-14）：语言包下载的入口面。与上面五个**功能面**并列登记：
+//   first_run_packs = 首启「下载并继续」那一屏
+//   settings_packs  = 设置页 › 语言包管理（openPackManager）
+// 旧 P0 客户端发的是功能面（listen / …），所以枚举是**并集**，不是替换 —— 删旧值会让
+// 1.23.3 老行在回读时被当成非法。值与 src/app/telemetry-session.js 的 PACK_SURFACES 同源。
+const PACK_SURFACES = SURFACES.concat(['first_run_packs', 'settings_packs']);
+
+// BEL-226：下载单元与失败原因。pack_kind 四种 = 票面；reason 六值 = 票面的错误分类。
+// pack_id 用 'id' 型（小写字母/数字/_/-, ≤32）：共享包 tts:zh-en 在这里写成 tts_zh_en
+// —— 扩展冻结的 okValue 只认 /^[a-z0-9_-]{1,32}$/，冒号会让**整条**事件被丢掉。
+const PACK_KINDS = ['asr', 'tts', 'lid', 'vad'];
+const PACK_SOURCES = ['system', 'github', 'modelscope', 'other'];
+const PACK_FAIL_REASONS = ['network', 'timeout', 'disk', 'hash', 'unsupported', 'other'];
+
 // BEL-247（2026-11-13）：translate_ok 与 translate_fail 共用的**同一个** kind 枚举。
 // 以前只有 ok 有 kind，失败那条无法按功能面拆成功率；复制一份枚举就是下一次漂移的起点，
 // 所以抽成常量、两边引用。加一个值 = 改这里 + docs/telemetry-design.md §3。
@@ -180,16 +194,73 @@ const EVENTS = {
   // （uuid 去掉连字符的 32-hex 同义标识）。**卡面写 UUID，因扩展冻结只能用 id 规则** ——
   // 36 字符带连字符的 uuid 过不了扩展的 /^[a-z0-9_-]{1,32}$/，pack_* / packs_ready 会被
   // 整条丢掉；旧 uuid 值由 App 迁移成 32-hex（同一标识，不换新的）。
-  // fail 的 code 用 id 型（小写字母/数字/_/-, ≤32），不塞系统长文或路径。
-  pack_download_start: { setup_id: 'id', surface: SURFACES },
-  pack_download_ok: { setup_id: 'id', surface: SURFACES },
-  pack_download_fail: { setup_id: 'id', surface: SURFACES, code: 'id' },
-  // 「包齐了」的过渡（BEL-226）：按过渡去重（同一 setup_id + ready_kind 只发一次）。
-  // ready_kind 取 `src/app/firstrun.js` readiness() 的分项 kind（base / asr / tts）加
-  // `all`（全就绪）；required / ready 是这一轮要求数与已就绪数，用整数，不记语言名单。
+  //
+  // 2026-11-14（BEL-226 补全）：每个**真正去下的资源**一条 start/ok/fail，不按字节进度发。
+  //   pack_kind  asr / tts / lid / vad
+  //   pack_id    短标识；共享包（中英朗读）用显式共享 id `tts_zh_en`，泰语 `tts_th`，
+  //              识别包 `asr_<lang>`。用 'id' 型（不是 uuid）：见上面 32-hex 那条。
+  //   locale     语言短码（共享包写 zh-en；lid / vad 没有语言，键可缺）
+  //   download_id 本次下载尝试的 32-hex；start/ok/fail 三态共用
+  //   launch_id  本次打开 App 的 32-hex
+  //   source     system（系统语音资产）/ github / modelscope / other（含自家中继：
+  //              真实托管由服务端按 IP 选，客户端看不见 ⇒ 只报 other，不猜）
+  //   attempt    同一 setup 内同一 pack_id 的第几次尝试（持久化、跨启动继续）
+  // 旧 P0 属性 `setup_id` / `surface` 照发；`code` 在 fail 上保留，收 1.23.3 老客户端的行。
+  pack_download_start: {
+    setup_id: 'id',
+    surface: PACK_SURFACES,
+    pack_kind: PACK_KINDS,
+    pack_id: 'id',
+    locale: 'id',
+    download_id: 'id',
+    launch_id: 'id',
+    source: PACK_SOURCES,
+    attempt: 'int',
+  },
+  pack_download_ok: {
+    setup_id: 'id',
+    surface: PACK_SURFACES,
+    pack_kind: PACK_KINDS,
+    pack_id: 'id',
+    locale: 'id',
+    download_id: 'id',
+    launch_id: 'id',
+    source: PACK_SOURCES,
+    attempt: 'int',
+  },
+  pack_download_fail: {
+    setup_id: 'id',
+    surface: PACK_SURFACES,
+    pack_kind: PACK_KINDS,
+    pack_id: 'id',
+    locale: 'id',
+    download_id: 'id',
+    launch_id: 'id',
+    source: PACK_SOURCES,
+    attempt: 'int',
+    // 六值真实原因；`code` 是旧 P0 的 id 型码（timeout / tts_failed / base_failed /
+    // download …），过渡期同发。原始报错 / URL 永远不进 reason 或 code。
+    reason: PACK_FAIL_REASONS,
+    code: 'id',
+  },
+  // 「包齐了」的过渡（BEL-226）：**整套所需资源**都校验就绪时记一条；单语言下完不能代替。
+  // 按 setup_id + selection_id 的就绪过渡去重（同一 selection 只发一次；未齐不发；
+  // 从不齐再变齐可再记）。旧 P0 的 ready_kind（base/asr/tts/all）与 required/ready 保留，
+  // 新客户端发 downloaded/preexisting/mixed + 分项计数；旧值仍在枚举里收老行。
   packs_ready: {
     setup_id: 'id',
-    ready_kind: ['base', 'asr', 'tts', 'all'],
+    selection_id: 'id',       // 所需 kind/id/locale 集合的稳定派生（32-hex）
+    launch_id: 'id',
+    surface: PACK_SURFACES,
+    ready_kind: ['base', 'asr', 'tts', 'all', 'downloaded', 'preexisting', 'mixed'],
+    asr_required: 'int',
+    asr_ready: 'int',
+    tts_required: 'int',
+    tts_ready: 'int',
+    base_ready: ['true', 'false'],
+    required_count: 'int',
+    ready_count: 'int',
+    // 旧 P0 字段（1.23.3 老客户端）：整批要求数 / 已就绪数。
     required: 'int',
     ready: 'int',
   },
@@ -473,4 +544,4 @@ const FORBIDDEN_KEY_WORDS = ['url', 'href', 'text', 'title', 'email', 'user', 'u
 
 const LIMITS = { batch: 50, eventBytes: 1024, bodyBytes: 64 * 1024, perMinute: 60, strMax: 64 };
 
-module.exports = { COMMON, EVENTS, SEAMS, FORBIDDEN_KEY_WORDS, LIMITS, TRANSLATE_KINDS, SURFACES };
+module.exports = { COMMON, EVENTS, SEAMS, FORBIDDEN_KEY_WORDS, LIMITS, TRANSLATE_KINDS, SURFACES, PACK_SURFACES, PACK_KINDS, PACK_SOURCES, PACK_FAIL_REASONS };

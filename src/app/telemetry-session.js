@@ -34,11 +34,12 @@ const K = {
   lastSurface: 'tm:lastSurface',
   setupId: 'tm:setupId',
   packsReady: 'tm:packsReady',
+  packAttempts: 'tm:packAttempts',
+  packDownloaded: 'tm:packDownloaded',
   authSeen: 'tm:authSeen',
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const ID_RE = /^[a-z0-9_-]{1,32}$/;
 const HEX32_RE = /^[0-9a-f]{32}$/;
 
 // 32-hex 同义标识：uuid 去掉连字符。**卡面写 UUID，因扩展冻结只能用 id 规则** ——
@@ -398,44 +399,277 @@ export function setupId() {
   return setupFlight;
 }
 
-function packSurface(surface) { return validSurface(surface) ? surface : currentSurfaceSync(); }
-export async function packStart(surface) {
-  const setup = await setupId();
-  track('pack_download_start', { setup_id: setup, surface: packSurface(surface) });
-  return setup;
+// BEL-226：下载入口面 + 单元字段的客户端归一化。注册表同源（build/telemetry.config.js）。
+const PACK_SURFACES = SURFACES.concat(['first_run_packs', 'settings_packs']);
+const PACK_KINDS = ['asr', 'tts', 'lid', 'vad'];
+const PACK_SOURCES = ['system', 'github', 'modelscope', 'other'];
+const PACK_FAIL_REASONS = ['network', 'timeout', 'disk', 'hash', 'unsupported', 'other'];
+
+function packSurface(surface) {
+  const s = String(surface || '');
+  // 旧 P0 客户端发功能面（listen / …）；枚举是并集，所以这里也接受，不把老的行变成非法。
+  if (PACK_SURFACES.indexOf(s) >= 0) return s;
+  return 'first_run_packs';
 }
-export async function packOk(surface) {
-  const setup = await setupId();
-  track('pack_download_ok', { setup_id: setup, surface: packSurface(surface) });
-  return setup;
+function packKindOf(id, kind) {
+  if (PACK_KINDS.indexOf(kind) >= 0) return kind;
+  const p = String(id || '');
+  if (p.indexOf('tts') === 0) return 'tts';
+  if (p.indexOf('asr') === 0) return 'asr';
+  if (p.indexOf('lid') === 0) return 'lid';
+  if (p.indexOf('vad') === 0) return 'vad';
+  return 'asr';
 }
-export async function packFail(surface, code) {
-  const setup = await setupId();
-  const c = String(code || '').toLowerCase();
-  // 注册表是 'id' 型（小写字母/数字/_/-，≤32）。不塞系统长文或路径。
-  const safe = ID_RE.test(c) ? c : 'download';
-  track('pack_download_fail', { setup_id: setup, surface: packSurface(surface), code: safe });
-  return setup;
+// 'id' 型：小写字母 / 数字 / _ / -，≤32。共享包 tts:zh-en 在这里是 tts_zh_en ——
+// 冒号过不了冻结扩展的 okValue，整条事件会被丢（setup_id 32-hex 同一条理由）。
+function packIdValue(v, kind) {
+  const s = String(v == null ? '' : v).toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '_')
+    .replace(/^[_-]+|[_-]+$/g, '')
+    .slice(0, 32);
+  return s || (kind === 'tts' ? 'tts' : kind);
+}
+// locale 也走 'id' 型；没有语言（lid / vad）就是空串，不编一个值。
+function packLocaleValue(v) {
+  return String(v == null ? '' : v).toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '_')
+    .replace(/^[_-]+|[_-]+$/g, '')
+    .slice(0, 32);
+}
+function sourceValue(source) {
+  return PACK_SOURCES.indexOf(source) >= 0 ? source : 'other';
+}
+function packInfo(info) {
+  // 兼容旧调用形状 packStart('listen')（1.23.3 只有 surface）。新调用传完整对象。
+  const i = (typeof info === 'string') ? { surface: info } : (info || {});
+  const kind = packKindOf(i.pack_id, i.pack_kind);
+  return {
+    pack_kind: kind,
+    pack_id: packIdValue(i.pack_id, kind),
+    locale: packLocaleValue(i.locale),
+    surface: packSurface(i.surface),
+    source: sourceValue(i.source),
+  };
+}
+function packFields(info, setup, downloadId, attempt) {
+  const p = {
+    setup_id: setup,
+    surface: info.surface,
+    pack_kind: info.pack_kind,
+    pack_id: info.pack_id,
+    download_id: downloadId,
+    launch_id: LAUNCH_ID,
+    source: info.source,
+    attempt: attempt,
+  };
+  if (info.locale) p.locale = info.locale;
+  return p;
 }
 
-// 一条流程的齐态缓存：先把上次落盘的「哪些 kind 已经齐过」读回来，再逐 kind 比较。
-// 只在 false → true 的那一次发；true → false 只更新缓存（不发）；之后再变齐可以再发。
-// 这样同一 setup 从「未齐」到「齐」只记一条，从「齐」变「不齐」再变「齐」可再记。
+// attempt：同一 setup 内按 pack_id 递增，落盘 ⇒ 跨启动继续（上次断在第 2 次，这次是 3）。
+let attemptCache = null;
+let attemptChain = Promise.resolve();
+async function attemptCacheOnce() {
+  if (attemptCache) return attemptCache;
+  const r = await sget([K.packAttempts]);
+  const v = r[K.packAttempts];
+  const sid = normalizeSetupId(v && v.setup_id);
+  attemptCache = (sid && v && v.counts && typeof v.counts === 'object')
+    ? { setup_id: sid, counts: Object.assign({}, v.counts) }
+    : { setup_id: '', counts: {} };
+  return attemptCache;
+}
+async function nextAttempt(setup, packId) {
+  const run = attemptChain.then(async () => {
+    const c = await attemptCacheOnce();
+    if (c.setup_id !== setup) { c.setup_id = setup; c.counts = {}; }
+    const n = (Number(c.counts[packId]) || 0) + 1;
+    c.counts[packId] = n;
+    await sset({ [K.packAttempts]: c });
+    return n;
+  });
+  attemptChain = run.catch(() => {});
+  return run;
+}
+
+// 本次 setup 内哪些 pack 是**新下的**（pack_download_ok 过）：packs_ready 的 ready_kind
+// 靠它分 downloaded / preexisting / mixed。持久化 ⇒ 跨启动仍知道「上次下过这个包」。
+let downloadedCache = null;
+let downloadedChain = Promise.resolve();
+async function downloadedCacheOnce() {
+  if (downloadedCache) return downloadedCache;
+  const r = await sget([K.packDownloaded]);
+  const v = r[K.packDownloaded];
+  const sid = normalizeSetupId(v && v.setup_id);
+  downloadedCache = (sid && v && Array.isArray(v.ids))
+    ? { setup_id: sid, ids: v.ids.map(String) }
+    : { setup_id: '', ids: [] };
+  return downloadedCache;
+}
+async function markDownloaded(setup, packId) {
+  const run = downloadedChain.then(async () => {
+    const c = await downloadedCacheOnce();
+    if (c.setup_id !== setup) { c.setup_id = setup; c.ids = []; }
+    if (c.ids.indexOf(packId) < 0) c.ids.push(packId);
+    await sset({ [K.packDownloaded]: c });
+  });
+  downloadedChain = run.catch(() => {});
+  return run;
+}
+async function downloadedIds(setup) {
+  const c = await downloadedCacheOnce();
+  return c.setup_id === setup ? c.ids.slice() : [];
+}
+
+/**
+ * 一次下载尝试开始。返回的 token（含 download_id / attempt / setup_id）必须原样传给
+ * packOk / packFail —— 同一个 download_id 串起三态。失败永远不抛给产品。
+ */
+export async function packStart(info) {
+  try {
+    const i = packInfo(info);
+    const setup = await setupId();
+    const download_id = hex32(uuid());
+    const attempt = await nextAttempt(setup, i.pack_id);
+    track('pack_download_start', packFields(i, setup, download_id, attempt));
+    return Object.assign({}, i, { setup_id: setup, download_id, attempt });
+  } catch (_) { return null; }
+}
+
+/** 安装 / 就绪校验通过后才调；进度 100% 不能代替（调用方在 await 下载之后才进来）。 */
+export async function packOk(token) {
+  try {
+    const i = packInfo(token);
+    const setup = (token && token.setup_id) || await setupId();
+    const download_id = (token && token.download_id) || hex32(uuid());
+    const attempt = (token && Number(token.attempt)) || 0;
+    await markDownloaded(setup, i.pack_id);
+    track('pack_download_ok', packFields(i, setup, download_id, attempt));
+    return setup;
+  } catch (_) { return ''; }
+}
+
+// 六值归一化。只看错误对象里的 reason/code/why 与异常名，**不**把原始报错或 URL 发出去。
+export function packFailReason(err) {
+  const e = (err && typeof err === 'object') ? err : { message: String(err || '') };
+  if (e.mtSttTimeout) return 'timeout';
+  const raw = [e.reason, e.code, e.why, e.name, e.message].filter(Boolean).join(' ').toLowerCase();
+  if (/timeout|timed[ _-]?out|stt-timeout/.test(raw)) return 'timeout';
+  if (/sha|hash|checksum|integrity|mismatch/.test(raw)) return 'hash';
+  if (/disk|enospc|no[ _-]?space|storage[ _-]?full|quota/.test(raw)) return 'disk';
+  if (/offline|network|http|dns|connect|socket|unreachable|not connected|econn|fetch/.test(raw)) return 'network';
+  if (/unsupported|no[ _-]?bridge|not[ _-]?supported|not[ _-]?device|^locale$|^os$|\blocale\b/.test(raw)) return 'unsupported';
+  // 缺资产（assets / download / load / failed）是下载没成，不是「系统不支持」。
+  return 'other';
+}
+function failReasonValue(reason) {
+  if (PACK_FAIL_REASONS.indexOf(reason) >= 0) return reason;
+  if (typeof reason === 'string') {
+    const r = reason.toLowerCase();
+    if (PACK_FAIL_REASONS.indexOf(r) >= 0) return r;
+    return packFailReason({ reason: r });
+  }
+  return packFailReason(reason);
+}
+function legacyCode(code, fallback) {
+  // 只认「本来就是 id 型」的码（packFailCode 已经归一化过）。长文/路径/URL 不许被
+  // 下划线化后混进事件 —— 判据是**原样**过 id 规则，不是洗一遍再看。
+  const raw = String(code == null ? '' : code).trim().toLowerCase();
+  return /^[a-z0-9_-]{1,32}$/.test(raw) ? raw : (fallback || 'download');
+}
+
+/**
+ * 失败。token 来自 packStart；也接受旧调用 packFail(surface, reason, code)（会现造 token）。
+ * `reason` 是本轮六值；`code` 是旧 P0 的 id 型码，过渡期同发。
+ */
+export async function packFail(token, reason, code) {
+  try {
+    const i = packInfo(token);
+    const setup = (token && token.setup_id) || await setupId();
+    const download_id = (token && token.download_id) || hex32(uuid());
+    let attempt = (token && Number(token.attempt)) || 0;
+    if (!attempt) {
+      try { attempt = await nextAttempt(setup, i.pack_id); } catch (_) { attempt = 0; }
+    }
+    const r = failReasonValue(reason);
+    const c = legacyCode(code, r);
+    const p = packFields(i, setup, download_id, attempt);
+    p.reason = r;
+    p.code = c;
+    track('pack_download_fail', p);
+    return setup;
+  } catch (_) { return ''; }
+}
+
+/**
+ * ASR 语种系统不支持：**不是**下载成功，也不该假装经历了一次下载尝试。
+ * 只记 fail{reason:'unsupported'}，不记 start / ok（票面「另记，不要标成下载成功」）。
+ */
+export async function packUnsupported(info) {
+  try {
+    const i = packInfo(info);
+    const setup = await setupId();
+    const download_id = hex32(uuid());
+    const attempt = await nextAttempt(setup, i.pack_id);
+    const p = packFields(i, setup, download_id, attempt);
+    p.reason = 'unsupported';
+    p.code = 'unsupported';
+    track('pack_download_fail', p);
+    return setup;
+  } catch (_) { return ''; }
+}
+
+// ── packs_ready：整套所需资源都校验就绪时记一条 ─────────────────────────────
+// selection_id = 所需 kind/id/locale 集合的稳定派生（32-hex）。集合一变就换新：同一台
+// 机器上换语言、勾/去朗读包都会产生新的 selection，旧的「已齐」不能替新的作数。
+function selectionId(items) {
+  const key = (items || []).map((it) => String((it && it.id) || '')).filter(Boolean).sort().join(',');
+  return hash32(key);
+}
+function hash32(s) {
+  let out = '';
+  const seeds = [0x811c9dc5, 0x01000193, 0x9e3779b9, 0x85ebca6b];
+  for (const seed of seeds) {
+    let h = seed >>> 0;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    out += h.toString(16).padStart(8, '0');
+  }
+  return out.slice(0, 32);
+}
+function stateItems(state) {
+  const raw = (state && Array.isArray(state.items)) ? state.items : [];
+  const out = [];
+  for (const it of raw) {
+    const id = packIdValue(it && it.id, 'asr');
+    if (!id || out.some((x) => x.id === id)) continue;
+    out.push({ id: id, kind: (it && it.kind) || packKindOf(id, '') });
+  }
+  if (out.length) return out;
+  // 旧调用形状（只有 base/asr/tts/all 计数）：仍能按 kind 派生一个 selection。
+  for (const kind of ['base', 'asr', 'tts']) {
+    if (Number(state && state[kind] && state[kind].required) > 0) out.push({ id: kind, kind: kind === 'base' ? 'vad' : kind });
+  }
+  return out;
+}
+
+// 一条流程的齐态缓存：按 setup_id + selection_id 记「这一套已经齐过」。
+// 只在 false → true 的那一次发；true → false 只更新缓存（不发）；之后同 selection 再变齐
+// 可再发。跨启动从存储读回，重复探不发（旧实现按 kind 存，这里改成按 selection）。
 let packsCache = null;
 let packsChain = Promise.resolve();
 async function packsCacheOnce() {
   if (packsCache) return packsCache;
   const r = await sget([K.packsReady]);
   const v = r[K.packsReady];
-  // 缓存里的 setup_id 也按同一套规则归一化（旧 uuid → 32-hex），这样升级后
-  // setupId() 迁移出来的新写法仍能和旧的「已经齐过」缓存对上，不重复发 packs_ready。
-  const cached = normalizeSetupId(v && v.setup_id);
-  packsCache = (cached && v && v.kinds && typeof v.kinds === 'object')
-    ? { setup_id: cached, kinds: Object.assign({}, v.kinds) }
-    : { setup_id: '', kinds: {} };
+  const sid = normalizeSetupId(v && v.setup_id);
+  const sel = (v && typeof v.selection_id === 'string' && HEX32_RE.test(v.selection_id)) ? v.selection_id : '';
+  packsCache = { setup_id: sid, selection_id: sel, ready: !!(v && v.ready) };
   return packsCache;
 }
-/** state = { base:{required,ready}, asr:{...}, tts:{...}, all:{...} }（kind 可缺）。 */
+/** state = {items:[{id,kind,locale}], base/asr/tts/all:{required,ready}, surface}（kind 可缺）。 */
 export async function packsReady(state) {
   const run = packsChain.then(() => packsReadyOne(state), () => packsReadyOne(state));
   packsChain = run.catch(() => {});
@@ -445,25 +679,48 @@ async function packsReadyOne(state) {
   try {
     const setup = await setupId();
     const cache = await packsCacheOnce();
-    // 换了 setup_id（理论上只会发生在清数据后）⇒ 旧 cache 作废，重新按过渡记。
-    const prev = cache.setup_id === setup ? cache.kinds : {};
-    const next = Object.assign({}, prev);
-    let changed = false;
-    for (const kind of ['base', 'asr', 'tts', 'all']) {
-      const s = state && state[kind];
-      if (!s) continue;
-      const required = Math.max(0, Number(s.required) || 0);
-      const ready = Math.max(0, Math.min(required, Number(s.ready) || 0));
-      // 没有这一类需求（required 0）不算一次「齐」的过渡，不发空计数。
-      if (!required) continue;
-      const isReady = ready >= required;
-      if (isReady && prev[kind] !== true) {
-        track('packs_ready', { setup_id: setup, ready_kind: kind, required, ready });
-      }
-      if (next[kind] !== isReady) { next[kind] = isReady; changed = true; }
+    const items = stateItems(state);
+    if (!items.length) return true;
+    const selection_id = selectionId(items);
+    const num = (o, k) => Math.max(0, Number(o && o[k]) || 0);
+    const allReq = num(state.all, 'required');
+    const allReady = Math.min(allReq, num(state.all, 'ready'));
+    const isReady = allReq > 0 && allReady >= allReq;
+    const same = cache.setup_id === setup && cache.selection_id === selection_id;
+    if (isReady && !(same && cache.ready)) {
+      // ready_kind：这一套里哪些是本次 setup 内新下的 vs 之前已有。
+      const ids = items.map((it) => it.id);
+      const have = (await downloadedIds(setup)).filter((id) => ids.indexOf(id) >= 0);
+      const ready_kind = have.length === 0 ? 'preexisting'
+        : (have.length === ids.length ? 'downloaded' : 'mixed');
+      const asrReq = num(state.asr, 'required');
+      const asrReady = Math.min(asrReq, num(state.asr, 'ready'));
+      const ttsReq = num(state.tts, 'required');
+      const ttsReady = Math.min(ttsReq, num(state.tts, 'ready'));
+      const baseReq = num(state.base, 'required');
+      const baseReady = Math.min(baseReq, num(state.base, 'ready'));
+      track('packs_ready', {
+        setup_id: setup,
+        selection_id: selection_id,
+        launch_id: LAUNCH_ID,
+        surface: packSurface(state.surface),
+        ready_kind: ready_kind,
+        asr_required: asrReq,
+        asr_ready: asrReady,
+        tts_required: ttsReq,
+        tts_ready: ttsReady,
+        base_ready: (baseReq > 0 && baseReady >= baseReq) ? 'true' : 'false',
+        required_count: allReq,
+        ready_count: allReady,
+        // 旧 P0 字段照发（1.23.3 老客户端/旧看板）：整批 required / ready。
+        required: allReq,
+        ready: allReady,
+      });
     }
-    packsCache = { setup_id: setup, kinds: next };
-    if (changed || cache.setup_id !== setup) await sset({ [K.packsReady]: packsCache });
+    if (cache.setup_id !== setup || cache.selection_id !== selection_id || cache.ready !== isReady) {
+      packsCache = { setup_id: setup, selection_id: selection_id, ready: isReady };
+      await sset({ [K.packsReady]: packsCache });
+    }
     return true;
   } catch (_) { return false; }
 }
@@ -476,6 +733,10 @@ export const _resetForTest = () => {
   setupFlight = null;
   packsCache = null;
   packsChain = Promise.resolve();
+  attemptCache = null;
+  attemptChain = Promise.resolve();
+  downloadedCache = null;
+  downloadedChain = Promise.resolve();
   surfaceFlight = null;
   currentSurface = '';
   launchPatched = false;
