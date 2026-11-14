@@ -45,7 +45,9 @@ function mkEl() {
     querySelector() { return mkEl(); }, querySelectorAll() { return []; }, getAttribute() { return ''; } };
 }
 
-function boot() {
+function boot(opts) {
+  const o = opts || {};
+  const probe = o.probe || { ok: true, reason: '', assets: 'installed', locales: [] };
   const tracked = [];
   const captured = { h: null, native: null, reads: 0 };
   const clk = fakeClock();
@@ -67,7 +69,7 @@ function boot() {
       addEventListener() {}, createElement: () => mkEl(), body: mkEl(), documentElement: mkEl(),
       hidden: false, visibilityState: 'visible',
     },
-    navigator: { platform: 'MacIntel', maxTouchPoints: 0, language: 'zh-CN', userAgent: 'test' },
+    navigator: { platform: o.platform || 'MacIntel', maxTouchPoints: 0, language: 'zh-CN', userAgent: o.userAgent || 'test' },
     btoa: (s) => Buffer.from(s, 'binary').toString('base64'),
     atob: (s) => Buffer.from(s, 'base64').toString('binary'),
     chrome: { storage: { local: {
@@ -78,8 +80,8 @@ function boot() {
     NativeAudio,
     NativeSpeech: {
       available: () => true,
-      probeResult: () => ({ ok: true, reason: '', assets: 'installed', locales: [] }),
-      probe: async () => ({ ok: true, reason: '', assets: 'installed', locales: [] }),
+      probeResult: () => probe,
+      probe: async () => probe,
       ensureAssets: async () => ({ ok: true }),
       ensureLid: async () => ({ ok: true }),
       ensureVad: async () => ({ ok: true }),
@@ -201,6 +203,62 @@ test('首页入口判定发 live_gate：成功也记 ok，两个入口分开 sur
   eq(listen[1].reused_prior_state, 'false');
   eq(listen[1].reason_copy_class, 'other');
   eq(sub[1].result, 'ok');
+});
+
+test('BEL-223：iOS ≥26 而识别器没开放 ⇒ no_transcriber + os_meets_min=true', async () => {
+  const { A, tracked, clk } = boot({
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15',
+    platform: 'iPhone',
+    probe: { ok: false, reason: 'os', assets: 'installed', locales: [] },
+  });
+  A.wire();
+  await clk.runTo(0);
+  const gates = names(tracked, 'live_gate');
+  for (const surface of ['listen', 'live_caption']) {
+    const g = gates.find((e) => e[1].surface === surface);
+    ok(g, surface + ' 没有 live_gate');
+    eq(g[1].result, 'no_transcriber', surface + ' result');
+    eq(g[1].os_meets_min, 'true', surface + ' os_meets_min');
+    eq(g[1].reason_copy_class, 'need_os', surface + ' reason_copy_class');
+  }
+  const listen = gates.find((e) => e[1].surface === 'listen');
+  eq(listen[1].os_version, 'ios_26_0', 'UA 版本仍照发');
+});
+
+test('BEL-223：iOS <26 ⇒ os_below_min + os_meets_min=false', async () => {
+  const { A, tracked, clk } = boot({
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15',
+    platform: 'iPhone',
+    probe: { ok: false, reason: 'os', assets: 'installed', locales: [] },
+  });
+  A.wire();
+  await clk.runTo(0);
+  const gates = names(tracked, 'live_gate');
+  for (const surface of ['listen', 'live_caption']) {
+    const g = gates.find((e) => e[1].surface === surface);
+    ok(g, surface + ' 没有 live_gate');
+    eq(g[1].result, 'os_below_min', surface + ' result');
+    eq(g[1].os_meets_min, 'false', surface + ' os_meets_min');
+    eq(g[1].reason_copy_class, 'need_os', surface + ' reason_copy_class');
+  }
+});
+
+test('BEL-223：Mac UA 读不到版本 + 同一探针 ⇒ os_below_min，不编 os_version', async () => {
+  const { A, tracked, clk } = boot({
+    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15',
+    platform: 'MacIntel',
+    probe: { ok: false, reason: 'os', assets: 'installed', locales: [] },
+  });
+  A.wire();
+  await clk.runTo(0);
+  const gates = names(tracked, 'live_gate');
+  for (const surface of ['listen', 'live_caption']) {
+    const g = gates.find((e) => e[1].surface === surface);
+    ok(g, surface + ' 没有 live_gate');
+    eq(g[1].result, 'os_below_min', surface + ' result');
+    eq(g[1].os_meets_min, 'false', surface + ' os_meets_min');
+    ok(!('os_version' in g[1]), surface + ' 不该编 os_version');
+  }
 });
 
 test('开麦之后：granted、asr_start、失败短码、翻译开始', async () => {

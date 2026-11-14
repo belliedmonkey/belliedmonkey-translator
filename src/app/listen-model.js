@@ -335,6 +335,16 @@ const listenModel = (() => {
   // 原生 reason:'os' 不区分「低于 26」与「SpeechTranscriber.isAvailable=false」。
   // UA 能读到 iOS 主版本时 ≥26 ⇒ no_transcriber；读不到（Mac / 非 iOS UA）按
   // os_below_min 记 —— 原生桥缺字段，宁可偏保守，缺口写进 RESULT。
+  function gateOsResult(probe) {
+    if (probe && probe.reason === 'os') {
+      try {
+        const ua = String((typeof navigator !== 'undefined' && navigator.userAgent) || '');
+        const m = /OS (\d+)[._]/.exec(ua);
+        if (m && Number(m[1]) >= 26) return 'no_transcriber';
+      } catch (_) {}
+    }
+    return 'os_below_min';
+  }
   function gateResult(probe, ok) {
     const bridge = bridgeState();
     if (bridge !== 'ok') return bridge;
@@ -344,20 +354,16 @@ const listenModel = (() => {
     if (why === 'timeout') return 'probe_timeout';
     if (why === 'locale') return 'locale_unsupported';
     if (why === 'no-bridge') return 'channel_missing';
-    if (why === 'os') {
-      try {
-        const ua = String((typeof navigator !== 'undefined' && navigator.userAgent) || '');
-        const m = /OS (\d+)[._]/.exec(ua);
-        if (m && Number(m[1]) >= 26) return 'no_transcriber';
-      } catch (_) {}
-      return 'os_below_min';
-    }
+    if (why === 'os') return gateOsResult(r);
     return 'no_transcriber';
   }
-  function gateOsMeetsMin(probe) {
-    if (bridgeState() !== 'ok' || !probe) return undefined;
-    if (probe.reason === 'timeout') return undefined;
-    return probe.reason !== 'os';
+  // BEL-223：no_transcriber 的前提就是 UA 已确认 iOS ≥26、只是识别器没开放 ——
+  // 所以 os_meets_min 必须为 true；只有 os_below_min 才是系统不达标。
+  // 超时 / 桥缺失（含字幕入口的 hidden）这类「不知道」的情况省略键。
+  function gateOsMeetsMin(result) {
+    if (result === 'no_transcriber' || result === 'ok' || result === 'locale_unsupported') return true;
+    if (result === 'os_below_min') return false;
+    return undefined;
   }
   // 一个 locale 一路识别器：我方 + 对方（两边一样时只开一路）。
   function deviceLocales(c) {
@@ -437,7 +443,7 @@ const listenModel = (() => {
         bridgeState: bridgeState(),
         probeReason: probe && probe.reason,
         result: gateRes,
-        osMeetsMin: gateOsMeetsMin(probe),
+        osMeetsMin: gateOsMeetsMin(gateRes),
         probeLocale: locales[0],
         reasonCopyClass: gateCopyClass(gateRes),
         firstRefresh,
@@ -490,7 +496,9 @@ const listenModel = (() => {
     else if (reason === '') subResult = 'ok';
     else if (reason === 'locale') subResult = 'locale_unsupported';
     else if (reason === 'hidden') subResult = 'channel_missing';
-    else subResult = 'os_below_min';       // 'device-os' / 'os'
+    // 'device-os' / 'os'：与对话入口同一套 UA 判断，iOS ≥26 而识别器没开放也是
+    // no_transcriber（界面同样只说「需要 iOS 26」，os_meets_min 不能记反）。
+    else subResult = gateOsResult(ctx.probe);
     const subCopy = gateCopyClass(subResult);
     try {
       TelemetrySession.liveGate({
@@ -499,8 +507,7 @@ const listenModel = (() => {
         bridgeState: bridgeState(),
         probeReason: ctx.probe && ctx.probe.reason,
         result: subResult,
-        osMeetsMin: subResult === 'ok' || subResult === 'locale_unsupported'
-          ? true : (subResult === 'os_below_min' ? false : undefined),
+        osMeetsMin: gateOsMeetsMin(subResult),
         probeLocale: ctx.locales && ctx.locales[0],
         reasonCopyClass: subCopy,
         firstRefresh: ctx.firstRefresh,

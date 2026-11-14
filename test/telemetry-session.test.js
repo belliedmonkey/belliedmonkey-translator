@@ -321,7 +321,7 @@ describe('BEL-223 live_gate / grant_claim_fail / launch_id', () => {
     TS.liveGate({ surface: 'listen', ok: false, bridgeState: 'ok', probeReason: 'os', firstRefresh: true });
     eq(events[0].props.result, 'no_transcriber');
     eq(events[0].props.os_version, 'ios_26_1');
-    eq(events[0].props.os_meets_min, 'false');
+    eq(events[0].props.os_meets_min, 'true', 'no_transcriber 的前提是系统够新');
   });
 
   test('live_gate：复用上次结论 / 第二次刷新 都记成字符串布尔', () => {

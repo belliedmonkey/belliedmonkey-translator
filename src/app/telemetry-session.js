@@ -441,12 +441,13 @@ export function liveGate(info) {
   };
   const osv = idValue(o.osVersion || osVersionId());
   if (osv) p.os_version = osv;
-  // os_meets_min：调用方能从探针确定就显式给；没给时只按 result 能确定的两种填，
+  // os_meets_min：调用方能从探针确定就显式给；没给时只按 result 能确定的填，
   // 桥/超时这种「不知道」就省略键 —— 不发一个猜的布尔。
+  // no_transcriber 的前提是系统已够新（只是识别器没开放），所以也归 true。
   let meets = o.osMeetsMin;
   if (meets === undefined) {
-    if (result === 'ok' || result === 'locale_unsupported') meets = true;
-    else if (result === 'os_below_min' || result === 'no_transcriber') meets = false;
+    if (result === 'ok' || result === 'locale_unsupported' || result === 'no_transcriber') meets = true;
+    else if (result === 'os_below_min') meets = false;
   }
   if (meets === true || meets === 'true') p.os_meets_min = 'true';
   else if (meets === false || meets === 'false') p.os_meets_min = 'false';
