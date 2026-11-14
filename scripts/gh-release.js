@@ -34,7 +34,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const { assertVersionIntegrity, versionInZip } = require('./lib/release-gate.js');
+const { assertVersionIntegrity, versionInZip, assertBackendInjected } = require('./lib/release-gate.js');
 
 const ROOT = path.join(__dirname, '..');
 const BUILT_ZIP = path.join(ROOT, 'belliedmonkeytranslator.zip');
@@ -99,6 +99,9 @@ if (require.main === module) (async () => {
 
   // 门禁：和 CWS / AMO 同一份实现。
   assertVersionIntegrity({ version, what: '这次 Release', allowDirty, tag: tagOpt, cwd: worktree });
+
+  // BEL-259：发布前读**包内**的 MT_BACKEND。占位后端在这里硬拦；版本门看不到后端。
+  assertBackendInjected({ artifact: zipPath, flavor: 'intl' });
 
   // Release 已存在？存在就只换资产，不重建（tag 与 notes 不该被一次重传改掉）。
   let exists = true;
