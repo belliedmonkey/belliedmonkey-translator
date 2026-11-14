@@ -759,6 +759,7 @@ export function bootShell() {
   let packAsrByLang = {};   // 短码 → 这门识别包是否已落地（只经 asrInstalled 写入）
   let packTtsProbeLangs = [];   // 最近一次朗读包探测覆盖的短码
   let packTtsReady = false;
+  let packTtsLangs = [];        // 最近一次 ttsProbe 报的已装语言（packs_ready 分项用）
   let packAsrUnsupported = false;   // 该语种系统不支持识别 ⇒ 唯一允许的降级口
   let packLidReady = false;
   let packVadReady = false;
@@ -821,21 +822,72 @@ export function bootShell() {
     return asrPlan().keep;
   }
 
+  // BEL-226：下载入口面（票面只有两个值）+ 从实际模型地址判断 source。
+  // 自家中继（api.belliedmonkey.com/models/）背后由服务端按 IP 选托管，客户端看不见 ⇒ 'other'，
+  // 不按 flavor 猜 GitHub / ModelScope；只有清单/服务器给的地址本身就是那些域才归过去。
+  function packSurfaceNow() {
+    return packsManage ? 'settings_packs' : 'first_run_packs';
+  }
+  function packSourceFromSpec(spec) {
+    try {
+      const models = spec ? [].concat(spec) : [];
+      for (const m of models) {
+        for (const f of ((m && m.files) || [])) {
+          const raw = String((f && f.url) || '');
+          if (!raw) continue;
+          let host = '';
+          try { host = new URL(raw).hostname.toLowerCase(); } catch (_) { host = raw.toLowerCase(); }
+          if (/github/.test(host)) return 'github';
+          if (/modelscope/.test(host)) return 'modelscope';
+        }
+      }
+    } catch (_) { /* 判断不了就是 other */ }
+    return 'other';
+  }
+  // 朗读包的实际下载单元：中英共用一行（一个包），泰语一行。locale 用短码，共享包写 zh-en。
+  function ttsUnitDefs(s) {
+    const langs = firstRunLocales(s).map((x) => FirstRun.baseCode(x));
+    const units = [];
+    const kokoro = langs.filter((c) => c === 'zh' || c === 'en');
+    if (kokoro.length) units.push({ pack_id: 'tts_zh_en', locale: 'zh-en', langs: kokoro });
+    if (langs.indexOf('th') >= 0) units.push({ pack_id: 'tts_th', locale: 'th', langs: ['th'] });
+    return units;
+  }
+  function ttsUnitReady(langs) {
+    if (packTtsReady) return true;
+    if (!packTtsLangs.length) return false;
+    return (langs || []).every((c) => packTtsLangs.indexOf(FirstRun.baseCode(c)) >= 0);
+  }
+  function ttsModelsForUnit(langs) {
+    try {
+      if (typeof mtDeviceTtsModelsFor !== 'function') return null;
+      return mtDeviceTtsModelsFor(flavorNow())
+        .filter((m) => (langs || []).indexOf(FirstRun.baseCode(m.lang)) >= 0);
+    } catch (_) { return null; }
+  }
+
   // BEL-226 packs_ready 的计数：与 FirstRun.readiness() 的分项同源（base / asr / tts），
   // 但这里只数「当前所需包数 / 已就绪数」，不记语言名单。tts 的中英共用一行，泰语单独
   // 一行（与 readiness() 的 items 一致）；base 是语种识别 + 人声检测这一项。
+  // items 给出实际下载单元 id：selection_id / ready_kind 都以它为准（base 拆成 lid+vad）。
   function packReadinessCounts(s) {
     const asrLangs = firstRunAsrLangs(s);
     const asrReady = packAsrUnsupported
-      ? asrLangs.length
+      ? 0   // 系统不支持 ≠ 下载成功：asr_ready 不虚报（另发 pack_download_fail{unsupported}）
       : asrLangs.filter((c) => !!packAsrByLang[FirstRun.baseCode(c)]).length;
-    const ttsLangs = firstRunLocales(s).map((x) => FirstRun.baseCode(x));
-    const kokoro = ttsLangs.some((c) => c === 'zh' || c === 'en');
-    const thai = ttsLangs.indexOf('th') >= 0;
-    const ttsRequired = (kokoro ? 1 : 0) + (thai ? 1 : 0);
-    const ttsReady = packTtsReady ? ttsRequired : 0;
+    const units = ttsUnitDefs(s);
+    const ttsRequired = units.length;
+    const ttsReady = units.filter((u) => ttsUnitReady(u.langs)).length;
     const baseReady = (packLidReady && packVadReady) ? 1 : 0;
+    const items = [{ id: 'lid', kind: 'lid' }, { id: 'vad', kind: 'vad' }];
+    for (const c of asrLangs) {
+      const code = FirstRun.baseCode(c);
+      if (code) items.push({ id: 'asr_' + code, kind: 'asr', locale: code });
+    }
+    for (const u of units) items.push({ id: u.pack_id, kind: 'tts', locale: u.locale });
     return {
+      items,
+      surface: packSurfaceNow(),
       base: { required: 1, ready: baseReady },
       asr: { required: asrLangs.length, ready: asrReady },
       tts: { required: ttsRequired, ready: ttsReady },
@@ -945,8 +997,10 @@ export function bootShell() {
         packTtsProbeLangs = firstRunLocales(s).map((x) => FirstRun.baseCode(x));
         const st = await LearnTTS.deviceStatus(DEVICE_TTS_ENGINE, firstRunLocales(s));
         packTtsReady = !!(st && st.ready);
-      } catch (_) { packTtsReady = false; }
-    } else { packTtsReady = false; packTtsProbeLangs = []; }
+        // ttsProbe 报的已装语言：packs_ready 的 tts 分项要按单元算，不能拿整批 ready 代替。
+        packTtsLangs = (st && Array.isArray(st.langs)) ? st.langs.map((x) => FirstRun.baseCode(x)) : [];
+      } catch (_) { packTtsReady = false; packTtsLangs = []; }
+    } else { packTtsReady = false; packTtsProbeLangs = []; packTtsLangs = []; }
     if (typeof NativeSpeech !== 'undefined' && NativeSpeech.probe) {
       try {
         const asrLangs = firstRunAsrLangs(s);
@@ -1888,6 +1942,21 @@ export function bootShell() {
 
   const ASR_PACK_TIMEOUT_MS = PackProgress.ASR_PACK_TIMEOUT_MS;
 
+  // BEL-226：一次真实下载单元 = 一条 start → ok/fail。token 里的 download_id 串起三态；
+  // ok 只在这个 await 正常返回（原生已安装/校验通过）之后发 —— 进度 100% 不触发。
+  async function runPackUnit(info, fn) {
+    let token = null;
+    try { token = await TelemetrySession.packStart(info); } catch (_) {}
+    try {
+      const r = await fn();
+      if (token) { try { await TelemetrySession.packOk(token); } catch (_) {} }
+      return r;
+    } catch (e) {
+      if (token) { try { await TelemetrySession.packFail(token, e, packFailCode(e)); } catch (_) {} }
+      throw e;
+    }
+  }
+
   async function downloadBase() {
     const name = t('firstrun_packs_base', '听译基础');
     if (packLidReady && packVadReady) { setRow('base', { phase: 'ready', pct: 100, name }); return; }
@@ -1898,18 +1967,28 @@ export function bootShell() {
     };
     if (!packVadReady && typeof NativeSpeech !== 'undefined' && NativeSpeech.ensureVad) {
       const vad = vadSpec();
-      if (vad) await NativeSpeech.ensureVad(vad, onProg);
+      if (vad) {
+        await runPackUnit({
+          pack_kind: 'vad', pack_id: 'vad', surface: packSurfaceNow(),
+          source: packSourceFromSpec(vad),
+        }, () => NativeSpeech.ensureVad(vad, onProg));
+      }
       packVadReady = true;
     }
     if (!packLidReady && typeof NativeSpeech !== 'undefined' && NativeSpeech.ensureLid) {
       const lid = lidSpec();
       if (lid) {
-        if (typeof ModelSources !== 'undefined' && ModelSources && typeof ModelSources.run === 'function') {
-          const r = await ModelSources.run([lid], flavorNow(), (spec) => NativeSpeech.ensureLid(spec[0], onProg));
-          if (r && r.ok === false) throw Object.assign(new Error(String(r.why || 'lid')), { mtBaseFailed: true });
-        } else {
-          await NativeSpeech.ensureLid(lid, onProg);
-        }
+        await runPackUnit({
+          pack_kind: 'lid', pack_id: 'lid', surface: packSurfaceNow(),
+          source: packSourceFromSpec(lid),
+        }, async () => {
+          if (typeof ModelSources !== 'undefined' && ModelSources && typeof ModelSources.run === 'function') {
+            const r = await ModelSources.run([lid], flavorNow(), (spec) => NativeSpeech.ensureLid(spec[0], onProg));
+            if (r && r.ok === false) throw Object.assign(new Error(String(r.why || 'lid')), { mtBaseFailed: true });
+          } else {
+            await NativeSpeech.ensureLid(lid, onProg);
+          }
+        });
       }
       packLidReady = true;
     }
@@ -1917,11 +1996,10 @@ export function bootShell() {
   }
 
   async function downloadTts(s) {
-    const langs = firstRunLocales(s);
-    if (!langs.length) { packTtsReady = true; return; }
+    const units = ttsUnitDefs(s);
+    if (!units.length) { packTtsReady = true; return; }
     if (packTtsReady) {
-      if (langs.indexOf('th') >= 0) setRow('tts:th', { phase: 'ready', pct: 100 });
-      if (langs.indexOf('zh') >= 0 || langs.indexOf('en') >= 0) setRow('tts:zh-en', { phase: 'ready', pct: 100 });
+      for (const u of units) setRow(u.pack_id === 'tts_th' ? 'tts:th' : 'tts:zh-en', { phase: 'ready', pct: 100 });
       return;
     }
     if (typeof LearnTTS === 'undefined' || !LearnTTS.ensureDeviceReady) return;
@@ -1931,7 +2009,7 @@ export function bootShell() {
         if (el) el.textContent = t('tts_pack_fallback', '地址不可用，换一个重试…');
         return;
       }
-      const named = FirstRun.nameProgress(m, (m && m.locale) || langs[0] || 'tts');
+      const named = FirstRun.nameProgress(m, (m && m.locale) || units[0].langs[0] || 'tts');
       const pct = Math.round((Number(named.fraction) || 0) * 100);
       const rowId = FirstRun.baseCode(named.locale) === 'th' ? 'tts:th' : 'tts:zh-en';
       setRow(rowId, { phase: 'downloading', pct, name: named.name });
@@ -1940,49 +2018,81 @@ export function bootShell() {
           .replace('{lang}', named.name).replace('{pct}', String(pct));
       }
     };
-    const r = await LearnTTS.ensureDeviceReady(onProg, DEVICE_TTS_ENGINE, firstRunLocales(s));
-    if (r && r.ok === false) {
-      const why = String(r.why || r.reason || 'failed') + (r.attempts ? ' · ' + r.attempts : '');
-      throw Object.assign(new Error(why), { mtTtsFailed: true, why });
+    // 按单元逐次 ensureDeviceReady：中英共用一个包（一次），泰语单独一个包（一次）。
+    // 这样每个真正去下的资源都有自己的 download_id / attempt，失败也归得到具体单元；
+    // 仍然只传 firstRunLocales(s) 里的语言（#565：没勾的泰语不会被下）。
+    for (const u of units) {
+      const rowId = u.pack_id === 'tts_th' ? 'tts:th' : 'tts:zh-en';
+      if (ttsUnitReady(u.langs)) { setRow(rowId, { phase: 'ready', pct: 100 }); continue; }
+      await runPackUnit({
+        pack_kind: 'tts', pack_id: u.pack_id, locale: u.locale, surface: packSurfaceNow(),
+        source: packSourceFromSpec(ttsModelsForUnit(u.langs)),
+      }, async () => {
+        const r = await LearnTTS.ensureDeviceReady(onProg, DEVICE_TTS_ENGINE, u.langs);
+        if (r && r.ok === false) {
+          const why = String(r.why || r.reason || 'failed') + (r.attempts ? ' · ' + r.attempts : '');
+          throw Object.assign(new Error(why), { mtTtsFailed: true, why });
+        }
+        return r;
+      });
+      for (const c of u.langs) if (packTtsLangs.indexOf(FirstRun.baseCode(c)) < 0) packTtsLangs.push(FirstRun.baseCode(c));
+      setRow(rowId, { phase: 'ready', pct: 100 });
     }
-    if (langs.indexOf('th') >= 0) setRow('tts:th', { phase: 'ready', pct: 100 });
-    if (langs.indexOf('zh') >= 0 || langs.indexOf('en') >= 0) setRow('tts:zh-en', { phase: 'ready', pct: 100 });
+    packTtsReady = true;
   }
 
   async function downloadAsr(s) {
     if (packAsrReady || packAsrUnsupported) {
-      for (const loc of firstRunAsrLangs(s)) setRow('asr:' + loc, { phase: 'ready', pct: 100, name: endonym(loc) });
+      for (const loc of firstRunAsrLangs(s)) {
+        const code = FirstRun.baseCode(loc);
+        setRow('asr:' + loc, { phase: 'ready', pct: 100, name: endonym(loc) });
+        // 系统不支持这门识别语种：另记 fail{unsupported}，绝不当成下载成功（也不发 start）。
+        if (packAsrUnsupported && !packAsrByLang[code]) {
+          try {
+            await TelemetrySession.packUnsupported({
+              pack_kind: 'asr', pack_id: 'asr_' + code, locale: code,
+              surface: packSurfaceNow(), source: 'system',
+            });
+          } catch (_) {}
+        }
+      }
       return;
     }
     if (typeof NativeSpeech === 'undefined' || !NativeSpeech.ensureAssets) return;
     const langs = firstRunAsrLangs(s);
     for (const loc of langs) setRow('asr:' + loc, { phase: 'queued', pct: 0, name: endonym(loc) });
     for (const loc of langs) {
+      const code = FirstRun.baseCode(loc);
       setRow('asr:' + loc, { phase: 'downloading', pct: 0, name: endonym(loc) });
-      let timer = null;
-      let asrLast = '';
-      const timeout = new Promise((_res, rej) => {
-        timer = setTimeout(() => {
-          const e = new Error('stt-timeout');
-          e.mtSttTimeout = true;
-          e.mtAsrLast = asrLast;
-          rej(e);
-        }, ASR_PACK_TIMEOUT_MS);
+      await runPackUnit({
+        pack_kind: 'asr', pack_id: 'asr_' + code, locale: code,
+        surface: packSurfaceNow(), source: 'system',
+      }, async () => {
+        let timer = null;
+        let asrLast = '';
+        const timeout = new Promise((_res, rej) => {
+          timer = setTimeout(() => {
+            const e = new Error('stt-timeout');
+            e.mtSttTimeout = true;
+            e.mtAsrLast = asrLast;
+            rej(e);
+          }, ASR_PACK_TIMEOUT_MS);
+        });
+        try {
+          await Promise.race([NativeSpeech.ensureAssets('stt', [speechLocale(loc)], (m) => {
+            if (!m) return;
+            const named = FirstRun.nameProgress(Object.assign({}, m, { name: endonym(loc) }), endonym(loc));
+            const pct = (typeof named.fraction === 'number') ? Math.round(named.fraction * 100) : 0;
+            const extra = [];
+            if (m.status) extra.push('status=' + m.status);
+            if (typeof m.total === 'number') extra.push('bytes=' + (m.completed || 0) + '/' + m.total);
+            asrLast = String(named.state || '') + ' ' + pct + '%' + (extra.length ? ' · ' + extra.join(' ') : '');
+            setRow('asr:' + loc, { phase: 'downloading', pct, name: named.name });
+            const el = $('pack-asr-state');
+            if (el) el.textContent = named.name + ' ' + pct + '%';
+          }), timeout]);
+        } finally { clearTimeout(timer); }
       });
-      try {
-        await Promise.race([NativeSpeech.ensureAssets('stt', [speechLocale(loc)], (m) => {
-          if (!m) return;
-          const named = FirstRun.nameProgress(Object.assign({}, m, { name: endonym(loc) }), endonym(loc));
-          const pct = (typeof named.fraction === 'number') ? Math.round(named.fraction * 100) : 0;
-          const extra = [];
-          if (m.status) extra.push('status=' + m.status);
-          if (typeof m.total === 'number') extra.push('bytes=' + (m.completed || 0) + '/' + m.total);
-          asrLast = String(named.state || '') + ' ' + pct + '%' + (extra.length ? ' · ' + extra.join(' ') : '');
-          setRow('asr:' + loc, { phase: 'downloading', pct, name: named.name });
-          const el = $('pack-asr-state');
-          if (el) el.textContent = named.name + ' ' + pct + '%';
-        }), timeout]);
-      } finally { clearTimeout(timer); }
       packAsrByLang[loc] = true;
       setRow('asr:' + loc, { phase: 'ready', pct: 100, name: endonym(loc) });
     }
@@ -2025,10 +2135,8 @@ export function bootShell() {
     if (packsBusy) return;
     packsBusy = true;
     packPhase = 'downloading';
-    // 一条「把包配齐」的流程 = 一个 setup_id（跨启动不变，见 telemetry-session.js）。
-    // start / ok / fail 共用它；surface 用当前功能面（首启时默认 listen）。
-    const packSurface = TelemetrySession.currentSurfaceSync();
-    try { await TelemetrySession.packStart(packSurface); } catch (_) {}
+    // BEL-226：不再按「整批」发一条 start/ok/fail —— 每个真正下载的单元由 download*()
+    // 里的 runPackUnit() 各自发 start → ok/fail（同一个 download_id）。这里只负责编排。
     // 把当前这一对**落盘**（#564）：选「默认值」不触发 change 时，重画不能按「未设置」重算。
     try { chrome.storage.local.set({ listenMyLang: langPair[0], listenOtherLang: langPair[1], listenPackLangs: packLangs.slice(), listenPackThaiTts: !!packThaiTts, listenPackKokoro: packKokoroOff ? false : true }, () => {}); } catch (_) {}
     try { await paintFirstRun(currentSession); } catch (_) {}
@@ -2040,7 +2148,6 @@ export function bootShell() {
       await downloadTts(s);
       await downloadAsr(s);
     } catch (e) {
-      try { await TelemetrySession.packFail(packSurface, packFailCode(e)); } catch (_) {}
       if (err) {
         err.hidden = false;
         if (e && e.mtSttTimeout) {
@@ -2068,7 +2175,6 @@ export function bootShell() {
       await paintFirstRun(currentSession);
       return;
     }
-    try { await TelemetrySession.packOk(packSurface); } catch (_) {}
     packPhase = 'done';
     // 下载完成就记；齐态立刻 dismiss（D-03），不停留完成页。
     try { await writePacksDone(); } catch (_) {}

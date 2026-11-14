@@ -115,7 +115,14 @@
         "doc",
         "quick"
       ],
-      "ms": "int"
+      "ms": "int",
+      "surface": [
+        "listen",
+        "live_caption",
+        "quick",
+        "doc",
+        "web_caption"
+      ]
     },
     "translate_fail": {
       "provider": "id",
@@ -211,7 +218,10 @@
         "live_caption",
         "quick",
         "doc",
-        "web_caption"
+        "web_caption",
+        "login",
+        "packs",
+        "app_home"
       ],
       "auth_state": [
         "signed_in",
@@ -225,7 +235,8 @@
         "live_caption",
         "quick",
         "doc",
-        "web_caption"
+        "web_caption",
+        "login"
       ],
       "provider": [
         "apple",
@@ -237,7 +248,8 @@
       "method": [
         "signup",
         "signin"
-      ]
+      ],
+      "launch_id": "id"
     },
     "live_gate": {
       "surface": [
@@ -248,6 +260,40 @@
         "web_caption"
       ],
       "ok": [
+        "true",
+        "false"
+      ],
+      "result": [
+        "script_missing",
+        "channel_missing",
+        "os_below_min",
+        "no_transcriber",
+        "locale_unsupported",
+        "probe_timeout",
+        "ok"
+      ],
+      "os_version": "id",
+      "os_meets_min": [
+        "true",
+        "false"
+      ],
+      "probe_locale": "id",
+      "reason_copy_class": [
+        "need_os",
+        "switch_locale",
+        "other"
+      ],
+      "window": [
+        "main",
+        "quick",
+        "other"
+      ],
+      "launch_id": "id",
+      "first_refresh": [
+        "true",
+        "false"
+      ],
+      "reused_prior_state": [
         "true",
         "false"
       ]
@@ -268,6 +314,21 @@
         "invalid",
         "model",
         "busy"
+      ],
+      "reason": [
+        "network",
+        "busy",
+        "server",
+        "revoked",
+        "other"
+      ],
+      "copy_class": [
+        "revoked",
+        "retryable"
+      ],
+      "path": [
+        "silent",
+        "manual"
       ]
     },
     "pack_download_start": {
@@ -277,8 +338,27 @@
         "live_caption",
         "quick",
         "doc",
-        "web_caption"
-      ]
+        "web_caption",
+        "first_run_packs",
+        "settings_packs"
+      ],
+      "pack_kind": [
+        "asr",
+        "tts",
+        "lid",
+        "vad"
+      ],
+      "pack_id": "id",
+      "locale": "id",
+      "download_id": "id",
+      "launch_id": "id",
+      "source": [
+        "system",
+        "github",
+        "modelscope",
+        "other"
+      ],
+      "attempt": "int"
     },
     "pack_download_ok": {
       "setup_id": "id",
@@ -287,8 +367,27 @@
         "live_caption",
         "quick",
         "doc",
-        "web_caption"
-      ]
+        "web_caption",
+        "first_run_packs",
+        "settings_packs"
+      ],
+      "pack_kind": [
+        "asr",
+        "tts",
+        "lid",
+        "vad"
+      ],
+      "pack_id": "id",
+      "locale": "id",
+      "download_id": "id",
+      "launch_id": "id",
+      "source": [
+        "system",
+        "github",
+        "modelscope",
+        "other"
+      ],
+      "attempt": "int"
     },
     "pack_download_fail": {
       "setup_id": "id",
@@ -297,18 +396,69 @@
         "live_caption",
         "quick",
         "doc",
-        "web_caption"
+        "web_caption",
+        "first_run_packs",
+        "settings_packs"
+      ],
+      "pack_kind": [
+        "asr",
+        "tts",
+        "lid",
+        "vad"
+      ],
+      "pack_id": "id",
+      "locale": "id",
+      "download_id": "id",
+      "launch_id": "id",
+      "source": [
+        "system",
+        "github",
+        "modelscope",
+        "other"
+      ],
+      "attempt": "int",
+      "reason": [
+        "network",
+        "timeout",
+        "disk",
+        "hash",
+        "unsupported",
+        "other"
       ],
       "code": "id"
     },
     "packs_ready": {
       "setup_id": "id",
+      "selection_id": "id",
+      "launch_id": "id",
+      "surface": [
+        "listen",
+        "live_caption",
+        "quick",
+        "doc",
+        "web_caption",
+        "first_run_packs",
+        "settings_packs"
+      ],
       "ready_kind": [
         "base",
         "asr",
         "tts",
-        "all"
+        "all",
+        "downloaded",
+        "preexisting",
+        "mixed"
       ],
+      "asr_required": "int",
+      "asr_ready": "int",
+      "tts_required": "int",
+      "tts_ready": "int",
+      "base_ready": [
+        "true",
+        "false"
+      ],
+      "required_count": "int",
+      "ready_count": "int",
       "required": "int",
       "ready": "int"
     },
@@ -372,7 +522,9 @@
         "notice",
         "pill",
         "app_home",
-        "popup_app_row"
+        "popup_app_row",
+        "listen",
+        "live_caption"
       ],
       "result": [
         "started",

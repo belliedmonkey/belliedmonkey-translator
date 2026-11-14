@@ -412,8 +412,12 @@ describe('ListenCore — 回声闸（朗读被自己录回去）', () => {
     const model = read('src/app/shell-model.js');
     ok(/deviceStatus\(DEVICE_TTS_ENGINE,\s*firstRunLocales\(s\)\)/.test(model),
       'probePacks 没有把 firstRunLocales(s) 传给 deviceStatus —— 会去探全部模型（含没选的泰语）');
-    ok(/ensureDeviceReady\(onProg,\s*DEVICE_TTS_ENGINE,\s*firstRunLocales\(s\)\)/.test(model),
-      'runFirstRunPacks 没有把 firstRunLocales(s) 传给 ensureDeviceReady —— 会去下载全部模型（含没选的泰语 105 MB）');
+    ok(/ensureDeviceReady\(onProg,\s*DEVICE_TTS_ENGINE,\s*u\.langs\)/.test(model),
+      'runFirstRunPacks 没有把所选语言单元传给 ensureDeviceReady —— 会去下载全部模型（含没选的泰语 105 MB）');
+    // BEL-226：朗读包按单元逐次 ensureDeviceReady；单元的语言必须来自 firstRunLocales(s)，
+    // 不能另抄一份模型表 —— 否则「没勾泰语不下 105 MB」这条又会在另一条路上破。
+    ok(/function ttsUnitDefs\(s\)[\s\S]{0,220}firstRunLocales\(s\)/.test(model),
+      'ttsUnitDefs 没有从 firstRunLocales(s) 取语言 —— 会绕过「只下所选语言」的判据');
     const tts = read('extension/learn/tts.js');
     ok(/Array\.isArray\(langOpt\)/.test(tts),
       'deviceStatus 没有接受数组形式的 langOpt —— 语言对是一对（两个语言），单个 string 不够');
