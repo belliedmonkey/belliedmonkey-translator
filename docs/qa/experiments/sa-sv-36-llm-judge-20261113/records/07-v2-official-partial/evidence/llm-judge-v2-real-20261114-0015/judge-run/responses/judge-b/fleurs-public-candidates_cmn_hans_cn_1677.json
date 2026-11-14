@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 4754,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v2\",\n  \"itemId\": \"fleurs-public-candidates/cmn_hans_cn/1677\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"蜉蝣\",\n          \"hypQuote\": \"浮游\",\n          \"reason\": \"‘蜉蝣’和‘浮游’是不同的生物，前者是一种昆虫，后者通常指海洋中的浮游生物，语义不同。\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.85,\n      \"note\": \"\",\n      \"findings\": [\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"，\",\n          \"hypQuote\": \"\",\n          \"reason\": \"参考文本中的逗号在候选文本中被省略，属于标点符号的遗漏。\"\n        },\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"蜉蝣\",\n          \"hypQuote\": \"浮游\",\n          \"reason\": \"‘蜉蝣’被误写为‘浮游’，属于实体错误，两者指代不同生物。\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.0002364,
+  "usage": {
+    "inputTokens": 717,
+    "outputTokens": 311,
+    "providerUsd": 0.0002364,
+    "complete": true
+  },
+  "settledUsd": 0.0003922
+}

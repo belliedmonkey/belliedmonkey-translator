@@ -1,0 +1,48 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1682",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1682",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate 1 uses a different numeric format but conveys the same measurement values as the reference.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "29¾ 英寸乘以 24½ 英寸",
+              "hypQuote": "29又4分之3英寸乘以24又2分之1英寸",
+              "reason": "The candidate expresses the fractions in a different format but the values are equivalent."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.8,
+          "note": "Candidate 2 uses a different numeric format and a slightly different expression for the fractions, but the values appear equivalent.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "29¾ 英寸乘以 24½ 英寸",
+              "hypQuote": "29又四分之三英寸乘以 24有二分之一英寸",
+              "reason": "The candidate uses a different way to express the fractions but the numeric values correspond."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

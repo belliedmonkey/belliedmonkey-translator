@@ -1,0 +1,78 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate 1 mostly matches the reference but has minor format and semantic differences.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "攀爬（虽然攀爬能力不是很强）",
+              "hypQuote": "攀爬，虽然攀爬能力不是很强",
+              "reason": "Parentheses in reference replaced by commas in candidate."
+            },
+            {
+              "kind": "omission",
+              "refQuote": "，",
+              "hypQuote": "",
+              "reason": "Missing comma between '游泳' and '跳远' in candidate."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "拉力能达到人类大力士的五倍",
+              "hypQuote": "拉力能拿到人类大力石的5倍",
+              "reason": "Candidate uses '拿到' instead of '达到', '大力石' instead of '大力士', and digit '5' instead of '五'."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.85,
+          "note": "Candidate 2 has similar issues as candidate 1 plus a pronoun difference.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "攀爬（虽然攀爬能力不是很强）",
+              "hypQuote": "攀爬 ，虽然攀爬能力不是很强",
+              "reason": "Parentheses replaced by commas with extra spaces."
+            },
+            {
+              "kind": "omission",
+              "refQuote": "，",
+              "hypQuote": "",
+              "reason": "Missing comma between '游泳' and '跳远'."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "拉力能达到人类大力士的五倍",
+              "hypQuote": "拉力能拿到人类大力石的五倍",
+              "reason": "Candidate uses '拿到' instead of '达到', '大力石' instead of '大力士'."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "它",
+              "hypQuote": "他",
+              "reason": "Pronoun changed from '它' (it) to '他' (he)."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1676",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1676",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 1,
+          "note": "Exact match with the reference text.",
+          "findings": []
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.95,
+          "note": "Only difference is an extra space after '一样' which is a format-only difference.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "与所有南非国家公园一样，该公园每天都收取养护费和门票费。",
+              "hypQuote": "与所有南非国家公园一样 ，该公园每天都收取养护费和门票费。",
+              "reason": "Extra space after '一样'."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

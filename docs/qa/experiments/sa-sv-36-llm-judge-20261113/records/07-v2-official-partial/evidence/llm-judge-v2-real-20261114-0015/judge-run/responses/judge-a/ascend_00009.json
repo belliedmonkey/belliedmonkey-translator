@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 3100,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"ascend/00009\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.8,\"note\":\"Contains multiple errors in spelling and word form compared to the reference.\",\"findings\":[{\"kind\":\"entity\",\"refQuote\":\"information systems management\",\"hypQuote\":\"impormation sistancemangement\",\"reason\":\"The candidate misspells 'information systems management' with incorrect words.\"},{\"kind\":\"semantic\",\"refQuote\":\"no我专业是那个i s m information systems management\",\"hypQuote\":\"那我觉爱是那个 ISM impormation sistancemangement\",\"reason\":\"The candidate changes 'no我专业是那个' to '那我觉爱是那个', altering the meaning.\"}]},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.95,\"note\":\"Mostly accurate with minor format differences and a slight wording change.\",\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"no我专业是那个i s m information systems management\",\"hypQuote\":\"那我就按是那个ISM information systems management\",\"reason\":\"The candidate uses '那我就按是那个' instead of 'no我专业是那个' which is a wording difference but the key entity is correct.\"}]}]}",
+  "providerUsd": 0.0007188,
+  "usage": {
+    "inputTokens": 689,
+    "outputTokens": 277,
+    "providerUsd": 0.0007188,
+    "complete": true
+  },
+  "settledUsd": 0.00079068
+}

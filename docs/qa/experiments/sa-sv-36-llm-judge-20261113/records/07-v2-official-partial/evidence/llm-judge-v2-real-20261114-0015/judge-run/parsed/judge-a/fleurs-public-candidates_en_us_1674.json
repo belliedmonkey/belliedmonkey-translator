@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/en_us/1674",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "Candidate adds 'and' and uses 'other' instead of 'others', which changes meaning and introduces a minor grammatical issue.",
+        "findings": [
+          {
+            "kind": "semantic",
+            "refQuote": "in others several minutes are needed",
+            "hypQuote": "and other several minutes are needed",
+            "reason": "The candidate uses 'and other' instead of 'in others', which changes the meaning and is less clear."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "Candidate omits comma after 'minute' and uses 'other' instead of 'others', changing meaning and causing grammatical issues.",
+        "findings": [
+          {
+            "kind": "semantic",
+            "refQuote": "in others several minutes are needed",
+            "hypQuote": "and other several minutes are needed",
+            "reason": "The candidate uses 'and other' instead of 'in others', which changes the meaning and is less clear."
+          }
+        ]
+      }
+    ]
+  }
+}

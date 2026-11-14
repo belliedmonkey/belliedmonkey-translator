@@ -1,0 +1,16 @@
+{
+  "nCalls": 1,
+  "code": "budget-unknown",
+  "spentUsd": 0.0056,
+  "reserveX": 0.0056,
+  "costUnknown": true,
+  "requestAuth": "redacted",
+  "requestStage": "reserved",
+  "responseOk": false,
+  "responseCode": "timeout",
+  "laterRequestExists": false,
+  "humanNotAssessed": [
+    "fixture-1",
+    "fixture-2"
+  ]
+}

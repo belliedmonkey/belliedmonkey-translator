@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 10185,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1678\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"Candidate contains a misspelling and incorrect capitalization.\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"Oliver Sacks\",\n          \"hypQuote\": \"Oliver Saackchs\",\n          \"reason\": \"The name 'Oliver Sacks' is misspelled as 'Oliver Saackchs' in the candidate.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"The President's Speech\",\n          \"hypQuote\": \"the president's speech\",\n          \"reason\": \"The title 'The President's Speech' is correctly mentioned but lacks proper capitalization in the candidate.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate alters the subject and misrepresents the relationship between Oliver Sachs and the paper.\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"Oliver Sacks, in his paper The President's Speech\",\n          \"hypQuote\": \"Oliver Sachs and his paper, the president's speech\",\n          \"reason\": \"The reference states that Oliver Sacks authored the paper, but the candidate incorrectly presents Oliver Sachs and the paper as separate entities joined by 'and', changing the meaning.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"The President's Speech\",\n          \"hypQuote\": \"the president's speech\",\n          \"reason\": \"The title 'The President's Speech' is present but not properly capitalized in the candidate.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.00037926,
+  "usage": {
+    "inputTokens": 517,
+    "outputTokens": 425,
+    "providerUsd": 0.00037926,
+    "complete": true
+  },
+  "settledUsd": 0.0004434
+}

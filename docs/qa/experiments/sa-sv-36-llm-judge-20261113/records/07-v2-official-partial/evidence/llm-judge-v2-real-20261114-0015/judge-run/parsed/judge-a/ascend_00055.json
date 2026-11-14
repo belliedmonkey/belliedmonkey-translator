@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "ascend/00055",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Candidate includes a filler '嗯' similar to 'um' and adds spaces around commas, which is a format-only difference.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "um运动啊男生一般不都喜欢运动",
+            "hypQuote": "嗯 ，运动啊 ，男生一般不都喜欢运动",
+            "reason": "The candidate uses '嗯' instead of 'um' and adds spaces and commas, which are formatting differences without semantic change."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "Candidate uses '嗯' instead of 'um' and adds a period at the end, which are format-only differences.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "um运动啊男生一般不都喜欢运动",
+            "hypQuote": "嗯，运动啊男生一般不都喜欢运动。",
+            "reason": "The candidate uses '嗯' instead of 'um' and adds a comma and a period, which are formatting differences without semantic change."
+          }
+        ]
+      }
+    ]
+  }
+}

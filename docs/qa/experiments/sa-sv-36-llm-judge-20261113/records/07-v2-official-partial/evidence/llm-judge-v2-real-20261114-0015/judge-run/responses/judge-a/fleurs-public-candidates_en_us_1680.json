@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 2714,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"fleurs-public-candidates/en_us/1680\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.8,\"note\":\"Candidate has minor errors: 'well-rounded' vs 'well rounded' is format-only; 'leave' instead of 'leap' is a semantic error; '5' vs 'five' is format-only.\",\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"A well rounded athlete\",\"hypQuote\":\"A well-rounded athlete\",\"reason\":\"Hyphenation difference, same meaning.\"},{\"kind\":\"semantic\",\"refQuote\":\"leap great distances\",\"hypQuote\":\"leave great distances\",\"reason\":\"The candidate uses 'leave' which changes the meaning from 'leap'.\"},{\"kind\":\"format-only\",\"refQuote\":\"five times\",\"hypQuote\":\"5 times\",\"reason\":\"Digit versus word, same numeric value.\"}]},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":1,\"note\":\"Candidate matches the reference exactly except for a missing comma after 'climb' which is present in the reference but not in candidate; this is a minor punctuation difference not marked here.\",\"findings\":[]}]}",
+  "providerUsd": 0.0007144,
+  "usage": {
+    "inputTokens": 750,
+    "outputTokens": 259,
+    "providerUsd": 0.0007144,
+    "complete": true
+  },
+  "settledUsd": 0.00078584
+}

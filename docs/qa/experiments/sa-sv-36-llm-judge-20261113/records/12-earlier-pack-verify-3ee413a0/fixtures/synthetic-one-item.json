@@ -1,0 +1,20 @@
+{
+  "schema": "belliedmonkey.llm-judge.input.v1",
+  "task": "asr",
+  "items": [
+    {
+      "id": "fixture-1",
+      "reference": "the cat sat",
+      "candidates": [
+        {
+          "key": "arm-a",
+          "text": "the cat sat"
+        },
+        {
+          "key": "arm-b",
+          "text": "the dog sat"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "code": "usage-over-cap",
+  "verdict": null,
+  "providerExceededDeclaredCap": true
+}

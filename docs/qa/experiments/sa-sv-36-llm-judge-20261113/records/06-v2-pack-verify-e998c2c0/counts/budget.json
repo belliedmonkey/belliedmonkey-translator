@@ -1,0 +1,17 @@
+{
+  "remainingUsd": 0.19429628,
+  "maxInputTokens": 1152,
+  "maxOutputTokens": 2048,
+  "maxRequests": 72,
+  "maxTotalTokens": 230400,
+  "reservePerRequestUsd": {
+    "openai/gpt-4.1-mini": 0.00411136,
+    "qwen/qwen3-235b-a22b-2507": 0.0018688
+  },
+  "full72ReserveUsd": 0.21528576,
+  "remainingCoversFull72Reserve": false,
+  "extraUsdNeeded": 0.02098948,
+  "reapprovalRequired": true,
+  "noRequestMade": true,
+  "note": "Full reserve is maxInput+maxOutput at official envelope rates for all 72 requests. Not a settled-cost forecast. Do not spend from this verification."
+}

@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 12438,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/cmn_hans_cn/1678\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"Candidate contains an addition and a format variation in the name.\",\n      \"findings\": [\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"奥利弗·萨克斯 (Oliver Sacks)\",\n          \"hypQuote\": \"奥里弗萨克斯奥live萨克斯\",\n          \"reason\": \"Candidate adds '奥live' which is not present in the reference and combines it with a modified version of the name.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"奥利弗·萨克斯\",\n          \"hypQuote\": \"奥里弗萨克斯\",\n          \"reason\": \"The name '奥利弗·萨克斯' is written without the middle dot and with a slight variation in the first name ('奥里弗' vs '奥利弗'), which may be a transcription or spelling variation but does not change the referent.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate contains an addition and a truncation in the name.\",\n      \"findings\": [\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"奥利弗·萨克斯 (Oliver Sacks)\",\n          \"hypQuote\": \"奥利弗萨克斯奥萨克\",\n          \"reason\": \"Candidate adds '奥萨克' after '奥利弗萨克斯', which is not present in the reference and appears to be a partial repetition or misrendering of the surname.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"奥利弗·萨克斯\",\n          \"hypQuote\": \"奥利弗萨克斯\",\n          \"reason\": \"The name is written without the middle dot, a surface-level formatting difference that does not alter the identity of the named entity.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.0003958,
+  "usage": {
+    "inputTokens": 533,
+    "outputTokens": 482,
+    "providerUsd": 0.0003958,
+    "complete": true
+  },
+  "settledUsd": 0.0004922
+}

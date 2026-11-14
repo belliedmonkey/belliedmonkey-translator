@@ -1,0 +1,98 @@
+{
+  "schema": "belliedmonkey.llm-judge.plan.v1",
+  "called": false,
+  "synthetic": true,
+  "asrRubric": "belliedmonkey.llm-judge.asr.v1",
+  "promptTemplateSha256": "a955cddc61e16ef988ee7c4290437218df4653f88ec9a8a45d6cb38adca5bdd6",
+  "seed": 7,
+  "temperature": 0,
+  "maxItems": 36,
+  "timeoutMs": 50,
+  "maxRetries": 0,
+  "budgetUsd": 1,
+  "prices": {
+    "source": "SYNTHETIC_STRUCTURAL_NOT_A_QUOTE",
+    "sourceVersion": "fixture-only-not-a-real-price",
+    "maxInputTokens": 4000,
+    "maxOutputTokens": 800,
+    "maxTotalTokens": 345600,
+    "maxRequests": 72,
+    "reserveUsd": [
+      {
+        "model": "MODEL_X",
+        "usd": 0.0056,
+        "pricedZero": false
+      },
+      {
+        "model": "MODEL_Y",
+        "usd": 0.0056,
+        "pricedZero": false
+      }
+    ]
+  },
+  "judges": [
+    {
+      "id": "judge-a",
+      "model": "MODEL_X",
+      "called": false
+    },
+    {
+      "id": "judge-b",
+      "model": "MODEL_Y",
+      "called": false
+    }
+  ],
+  "itemIds": [
+    "fixture-1",
+    "fixture-2"
+  ],
+  "omittedIds": [],
+  "maxTokensFieldProviderVerified": false,
+  "inputBound": {
+    "kind": "counter",
+    "exact": false
+  },
+  "reserveTokens": 4800,
+  "inputChecks": [
+    {
+      "id": "fixture-1",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 100,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fixture-1",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 100,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fixture-2",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 100,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fixture-2",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 100,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/en_us/1678",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/en_us/1678",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Minor spelling error in the name 'Oliver Sacks' and missing comma after 'Saackchs'.",
+          "findings": [
+            {
+              "kind": "entity",
+              "refQuote": "Oliver Sacks",
+              "hypQuote": "Oliver Saackchs",
+              "reason": "The candidate misspells the name 'Sacks' as 'Saackchs'."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "in his paper The President's Speech,",
+              "hypQuote": "in his paper, the president's speech",
+              "reason": "Candidate uses lowercase and adds a comma after 'paper' instead of before 'The President's Speech'."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.85,
+          "note": "Incorrect conjunction 'and' instead of 'in' and minor capitalization differences.",
+          "findings": [
+            {
+              "kind": "semantic",
+              "refQuote": "Oliver Sacks, in his paper",
+              "hypQuote": "Oliver Sachs and his paper",
+              "reason": "Candidate changes 'in' to 'and', altering the relationship between Oliver Sacks and the paper."
+            },
+            {
+              "kind": "entity",
+              "refQuote": "Oliver Sacks",
+              "hypQuote": "Oliver Sachs",
+              "reason": "Candidate misspells the name 'Sacks' as 'Sachs'."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "The President's Speech",
+              "hypQuote": "the president's speech",
+              "reason": "Candidate uses lowercase for the title."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

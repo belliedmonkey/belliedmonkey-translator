@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 4410,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1669\",\n  \"slots\": {\n    \"slot-1\": {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Minor spelling errors in the name and missing 'the' before 'accused'.\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"Chandra Shekhar Solanki\",\n          \"hypQuote\": \"Chandra Shikar Solanki\",\n          \"reason\": \"The name is misspelled in the candidate.\"\n        },\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"the accused\",\n          \"hypQuote\": \"that accused\",\n          \"reason\": \"The candidate omits 'the' before 'accused' and adds 'that'.\"\n        }\n      ]\n    },\n    \"slot-2\": {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Multiple spelling errors in the name but otherwise matches the reference.\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"Chandra Shekhar Solanki\",\n          \"hypQuote\": \"Chandra Shiar Slanki\",\n          \"reason\": \"The name is misspelled in the candidate.\"\n        }\n      ]\n    }\n  }\n}",
+  "providerUsd": 0.0007124,
+  "usage": {
+    "inputTokens": 469,
+    "outputTokens": 328,
+    "providerUsd": 0.0007124,
+    "complete": true
+  },
+  "settledUsd": 0.00078364
+}

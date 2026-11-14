@@ -1,0 +1,60 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1668",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1668",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Minor format differences and a slight semantic difference with '或者' instead of '或'.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "买一张万能卡（Wild Card）",
+              "hypQuote": "买一张万能卡",
+              "reason": "The candidate omits the parenthetical '（Wild Card）', which is a format difference."
+            },
+            {
+              "kind": "semantic",
+              "refQuote": "或",
+              "hypQuote": "或者",
+              "reason": "The candidate uses '或者' instead of '或', which can imply a slightly different nuance."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Minor format differences and a slight semantic difference with '或者' instead of '或'.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "买一张万能卡（Wild Card）",
+              "hypQuote": "买一张万能卡",
+              "reason": "The candidate omits the parenthetical '（Wild Card）', which is a format difference."
+            },
+            {
+              "kind": "semantic",
+              "refQuote": "或",
+              "hypQuote": "或者",
+              "reason": "The candidate uses '或者' instead of '或', which can imply a slightly different nuance."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 3933,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v2\",\n  \"itemId\": \"fleurs-public-candidates/cmn_hans_cn/1669\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"\",\n      \"findings\": [\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"钱德拉·谢卡尔·索兰基\",\n          \"hypQuote\": \"钱德拉谢卡尔索兰基\",\n          \"reason\": \"参考文本中的人名包含间隔号，而候选文本中缺少间隔号，导致人名格式不完整。\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 1,\n      \"note\": \"\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"钱德拉·谢卡尔·索兰基\",\n          \"hypQuote\": \"钱德拉谢卡尔索兰基\",\n          \"reason\": \"参考文本中的人名使用间隔号分隔，候选文本中人名连写，属于格式差异，未改变实际指代。\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.0003148,
+  "usage": {
+    "inputTokens": 728,
+    "outputTokens": 282,
+    "providerUsd": 0.0003148,
+    "complete": true
+  },
+  "settledUsd": 0.0003712
+}

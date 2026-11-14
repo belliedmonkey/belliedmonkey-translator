@@ -1,0 +1,11 @@
+{
+  "nCalls": 1,
+  "code": "budget-unknown",
+  "ok": false,
+  "costUnknown": true,
+  "spentUsd": null,
+  "completeFlags": [
+    false,
+    false
+  ]
+}

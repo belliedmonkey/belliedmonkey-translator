@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1669",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "钱德拉·谢卡尔·索兰基",
+            "hypQuote": "钱德拉谢卡尔索兰基",
+            "reason": "参考文本中的人名包含间隔号，而候选文本中缺少间隔号，导致人名格式不完整。"
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 1,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "钱德拉·谢卡尔·索兰基",
+            "hypQuote": "钱德拉谢卡尔索兰基",
+            "reason": "参考文本中的人名使用间隔号分隔，候选文本中人名连写，属于格式差异，未改变实际指代。"
+          }
+        ]
+      }
+    ]
+  }
+}

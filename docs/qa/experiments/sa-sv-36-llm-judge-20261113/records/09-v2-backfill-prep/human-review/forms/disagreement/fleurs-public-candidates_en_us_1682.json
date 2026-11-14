@@ -1,0 +1,192 @@
+{
+  "schema": "belliedmonkey.qa.v2-semantic-human-review-form.v1",
+  "list": "disagreement",
+  "itemId": "fleurs-public-candidates/en_us/1682",
+  "initialInventoryOnly": true,
+  "mustRefreshAfterBackfill": true,
+  "semanticHumanReviewed": false,
+  "earReviewUsedAsSemanticReview": false,
+  "doNotPreFillJudgment": true,
+  "officialAgentReviewIsNotHumanReview": true,
+  "reference": "While no one knows for certain who wrote it, it is known that early in its life, the large parchment document (it measures 29¾ inches by 24½ inches) was rolled up for storage.",
+  "slots": {
+    "slot-1": {
+      "text": "While no one knows for Serenhu Roi, it is known that early in its life, the large parchment document, in Messrs. 29, 3/4 inches by 24 and half inches, was rolled up for storage."
+    },
+    "slot-2": {
+      "text": "While no one knows for Cin who wrote it, it is known that early in its life, the large par document it measures 29 free4 inches by 24 and half inches was roll up for storage."
+    }
+  },
+  "officialKindLists": {
+    "judge-a": {
+      "slot-1": [
+        "entity",
+        "format-only"
+      ],
+      "slot-2": [
+        "entity",
+        "format-only",
+        "omission"
+      ]
+    },
+    "judge-b": {
+      "slot-1": [
+        "entity",
+        "format-only",
+        "format-only",
+        "omission"
+      ],
+      "slot-2": [
+        "entity",
+        "format-only",
+        "number",
+        "omission",
+        "semantic"
+      ]
+    }
+  },
+  "officialVerdicts": {
+    "judge-a": {
+      "model": "openai/gpt-4.1-mini",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.7,
+        "note": "Candidate has multiple errors including entity and format issues, but retains some structure of the original sentence.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "who wrote it",
+            "hypQuote": "for Serenhu Roi",
+            "reason": "The phrase 'who wrote it' is replaced by 'for Serenhu Roi', which changes the meaning and introduces an incorrect entity."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "(it measures 29¾ inches by 24½ inches)",
+            "hypQuote": "in Messrs. 29, 3/4 inches by 24 and half inches",
+            "reason": "The measurement is presented with different formatting and additional words, altering the original parenthetical and numeric style."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.6,
+        "note": "Candidate contains entity, format, and omission errors affecting clarity and accuracy.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "who wrote it",
+            "hypQuote": "for Cin who wrote it",
+            "reason": "The addition of 'for Cin' before 'who wrote it' introduces an incorrect entity not present in the reference."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "(it measures 29¾ inches by 24½ inches)",
+            "hypQuote": "it measures 29 free4 inches by 24 and half inches",
+            "reason": "The measurement is distorted with 'free4' instead of '¾' and different wording for '24½', affecting the original format."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "was rolled up for storage.",
+            "hypQuote": "was roll up for storage.",
+            "reason": "The phrase 'was rolled up for storage' is partially omitted or incorrectly formed as 'was roll up for storage', affecting grammatical correctness and completeness."
+          }
+        ]
+      }
+    },
+    "judge-b": {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.75,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "certain who wrote it",
+            "hypQuote": "Serenhu Roi",
+            "reason": "The phrase 'Serenhu Roi' replaces 'certain who wrote it', which distorts the original meaning and refers to a non-existent entity."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "29¾ inches",
+            "hypQuote": "29, 3/4 inches",
+            "reason": "The measurement '29¾ inches' is expressed differently as '29, 3/4 inches', but represents the same value."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "24½ inches",
+            "hypQuote": "24 and half inches",
+            "reason": "The measurement '24½ inches' is expressed as '24 and half inches', which is a verbal equivalent."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "the large parchment document (it measures",
+            "hypQuote": "the large parchment document, in Messrs.",
+            "reason": "The phrase 'it measures' is omitted and replaced with the unclear 'in Messrs.', which does not convey the same meaning."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.65,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "certain who wrote it",
+            "hypQuote": "Cin who wrote it",
+            "reason": "'Cin' appears to be a misrecognition or corruption of 'certain', altering the intended entity."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "parchment",
+            "hypQuote": "par",
+            "reason": "The word 'parchment' is shortened to 'par', omitting critical information."
+          },
+          {
+            "kind": "number",
+            "refQuote": "29¾ inches",
+            "hypQuote": "29 free4 inches",
+            "reason": "'29 free4 inches' is a misinterpretation of '29¾ inches', resulting in an incorrect numerical expression."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "24½ inches",
+            "hypQuote": "24 and half inches",
+            "reason": "'24½ inches' is rendered as '24 and half inches', which is a valid verbal format."
+          },
+          {
+            "kind": "semantic",
+            "refQuote": "was rolled up",
+            "hypQuote": "was roll up",
+            "reason": "'was roll up' is grammatically incorrect and changes the meaning from past passive tense to an incomplete construction."
+          }
+        ]
+      }
+    }
+  },
+  "humanAnnotation": {
+    "reviewerId": "",
+    "reviewedAtAsiaShanghai": "",
+    "slots": {
+      "slot-1": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      },
+      "slot-2": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      }
+    },
+    "overallComment": "",
+    "marksCompleteOnlyAfterUserReview": true
+  }
+}

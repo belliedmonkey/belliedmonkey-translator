@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 7989,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1673\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"The candidate uses '13' instead of 'thirteen', which is a format-only difference. The rest of the content matches the reference in meaning and structure.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"thirteen\",\n          \"hypQuote\": \"13\",\n          \"reason\": \"The word 'thirteen' in the reference is written as the numeral '13' in the candidate, which is a surface-level format difference with no change in meaning.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"The candidate uses '13' instead of 'thirteen', which is a format-only difference. The rest of the content matches the reference in meaning and structure.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"thirteen\",\n          \"hypQuote\": \"13\",\n          \"reason\": \"The word 'thirteen' in the reference is written as the numeral '13' in the candidate, which is a surface-level format difference with no change in meaning.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.00030892,
+  "usage": {
+    "inputTokens": 506,
+    "outputTokens": 339,
+    "providerUsd": 0.00030892,
+    "complete": true
+  },
+  "settledUsd": 0.0003724
+}

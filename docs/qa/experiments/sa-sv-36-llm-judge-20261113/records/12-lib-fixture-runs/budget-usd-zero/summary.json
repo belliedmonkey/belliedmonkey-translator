@@ -1,0 +1,137 @@
+{
+  "ok": false,
+  "code": "no-verdict",
+  "called": true,
+  "synthetic": true,
+  "productMetric": false,
+  "endToEnd": false,
+  "leaderboard": false,
+  "ranking": false,
+  "editRates": null,
+  "results": [
+    {
+      "id": "fixture-1",
+      "judges": {
+        "judge-a": null,
+        "judge-b": null
+      },
+      "complete": false
+    },
+    {
+      "id": "fixture-2",
+      "judges": {
+        "judge-a": null,
+        "judge-b": null
+      },
+      "complete": false
+    }
+  ],
+  "doubleBlindComplete": false,
+  "semanticHumanReviewCount": 0,
+  "earReviewUsedAsSemanticReview": false,
+  "translationGold": false,
+  "promptTemplateSha256": "7899bec12e0764d4a224c4c1491d5e7ae3147b2e77a5333fa7aee1fedbe29094",
+  "asrRubric": "belliedmonkey.llm-judge.asr.v1",
+  "plan": {
+    "schema": "belliedmonkey.llm-judge.plan.v1",
+    "called": false,
+    "synthetic": true,
+    "asrRubric": "belliedmonkey.llm-judge.asr.v1",
+    "promptTemplateSha256": "7899bec12e0764d4a224c4c1491d5e7ae3147b2e77a5333fa7aee1fedbe29094",
+    "seed": 7,
+    "temperature": 0,
+    "maxItems": 36,
+    "timeoutMs": 200,
+    "maxRetries": 0,
+    "budgetUsd": 1,
+    "judges": [
+      {
+        "id": "judge-a",
+        "model": "MODEL_X",
+        "called": false
+      },
+      {
+        "id": "judge-b",
+        "model": "MODEL_Y",
+        "called": false
+      }
+    ],
+    "itemIds": [
+      "fixture-1",
+      "fixture-2"
+    ]
+  },
+  "assignment": {
+    "schema": "belliedmonkey.llm-judge.assignment.v1",
+    "seed": 7,
+    "items": [
+      {
+        "id": "fixture-1",
+        "slots": {
+          "slot-1": "arm-b",
+          "slot-2": "arm-a"
+        }
+      },
+      {
+        "id": "fixture-2",
+        "slots": {
+          "slot-1": "arm-b",
+          "slot-2": "arm-a"
+        }
+      }
+    ],
+    "note": "This mapping stays in the evidence directory. It is not part of the judge request."
+  },
+  "usage": {
+    "calls": [
+      {
+        "judgeId": "judge-a",
+        "itemId": "fixture-1",
+        "attempt": 1,
+        "ok": true,
+        "inputTokens": 1,
+        "outputTokens": 1,
+        "usd": 0,
+        "costUnknown": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fixture-1",
+        "attempt": 1,
+        "ok": true,
+        "inputTokens": 1,
+        "outputTokens": 1,
+        "usd": 0,
+        "costUnknown": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fixture-2",
+        "attempt": 1,
+        "ok": true,
+        "inputTokens": 1,
+        "outputTokens": 1,
+        "usd": 0,
+        "costUnknown": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fixture-2",
+        "attempt": 1,
+        "ok": true,
+        "inputTokens": 1,
+        "outputTokens": 1,
+        "usd": 0,
+        "costUnknown": false
+      }
+    ],
+    "spentUsd": 0,
+    "costUnknown": false
+  },
+  "humanReview": {
+    "schema": "belliedmonkey.llm-judge.human-review.v1",
+    "semanticHumanReviewCount": 0,
+    "earReviewUsedAsSemanticReview": false,
+    "rows": []
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 5941,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/cmn_hans_cn/1681\",\n  \"slots\": {\n    \"slot-1\": {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate 1 has minor format and punctuation differences but mostly matches the reference.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"试验，不过，实验\",\n          \"hypQuote\": \"实验。不过\",\n          \"reason\": \"Candidate replaces '试验，不过，' with '实验。不过', changing '试验' to '实验' and removing commas.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"提出问题及进行观察\",\n          \"hypQuote\": \"提出问题以及进行观察\",\n          \"reason\": \"Candidate uses '以及' instead of '及', a format difference.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"提出问题及进行观察也可以指导科学研究。\",\n          \"hypQuote\": \"提出问题以及进行观察，也可以指导科学研究。\",\n          \"reason\": \"Candidate adds a comma after '观察' which is a punctuation difference.\"\n        }\n      ]\n    },\n    \"slot-2\": {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.85,\n      \"note\": \"Candidate 2 is similar to Candidate 1 but lacks a comma after '观察', causing a slight semantic ambiguity.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"试验，不过，实验\",\n          \"hypQuote\": \"实验。不过\",\n          \"reason\": \"Candidate replaces '试验，不过，' with '实验。不过', changing '试验' to '实验' and removing commas.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"提出问题及进行观察\",\n          \"hypQuote\": \"提出问题以及进行观察\",\n          \"reason\": \"Candidate uses '以及' instead of '及', a format difference.\"\n        },\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"提出问题及进行观察，也可以指导科学研究。\",\n          \"hypQuote\": \"提出问题以及进行观察也可以指导科学研究。\",\n          \"reason\": \"Candidate omits the comma after '观察', which may affect the clarity of the sentence structure.\"\n        }\n      ]\n    }\n  }\n}",
+  "providerUsd": 0.0010948,
+  "usage": {
+    "inputTokens": 521,
+    "outputTokens": 554,
+    "providerUsd": 0.0010948,
+    "complete": true
+  },
+  "settledUsd": 0.00120428
+}

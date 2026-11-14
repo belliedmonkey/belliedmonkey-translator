@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 0,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v1\",\"itemId\":\"fixture-1\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":true,\"confidence\":0.2,\"note\":\"fixture abstain\",\"findings\":[]},{\"slot\":\"slot-2\",\"abstain\":true,\"confidence\":0.2,\"note\":\"fixture abstain\",\"findings\":[]}]}",
+  "providerUsd": null,
+  "usage": {
+    "inputTokens": 488,
+    "outputTokens": 800,
+    "providerUsd": null,
+    "complete": true
+  },
+  "settledUsd": null
+}

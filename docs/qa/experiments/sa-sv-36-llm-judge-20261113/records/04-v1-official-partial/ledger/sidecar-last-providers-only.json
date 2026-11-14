@@ -1,0 +1,19 @@
+{
+  "limitation": "QA transport sidecar used model id as the filename because the frozen pack request object has no itemId. Later calls overwrote earlier sidecars. Only the last call per model remains. Probe providers are recorded separately. This is not a hard guarantee of every full-run provider.",
+  "files": {
+    "judge-a_openai_gpt-4.1-mini.json": {
+      "provider": "OpenAI",
+      "providerHeader": null,
+      "responseModel": "openai/gpt-4.1-mini",
+      "finishReason": "stop",
+      "httpStatus": 200
+    },
+    "judge-b_qwen_qwen3-235b-a22b-2507.json": {
+      "provider": "Nebius",
+      "providerHeader": null,
+      "responseModel": "qwen/qwen3-235b-a22b-2507",
+      "finishReason": "stop",
+      "httpStatus": 200
+    }
+  }
+}

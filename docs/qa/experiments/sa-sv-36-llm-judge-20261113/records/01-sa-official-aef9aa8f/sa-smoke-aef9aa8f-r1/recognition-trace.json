@@ -1,0 +1,10 @@
+{
+  "arm" : "sa",
+  "hypotheses" : null,
+  "locale" : "zh-CN",
+  "permissionPrompt" : "unknown",
+  "productMetric" : false,
+  "rates" : null,
+  "sampleId" : "ascend\/00068",
+  "stage" : "result-consume"
+}

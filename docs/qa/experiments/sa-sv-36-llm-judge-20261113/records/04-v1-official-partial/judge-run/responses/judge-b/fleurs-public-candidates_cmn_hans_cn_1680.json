@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 15337,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/cmn_hans_cn/1680\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"Candidate contains errors in punctuation, number format, and entity.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"、\",\n          \"hypQuote\": \"\",\n          \"reason\": \"The reference uses顿号（、）to separate list items, but the candidate omits them and uses no delimiter between '游泳' and '跳远'.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"五倍\",\n          \"hypQuote\": \"5倍\",\n          \"reason\": \"The number '五倍' in the reference is written in Chinese characters, while the candidate uses Arabic numerals '5倍'. This is a format difference with the same meaning.\"\n        },\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"人类大力士\",\n          \"hypQuote\": \"人类大力石\",\n          \"reason\": \"The reference uses '大力士' meaning 'strongman', but the candidate writes '大力石' which means 'strong stone', a clear entity error altering meaning.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"、\",\n          \"hypQuote\": \"\",\n          \"reason\": \"The candidate omits the顿号（、）after '游泳', which is present in the reference to separate items in a list.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate contains errors in punctuation, number format, entity, and pronoun.\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"人类大力士\",\n          \"hypQuote\": \"人类大力石\",\n          \"reason\": \"The reference uses '大力士' meaning 'strongman', but the candidate writes '大力石' which means 'strong stone', a clear entity error altering meaning.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"五倍\",\n          \"hypQuote\": \"5倍\",\n          \"reason\": \"The number '五倍' in the reference is written in Chinese characters, while the candidate uses Arabic numerals '5倍'. This is a format difference with the same meaning.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"，\",\n          \"hypQuote\": \" ，\",\n          \"reason\": \"The candidate has an extra full-width space before each comma, which is not present in the reference.\"\n        },\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"它\",\n          \"hypQuote\": \"他\",\n          \"reason\": \"The reference uses '它' (it) to refer to the tiger, which is grammatically correct for animals, while the candidate uses '他' (he), which anthropomorphizes the animal and changes the semantic tone.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"、\",\n          \"hypQuote\": \"\",\n          \"reason\": \"The candidate omits the顿号（、）after '游泳', which is present in the reference to separate items in a list.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.00063966,
+  "usage": {
+    "inputTokens": 513,
+    "outputTokens": 753,
+    "providerUsd": 0.00063966,
+    "complete": true
+  },
+  "settledUsd": 0.000705
+}

@@ -1,0 +1,48 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/en_us/1681",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/en_us/1681",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Minor punctuation differences, no significant change in meaning.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "It isn’t alone though, experimentation, and an experiment is a test that is used to eliminate one or more of the possible hypotheses, asking questions, and making observations also guide scientific research.",
+              "hypQuote": "It isn't alone, though, experimentation, and an experiment is a test that is used to eliminate one or more of the possible hypotheses asking questions and making observations also guide scientific research.",
+              "reason": "Comma placement differs slightly; missing comma after 'hypotheses' in candidate."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.8,
+          "note": "Punctuation change introduces a sentence break that alters the flow and potentially the meaning.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "It isn’t alone though, experimentation, and an experiment is a test that is used to eliminate one or more of the possible hypotheses, asking questions, and making observations also guide scientific research.",
+              "hypQuote": "It isn't alone though, experimentation. And an experiment is a test that is used to eliminate one or more of the possible hypotheses, asking questions, and making observations also guide scientific research.",
+              "reason": "Period after 'experimentation' changes sentence structure and flow."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

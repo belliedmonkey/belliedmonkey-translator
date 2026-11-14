@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 5727,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1668\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": true,\n      \"confidence\": 0.0,\n      \"note\": \"Both candidates are identical and match the reference exactly in content and meaning, differing only in capitalization of 'Wild Card' and 'National Parks', which does not affect semantic meaning. No meaningful distinction can be made between the candidates.\",\n      \"findings\": []\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": true,\n      \"confidence\": 0.0,\n      \"note\": \"Both candidates are identical and match the reference exactly in content and meaning, differing only in capitalization of 'Wild Card' and 'National Parks', which does not affect semantic meaning. No meaningful distinction can be made between the candidates.\",\n      \"findings\": []\n    }\n  ]\n}",
+  "providerUsd": 0.0002473,
+  "usage": {
+    "inputTokens": 515,
+    "outputTokens": 219,
+    "providerUsd": 0.0002473,
+    "complete": true
+  },
+  "settledUsd": 0.0002782
+}

@@ -1,0 +1,1 @@
+"config.dryrun-structural-not-a-quote.json is a structural dry-run fixture only.\nREPLACE_* names, SYNTHETIC_STRUCTURAL_NOT_A_QUOTE prices, and utf8-bytes-plus-overhead with overhead 0 are not a selected gateway, model, tokenizer, or price list.\nDo not treat this file as official run configuration.\n"

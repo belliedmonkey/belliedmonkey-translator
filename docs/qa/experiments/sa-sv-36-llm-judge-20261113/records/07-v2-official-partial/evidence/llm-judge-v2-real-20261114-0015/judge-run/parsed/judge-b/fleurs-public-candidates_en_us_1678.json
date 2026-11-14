@@ -1,0 +1,56 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/en_us/1678",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.85,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Oliver Sacks",
+            "hypQuote": "Oliver Saackchs",
+            "reason": "The name 'Oliver Sacks' is misspelled as 'Oliver Saackchs' in the candidate."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "The President's Speech",
+            "hypQuote": "the president's speech",
+            "reason": "The title 'The President's Speech' differs in capitalization and lacks quotation marks, but refers to the same work."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Oliver Sacks",
+            "hypQuote": "Oliver Sachs",
+            "reason": "The name 'Oliver Sacks' is misspelled as 'Oliver Sachs' in the candidate."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "The President's Speech",
+            "hypQuote": "the president's speech",
+            "reason": "The title 'The President's Speech' differs in capitalization and lacks quotation marks, but refers to the same work."
+          },
+          {
+            "kind": "semantic",
+            "refQuote": "Oliver Sacks, in his paper",
+            "hypQuote": "Oliver Sachs and his paper",
+            "reason": "The phrase 'and his paper' incorrectly suggests that Oliver Sachs is separate from the paper, altering the original meaning that the paper belongs to Sacks."
+          }
+        ]
+      }
+    ]
+  }
+}

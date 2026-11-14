@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 7488,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"ascend/00055\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"The candidate replaces 'um' with '嗯' and adds extra spaces around the comma, but the meaning and content are preserved.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"um\",\n          \"hypQuote\": \"嗯\",\n          \"reason\": \"The filler word 'um' is rendered as its Chinese equivalent '嗯'; this is a surface-level difference in representation with no semantic change.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"运动啊男生\",\n          \"hypQuote\": \"运动啊 ，男生\",\n          \"reason\": \"The candidate inserts a space before and after the comma, which is a punctuation formatting difference with no impact on meaning.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.98,\n      \"note\": \"The candidate matches the reference closely, differing only in punctuation by adding a full stop at the end.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"运动。\",\n          \"hypQuote\": \"运动。\",\n          \"reason\": \"The reference does not have a period at the end, but the candidate adds one; this is a minor punctuation difference with no semantic effect.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.00031502,
+  "usage": {
+    "inputTokens": 441,
+    "outputTokens": 358,
+    "providerUsd": 0.00031502,
+    "complete": true
+  },
+  "settledUsd": 0.0003746
+}

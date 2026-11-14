@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 7806,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1682\",\n  \"slots\": {\n    \"slot-1\": {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate 1 has multiple errors including entity, format, and semantic issues.\",\n      \"findings\": [\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"who wrote it\",\n          \"hypQuote\": \"for Serenhu Roi\",\n          \"reason\": \"The phrase 'who wrote it' is replaced by 'for Serenhu Roi', which changes the meaning and introduces an unknown entity.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"(it measures 29¾ inches by 24½ inches)\",\n          \"hypQuote\": \"in Messrs. 29, 3/4 inches by 24 and half inches\",\n          \"reason\": \"The measurement is expressed differently with added words and punctuation, but the values appear intended to be the same.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"rolled up for storage\",\n          \"hypQuote\": \"was rolled up for storage\",\n          \"reason\": \"Minor difference in auxiliary verb placement, but meaning is preserved.\"\n        }\n      ]\n    },\n    \"slot-2\": {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"Candidate 2 contains entity, format, omission, and semantic errors.\",\n      \"findings\": [\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"who wrote it\",\n          \"hypQuote\": \"for Cin who wrote it\",\n          \"reason\": \"The addition of 'for Cin' before 'who wrote it' introduces an unknown entity and changes the meaning.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"(it measures 29¾ inches by 24½ inches)\",\n          \"hypQuote\": \"it measures 29 free4 inches by 24 and half inches\",\n          \"reason\": \"The measurement is expressed differently with a likely misrecognition 'free4' instead of '¾', and '24 and half' instead of '24½'.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"large parchment document\",\n          \"hypQuote\": \"large par document\",\n          \"reason\": \"The word 'chment' is missing from 'par(chment)', causing omission.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"rolled up for storage\",\n          \"hypQuote\": \"was roll up for storage\",\n          \"reason\": \"Verb tense and form differ but meaning is preserved.\"\n        }\n      ]\n    }\n  }\n}",
+  "providerUsd": 0.0012072,
+  "usage": {
+    "inputTokens": 546,
+    "outputTokens": 618,
+    "providerUsd": 0.0012072,
+    "complete": true
+  },
+  "settledUsd": 0.00132792
+}

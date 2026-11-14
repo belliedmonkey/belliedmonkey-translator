@@ -1,0 +1,50 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fleurs-public-candidates/en_us/1678",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "Candidate contains a misspelling and incorrect capitalization.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Oliver Sacks",
+            "hypQuote": "Oliver Saackchs",
+            "reason": "The name 'Oliver Sacks' is misspelled as 'Oliver Saackchs' in the candidate."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "The President's Speech",
+            "hypQuote": "the president's speech",
+            "reason": "The title 'The President's Speech' is correctly mentioned but lacks proper capitalization in the candidate."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Candidate alters the subject and misrepresents the relationship between Oliver Sachs and the paper.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Oliver Sacks, in his paper The President's Speech",
+            "hypQuote": "Oliver Sachs and his paper, the president's speech",
+            "reason": "The reference states that Oliver Sacks authored the paper, but the candidate incorrectly presents Oliver Sachs and the paper as separate entities joined by 'and', changing the meaning."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "The President's Speech",
+            "hypQuote": "the president's speech",
+            "reason": "The title 'The President's Speech' is present but not properly capitalized in the candidate."
+          }
+        ]
+      }
+    ]
+  }
+}

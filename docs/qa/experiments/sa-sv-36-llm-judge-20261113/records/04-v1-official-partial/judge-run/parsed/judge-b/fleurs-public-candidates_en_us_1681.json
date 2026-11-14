@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fleurs-public-candidates/en_us/1681",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "The candidate omits punctuation present in the reference, which affects readability but not meaning. No semantic, entity, number, or negation errors are present.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": ", asking questions, and making observations also guide scientific research.",
+            "hypQuote": " asking questions and making observations also guide scientific research.",
+            "reason": "The candidate omits the comma after 'hypotheses' and the comma after 'questions', which are present in the reference."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "The candidate splits the sentence after 'experimentation', altering the flow. It also omits a comma after 'hypotheses'.",
+        "findings": [
+          {
+            "kind": "addition",
+            "refQuote": "experimentation, and an experiment",
+            "hypQuote": "experimentation. And an experiment",
+            "reason": "The candidate replaces the comma and lowercase 'and' with a period and capitalized 'And', introducing a sentence break not in the reference."
+          },
+          {
+            "kind": "omission",
+            "refQuote": ", asking questions, and making observations also guide scientific research.",
+            "hypQuote": " asking questions, and making observations also guide scientific research.",
+            "reason": "The candidate omits the comma after 'hypotheses'."
+          }
+        ]
+      }
+    ]
+  }
+}

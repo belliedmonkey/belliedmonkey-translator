@@ -1,0 +1,122 @@
+{
+  "schema": "belliedmonkey.qa.v2-semantic-human-review-form.v1",
+  "list": "sample",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1672",
+  "initialInventoryOnly": true,
+  "mustRefreshAfterBackfill": true,
+  "semanticHumanReviewed": false,
+  "earReviewUsedAsSemanticReview": false,
+  "doNotPreFillJudgment": true,
+  "officialAgentReviewIsNotHumanReview": true,
+  "reference": "小心不要让衣服变得太热（这可能会产生收缩现象，在极端情况下会把衣服烤焦）。",
+  "slots": {
+    "slot-1": {
+      "text": "小心不要让衣服变得太热，这可能会产生收缩现象。在极端情况下会把衣服烤焦。"
+    },
+    "slot-2": {
+      "text": "小心不要让衣服变得太热 ，这可能会产生收缩现象 ，在极端情况下会把衣服烤焦。"
+    }
+  },
+  "officialKindLists": {
+    "judge-a": {
+      "slot-1": [
+        "format-only"
+      ],
+      "slot-2": [
+        "format-only"
+      ]
+    },
+    "judge-b": {
+      "slot-1": [
+        "format-only"
+      ],
+      "slot-2": [
+        "format-only"
+      ]
+    }
+  },
+  "officialVerdicts": {
+    "judge-a": {
+      "model": "openai/gpt-4.1-mini",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Candidate splits the sentence into two with a period instead of using parentheses, which changes the format but not the meaning.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "（这可能会产生收缩现象，在极端情况下会把衣服烤焦）",
+            "hypQuote": "这可能会产生收缩现象。在极端情况下会把衣服烤焦。",
+            "reason": "The candidate replaces the parentheses with a period, splitting the sentence into two separate sentences, which is a format difference."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "Candidate uses commas and spaces instead of parentheses, changing the format but preserving meaning.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "（这可能会产生收缩现象，在极端情况下会把衣服烤焦）",
+            "hypQuote": "，这可能会产生收缩现象 ，在极端情况下会把衣服烤焦。",
+            "reason": "The candidate replaces parentheses with commas and spaces, which is a format difference without semantic change."
+          }
+        ]
+      }
+    },
+    "judge-b": {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 1,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "（这可能会产生收缩现象，在极端情况下会把衣服烤焦）。",
+            "hypQuote": "，这可能会产生收缩现象。在极端情况下会把衣服烤焦。",
+            "reason": "括号被移除，句号被插入，改变了标点格式但未改变语义。"
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 1,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "小心不要让衣服变得太热（这可能会产生收缩现象，在极端情况下会把衣服烤焦）。",
+            "hypQuote": "小心不要让衣服变得太热 ，这可能会产生收缩现象 ，在极端情况下会把衣服烤焦。",
+            "reason": "括号被空格和顿号替代，标点格式变化但语义一致。"
+          }
+        ]
+      }
+    }
+  },
+  "humanAnnotation": {
+    "reviewerId": "",
+    "reviewedAtAsiaShanghai": "",
+    "slots": {
+      "slot-1": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      },
+      "slot-2": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      }
+    },
+    "overallComment": "",
+    "marksCompleteOnlyAfterUserReview": true
+  }
+}

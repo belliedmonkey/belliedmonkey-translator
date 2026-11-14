@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1672",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "The candidate splits the parenthetical clause into two sentences, altering the structure but preserving all content and meaning.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "（这可能会产生收缩现象，在极端情况下会把衣服烤焦）",
+            "hypQuote": "这可能会产生收缩现象。在极端情况下会把衣服烤焦。",
+            "reason": "The reference uses parentheses to embed a clarifying clause, while the candidate removes parentheses and splits the content into two sentences. The semantic content is preserved, but formatting and punctuation differ."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.98,
+        "note": "The candidate matches the reference in content and meaning, with only minor punctuation differences involving full-width spaces.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "小心不要让衣服变得太热（这可能会产生收缩现象，在极端情况下会把衣服烤焦）。",
+            "hypQuote": "小心不要让衣服变得太热 ，这可能会产生收缩现象 ，在极端情况下会把衣服烤焦。",
+            "reason": "The candidate replaces the parentheses with full-width spaces and adds spaces around the clauses, but retains all semantic content. This is a typographic variation with no change in meaning."
+          }
+        ]
+      }
+    ]
+  }
+}

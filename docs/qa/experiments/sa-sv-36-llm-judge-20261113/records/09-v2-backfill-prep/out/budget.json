@@ -1,0 +1,47 @@
+{
+  "schema": "belliedmonkey.qa.v2-backfill-budget.v1",
+  "sameCumulativePool": true,
+  "doNotOpenNewPlan": true,
+  "noAutomaticMultiRoundBackfill": true,
+  "notExecuted": true,
+  "cumulativePlanUsd": "0.28",
+  "cumulativeConsumedUsd": "0.10094232",
+  "cumulativeRemainingUsd": "0.17905768",
+  "rates": {
+    "maxInputTokens": 1152,
+    "maxOutputTokens": 2048,
+    "openai/gpt-4.1-mini": {
+      "inputUsdPerToken": "0.00000044",
+      "outputUsdPerToken": "0.00000176",
+      "unitReserveUsd": "0.00411136",
+      "packFloatReserveUsd": 0.0041113600000000005
+    },
+    "qwen/qwen3-235b-a22b-2507": {
+      "inputUsdPerToken": "0.0000002",
+      "outputUsdPerToken": "0.0000008",
+      "unitReserveUsd": "0.0018688",
+      "packFloatReserveUsd": 0.0018687999999999999
+    }
+  },
+  "formula": "2*0.00411136+13*0.0018688",
+  "gptRequests": 2,
+  "qwenRequests": 13,
+  "formulaTotal": "0.03251712",
+  "independentTotal": "0.03251712",
+  "packFloatTotal": "0.03251712",
+  "agreesWithPackFloat": true,
+  "remainingAfterReserve": "0.14654056",
+  "enoughReserve": true,
+  "suggestedFutureRun": {
+    "budgetUsd": "0.17905768",
+    "maxRequests": 15,
+    "maxTotalTokens": 48000,
+    "maxRetries": 0,
+    "reuseOfficialAssignment": true,
+    "doNotReassignSlots": true,
+    "onlyAllowlistPairs": true,
+    "waitForNewPackSelectionAndIndependentVerify": true
+  },
+  "maxTotalTokens": 48000,
+  "ledgerUnchangedByThisPrep": true
+}

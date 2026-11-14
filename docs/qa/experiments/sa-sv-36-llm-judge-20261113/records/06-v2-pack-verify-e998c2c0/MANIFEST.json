@@ -1,0 +1,235 @@
+{
+  "generatedAt": "2026-11-14 00:01:53 Asia/Shanghai (UTC+8)",
+  "headStatedByCaller": "e998c2c03f13af0229229405bb1f7b06a3be967b",
+  "npmCiStatedByCaller": {
+    "npmTests": 3399,
+    "ci": "green",
+    "independentlyRechecked": false,
+    "reason": "no network, no repo"
+  },
+  "packPassed": true,
+  "packIssues": [],
+  "checks": [
+    {
+      "name": "pack-sha256",
+      "ok": true,
+      "detail": "a81afb949cc3e7ebc807e7ac90e88b6cd520220bd519641ec3051876d3ee3f92"
+    },
+    {
+      "name": "pack-bytes",
+      "ok": true,
+      "detail": 19308
+    },
+    {
+      "name": "old-pack-untouched",
+      "ok": true,
+      "detail": "74258e362de80cf39986717b32b65ef6ec9d3719bd60d21b91af54c1d441a9fe"
+    },
+    {
+      "name": "input-sha256",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "count-tokens-py",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "qwen-tokenizer.json",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "qwen-tokenizer_config.json",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "prompt-sha256",
+      "ok": true,
+      "detail": "a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923"
+    },
+    {
+      "name": "prompt-utf8-bytes",
+      "ok": true,
+      "detail": 2507
+    },
+    {
+      "name": "prompt-is-rubricText",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "sent-prompt-not-v1",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "frozen-v1-text-preserved",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "versions-v2",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "schema-kinds-from-contract",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "parser-requires-contract",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "rubric-requires-contract",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "prompt-sends-ASR_RUBRIC",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "runner-does-not-import-adapter",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "adapter-marked-diagnostic",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "sent-prompt-contains-all-parser-contract-limits",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "example-is-array-length-2",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "parse-key-lists-match-contract",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "input-36-real",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "buildPrompt-system-is-v2-rubric",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "real-failure-fixture-regression",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "did-not-use-2507-bytes-as-token-cap",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "dry-run-36x2-no-synthetic-no-run",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "dry-run-uses-asr-v2",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "dry-run-72-checks-fit",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "dry-run-not-complete",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "human-review-not-done",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "old-evidence-unchanged",
+      "ok": true,
+      "detail": []
+    }
+  ],
+  "prompt": {
+    "sha256": "a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923",
+    "utf8Bytes": 2507,
+    "version": "belliedmonkey.llm-judge.asr.v2",
+    "verdictSchema": "belliedmonkey.llm-judge.verdict.v2"
+  },
+  "tokens": {
+    "n": 72,
+    "min": 660,
+    "max": 889,
+    "gptMin": 660,
+    "gptMax": 889,
+    "qwenMin": 669,
+    "qwenMax": 873,
+    "systemUtf8Bytes": 2507,
+    "systemNotUsedAsCap": true,
+    "marginRule": "max(256, ceil(15% of max observed)), then round up to 64",
+    "margin": 256,
+    "maxInputTokens": 1152
+  },
+  "budget": {
+    "remainingUsd": 0.19429628,
+    "maxInputTokens": 1152,
+    "maxOutputTokens": 2048,
+    "maxRequests": 72,
+    "maxTotalTokens": 230400,
+    "reservePerRequestUsd": {
+      "openai/gpt-4.1-mini": 0.00411136,
+      "qwen/qwen3-235b-a22b-2507": 0.0018688
+    },
+    "full72ReserveUsd": 0.21528576,
+    "remainingCoversFull72Reserve": false,
+    "extraUsdNeeded": 0.02098948,
+    "reapprovalRequired": true,
+    "noRequestMade": true,
+    "note": "Full reserve is maxInput+maxOutput at official envelope rates for all 72 requests. Not a settled-cost forecast. Do not spend from this verification."
+  },
+  "dryRun": {
+    "ok": true,
+    "code": "dry-run",
+    "called": false,
+    "doubleBlindComplete": false
+  },
+  "humanReview": {
+    "semanticHumanReviewed": false,
+    "semanticHumanReviewCount": 0,
+    "officialV2RunNotYet": true,
+    "neededAfterOfficialV2Complete": true
+  },
+  "stillNeeded": {
+    "realModelTest": true,
+    "reason": "Offline pack+fixture+dry-run passed; models were not called. That is not a pack failure. An authorized new 36x2 v2 run is still required. Old GPT/Qwen v1 outputs cannot be mixed into a v2 complete.",
+    "humanReview": true,
+    "reapprovalForBudget": true
+  },
+  "isolation": {
+    "oldPackFrozen": "74258e362de80cf39986717b32b65ef6ec9d3719bd60d21b91af54c1d441a9fe",
+    "officialPartialUntouched": true,
+    "objectAdapterDiagnosticOnly": true,
+    "v1VerdictsRejectedAsVerdictSchema": true
+  }
+}

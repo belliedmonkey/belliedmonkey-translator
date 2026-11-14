@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 4808,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"ascend/00004\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": true,\n      \"confidence\": 0,\n      \"note\": \"The candidate transcript does not contain any recognizable portion of the reference transcript. The content appears to be entirely different in language and meaning, making reliable comparison impossible without audio context.\",\n      \"findings\": []\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": true,\n      \"confidence\": 0,\n      \"note\": \"The candidate transcript contains Chinese characters and a period, while the reference contains English and fillers. There is no clear alignment between the content of the reference and the candidate, and potential homophonic interpretations (e.g., '我死的' vs. 'what's the') cannot be confirmed without audio.\",\n      \"findings\": []\n    }\n  ]\n}",
+  "providerUsd": 0.00020846,
+  "usage": {
+    "inputTokens": 425,
+    "outputTokens": 215,
+    "providerUsd": 0.00020846,
+    "complete": true
+  },
+  "settledUsd": 0.000257
+}

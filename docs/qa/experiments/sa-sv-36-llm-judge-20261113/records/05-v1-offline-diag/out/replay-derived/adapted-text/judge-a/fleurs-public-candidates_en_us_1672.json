@@ -1,0 +1,54 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/en_us/1672",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/en_us/1672",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate adds 'All right,' at the beginning, which is an addition not present in the reference.",
+          "findings": [
+            {
+              "kind": "addition",
+              "refQuote": "Be careful not to allow fabric to become too hot (which can cause shrinkage, or in extreme cases, scorch).",
+              "hypQuote": "All right, be careful not to allow fabric to become too hot, which can cause shrinkage, or in extreme cases, scorch.",
+              "reason": "The phrase 'All right,' is added at the start of the candidate and is not in the reference."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "(which can cause shrinkage, or in extreme cases, scorch)",
+              "hypQuote": "which can cause shrinkage, or in extreme cases, scorch",
+              "reason": "Parentheses are omitted in the candidate but the content is preserved."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 1,
+          "note": "Candidate omits parentheses but otherwise matches the reference closely with no additions or omissions.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "(which can cause shrinkage, or in extreme cases, scorch)",
+              "hypQuote": "which can cause shrinkage or in extreme cases, scorch",
+              "reason": "Parentheses are omitted and the comma after 'shrinkage' is omitted, but the meaning is preserved."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

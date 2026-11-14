@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 5057,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"fleurs-public-candidates/cmn_hans_cn/1682\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.8,\"note\":\"Candidate uses a different phrasing for the dimensions but conveys the same numeric values in a more verbose way; no semantic difference detected.\",\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"29¾ 英寸乘以 24½ 英寸\",\"hypQuote\":\"29又4分之3英寸乘以24又2分之1英寸\",\"reason\":\"The candidate spells out the fractions differently but the numeric values correspond to the reference.\"}]},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.7,\"note\":\"Candidate uses a different phrasing for the dimensions with slight variation in wording but same numeric values; no semantic difference detected.\",\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"29¾ 英寸乘以 24½ 英寸\",\"hypQuote\":\"29又四分之三英寸乘以 24有二分之一英寸\",\"reason\":\"The candidate spells out the fractions differently but the numeric values correspond to the reference.\"}]}]}",
+  "providerUsd": 0.0007376,
+  "usage": {
+    "inputTokens": 804,
+    "outputTokens": 260,
+    "providerUsd": 0.0007376,
+    "complete": true
+  },
+  "settledUsd": 0.00081136
+}

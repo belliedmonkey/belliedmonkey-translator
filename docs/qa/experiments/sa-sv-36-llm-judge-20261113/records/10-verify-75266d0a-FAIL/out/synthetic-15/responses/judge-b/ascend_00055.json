@@ -1,0 +1,23 @@
+{
+  "stage": "finished",
+  "transportOk": true,
+  "generationOk": true,
+  "finishReason": "stop",
+  "providerError": false,
+  "usageComplete": true,
+  "parseCode": "quote",
+  "modelFormatFault": false,
+  "code": null,
+  "status": null,
+  "elapsedMs": 0,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"ascend/00055\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.95,\"note\":\"The candidate includes a comma and extra spaces not in the reference, but these are formatting differences that do not affect meaning.\",\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"um\",\"hypQuote\":\"嗯\",\"reason\":\"The spoken filler 'um' in the reference is transcribed as '嗯' in the candidate, which is a common Mandarin equivalent; this is a surface-level difference in representation.\"},{\"kind\":\"format-only\",\"refQuote\":\"运动啊男生\",\"hypQuote\":\"运动啊 ，男生\",\"reason\":\"The candidate inserts a comma and extra space between '运动啊' and '男生', which is a punctuation and spacing difference, not a semantic change.\"}]},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.9,\"note\":\"The candidate ends with a period not present in the reference, and omits the initial 'um' filler.\",\"findings\":[{\"kind\":\"omission\",\"refQuote\":\"um\",\"hypQuote\":\"\",\"reason\":\"The reference begins with 'um', a spoken filler, which is missing in the candidate.\"},{\"kind\":\"format-only\",\"refQuote\":\"运动。\",\"hypQuote\":\"运动。\",\"reason\":\"The candidate adds a period at the end, which is not in the reference; this is a minor punctuation difference.\"}]}]}",
+  "providerUsd": 0.001,
+  "usage": {
+    "inputTokens": 700,
+    "outputTokens": 120,
+    "providerUsd": 0.001,
+    "complete": true
+  },
+  "settledUsd": 0.000236
+}

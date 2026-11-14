@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "code": "dry-run",
+  "called": false,
+  "synthetic": false,
+  "doubleBlindComplete": false,
+  "asrRubric": "belliedmonkey.llm-judge.asr.v2",
+  "promptTemplateSha256": "a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923",
+  "itemCount": 36,
+  "omittedIds": [],
+  "minDeclaredTokens": 660,
+  "maxDeclaredTokens": 889,
+  "allBoundOk": true,
+  "nChecks": 72
+}

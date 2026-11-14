@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 9703,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1669\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.85,\n      \"note\": \"The candidate contains a name variation and a minor grammatical omission.\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"Chandra Shekhar Solanki\",\n          \"hypQuote\": \"Chandra Shikar Solanki\",\n          \"reason\": \"The name 'Chandra Shekhar Solanki' in the reference is rendered as 'Chandra Shikar Solanki' in the candidate, which is a phonetic variation but alters the correct name.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"the\",\n          \"hypQuote\": \"\",\n          \"reason\": \"The article 'the' before 'accused' is missing in the candidate, which slightly affects grammatical correctness.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.75,\n      \"note\": \"The candidate contains a distorted name that affects entity accuracy.\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"Chandra Shekhar Solanki\",\n          \"hypQuote\": \"Chandra Shiar Slanki\",\n          \"reason\": \"The name 'Chandra Shekhar Solanki' is significantly distorted in the candidate as 'Chandra Shiar Slanki', introducing errors in both first and last name components.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.0003737,
+  "usage": {
+    "inputTokens": 475,
+    "outputTokens": 384,
+    "providerUsd": 0.0003737,
+    "complete": true
+  },
+  "settledUsd": 0.0004022
+}

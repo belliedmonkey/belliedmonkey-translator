@@ -1,0 +1,14 @@
+{
+  "chars": 1751,
+  "est": 438,
+  "maxInputTokens": 438,
+  "precheckWouldPass": true,
+  "nCalls": 1,
+  "code": "budget-unknown",
+  "costUnknown": true,
+  "spentUsd": 0.002038,
+  "note": "ceil(chars/4) passed, but transport reported prompt_tokens = est+50. The input cap did not prevent the send. settle then fail-closed with budget-unknown.",
+  "hypotheticalActualUsdIfSettled": 0.002088,
+  "reservedUsd": 0.002038,
+  "hypotheticalActualExceedsReserve": true
+}

@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 12343,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1680\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"Candidate contains a semantic error and a format-only difference.\",\n      \"findings\": [\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"leap great distances\",\n          \"hypQuote\": \"leave great distances\",\n          \"reason\": \"The word 'leave' changes the meaning from jumping to departing, which is a semantic error.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"five\",\n          \"hypQuote\": \"5\",\n          \"reason\": \"The word 'five' is written as the numeral '5', which is a format difference but the same value.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.98,\n      \"note\": \"Candidate matches the reference except for punctuation and spacing differences.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"well rounded\",\n          \"hypQuote\": \"well rounded\",\n          \"reason\": \"The reference uses 'well rounded' without a hyphen, while the candidate also uses 'well rounded' without a hyphen, so they match. No actual difference here, but confirming surface form.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \" (though not well),\",\n          \"hypQuote\": \", though not well,\",\n          \"reason\": \"Parentheses are replaced with commas, and spacing adjusted, but the content and meaning are preserved.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.00035778,
+  "usage": {
+    "inputTokens": 511,
+    "outputTokens": 401,
+    "providerUsd": 0.00035778,
+    "complete": true
+  },
+  "settledUsd": 0.000423
+}

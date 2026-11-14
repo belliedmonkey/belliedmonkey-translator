@@ -1,0 +1,14 @@
+{
+  "schema": "belliedmonkey.llm-judge.assignment.v1",
+  "seed": 7,
+  "items": [
+    {
+      "id": "fixture-1",
+      "slots": {
+        "slot-1": "arm-b",
+        "slot-2": "arm-a"
+      }
+    }
+  ],
+  "note": "This mapping stays in the evidence directory. It is not part of the judge request."
+}

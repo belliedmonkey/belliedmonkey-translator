@@ -1,0 +1,48 @@
+{
+  "diagnosticOnly": true,
+  "notForBackfill": true,
+  "mustNotChangeOfficialPartial": true,
+  "judgeId": "judge-b",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1681",
+  "officialCode": "bad-json",
+  "classification": "model-invalid-json-duplicate-slot-key",
+  "sidecar": {
+    "finishReason": "stop",
+    "outputTokens": 430,
+    "maxTokensSent": 2048,
+    "inputTokens": 749,
+    "provider": "Parasail",
+    "httpStatus": 200,
+    "providerUsd": 0.0003927,
+    "ok": true
+  },
+  "contentCharLen": 1700,
+  "contentUtf8Bytes": 1762,
+  "contentSha256": "ad8def665dd084488b4ab9a96682f17e604bfb4fac810d681754a785f51315c4",
+  "jsonError": {
+    "message": "Expected ',' or '}' after property value in JSON at position 827 (line 26 column 21)",
+    "position": 827,
+    "window": "ty and structure.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"no",
+    "windowStart": 757,
+    "pattern": {
+      "extraCloserAfterSlot1": false,
+      "extraCloserIndex": null,
+      "unquotedReasonKey": false,
+      "unquotedReasonIndex": null,
+      "duplicateSlotKey": true,
+      "duplicateSlotKeyIndex": 813
+    },
+    "endDepths": {
+      "brace": 0,
+      "bracket": 0,
+      "inStr": false,
+      "esc": false
+    },
+    "hasFence": false,
+    "invalidEscapeCount": 0,
+    "losslessAttempts": {
+      "strip": false,
+      "firstToLastObject": false
+    }
+  }
+}

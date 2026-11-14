@@ -1,0 +1,41 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1674",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1674",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 1,
+          "note": "Exact match with the reference.",
+          "findings": []
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Only difference is format of '一分钟' vs '1分钟', which is format-only.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "一分钟",
+              "hypQuote": "1分钟",
+              "reason": "The candidate uses digit '1' instead of the word '一', which is a format difference without semantic change."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

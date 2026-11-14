@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 11381,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1682\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.75,\n      \"note\": \"Multiple errors in entity, number format, and omission/addition detected.\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"who wrote it\",\n          \"hypQuote\": \"for Serenhu Roi\",\n          \"reason\": \"The phrase 'who wrote it' is replaced with 'for Serenhu Roi', which is a non-sequitur and incorrect entity reference.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"29¾ inches by 24½ inches\",\n          \"hypQuote\": \"29, 3/4 inches by 24 and half inches\",\n          \"reason\": \"Numerical measurements are expressed differently but represent the same values; '29¾' vs '29, 3/4' and '24½' vs '24 and half'.\"\n        },\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"\",\n          \"hypQuote\": \"in Messrs.\",\n          \"reason\": \"The phrase 'in Messrs.' appears in the candidate but has no counterpart in the reference and is likely a misrecognition.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.65,\n      \"note\": \"Significant errors in entity, number, and grammar; partial omissions and distortions.\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"who wrote it\",\n          \"hypQuote\": \"Cin who wrote it\",\n          \"reason\": \"The phrase 'who wrote it' is preceded by 'Cin', which appears to be a misrecognition or insertion with no basis in the reference.\"\n        },\n        {\n          \"kind\": \"number\",\n          \"refQuote\": \"29¾ inches\",\n          \"hypQuote\": \"29 free4 inches\",\n          \"reason\": \"'29¾ inches' is misrepresented as '29 free4 inches', which is a clear numerical distortion and not a valid format variation.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"24½ inches\",\n          \"hypQuote\": \"24 and half inches\",\n          \"reason\": \"'24½ inches' is rendered as '24 and half inches', which is a valid spoken variation of the same quantity.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"the large parchment document\",\n          \"hypQuote\": \"the large par document\",\n          \"reason\": \"The word 'parchment' is reduced to 'par', omitting significant content and altering clarity.\"\n        },\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"was rolled up for storage\",\n          \"hypQuote\": \"was roll up for storage\",\n          \"reason\": \"'was roll up' is grammatically incorrect and changes the meaning from past passive tense to an incomplete construction, affecting semantic accuracy.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.0005414,
+  "usage": {
+    "inputTokens": 556,
+    "outputTokens": 717,
+    "providerUsd": 0.0005414,
+    "complete": true
+  },
+  "settledUsd": 0.0006848
+}

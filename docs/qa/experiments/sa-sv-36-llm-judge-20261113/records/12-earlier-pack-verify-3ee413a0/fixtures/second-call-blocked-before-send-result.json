@@ -1,0 +1,23 @@
+{
+  "nCalls": 1,
+  "code": "budget-blocked",
+  "reserve": 0.0056,
+  "budget": 0.0056,
+  "spentUsd": 0.0056,
+  "calls": [
+    {
+      "judgeId": "judge-a",
+      "itemId": "fixture-1",
+      "ok": true,
+      "code": null,
+      "reserveUsd": 0.0056,
+      "settledUsd": 0.0056,
+      "providerUsd": null,
+      "inputTokens": 4000,
+      "outputTokens": 800,
+      "elapsedMs": 0,
+      "aborted": false,
+      "costUnknown": false
+    }
+  ]
+}

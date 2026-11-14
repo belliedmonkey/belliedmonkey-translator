@@ -1,0 +1,65 @@
+{
+  "schema": "belliedmonkey.llm-judge.selection.v1",
+  "pairs": [
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "judgeId": "judge-a"
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1673",
+      "judgeId": "judge-a"
+    },
+    {
+      "itemId": "ascend/00009",
+      "judgeId": "judge-b"
+    },
+    {
+      "itemId": "ascend/00028",
+      "judgeId": "judge-b"
+    },
+    {
+      "itemId": "ascend/00055",
+      "judgeId": "judge-b"
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+      "judgeId": "judge-b"
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1674",
+      "judgeId": "judge-b"
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+      "judgeId": "judge-b"
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1676",
+      "judgeId": "judge-b"
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "judgeId": "judge-b"
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1681",
+      "judgeId": "judge-b"
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1670",
+      "judgeId": "judge-b"
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1672",
+      "judgeId": "judge-b"
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1673",
+      "judgeId": "judge-b"
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1680",
+      "judgeId": "judge-b"
+    }
+  ]
+}

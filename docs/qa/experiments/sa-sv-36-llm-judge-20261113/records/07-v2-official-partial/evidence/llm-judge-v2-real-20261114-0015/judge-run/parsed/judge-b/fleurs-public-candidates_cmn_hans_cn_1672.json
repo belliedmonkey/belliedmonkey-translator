@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1672",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 1,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "（这可能会产生收缩现象，在极端情况下会把衣服烤焦）。",
+            "hypQuote": "，这可能会产生收缩现象。在极端情况下会把衣服烤焦。",
+            "reason": "括号被移除，句号被插入，改变了标点格式但未改变语义。"
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 1,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "小心不要让衣服变得太热（这可能会产生收缩现象，在极端情况下会把衣服烤焦）。",
+            "hypQuote": "小心不要让衣服变得太热 ，这可能会产生收缩现象 ，在极端情况下会把衣服烤焦。",
+            "reason": "括号被空格和顿号替代，标点格式变化但语义一致。"
+          }
+        ]
+      }
+    ]
+  }
+}

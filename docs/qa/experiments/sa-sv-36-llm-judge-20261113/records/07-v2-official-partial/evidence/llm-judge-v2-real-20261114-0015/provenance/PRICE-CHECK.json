@@ -1,0 +1,134 @@
+{
+  "ok": true,
+  "fetchedAt": null,
+  "higherThanEnvelope": false,
+  "models": {
+    "openai/gpt-4.1-mini": {
+      "found": true,
+      "record_sha256": "243804ca7213f5484b42e5bdb75580ba948c4c2d9766b296c31efb1521ea5b3a",
+      "endpoints_sha256": "c55d140b0532c149e47af5263e1aa44e2c708a1866e1b0dc01fef7397ae532d8",
+      "endpoints_status": 200,
+      "n_endpoints": 3,
+      "max_listed_in": 4.4e-07,
+      "max_listed_out": 1.76e-06,
+      "envelope_in": 4.4e-07,
+      "envelope_out": 1.76e-06,
+      "higher_than_envelope": false,
+      "top_pricing": {
+        "prompt": "0.0000004",
+        "completion": "0.0000016",
+        "web_search": "0.01",
+        "input_cache_read": "0.0000001"
+      },
+      "rates": [
+        {
+          "provider": "Azure",
+          "in": 4e-07,
+          "out": 1.6e-06,
+          "max_tokens_listed": true,
+          "raw_pricing_keys": [
+            "prompt",
+            "completion",
+            "web_search",
+            "input_cache_read",
+            "discount"
+          ]
+        },
+        {
+          "provider": "OpenAI",
+          "in": 4e-07,
+          "out": 1.6e-06,
+          "max_tokens_listed": true,
+          "raw_pricing_keys": [
+            "prompt",
+            "completion",
+            "web_search",
+            "input_cache_read",
+            "discount"
+          ]
+        },
+        {
+          "provider": "Azure",
+          "in": 4.4e-07,
+          "out": 1.76e-06,
+          "max_tokens_listed": true,
+          "raw_pricing_keys": [
+            "prompt",
+            "completion",
+            "web_search",
+            "input_cache_read",
+            "discount"
+          ]
+        }
+      ]
+    },
+    "qwen/qwen3-235b-a22b-2507": {
+      "found": true,
+      "record_sha256": "fe0485a0ac0cf7c60f4c5adff636821716566be16a52fcb2c37bb79b63787525",
+      "endpoints_sha256": "0b2dd8e2d8f5d4533a4ac24c14e29600cde1d3120b809dbbe8e3073bf3f583ef",
+      "endpoints_status": 200,
+      "n_endpoints": 4,
+      "max_listed_in": 2e-07,
+      "max_listed_out": 8e-07,
+      "envelope_in": 2e-07,
+      "envelope_out": 8e-07,
+      "higher_than_envelope": false,
+      "top_pricing": {
+        "prompt": "0.00000014",
+        "completion": "0.0000008",
+        "input_cache_read": "0.00000005"
+      },
+      "rates": [
+        {
+          "provider": "DeepInfra",
+          "in": 9e-08,
+          "out": 5.5e-07,
+          "max_tokens_listed": true,
+          "raw_pricing_keys": [
+            "prompt",
+            "completion",
+            "discount"
+          ]
+        },
+        {
+          "provider": "Parasail",
+          "in": 1.4e-07,
+          "out": 8e-07,
+          "max_tokens_listed": true,
+          "raw_pricing_keys": [
+            "prompt",
+            "completion",
+            "input_cache_read",
+            "discount"
+          ]
+        },
+        {
+          "provider": "Venice",
+          "in": 1.5e-07,
+          "out": 7.5e-07,
+          "max_tokens_listed": true,
+          "raw_pricing_keys": [
+            "prompt",
+            "completion",
+            "discount"
+          ]
+        },
+        {
+          "provider": "Nebius",
+          "in": 2e-07,
+          "out": 6e-07,
+          "max_tokens_listed": true,
+          "raw_pricing_keys": [
+            "prompt",
+            "completion",
+            "input_cache_read",
+            "discount"
+          ]
+        }
+      ]
+    }
+  },
+  "errors": [],
+  "catalog_sha256": "5ac6828d6adaa683817119825bb53bcd6fcf84a93f158522a2cfbd4a2af61c5d",
+  "catalog_status": 200
+}

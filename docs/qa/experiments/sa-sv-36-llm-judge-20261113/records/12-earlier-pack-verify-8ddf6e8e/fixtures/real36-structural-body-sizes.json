@@ -1,0 +1,188 @@
+{
+  "itemCount": 36,
+  "maxContentJoinChars": 2697,
+  "maxRequestBodyUtf8Bytes": 2891,
+  "items": [
+    {
+      "id": "fleurs-public-candidates/en_us/1668",
+      "contentJoinChars": 2236,
+      "utf8Bytes": 2428
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1668",
+      "contentJoinChars": 1883,
+      "utf8Bytes": 2321
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1669",
+      "contentJoinChars": 2041,
+      "utf8Bytes": 2233
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1669",
+      "contentJoinChars": 1832,
+      "utf8Bytes": 2186
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1670",
+      "contentJoinChars": 2697,
+      "utf8Bytes": 2891
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1670",
+      "contentJoinChars": 2048,
+      "utf8Bytes": 2799
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1671",
+      "contentJoinChars": 2143,
+      "utf8Bytes": 2335
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "contentJoinChars": 1899,
+      "utf8Bytes": 2329
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1672",
+      "contentJoinChars": 2070,
+      "utf8Bytes": 2262
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1672",
+      "contentJoinChars": 1861,
+      "utf8Bytes": 2271
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1673",
+      "contentJoinChars": 2237,
+      "utf8Bytes": 2433
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1673",
+      "contentJoinChars": 1877,
+      "utf8Bytes": 2315
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1674",
+      "contentJoinChars": 2012,
+      "utf8Bytes": 2204
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1674",
+      "contentJoinChars": 1844,
+      "utf8Bytes": 2218
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1675",
+      "contentJoinChars": 2081,
+      "utf8Bytes": 2273
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1675",
+      "contentJoinChars": 1864,
+      "utf8Bytes": 2270
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1676",
+      "contentJoinChars": 2041,
+      "utf8Bytes": 2233
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1676",
+      "contentJoinChars": 1835,
+      "utf8Bytes": 2195
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1677",
+      "contentJoinChars": 2007,
+      "utf8Bytes": 2199
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1677",
+      "contentJoinChars": 1818,
+      "utf8Bytes": 2146
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1678",
+      "contentJoinChars": 2302,
+      "utf8Bytes": 2494
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1678",
+      "contentJoinChars": 1942,
+      "utf8Bytes": 2477
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1679",
+      "contentJoinChars": 1932,
+      "utf8Bytes": 2124
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1679",
+      "contentJoinChars": 1822,
+      "utf8Bytes": 2158
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1680",
+      "contentJoinChars": 2170,
+      "utf8Bytes": 2362
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "contentJoinChars": 1885,
+      "utf8Bytes": 2339
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1681",
+      "contentJoinChars": 2364,
+      "utf8Bytes": 2558
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1681",
+      "contentJoinChars": 1918,
+      "utf8Bytes": 2446
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1682",
+      "contentJoinChars": 2270,
+      "utf8Bytes": 2464
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1682",
+      "contentJoinChars": 1942,
+      "utf8Bytes": 2470
+    },
+    {
+      "id": "ascend/00004",
+      "contentJoinChars": 1741,
+      "utf8Bytes": 1949
+    },
+    {
+      "id": "ascend/00009",
+      "contentJoinChars": 1849,
+      "utf8Bytes": 2085
+    },
+    {
+      "id": "ascend/00028",
+      "contentJoinChars": 1736,
+      "utf8Bytes": 1944
+    },
+    {
+      "id": "ascend/00055",
+      "contentJoinChars": 1770,
+      "utf8Bytes": 2052
+    },
+    {
+      "id": "ascend/00066",
+      "contentJoinChars": 1763,
+      "utf8Bytes": 1981
+    },
+    {
+      "id": "ascend/00068",
+      "contentJoinChars": 1764,
+      "utf8Bytes": 1974
+    }
+  ],
+  "note": "STRUCTURAL utf8 byte sizes of the packaged request body. Not tokenizer counts and not a real config."
+}

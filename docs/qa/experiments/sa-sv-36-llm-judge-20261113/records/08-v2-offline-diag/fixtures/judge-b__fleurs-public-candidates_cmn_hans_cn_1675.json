@@ -1,0 +1,82 @@
+{
+  "diagnosticOnly": true,
+  "notForBackfill": true,
+  "mustNotChangeOfficialPartial": true,
+  "judgeId": "judge-b",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+  "officialCode": "quote",
+  "classification": "model-quote-not-exact-slice",
+  "sidecar": {
+    "finishReason": "stop",
+    "outputTokens": 455,
+    "maxTokensSent": 2048,
+    "inputTokens": 739,
+    "provider": "Nebius",
+    "httpStatus": 200,
+    "providerUsd": 0.0003272,
+    "ok": true
+  },
+  "contentCharLen": 1325,
+  "contentUtf8Bytes": 1615,
+  "contentSha256": "fe2ebdcd566a3749a4ae97496c0b2a51579325ef18f84a97e195bd3cd3703f4e",
+  "quoteNote": {
+    "missingNoteSlots": [],
+    "oversizeNoteSlots": [],
+    "failingQuotes": [
+      {
+        "slot": "slot-1",
+        "idx": 2,
+        "kind": "format-only",
+        "kindOk": true,
+        "failQuote": true,
+        "inReference": false,
+        "inSameSlotHypothesis": true,
+        "hypQuoteInSlots": {
+          "slot-1": true,
+          "slot-2": true
+        },
+        "refQuote": "即便",
+        "hypQuote": "即便",
+        "refQuoteCharLen": 2,
+        "hypQuoteCharLen": 2,
+        "refIndex": -1,
+        "hypIndex": 24
+      }
+    ],
+    "slotNotes": [
+      {
+        "slot": "slot-1",
+        "keys": [
+          "slot",
+          "abstain",
+          "confidence",
+          "note",
+          "findings"
+        ],
+        "notePresent": true,
+        "noteCharLen": 0,
+        "noteUtf8Bytes": 0,
+        "noteExceeds400": false
+      },
+      {
+        "slot": "slot-2",
+        "keys": [
+          "slot",
+          "abstain",
+          "confidence",
+          "note",
+          "findings"
+        ],
+        "notePresent": true,
+        "noteCharLen": 0,
+        "noteUtf8Bytes": 0,
+        "noteExceeds400": false
+      }
+    ],
+    "referenceCharLen": 40,
+    "candidateCharLens": {
+      "slot-1": 36,
+      "slot-2": 38
+    }
+  }
+}

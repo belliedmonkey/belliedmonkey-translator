@@ -1,0 +1,142 @@
+{
+  "builtAt": "2026-11-13 21:42:18 +0800 (Asia/Shanghai)",
+  "packageHead": "8ddf6e8e4d823018c2e6c5b56067b7238a8bdc22",
+  "realLlmCalled": false,
+  "cliRunFlagUsed": false,
+  "processEnvSecretsRead": false,
+  "network": false,
+  "results": [
+    {
+      "id": "frozen-pins-before",
+      "pass": true
+    },
+    {
+      "id": "reproduced-original-1751-content-chars",
+      "pass": true,
+      "observed": {
+        "contentChars": 1751,
+        "charsDiv4": 438,
+        "utf8Bytes": 1928
+      }
+    },
+    {
+      "id": "missing-inputBound-does-not-send",
+      "pass": true,
+      "observed": {
+        "validate": "tokenizer-unspecified",
+        "run": "tokenizer-unspecified",
+        "called": false,
+        "planWritten": false
+      },
+      "note": "Invalid config exits before plan persist. That does not send. Budget/bound failures after a valid config do write plan.json."
+    },
+    {
+      "id": "counter-without-function-does-not-send",
+      "pass": true,
+      "observed": {
+        "nCalls": 0,
+        "code": "tokenizer-unspecified",
+        "called": false
+      }
+    },
+    {
+      "id": "original-1751-488-no-longer-underestimates-or-sends",
+      "pass": true,
+      "observed": {
+        "nCalls": 0,
+        "code": "input-over-bound",
+        "reserveTokens": 1238,
+        "reserveUsd": [
+          {
+            "model": "MODEL_X",
+            "usd": 0.002038,
+            "pricedZero": false
+          },
+          {
+            "model": "MODEL_Y",
+            "usd": 0.002038,
+            "pricedZero": false
+          }
+        ],
+        "declaredTokens": 488
+      }
+    },
+    {
+      "id": "utf8-full-body-bound-blocks-old-438-cap",
+      "pass": true,
+      "observed": {
+        "utf8Bytes": 1928,
+        "declaredTokens": 1928,
+        "nCalls": 0,
+        "code": "input-over-bound"
+      }
+    },
+    {
+      "id": "provider-exceeded-declared-cap-keeps-reserve-and-stops",
+      "pass": true,
+      "observed": {
+        "nCalls": 1,
+        "code": "budget-unknown",
+        "spentUsd": 0.002038,
+        "reserve": 0.002038,
+        "providerExceededDeclaredCap": true
+      }
+    },
+    {
+      "id": "unknown-usage-failclosed-plan-kept",
+      "pass": true,
+      "observed": {
+        "nCalls": 1,
+        "code": "budget-unknown"
+      }
+    },
+    {
+      "id": "budget-blocked-still-writes-plan",
+      "pass": true,
+      "observed": {
+        "nCalls": 0,
+        "code": "budget-blocked",
+        "reserve": 0.0056,
+        "plan": true
+      }
+    },
+    {
+      "id": "maxRetries-forced-zero",
+      "pass": true,
+      "observed": {
+        "retry2": "retries-disabled",
+        "retry0": true
+      }
+    },
+    {
+      "id": "dryrun-real36",
+      "pass": true,
+      "observed": {
+        "status": 0,
+        "code": "dry-run",
+        "called": false,
+        "synthetic": false,
+        "nIds": 36
+      }
+    },
+    {
+      "id": "frozen-pins-after",
+      "pass": true
+    }
+  ],
+  "passed": [
+    "frozen-pins-before",
+    "reproduced-original-1751-content-chars",
+    "missing-inputBound-does-not-send",
+    "counter-without-function-does-not-send",
+    "original-1751-488-no-longer-underestimates-or-sends",
+    "utf8-full-body-bound-blocks-old-438-cap",
+    "provider-exceeded-declared-cap-keeps-reserve-and-stops",
+    "unknown-usage-failclosed-plan-kept",
+    "budget-blocked-still-writes-plan",
+    "maxRetries-forced-zero",
+    "dryrun-real36",
+    "frozen-pins-after"
+  ],
+  "failed": []
+}

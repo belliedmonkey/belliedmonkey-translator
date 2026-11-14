@@ -279,9 +279,28 @@ sounds and is why the architecture looks unusual. See
 
 ---
 
-## Effect vs industry waterline (2026-10)
+## Experiment records
 
-Live interpret / caption pipeline today: **on-device SpeechAnalyzer → VAD/LID/segmentation → cloud qwen plus (repair + translate) → local TTS**. Full table and notes: [`docs/benchmark-waterlevel.md`](docs/benchmark-waterlevel.md).
+Product quality, latency, and cost are not ranked in this section. Two indexes:
+
+- Stage and business-form plans: [`docs/baselines/README.md`](docs/baselines/README.md). End-to-end cells there are still unmeasured. The plan text was copied from open [PR #663](https://github.com/belliedmonkey/belliedmonkey-translator/pull/663) at `e5a17a1c046a4df370c95ba2731b20e2e14eaeea`. That pull request stays open. This tree does not include its `eval/` implementation, and filing the notes is not a merge of that pull request.
+- The 36-item SpeechAnalyzer vs SenseVoice component study and its partial LLM judge: [`docs/qa/experiments/sa-sv-36-llm-judge-20261113/INDEX.md`](docs/qa/experiments/sa-sv-36-llm-judge-20261113/INDEX.md). Handoff for the next research step: [`OPENBOT-HANDOFF.zh.md`](docs/qa/experiments/sa-sv-36-llm-judge-20261113/OPENBOT-HANDOFF.zh.md). The sealed package note is [`README.md`](docs/qa/experiments/sa-sv-36-llm-judge-20261113/README.md).
+
+Facts that the archived files can be checked against (`ranking` is false; this is not a product score and not a leaderboard):
+
+- SpeechAnalyzer: English WER 36/363, Chinese CER 57/624, codeswitch MER 24/42.
+- SenseVoice: English WER 29/363, Chinese CER 57/624, codeswitch MER 17/42. The Chinese totals match and the items do not.
+- Official LLM-judge runs v1 and v2 both stay `partial`. Semantic human review count is 0. Listening to the audio is not that review.
+- Plan cap 0.28 USD, envelope used 0.10094232, remaining 0.17905768. Provider actuals were 0.04447240 (v1) and 0.03845668 (v2). A 15-pair supplement was prepared and not run (reserve 0.03251712, spent 0).
+- Paid-entry packs claimed at `75266d0a` and `e5a17a1c` both failed independent offline re-verification. The remaining block on the second pack is that origin-lock success and failure lists are not checked against the origin summary and parsed verdicts.
+
+Scripts in the experiment directory reproduce isolated evidence. They are not a product entry and are not a way to place a paid call. A separate DeepSeek research card, [BEL-258](https://linear.app/belliedmonkey/issue/BEL-258/研究评估deepseek-全能力-api-能否成为一键配置新选择), is open and has no experiment in this archive.
+
+The 2026-10 waterline below is a historical snapshot. Those numbers were not re-run under the baseline protocol.
+
+## Effect vs industry waterline (2026-10, historical reference)
+
+Snapshot pipeline sentence, not re-verified as the only current route: **on-device SpeechAnalyzer → VAD/LID/segmentation → cloud qwen plus (repair + translate) → local TTS**. Full table and notes: [`docs/benchmark-waterlevel.md`](docs/benchmark-waterlevel.md). The later source inventory is [`docs/baselines/inventory.md`](docs/baselines/inventory.md); it is a reading recorded on PR #663, not a new measurement.
 
 | Dimension | Ours (measured) | Public industry anchor | Gap |
 |---|---|---|---|
@@ -456,6 +475,8 @@ green badge imply coverage it doesn't have.
 
 | Document | What it owns |
 |---|---|
+| [`docs/qa/experiments/sa-sv-36-llm-judge-20261113/INDEX.md`](docs/qa/experiments/sa-sv-36-llm-judge-20261113/INDEX.md) | Archived 36-item component records. Partial judge, human review 0, no product ranking. |
+| [`docs/baselines/README.md`](docs/baselines/README.md) | Per-form plans copied from open PR #663. Unmeasured end to end. The `eval/` code from that PR is not in this tree. |
 | [`docs/domain-design.md`](docs/domain-design.md) | The domain model: `source → Extractor → units → Engine → Renderer`, the zero-site-selectors rule, provider registry. **Changes here need human review first.** |
 | [`docs/verification-spec.md`](docs/verification-spec.md) | How anything is verified. The full-matrix rule, per-surface traps, honesty rules. |
 | [`docs/interaction-spec.md`](docs/interaction-spec.md) | User-facing interaction and layout constraints. |

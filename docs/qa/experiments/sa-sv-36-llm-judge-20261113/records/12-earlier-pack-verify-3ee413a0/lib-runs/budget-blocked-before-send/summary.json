@@ -1,0 +1,125 @@
+{
+  "ok": false,
+  "code": "budget-blocked",
+  "called": false,
+  "synthetic": true,
+  "productMetric": false,
+  "endToEnd": false,
+  "leaderboard": false,
+  "ranking": false,
+  "editRates": null,
+  "results": [
+    {
+      "id": "fixture-1",
+      "judges": {
+        "judge-a": null,
+        "judge-b": null
+      },
+      "complete": false
+    },
+    {
+      "id": "fixture-2",
+      "judges": {
+        "judge-a": null,
+        "judge-b": null
+      },
+      "complete": false
+    }
+  ],
+  "doubleBlindComplete": false,
+  "semanticHumanReviewCount": 0,
+  "earReviewUsedAsSemanticReview": false,
+  "translationGold": false,
+  "promptTemplateSha256": "a955cddc61e16ef988ee7c4290437218df4653f88ec9a8a45d6cb38adca5bdd6",
+  "asrRubric": "belliedmonkey.llm-judge.asr.v1",
+  "plan": {
+    "schema": "belliedmonkey.llm-judge.plan.v1",
+    "called": false,
+    "synthetic": true,
+    "asrRubric": "belliedmonkey.llm-judge.asr.v1",
+    "promptTemplateSha256": "a955cddc61e16ef988ee7c4290437218df4653f88ec9a8a45d6cb38adca5bdd6",
+    "seed": 7,
+    "temperature": 0,
+    "maxItems": 36,
+    "timeoutMs": 50,
+    "maxRetries": 0,
+    "budgetUsd": 0.0001,
+    "prices": {
+      "source": "FIXTURE_SOURCE_NOT_A_QUOTE",
+      "sourceVersion": "fixture-0",
+      "maxInputTokens": 4000,
+      "maxOutputTokens": 800,
+      "maxTotalTokens": 200000,
+      "maxRequests": 72,
+      "reserveUsd": [
+        {
+          "model": "MODEL_X",
+          "usd": 0.0056,
+          "pricedZero": false
+        },
+        {
+          "model": "MODEL_Y",
+          "usd": 0.0056,
+          "pricedZero": false
+        }
+      ]
+    },
+    "judges": [
+      {
+        "id": "judge-a",
+        "model": "MODEL_X",
+        "called": false
+      },
+      {
+        "id": "judge-b",
+        "model": "MODEL_Y",
+        "called": false
+      }
+    ],
+    "itemIds": [
+      "fixture-1",
+      "fixture-2"
+    ],
+    "omittedIds": []
+  },
+  "assignment": {
+    "schema": "belliedmonkey.llm-judge.assignment.v1",
+    "seed": 7,
+    "items": [
+      {
+        "id": "fixture-1",
+        "slots": {
+          "slot-1": "arm-b",
+          "slot-2": "arm-a"
+        }
+      },
+      {
+        "id": "fixture-2",
+        "slots": {
+          "slot-1": "arm-b",
+          "slot-2": "arm-a"
+        }
+      }
+    ],
+    "note": "This mapping stays in the evidence directory. It is not part of the judge request."
+  },
+  "omittedIds": [],
+  "usage": {
+    "calls": [],
+    "spentUsd": 0,
+    "settledUsd": 0,
+    "costUnknown": false,
+    "providerUsdIgnored": true
+  },
+  "humanReview": {
+    "schema": "belliedmonkey.llm-judge.human-review.v1",
+    "semanticHumanReviewCount": 0,
+    "earReviewUsedAsSemanticReview": false,
+    "disagreement": [],
+    "sample": [],
+    "notAssessed": [
+      "fixture-1",
+      "fixture-2"
+    ]
+  }
+}

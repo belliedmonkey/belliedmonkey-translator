@@ -1,0 +1,12 @@
+{
+  "nCalls": 4,
+  "code": "complete",
+  "ok": true,
+  "doubleBlindComplete": true,
+  "costUnknown": false,
+  "spentUsd": 0,
+  "complete": [
+    true,
+    true
+  ]
+}

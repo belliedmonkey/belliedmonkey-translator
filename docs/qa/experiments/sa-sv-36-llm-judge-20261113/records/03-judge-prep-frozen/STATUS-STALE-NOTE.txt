@@ -1,0 +1,1 @@
+注意：judge-prep/STATUS.json 仍写 realLlmCalled=false，这是早期准备态，已被后续官方 v1/v2 付费 partial 覆盖。不得把 STATUS.json 当作最新官方结果。本包同时收录该文件只为保全原始时间线。

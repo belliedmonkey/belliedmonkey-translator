@@ -1,0 +1,35 @@
+{
+  "ok": false,
+  "code": "partial",
+  "called": true,
+  "doubleBlindComplete": false,
+  "protocol": {
+    "asrRubric": "belliedmonkey.llm-judge.asr.v2",
+    "verdictSchema": "belliedmonkey.llm-judge.verdict.v2",
+    "promptTemplateSha256": "a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923",
+    "protocolOk": true
+  },
+  "probeThisRound": "reused-historical-32token-old-provider-not-a-hard-guarantee",
+  "thisRoundProbeReserveUsd": 0,
+  "judgeRunStarted": true,
+  "judgeHeldUsd": 0.0452386,
+  "judgeSettledUsd": 0.0452386,
+  "thisRoundProviderUsd": 0.03845668,
+  "thisRoundConsumedUsd": 0.0452386,
+  "thisRoundRemainingUsd": 0.17905768,
+  "historicalConsumedUsd": 0.05570372,
+  "cumulativePlanUsd": 0.28,
+  "cumulativeConsumedUsd": 0.10094232,
+  "cumulativeRemainingUsd": 0.17905768,
+  "costUnknown": false,
+  "secretScanClean": true,
+  "assignmentMatchesV1": true,
+  "elapsedMs": 464411,
+  "parseCounts": {
+    "judgeAOk": 34,
+    "judgeAFail": 2,
+    "judgeBOk": 23,
+    "judgeBFail": 13,
+    "bothOk": 22
+  }
+}

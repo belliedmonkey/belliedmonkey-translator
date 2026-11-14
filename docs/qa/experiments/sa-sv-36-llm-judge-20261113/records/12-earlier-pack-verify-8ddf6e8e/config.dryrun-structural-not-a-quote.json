@@ -1,0 +1,49 @@
+{
+  "schema": "belliedmonkey.llm-judge.config.v1",
+  "seed": 20261113,
+  "temperature": 0,
+  "sampleCount": 6,
+  "maxItems": 36,
+  "timeoutMs": 20000,
+  "maxRetries": 0,
+  "budgetUsd": 1,
+  "judges": [
+    {
+      "id": "judge-a",
+      "model": "REPLACE_MODEL_A",
+      "endpointEnv": "JUDGE_A_URL",
+      "keyEnv": "JUDGE_A_KEY"
+    },
+    {
+      "id": "judge-b",
+      "model": "REPLACE_MODEL_B",
+      "endpointEnv": "JUDGE_B_URL",
+      "keyEnv": "JUDGE_B_KEY"
+    }
+  ],
+  "prices": {
+    "schema": "belliedmonkey.llm-judge.prices.v1",
+    "source": "SYNTHETIC_STRUCTURAL_NOT_A_QUOTE",
+    "sourceVersion": "dryrun-structure-only",
+    "maxInputTokens": 4000,
+    "maxOutputTokens": 800,
+    "maxTotalTokens": 345600,
+    "maxRequests": 72,
+    "models": {
+      "REPLACE_MODEL_A": {
+        "inputUsdPerToken": 0.000001,
+        "outputUsdPerToken": 0.000002,
+        "pricedZero": false
+      },
+      "REPLACE_MODEL_B": {
+        "inputUsdPerToken": 0.000001,
+        "outputUsdPerToken": 0.000002,
+        "pricedZero": false
+      }
+    }
+  },
+  "inputBound": {
+    "kind": "utf8-bytes-plus-overhead",
+    "overheadTokens": 0
+  }
+}

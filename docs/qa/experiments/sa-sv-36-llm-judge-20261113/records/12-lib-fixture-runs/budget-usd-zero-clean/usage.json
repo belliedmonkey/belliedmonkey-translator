@@ -1,0 +1,46 @@
+{
+  "calls": [
+    {
+      "judgeId": "judge-a",
+      "itemId": "fixture-1",
+      "attempt": 1,
+      "ok": true,
+      "inputTokens": 1,
+      "outputTokens": 1,
+      "usd": 0,
+      "costUnknown": false
+    },
+    {
+      "judgeId": "judge-b",
+      "itemId": "fixture-1",
+      "attempt": 1,
+      "ok": true,
+      "inputTokens": 1,
+      "outputTokens": 1,
+      "usd": 0,
+      "costUnknown": false
+    },
+    {
+      "judgeId": "judge-a",
+      "itemId": "fixture-2",
+      "attempt": 1,
+      "ok": true,
+      "inputTokens": 1,
+      "outputTokens": 1,
+      "usd": 0,
+      "costUnknown": false
+    },
+    {
+      "judgeId": "judge-b",
+      "itemId": "fixture-2",
+      "attempt": 1,
+      "ok": true,
+      "inputTokens": 1,
+      "outputTokens": 1,
+      "usd": 0,
+      "costUnknown": false
+    }
+  ],
+  "spentUsd": 0,
+  "costUnknown": false
+}

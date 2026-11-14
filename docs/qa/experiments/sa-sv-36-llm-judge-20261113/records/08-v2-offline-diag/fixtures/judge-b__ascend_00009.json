@@ -1,0 +1,48 @@
+{
+  "diagnosticOnly": true,
+  "notForBackfill": true,
+  "mustNotChangeOfficialPartial": true,
+  "judgeId": "judge-b",
+  "itemId": "ascend/00009",
+  "officialCode": "bad-json",
+  "classification": "model-invalid-json-extra-closer-after-slot-1",
+  "sidecar": {
+    "finishReason": "stop",
+    "outputTokens": 413,
+    "maxTokensSent": 2048,
+    "inputTokens": 697,
+    "provider": "Nebius",
+    "httpStatus": 200,
+    "providerUsd": 0.000296,
+    "ok": true
+  },
+  "contentCharLen": 1604,
+  "contentUtf8Bytes": 1676,
+  "contentSha256": "007163355777dbfcd87224732bbe9e3d320feda3a407f55d62d0485096d24b1b",
+  "jsonError": {
+    "message": "Expected ',' or ']' after array element in JSON at position 968 (line 1 column 969)",
+    "position": 968,
+    "window": "tancemangement' in candidate slot-1, altering the intended entity.\"}]}},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.7,\"note\":\"Minor disc",
+    "windowStart": 898,
+    "pattern": {
+      "extraCloserAfterSlot1": true,
+      "extraCloserIndex": 964,
+      "unquotedReasonKey": false,
+      "unquotedReasonIndex": null,
+      "duplicateSlotKey": false,
+      "duplicateSlotKeyIndex": null
+    },
+    "endDepths": {
+      "brace": -2,
+      "bracket": -1,
+      "inStr": false,
+      "esc": false
+    },
+    "hasFence": false,
+    "invalidEscapeCount": 0,
+    "losslessAttempts": {
+      "strip": false,
+      "firstToLastObject": false
+    }
+  }
+}

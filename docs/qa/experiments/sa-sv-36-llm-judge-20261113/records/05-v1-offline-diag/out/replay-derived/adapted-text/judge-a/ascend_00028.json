@@ -1,0 +1,60 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "ascend/00028",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "ascend/00028",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate has format and entity differences from the reference.",
+          "findings": [
+            {
+              "kind": "entity",
+              "refQuote": "福建",
+              "hypQuote": "K附件",
+              "reason": "Candidate 1 replaces '福建' with 'K附件', which is a different entity."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "ok",
+              "hypQuote": "okK",
+              "reason": "Candidate 1 adds an extra 'K' after 'ok', changing the format."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate has format and entity differences from the reference.",
+          "findings": [
+            {
+              "kind": "entity",
+              "refQuote": "福建",
+              "hypQuote": "附件",
+              "reason": "Candidate 2 replaces '福建' with '附件', which is a different entity."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "ok",
+              "hypQuote": "OK",
+              "reason": "Candidate 2 uses uppercase 'OK' instead of lowercase 'ok', a format difference."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

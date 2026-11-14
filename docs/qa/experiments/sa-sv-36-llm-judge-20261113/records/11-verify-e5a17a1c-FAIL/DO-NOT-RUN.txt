@@ -1,0 +1,4 @@
+REVERIFY FAILED. DO NOT --run. DO NOT pay. DO NOT copy secrets.
+Pack 01M7BZMPXBWB0C6952HYQ3SNY3 / e5a17a1c fixed the six prior gates when the origin-lock lists are honest, but it does not check those lists against origin parsed/summary. A lock can relabel an official success as a failure and still send a paid request.
+The 75266d0a pack remains permanently failed and must not be used.
+config/, lock/, and selection/ in this directory are inspection drafts only.

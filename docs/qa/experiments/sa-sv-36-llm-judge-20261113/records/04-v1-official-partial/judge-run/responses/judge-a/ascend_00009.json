@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 5933,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"ascend/00009\",\n  \"slots\": {\n    \"slot-1\": {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate has multiple errors including entity and format-only issues.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"i s m\",\n          \"hypQuote\": \"ISM\",\n          \"reason\": \"Candidate uses uppercase acronym 'ISM' instead of spaced letters 'i s m'.\"\n        },\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"information systems management\",\n          \"hypQuote\": \"impormation sistancemangement\",\n          \"reason\": \"Candidate misspells 'information systems management' as 'impormation sistancemangement'.\"\n        },\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"no我专业是那个\",\n          \"hypQuote\": \"那我觉爱是那个\",\n          \"reason\": \"Candidate changes 'no我专业是那个' to '那我觉爱是那个', altering meaning.\"\n        }\n      ]\n    },\n    \"slot-2\": {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"Candidate mostly matches reference with minor format-only differences.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"i s m\",\n          \"hypQuote\": \"ISM\",\n          \"reason\": \"Candidate uses uppercase acronym 'ISM' instead of spaced letters 'i s m'.\"\n        },\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"no我专业是那个\",\n          \"hypQuote\": \"那我就按是那个\",\n          \"reason\": \"Candidate changes 'no我专业是那个' to '那我就按是那个', which slightly alters meaning.\"\n        }\n      ]\n    }\n  }\n}",
+  "providerUsd": 0.0008944,
+  "usage": {
+    "inputTokens": 448,
+    "outputTokens": 447,
+    "providerUsd": 0.0008944,
+    "complete": true
+  },
+  "settledUsd": 0.00098384
+}

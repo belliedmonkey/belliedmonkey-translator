@@ -1,0 +1,24 @@
+{
+  "schema": "belliedmonkey.llm-judge.config.v1",
+  "seed": 7,
+  "temperature": 0,
+  "sampleCount": 1,
+  "maxItems": 1,
+  "timeoutMs": 20000,
+  "maxRetries": 2,
+  "budgetUsd": 1,
+  "judges": [
+    {
+      "id": "judge-a",
+      "model": "REPLACE_MODEL_A",
+      "endpointEnv": "JUDGE_A_URL",
+      "keyEnv": "JUDGE_A_KEY"
+    },
+    {
+      "id": "judge-b",
+      "model": "REPLACE_MODEL_B",
+      "endpointEnv": "JUDGE_B_URL",
+      "keyEnv": "JUDGE_B_KEY"
+    }
+  ]
+}

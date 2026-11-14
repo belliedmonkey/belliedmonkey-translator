@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "httpStatus": 200,
+  "remainingUsd": 101.094671915,
+  "authFailed": false,
+  "neededToStartProbes": 0.00589824,
+  "neededForFullPlan": 0.21823488
+}

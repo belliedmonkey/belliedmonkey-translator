@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 4782,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"ascend/00055\",\n  \"slots\": {\n    \"slot-1\": {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 1,\n      \"note\": \"Candidate matches the reference except for a minor punctuation difference and an added space after '嗯'.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"um运动啊男生一般不都喜欢运动\",\n          \"hypQuote\": \"嗯 ，运动啊 ，男生一般不都喜欢运动\",\n          \"reason\": \"The candidate uses '嗯' instead of 'um' and includes spaces and commas not present in the reference, which are format differences.\"\n        }\n      ]\n    },\n    \"slot-2\": {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 1,\n      \"note\": \"Candidate matches the reference except for 'um' replaced by '嗯' and a final period added.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"um运动啊男生一般不都喜欢运动\",\n          \"hypQuote\": \"嗯，运动啊男生一般不都喜欢运动。\",\n          \"reason\": \"The candidate uses '嗯' instead of 'um' and adds a final period, which are format differences.\"\n        }\n      ]\n    }\n  }\n}",
+  "providerUsd": 0.0006976,
+  "usage": {
+    "inputTokens": 444,
+    "outputTokens": 325,
+    "providerUsd": 0.0006976,
+    "complete": true
+  },
+  "settledUsd": 0.00076736
+}

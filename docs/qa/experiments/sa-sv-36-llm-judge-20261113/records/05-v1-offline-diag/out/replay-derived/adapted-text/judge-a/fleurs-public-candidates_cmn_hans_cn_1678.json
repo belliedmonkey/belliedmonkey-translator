@@ -1,0 +1,66 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1678",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1678",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.8,
+          "note": "Candidate 1 has minor format and entity differences in the name and lacks punctuation.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "奥利弗·萨克斯 (Oliver Sacks)",
+              "hypQuote": "奥里弗萨克斯奥live萨克斯",
+              "reason": "The candidate merges and partially anglicizes the name, differing in format and spelling."
+            },
+            {
+              "kind": "omission",
+              "refQuote": "《总统的演讲》中指出，",
+              "hypQuote": "总统的演讲中指出",
+              "reason": "Candidate omits the quotation marks around the paper title."
+            },
+            {
+              "kind": "addition",
+              "refQuote": "那些因为脑损伤而无法理解语言的人仍然能够准确地判断说话人是否有诚意。",
+              "hypQuote": "那些因为脑损伤而无法理解语言的人仍然能够准确地判断说话人是否有诚意。",
+              "reason": "No addition found here; this is just to confirm no addition."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate 2 closely matches the reference with minor punctuation differences and a slight name variation.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "奥利弗·萨克斯 (Oliver Sacks)",
+              "hypQuote": "奥利弗萨克斯奥萨克",
+              "reason": "Candidate repeats part of the name and omits the Latin name in parentheses."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "《总统的演讲》中指出，",
+              "hypQuote": "总统的演讲中指出，那些",
+              "reason": "Candidate omits the quotation marks around the paper title and adds a comma after '指出'."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

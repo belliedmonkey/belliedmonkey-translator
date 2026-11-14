@@ -1,0 +1,129 @@
+{
+  "schema": "belliedmonkey.qa.v2-semantic-human-review-form.v1",
+  "list": "disagreement",
+  "itemId": "fleurs-public-candidates/en_us/1677",
+  "initialInventoryOnly": true,
+  "mustRefreshAfterBackfill": true,
+  "semanticHumanReviewed": false,
+  "earReviewUsedAsSemanticReview": false,
+  "doNotPreFillJudgment": true,
+  "officialAgentReviewIsNotHumanReview": true,
+  "reference": "Today, the only insects that cannot fold back their wings are dragon flies and mayflies.",
+  "slots": {
+    "slot-1": {
+      "text": "Today, the only insects that cannot fold back their wings are dragonflies and mayflies."
+    },
+    "slot-2": {
+      "text": "Today, the only insects that cannot fold back their wings are dragonflies and may flies."
+    }
+  },
+  "officialKindLists": {
+    "judge-a": {
+      "slot-1": [
+        "format-only"
+      ],
+      "slot-2": [
+        "format-only",
+        "format-only"
+      ]
+    },
+    "judge-b": {
+      "slot-1": [
+        "format-only"
+      ],
+      "slot-2": [
+        "format-only"
+      ]
+    }
+  },
+  "officialVerdicts": {
+    "judge-a": {
+      "model": "openai/gpt-4.1-mini",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Minor format-only difference in 'dragon flies' vs 'dragonflies'.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "dragon flies",
+            "hypQuote": "dragonflies",
+            "reason": "The candidate merges 'dragon flies' into one word 'dragonflies', which is a format-only difference."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "Format-only differences in 'dragon flies' vs 'dragonflies' and 'mayflies' vs 'may flies'.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "dragon flies",
+            "hypQuote": "dragonflies",
+            "reason": "The candidate merges 'dragon flies' into one word 'dragonflies', which is a format-only difference."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "mayflies",
+            "hypQuote": "may flies",
+            "reason": "The candidate splits 'mayflies' into two words 'may flies', which is a format-only difference."
+          }
+        ]
+      }
+    },
+    "judge-b": {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "Compound word formatting difference",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "dragon flies",
+            "hypQuote": "dragonflies",
+            "reason": "The reference uses two words 'dragon flies' while the candidate uses the compound word 'dragonflies', which is a surface-level formatting difference with no change in meaning."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "Compound word formatting difference",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "mayflies",
+            "hypQuote": "may flies",
+            "reason": "The reference uses the compound word 'mayflies' while the candidate uses two words 'may flies', which is a surface-level formatting difference with no change in meaning."
+          }
+        ]
+      }
+    }
+  },
+  "humanAnnotation": {
+    "reviewerId": "",
+    "reviewedAtAsiaShanghai": "",
+    "slots": {
+      "slot-1": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      },
+      "slot-2": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      }
+    },
+    "overallComment": "",
+    "marksCompleteOnlyAfterUserReview": true
+  }
+}

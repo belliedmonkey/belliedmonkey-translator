@@ -1,0 +1,56 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "Candidate contains an error in the number of states and omits punctuation and parentheses present in the reference.",
+        "findings": [
+          {
+            "kind": "number",
+            "refQuote": "十三个州",
+            "hypQuote": "1三个州",
+            "reason": "The reference correctly states '十三个州' (thirteen states), while the candidate writes '1三个州', which is malformed and incorrect."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "（国会是其唯一的组成部分）",
+            "hypQuote": "国会是其唯一的组成部分",
+            "reason": "The candidate omits the parentheses around the clause '国会是其唯一的组成部分', which are present in the reference and serve a clarifying punctuational function."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Candidate correctly renders the number of states but omits parentheses and has a spacing issue.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "十三个州",
+            "hypQuote": "13个州",
+            "reason": "The reference uses Chinese characters '十三个州' while the candidate uses Arabic numerals '13个州'; this is a surface-level format difference with no semantic change."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "（国会是其唯一的组成部分）",
+            "hypQuote": "国会是其唯一的组成部分",
+            "reason": "The parentheses around '国会是其唯一的组成部分' are missing in the candidate, altering the syntactic structure compared to the reference."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "在独立战争期间",
+            "hypQuote": "在独立战争期间 ，",
+            "reason": "The candidate adds an extra full-width space after '期间', which is not present in the reference."
+          }
+        ]
+      }
+    ]
+  }
+}

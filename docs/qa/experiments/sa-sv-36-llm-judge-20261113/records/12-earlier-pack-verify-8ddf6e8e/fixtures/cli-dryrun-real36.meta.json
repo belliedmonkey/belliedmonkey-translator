@@ -1,0 +1,18 @@
+{
+  "status": 0,
+  "stderr": "",
+  "code": "dry-run",
+  "called": false,
+  "synthetic": false,
+  "results": null,
+  "itemCount": 36,
+  "inputBound": {
+    "kind": "utf8-bytes-plus-overhead",
+    "overheadTokens": 0,
+    "exact": false
+  },
+  "reserveTokens": 4800,
+  "invokedRunFlag": false,
+  "realLlmCalled": false,
+  "configIsStructuralOnly": true
+}

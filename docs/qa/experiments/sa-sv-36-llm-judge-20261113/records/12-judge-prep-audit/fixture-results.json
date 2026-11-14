@@ -1,0 +1,118 @@
+{
+  "builtAt": "2026-11-13 17:20:32 +0800 (Asia/Shanghai)",
+  "realLlmCalled": false,
+  "cliRunFlagUsed": false,
+  "processEnvSecretsRead": false,
+  "network": false,
+  "promptTemplateSha256": "7899bec12e0764d4a224c4c1491d5e7ae3147b2e77a5333fa7aee1fedbe29094",
+  "rubricPreviewChars": 1562,
+  "assignmentSwapsOnSeed20261113": 18,
+  "findings": [
+    {
+      "severity": "defect",
+      "id": "budget-usd-zero-disables-cap",
+      "file": "run-judge.js",
+      "line": 92,
+      "also": [
+        310,
+        313,
+        342,
+        343
+      ],
+      "message": "usageOf treats a finite usage.usd of 0 as a known cost (costUnknown=false). spent remains 0, so the budgetUsd >= spent check never fires and budget-unknown is not set (that branch requires usdThis===null). A 2-item x 2-judge synthetic run with budgetUsd=1 and usd:0 completed all 4 calls, ok=true, code=complete, spentUsd=0, costUnknown=false. Providers that report 0 (or map a missing price to 0) make budgetUsd ineffective.",
+      "fixture": "audit/fixtures/budget-usd-zero-clean-result.json",
+      "supportingFixture": "audit/fixtures/usageOf-cases.json",
+      "observed": {
+        "nCalls": 4,
+        "code": "complete",
+        "ok": true,
+        "doubleBlindComplete": true,
+        "costUnknown": false,
+        "spentUsd": 0,
+        "complete": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "severity": "defect",
+      "id": "timeout-missing-item-evidence",
+      "file": "run-judge.js",
+      "line": 335,
+      "message": "On transport timeout/http failure, run-judge.js writes no requests/, responses/, or parsed/ file for that judge/item. Only usage.json attempts are kept if the process finishes. Failed calls also do not trip budget-unknown, so a later billed success can continue after an unknown-cost timeout.",
+      "fixture": "audit/fixtures/timeout-evidence-result.json",
+      "observed": {
+        "requestDirExists": false,
+        "parsedDirExists": false,
+        "code": "no-verdict",
+        "usageCalls": [
+          {
+            "judgeId": "judge-a",
+            "itemId": "fixture-1",
+            "attempt": 1,
+            "ok": false,
+            "code": "timeout",
+            "status": null,
+            "inputTokens": null,
+            "outputTokens": null,
+            "usd": null,
+            "costUnknown": true
+          },
+          {
+            "judgeId": "judge-b",
+            "itemId": "fixture-1",
+            "attempt": 1,
+            "ok": false,
+            "code": "timeout",
+            "status": null,
+            "inputTokens": null,
+            "outputTokens": null,
+            "usd": null,
+            "costUnknown": true
+          }
+        ]
+      }
+    },
+    {
+      "severity": "defect",
+      "id": "timeout-does-not-stop-when-budget-set",
+      "file": "run-judge.js",
+      "line": 343,
+      "message": "Docs say that when a budget is configured, missing cost stops later calls. A timeout records costUnknown=true but does not set stop=budget-unknown (that branch requires result.ok && usdThis===null). Observed calls=4 for 2 items x 2 judges.",
+      "fixture": "audit/fixtures/timeout-continues-under-budget-result.json",
+      "observed": {
+        "nCalls": 4,
+        "code": "no-verdict"
+      }
+    },
+    {
+      "severity": "defect",
+      "id": "item-cap-omitted-from-human-review",
+      "file": "run-judge.js",
+      "line": 51,
+      "message": "reviewList skips items where both judges are missing (if (left || right) is false), so item-cap leftovers are not listed in human-review.json. The run code is still item-cap and ok=false, so this is not a silent complete, but the omitted ids are harder to audit from the review file alone.",
+      "fixture": "audit/fixtures/item-cap-result.json"
+    },
+    {
+      "severity": "defect",
+      "id": "dryrun-does-not-surface-item-cap",
+      "file": "run-judge.js",
+      "line": 248,
+      "message": "Dry-run is ok/dry-run even when items.length > maxItems. The plan lists all item ids and maxItems, but does not set code item-cap. An operator could treat dry-run success as proof the official 36 would complete.",
+      "fixture": "audit/fixtures/dryrun-item-cap-silent-result.json"
+    },
+    {
+      "severity": "defect",
+      "id": "unterminated-or-injectable-fences",
+      "file": "prompt.js",
+      "line": 5,
+      "message": "block() wraps reference/hypothesis in <<< >>> with no escaping. A reference or candidate containing a line \">>>\" closes the fence early, so subsequent attacker text sits outside the data block. Rubric tells the model to treat block text as data, but the envelope itself is breakable. No eval/exec of the strings occurs in this package (good), but official runs should escape or use a delimiter that cannot appear in the data.",
+      "fixture": "audit/fixtures/malicious-text-prompt.json"
+    }
+  ],
+  "findingCounts": {
+    "defect": 6
+  },
+  "updatedAt": "2026-11-13 17:22:34 +0800 (CST)"
+}

@@ -1,0 +1,34 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 1,
+          "note": "Candidate matches the reference exactly.",
+          "findings": []
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 1,
+          "note": "Candidate matches the reference exactly.",
+          "findings": []
+        }
+      ]
+    }
+  }
+}

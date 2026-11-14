@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "ascend/00004",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": true,
+        "confidence": 0,
+        "note": "Candidate does not contain any recognizable alignment with the reference; '我so' appears to be a mix of Chinese and English with no clear correspondence to '呃what's the呃'.",
+        "findings": []
+      },
+      {
+        "slot": "slot-2",
+        "abstain": true,
+        "confidence": 0,
+        "note": "Candidate '呃我死的。' contains the filler '呃' which matches the reference, but the rest '我死的。' does not align with 'what's the呃'; no clear semantic or phonetic match can be established.",
+        "findings": []
+      }
+    ]
+  }
+}

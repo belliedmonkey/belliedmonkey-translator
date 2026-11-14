@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 15836,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v2\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1682\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.75,\n      \"note\": \"\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"certain who wrote it\",\n          \"hypQuote\": \"Serenhu Roi\",\n          \"reason\": \"The phrase 'Serenhu Roi' replaces 'certain who wrote it', which distorts the original meaning and refers to a non-existent entity.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"29¾ inches\",\n          \"hypQuote\": \"29, 3/4 inches\",\n          \"reason\": \"The measurement '29¾ inches' is expressed differently as '29, 3/4 inches', but represents the same value.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"24½ inches\",\n          \"hypQuote\": \"24 and half inches\",\n          \"reason\": \"The measurement '24½ inches' is expressed as '24 and half inches', which is a verbal equivalent.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"the large parchment document (it measures\",\n          \"hypQuote\": \"the large parchment document, in Messrs.\",\n          \"reason\": \"The phrase 'it measures' is omitted and replaced with the unclear 'in Messrs.', which does not convey the same meaning.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.65,\n      \"note\": \"\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"certain who wrote it\",\n          \"hypQuote\": \"Cin who wrote it\",\n          \"reason\": \"'Cin' appears to be a misrecognition or corruption of 'certain', altering the intended entity.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"parchment\",\n          \"hypQuote\": \"par\",\n          \"reason\": \"The word 'parchment' is shortened to 'par', omitting critical information.\"\n        },\n        {\n          \"kind\": \"number\",\n          \"refQuote\": \"29¾ inches\",\n          \"hypQuote\": \"29 free4 inches\",\n          \"reason\": \"'29 free4 inches' is a misinterpretation of '29¾ inches', resulting in an incorrect numerical expression.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"24½ inches\",\n          \"hypQuote\": \"24 and half inches\",\n          \"reason\": \"'24½ inches' is rendered as '24 and half inches', which is a valid verbal format.\"\n        },\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"was rolled up\",\n          \"hypQuote\": \"was roll up\",\n          \"reason\": \"'was roll up' is grammatically incorrect and changes the meaning from past passive tense to an incomplete construction.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.00062346,
+  "usage": {
+    "inputTokens": 803,
+    "outputTokens": 709,
+    "providerUsd": 0.00062346,
+    "complete": true
+  },
+  "settledUsd": 0.0007278
+}

@@ -1,0 +1,122 @@
+{
+  "schema": "belliedmonkey.qa.v2-semantic-human-review-form.v1",
+  "list": "disagreement",
+  "itemId": "fleurs-public-candidates/en_us/1674",
+  "initialInventoryOnly": true,
+  "mustRefreshAfterBackfill": true,
+  "semanticHumanReviewed": false,
+  "earReviewUsedAsSemanticReview": false,
+  "doNotPreFillJudgment": true,
+  "officialAgentReviewIsNotHumanReview": true,
+  "reference": "In some areas boiling water for a minute is enough, in others several minutes are needed.",
+  "slots": {
+    "slot-1": {
+      "text": "In some areas, boiling water for a minute is enough, and other several minutes are needed."
+    },
+    "slot-2": {
+      "text": "In some areas, boiling water for a minute is enough and other several minutes are needed."
+    }
+  },
+  "officialKindLists": {
+    "judge-a": {
+      "slot-1": [
+        "semantic"
+      ],
+      "slot-2": [
+        "semantic"
+      ]
+    },
+    "judge-b": {
+      "slot-1": [
+        "omission"
+      ],
+      "slot-2": [
+        "omission"
+      ]
+    }
+  },
+  "officialVerdicts": {
+    "judge-a": {
+      "model": "openai/gpt-4.1-mini",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "Candidate adds 'and' and uses 'other' instead of 'others', which changes meaning and introduces a minor grammatical issue.",
+        "findings": [
+          {
+            "kind": "semantic",
+            "refQuote": "in others several minutes are needed",
+            "hypQuote": "and other several minutes are needed",
+            "reason": "The candidate uses 'and other' instead of 'in others', which changes the meaning and is less clear."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "Candidate omits comma after 'minute' and uses 'other' instead of 'others', changing meaning and causing grammatical issues.",
+        "findings": [
+          {
+            "kind": "semantic",
+            "refQuote": "in others several minutes are needed",
+            "hypQuote": "and other several minutes are needed",
+            "reason": "The candidate uses 'and other' instead of 'in others', which changes the meaning and is less clear."
+          }
+        ]
+      }
+    },
+    "judge-b": {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "In some areas boiling water for a minute is enough, in others several minutes are needed.",
+            "hypQuote": "In some areas, boiling water for a minute is enough, and other several minutes are needed.",
+            "reason": "The reference uses 'in others' to refer to other areas, while the candidate uses 'and other', which omits the preposition 'in' and results in a grammatical error and reduced clarity."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "In some areas boiling water for a minute is enough, in others several minutes are needed.",
+            "hypQuote": "In some areas, boiling water for a minute is enough and other several minutes are needed.",
+            "reason": "The reference uses 'in others' to refer to other areas, while the candidate uses 'and other', which omits the preposition 'in' and results in a grammatical error and reduced clarity."
+          }
+        ]
+      }
+    }
+  },
+  "humanAnnotation": {
+    "reviewerId": "",
+    "reviewedAtAsiaShanghai": "",
+    "slots": {
+      "slot-1": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      },
+      "slot-2": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      }
+    },
+    "overallComment": "",
+    "marksCompleteOnlyAfterUserReview": true
+  }
+}

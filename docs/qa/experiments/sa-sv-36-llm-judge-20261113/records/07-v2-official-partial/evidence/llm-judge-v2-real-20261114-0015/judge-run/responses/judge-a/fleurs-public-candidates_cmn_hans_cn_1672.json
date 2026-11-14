@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 3396,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"fleurs-public-candidates/cmn_hans_cn/1672\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.9,\"note\":\"Candidate splits the sentence into two with a period instead of using parentheses, which changes the format but not the meaning.\",\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"（这可能会产生收缩现象，在极端情况下会把衣服烤焦）\",\"hypQuote\":\"这可能会产生收缩现象。在极端情况下会把衣服烤焦。\",\"reason\":\"The candidate replaces the parentheses with a period, splitting the sentence into two separate sentences, which is a format difference.\"}]},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.95,\"note\":\"Candidate uses commas and spaces instead of parentheses, changing the format but preserving meaning.\",\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"（这可能会产生收缩现象，在极端情况下会把衣服烤焦）\",\"hypQuote\":\"，这可能会产生收缩现象 ，在极端情况下会把衣服烤焦。\",\"reason\":\"The candidate replaces parentheses with commas and spaces, which is a format difference without semantic change.\"}]}]}",
+  "providerUsd": 0.0007552,
+  "usage": {
+    "inputTokens": 752,
+    "outputTokens": 284,
+    "providerUsd": 0.0007552,
+    "complete": true
+  },
+  "settledUsd": 0.00083072
+}

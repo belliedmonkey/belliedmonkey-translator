@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 8173,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/cmn_hans_cn/1675\",\n  \"slots\": {\n    \"slot-1\": {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate 1 replaces '您的“Sie”' with '零的C', which changes the meaning and introduces an entity difference; also uses '即便' instead of '即使', a minor semantic difference.\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"您的“Sie”\",\n          \"hypQuote\": \"零的C\",\n          \"reason\": \"The candidate replaces the phrase '您的“Sie”' with '零的C', changing the referenced entity.\"\n        },\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"即使\",\n          \"hypQuote\": \"即便\",\n          \"reason\": \"The candidate uses '即便' instead of '即使', which is a slight semantic variation.\"\n        }\n      ]\n    },\n    \"slot-2\": {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"Candidate 2 replaces '您的“Sie”' with '您的 C' (missing quotes), and '大写字母' is written as '大写字幕', which is a format and semantic error; spacing issues present.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"您的“Sie”\",\n          \"hypQuote\": \"您的 C\",\n          \"reason\": \"The candidate omits the quotes around 'Sie' and adds a space, changing formatting.\"\n        },\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"大写字母\",\n          \"hypQuote\": \"大写字幕\",\n          \"reason\": \"The candidate uses '字幕' (subtitle) instead of '字母' (letter), changing the meaning.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"大写字母开头，即使在句子中间也应如此。\",\n          \"hypQuote\": \"大写字幕开头 ，即便在句子中间也应如此。\",\n          \"reason\": \"Extra space before comma and '即便' instead of '即使' are format and minor semantic differences.\"\n        }\n      ]\n    }\n  }\n}",
+  "providerUsd": 0.0010764,
+  "usage": {
+    "inputTokens": 511,
+    "outputTokens": 545,
+    "providerUsd": 0.0010764,
+    "complete": true
+  },
+  "settledUsd": 0.00118404
+}

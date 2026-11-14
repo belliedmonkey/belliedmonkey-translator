@@ -1,0 +1,14 @@
+{
+  "replayMatchesOfficial": true,
+  "matchesOfficialV1": true,
+  "requestsMatchFrozenSlots": true,
+  "allOfficialSystemsAreV2": true,
+  "anyOfficialSystemIsV1": false,
+  "selecting15DoesNotRerollSlots": true,
+  "seed": 20261113,
+  "inputItemCount": 36,
+  "assignmentItemCount": 36,
+  "candidateKeysAnonymous": true,
+  "mismatches": [],
+  "slotMismatches": []
+}

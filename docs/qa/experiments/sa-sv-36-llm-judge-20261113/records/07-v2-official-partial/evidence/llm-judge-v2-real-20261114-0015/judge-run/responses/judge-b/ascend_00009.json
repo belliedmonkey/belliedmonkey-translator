@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 4294,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"ascend/00009\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.3,\"note\":\"Multiple phonetic and spelling errors affect accuracy.\",\"findings\":[{\"kind\":\"omission\",\"refQuote\":\"no我专业是\",\"hypQuote\":\"\",\"reason\":\"The phrase 'no我专业是' is present in the reference but missing in candidate slot-1.\"},{\"kind\":\"addition\",\"refQuote\":\"\",\"hypQuote\":\"那我觉爱是\",\"reason\":\"The phrase '那我觉爱是' appears in candidate slot-1 but not in the reference.\"},{\"kind\":\"format-only\",\"refQuote\":\"i s m\",\"hypQuote\":\"ISM\",\"reason\":\"The reference uses spaced lowercase letters 'i s m' while the candidate uses uppercase 'ISM'; this is a formatting difference for the same acronym.\"},{\"kind\":\"entity\",\"refQuote\":\"information systems management\",\"hypQuote\":\"impormation sistancemangement\",\"reason\":\"The phrase 'information systems management' is misspelled as 'impormation sistancemangement' in candidate slot-1, altering the intended entity.\"}]}},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.7,\"note\":\"Minor discrepancy in initial phrase, otherwise accurate.\",\"findings\":[{\"kind\":\"omission\",\"refQuote\":\"no我专业是\",\"hypQuote\":\"\",\"reason\":\"The phrase 'no我专业是' is present in the reference but missing in candidate slot-2.\"},{\"kind\":\"addition\",\"refQuote\":\"\",\"hypQuote\":\"那我就按是\",\"reason\":\"The phrase '那我就按是' appears in candidate slot-2 but not in the reference.\"},{\"kind\":\"format-only\",\"refQuote\":\"i s m\",\"hypQuote\":\"ISM\",\"reason\":\"The reference uses spaced lowercase letters 'i s m' while the candidate uses uppercase 'ISM'; this is a formatting difference for the same acronym.\"}]}]}]}",
+  "providerUsd": 0.000296,
+  "usage": {
+    "inputTokens": 697,
+    "outputTokens": 413,
+    "providerUsd": 0.000296,
+    "complete": true
+  },
+  "settledUsd": 0.0004698
+}

@@ -1,0 +1,31 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1676",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 1,
+        "note": "Candidate exactly matches the reference including punctuation and spacing.",
+        "findings": []
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "Candidate matches the reference in content but has an extra space before the comma, which is a minor formatting difference.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "一样，",
+            "hypQuote": "一样 ，",
+            "reason": "There is an extra space before the comma in the candidate compared to the reference."
+          }
+        ]
+      }
+    ]
+  }
+}

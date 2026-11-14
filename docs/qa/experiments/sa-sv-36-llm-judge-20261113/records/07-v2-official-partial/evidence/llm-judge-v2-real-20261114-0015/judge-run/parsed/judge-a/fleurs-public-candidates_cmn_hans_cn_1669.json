@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1669",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Missing commas after names reduces clarity but does not change meaning.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "钱德拉·谢卡尔·索兰基",
+            "hypQuote": "钱德拉谢卡尔索兰基",
+            "reason": "The candidate omits the middle dots used to separate the parts of the name, which is a formatting difference."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 1,
+        "note": "Matches reference exactly except for one missing middle dot in the name, a minor format difference.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "钱德拉·谢卡尔·索兰基",
+            "hypQuote": "钱德拉谢卡尔索兰基",
+            "reason": "The candidate omits the middle dots used to separate the parts of the name, which is a formatting difference."
+          }
+        ]
+      }
+    ]
+  }
+}

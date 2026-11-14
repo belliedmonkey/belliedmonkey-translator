@@ -1,0 +1,1 @@
+This draft config is for dry-run sizing only. It is not approval to call a model or to spend. budgetUsd equals the computed 72-request full reserve and exceeds the unused official-run remainder; a later real run needs a new budget approval.

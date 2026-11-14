@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 4734,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"fleurs-public-candidates/cmn_hans_cn/1673\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.9,\"note\":\"Candidate uses '1三个州' instead of '十三个州', which is a number error and addition of an extra character '三'. Also missing '最初' and parentheses around the last part, which is omission and format difference.\",\"findings\":[{\"kind\":\"number\",\"refQuote\":\"十三个州\",\"hypQuote\":\"1三个州\",\"reason\":\"Candidate incorrectly writes the number as '1三个州' instead of '十三个州'.\"},{\"kind\":\"omission\",\"refQuote\":\"最初\",\"hypQuote\":\"\",\"reason\":\"Candidate omits the word '最初' from the reference.\"},{\"kind\":\"format-only\",\"refQuote\":\"（国会是其唯一的组成部分）\",\"hypQuote\":\"国会是其唯一的组成部分。\",\"reason\":\"Candidate omits parentheses around '国会是其唯一的组成部分' and ends with a period instead.\"}]} ,{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.95,\"note\":\"Candidate uses '13个州' instead of '十三个州', which is a format-only difference. Missing '最初' and parentheses around the last part, which is omission and format difference.\",\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"十三个州\",\"hypQuote\":\"13个州\",\"reason\":\"Candidate uses digits '13' instead of Chinese characters '十三' for the number.\"},{\"kind\":\"omission\",\"refQuote\":\"最初\",\"hypQuote\":\"\",\"reason\":\"Candidate omits the word '最初' from the reference.\"},{\"kind\":\"format-only\",\"refQuote\":\"（国会是其唯一的组成部分）\",\"hypQuote\":\"国会是其唯一的组成部分。\",\"reason\":\"Candidate omits parentheses around '国会是其唯一的组成部分' and ends with a period instead.\"}]}]}",
+  "providerUsd": 0.00099,
+  "usage": {
+    "inputTokens": 751,
+    "outputTokens": 431,
+    "providerUsd": 0.00099,
+    "complete": true
+  },
+  "settledUsd": 0.001089
+}

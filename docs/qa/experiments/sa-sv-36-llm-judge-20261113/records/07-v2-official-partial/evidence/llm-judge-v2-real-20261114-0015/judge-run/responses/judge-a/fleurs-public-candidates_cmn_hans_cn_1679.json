@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 1568,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"fleurs-public-candidates/cmn_hans_cn/1679\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":1,\"note\":\"Candidate exactly matches the reference.\",\"findings\":[]},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":1,\"note\":\"Candidate exactly matches the reference.\",\"findings\":[]}]}",
+  "providerUsd": 0.0004404,
+  "usage": {
+    "inputTokens": 725,
+    "outputTokens": 94,
+    "providerUsd": 0.0004404,
+    "complete": true
+  },
+  "settledUsd": 0.00048444
+}

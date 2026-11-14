@@ -1,0 +1,62 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "Candidate contains minor errors in number formatting and a clear typo in '太员' instead of '探员'.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "2005 财年",
+            "hypQuote": "2005年才年",
+            "reason": "The reference uses '2005 财年' while the candidate says '2005年才年', which appears to be a typographical error for '财年'."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "10 名探员",
+            "hypQuote": "10名太员",
+            "reason": "The number '10' is correctly used, but '探员' is misspelled as '太员'."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.85,
+        "note": "Candidate has significant semantic and numerical deviations affecting meaning.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "国会从 2005 财年开始资助该扫黄倡议",
+            "hypQuote": "国会从2005年财年开始资助该小扫黄倡议",
+            "reason": "The word '小' is added before '扫黄倡议', altering the meaning and not present in the reference."
+          },
+          {
+            "kind": "number",
+            "refQuote": "10 名探员",
+            "hypQuote": "1名太员",
+            "reason": "The number of agents is incorrectly stated as '1' instead of '10'."
+          },
+          {
+            "kind": "entity",
+            "refQuote": "探员",
+            "hypQuote": "太员",
+            "reason": "The term '探员' (agent) is misspelled as '太员', which is not a valid term in this context."
+          },
+          {
+            "kind": "semantic",
+            "refQuote": "打击成人色情",
+            "hypQuote": "打击成员色情",
+            "reason": "'成人色情' (adult pornography) is changed to '成员色情', which is nonsensical and alters the meaning."
+          }
+        ]
+      }
+    ]
+  }
+}

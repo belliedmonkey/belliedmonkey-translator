@@ -1,0 +1,129 @@
+{
+  "schema": "belliedmonkey.qa.v2-semantic-human-review-form.v1",
+  "list": "disagreement",
+  "itemId": "ascend/00066",
+  "initialInventoryOnly": true,
+  "mustRefreshAfterBackfill": true,
+  "semanticHumanReviewed": false,
+  "earReviewUsedAsSemanticReview": false,
+  "doNotPreFillJudgment": true,
+  "officialAgentReviewIsNotHumanReview": true,
+  "reference": "哦这么technical",
+  "slots": {
+    "slot-1": {
+      "text": "哦 ，这么 technicle"
+    },
+    "slot-2": {
+      "text": "哦，这么technical的。"
+    }
+  },
+  "officialKindLists": {
+    "judge-a": {
+      "slot-1": [
+        "format-only"
+      ],
+      "slot-2": [
+        "addition"
+      ]
+    },
+    "judge-b": {
+      "slot-1": [
+        "format-only"
+      ],
+      "slot-2": [
+        "addition",
+        "format-only"
+      ]
+    }
+  },
+  "officialVerdicts": {
+    "judge-a": {
+      "model": "openai/gpt-4.1-mini",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "Candidate has a spelling error 'technicle' instead of 'technical' and an added space before the comma.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "哦这么technical",
+            "hypQuote": "哦 ，这么 technicle",
+            "reason": "The candidate adds a space before the comma and misspells 'technical' as 'technicle'."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Candidate adds the particle '的' at the end, which is an addition not present in the reference.",
+        "findings": [
+          {
+            "kind": "addition",
+            "refQuote": "哦这么technical",
+            "hypQuote": "哦，这么technical的。",
+            "reason": "The candidate adds '的' at the end, which is not in the reference."
+          }
+        ]
+      }
+    },
+    "judge-b": {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "technical",
+            "hypQuote": "technicle",
+            "reason": "The word 'technicle' is a misspelling of 'technical', but phonetically similar and likely a transcription error."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.85,
+        "note": "",
+        "findings": [
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": "的。",
+            "reason": "The candidate adds '的。' at the end, which does not appear in the reference."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "technical",
+            "hypQuote": "technical",
+            "reason": "The word 'technical' is correctly transcribed but followed by additional characters."
+          }
+        ]
+      }
+    }
+  },
+  "humanAnnotation": {
+    "reviewerId": "",
+    "reviewedAtAsiaShanghai": "",
+    "slots": {
+      "slot-1": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      },
+      "slot-2": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      }
+    },
+    "overallComment": "",
+    "marksCompleteOnlyAfterUserReview": true
+  }
+}

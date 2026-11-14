@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 25681,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1672\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"The candidate adds 'All right,' at the beginning and includes a comma after 'hot', which is not in the reference. The parenthetical in the reference is rendered as a clause without parentheses. These are minor additions and punctuation differences that do not alter the core meaning.\",\n      \"findings\": [\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"\",\n          \"hypQuote\": \"All right,\",\n          \"reason\": \"The phrase 'All right,' is present in the candidate but not in the reference.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"(which can cause shrinkage, or in extreme cases, scorch)\",\n          \"hypQuote\": \"which can cause shrinkage, or in extreme cases, scorch.\",\n          \"reason\": \"The parentheses are removed and the clause is integrated into the sentence with a comma. The period at the end is part of sentence termination and matches the reference's meaning.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.98,\n      \"note\": \"The candidate omits the parentheses around the clause and uses a comma after 'hot', but otherwise matches the reference closely. The meaning and content are preserved with only minor punctuation differences.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"(which can cause shrinkage, or in extreme cases, scorch)\",\n          \"hypQuote\": \"which can cause shrinkage or in extreme cases, scorch.\",\n          \"reason\": \"The parentheses are omitted and the clause is presented inline. The comma after 'shrinkage' is missing in the candidate, but this is a minor punctuation variation that does not affect meaning.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.00040244,
+  "usage": {
+    "inputTokens": 494,
+    "outputTokens": 458,
+    "providerUsd": 0.00040244,
+    "complete": true
+  },
+  "settledUsd": 0.0004652
+}

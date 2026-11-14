@@ -1,0 +1,9 @@
+{
+  "utf8Bytes": 1928,
+  "declaredTokens": 1928,
+  "code": "input-over-bound",
+  "ok": false,
+  "exact": false,
+  "maxInputTokens": 438,
+  "note": "SYNTHETIC utf8-bytes-plus-overhead with overhead 0. Not a real model tokenizer."
+}

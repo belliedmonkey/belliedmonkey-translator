@@ -1,0 +1,168 @@
+{
+  "schema": "belliedmonkey.qa.v2-pending-backfill-not-for-review-now.v1",
+  "doNotReviewNow": true,
+  "reason": "At least one official v2 verdict is missing; wait for allowlist backfill and refresh reviewList before sending these items to a human.",
+  "notAssessed": [
+    "fleurs-public-candidates/en_us/1670",
+    "fleurs-public-candidates/cmn_hans_cn/1671",
+    "fleurs-public-candidates/en_us/1672",
+    "fleurs-public-candidates/en_us/1673",
+    "fleurs-public-candidates/cmn_hans_cn/1673",
+    "fleurs-public-candidates/cmn_hans_cn/1674",
+    "fleurs-public-candidates/cmn_hans_cn/1675",
+    "fleurs-public-candidates/cmn_hans_cn/1676",
+    "fleurs-public-candidates/en_us/1680",
+    "fleurs-public-candidates/cmn_hans_cn/1680",
+    "fleurs-public-candidates/cmn_hans_cn/1681",
+    "ascend/00009",
+    "ascend/00028",
+    "ascend/00055"
+  ],
+  "items": [
+    {
+      "itemId": "fleurs-public-candidates/en_us/1670",
+      "missingJudges": [
+        {
+          "judgeId": "judge-b",
+          "officialCode": "note",
+          "finishReason": "stop"
+        }
+      ]
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "missingJudges": [
+        {
+          "judgeId": "judge-a",
+          "officialCode": "bad-json",
+          "finishReason": "stop"
+        }
+      ]
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1672",
+      "missingJudges": [
+        {
+          "judgeId": "judge-b",
+          "officialCode": "bad-json",
+          "finishReason": "stop"
+        }
+      ]
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1673",
+      "missingJudges": [
+        {
+          "judgeId": "judge-a",
+          "officialCode": "bad-json",
+          "finishReason": "stop"
+        },
+        {
+          "judgeId": "judge-b",
+          "officialCode": "bad-json",
+          "finishReason": "stop"
+        }
+      ]
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+      "missingJudges": [
+        {
+          "judgeId": "judge-b",
+          "officialCode": "bad-json",
+          "finishReason": "error"
+        }
+      ]
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1674",
+      "missingJudges": [
+        {
+          "judgeId": "judge-b",
+          "officialCode": "note",
+          "finishReason": "stop"
+        }
+      ]
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+      "missingJudges": [
+        {
+          "judgeId": "judge-b",
+          "officialCode": "quote",
+          "finishReason": "stop"
+        }
+      ]
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1676",
+      "missingJudges": [
+        {
+          "judgeId": "judge-b",
+          "officialCode": "note",
+          "finishReason": "stop"
+        }
+      ]
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1680",
+      "missingJudges": [
+        {
+          "judgeId": "judge-b",
+          "officialCode": "bad-json",
+          "finishReason": "stop"
+        }
+      ]
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "missingJudges": [
+        {
+          "judgeId": "judge-b",
+          "officialCode": "quote",
+          "finishReason": "stop"
+        }
+      ]
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1681",
+      "missingJudges": [
+        {
+          "judgeId": "judge-b",
+          "officialCode": "bad-json",
+          "finishReason": "stop"
+        }
+      ]
+    },
+    {
+      "itemId": "ascend/00009",
+      "missingJudges": [
+        {
+          "judgeId": "judge-b",
+          "officialCode": "bad-json",
+          "finishReason": "stop"
+        }
+      ]
+    },
+    {
+      "itemId": "ascend/00028",
+      "missingJudges": [
+        {
+          "judgeId": "judge-b",
+          "officialCode": "bad-json",
+          "finishReason": "stop"
+        }
+      ]
+    },
+    {
+      "itemId": "ascend/00055",
+      "missingJudges": [
+        {
+          "judgeId": "judge-b",
+          "officialCode": "quote",
+          "finishReason": "stop"
+        }
+      ]
+    }
+  ]
+}

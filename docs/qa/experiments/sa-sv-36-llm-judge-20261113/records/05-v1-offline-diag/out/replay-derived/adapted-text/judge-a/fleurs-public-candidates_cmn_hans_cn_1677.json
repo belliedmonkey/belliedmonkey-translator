@@ -1,0 +1,54 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate replaces '蜉蝣' with '浮游', which is a semantic difference.",
+          "findings": [
+            {
+              "kind": "semantic",
+              "refQuote": "蜉蝣",
+              "hypQuote": "浮游",
+              "reason": "The candidate uses '浮游' instead of '蜉蝣', changing the insect name and thus the meaning."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate replaces '蜉蝣' with '浮游' and omits the comma after '如今', causing semantic and format-only differences.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "如今，",
+              "hypQuote": "如今",
+              "reason": "The candidate omits the comma after '如今'."
+            },
+            {
+              "kind": "semantic",
+              "refQuote": "蜉蝣",
+              "hypQuote": "浮游",
+              "reason": "The candidate uses '浮游' instead of '蜉蝣', changing the insect name and thus the meaning."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,451 @@
+{
+  "results": [
+    {
+      "id": "fleurs-public-candidates/en_us/1668",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 754
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1668",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 762
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1668",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 759
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1668",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 742
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1669",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 710
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1669",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 722
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1669",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 739
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1669",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 728
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1670",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 840
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1670",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 849
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1670",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 889
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1670",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 873
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1671",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 733
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1671",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 750
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 776
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 774
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1672",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 730
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1672",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 741
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1672",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 752
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1672",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 735
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1673",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 743
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1673",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 753
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1673",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 751
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1673",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 744
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1674",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 710
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1674",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 718
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1674",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 730
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1674",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 723
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1675",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 728
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1675",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 736
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1675",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 752
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1675",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 739
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1676",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 712
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1676",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 720
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1676",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 729
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1676",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 718
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1677",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 709
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1677",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 717
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1677",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 735
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1677",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 717
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1678",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 753
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1678",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 764
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1678",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 794
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1678",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 780
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1679",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 691
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1679",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 699
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1679",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 725
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1679",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 712
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1680",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 750
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1680",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 758
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 787
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 760
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1681",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 766
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1681",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 776
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1681",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 762
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1681",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 749
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1682",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 787
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1682",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 803
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1682",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 804
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1682",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 811
+    },
+    {
+      "id": "ascend/00004",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 666
+    },
+    {
+      "id": "ascend/00004",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 672
+    },
+    {
+      "id": "ascend/00009",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 689
+    },
+    {
+      "id": "ascend/00009",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 697
+    },
+    {
+      "id": "ascend/00028",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 660
+    },
+    {
+      "id": "ascend/00028",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 669
+    },
+    {
+      "id": "ascend/00055",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 685
+    },
+    {
+      "id": "ascend/00055",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 688
+    },
+    {
+      "id": "ascend/00066",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 665
+    },
+    {
+      "id": "ascend/00066",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 674
+    },
+    {
+      "id": "ascend/00068",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 664
+    },
+    {
+      "id": "ascend/00068",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 673
+    }
+  ],
+  "systemOnly": [
+    {
+      "id": "system-only",
+      "judgeId": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "tokens": 606
+    },
+    {
+      "id": "system-only",
+      "judgeId": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "tokens": 614
+    }
+  ],
+  "assumptions": "see TOKENIZER-ASSUMPTIONS.md; exact=false; 2507 UTF-8 bytes is not a token count"
+}

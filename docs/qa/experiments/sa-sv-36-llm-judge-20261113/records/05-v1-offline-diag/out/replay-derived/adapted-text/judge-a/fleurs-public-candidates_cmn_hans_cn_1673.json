@@ -1,0 +1,72 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate has a number difference and omission of some reference content.",
+          "findings": [
+            {
+              "kind": "number",
+              "refQuote": "十三个州",
+              "hypQuote": "1三个州",
+              "reason": "The candidate misrecognizes the number '十三' as '1三', which changes the meaning."
+            },
+            {
+              "kind": "omission",
+              "refQuote": "最初根据《联邦条例》",
+              "hypQuote": "根据联邦条例",
+              "reason": "The candidate omits '最初' and the quotation marks around '联邦条例'."
+            },
+            {
+              "kind": "omission",
+              "refQuote": "（国会是其唯一的组成部分）",
+              "hypQuote": "国会是其唯一的组成部分。",
+              "reason": "The candidate omits the parentheses around '国会是其唯一的组成部分' and the punctuation differs."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.95,
+          "note": "Candidate mostly matches reference except for minor punctuation and omission of '最初'.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "十三个州",
+              "hypQuote": "13个州",
+              "reason": "The candidate uses digits '13' instead of Chinese numerals '十三', which is a format-only difference."
+            },
+            {
+              "kind": "omission",
+              "refQuote": "最初根据《联邦条例》",
+              "hypQuote": "根据联邦条例",
+              "reason": "The candidate omits the word '最初'."
+            },
+            {
+              "kind": "addition",
+              "refQuote": "（国会是其唯一的组成部分）",
+              "hypQuote": "国会是其唯一的组成部分。",
+              "reason": "The candidate omits the parentheses around '国会是其唯一的组成部分' and changes punctuation."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

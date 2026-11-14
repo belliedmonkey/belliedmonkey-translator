@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": false,
+  "code": "timeout",
+  "status": null,
+  "elapsedMs": 1,
+  "aborted": true,
+  "content": null,
+  "providerUsd": null,
+  "usage": {
+    "inputTokens": null,
+    "outputTokens": null,
+    "providerUsd": null,
+    "complete": false
+  },
+  "settledUsd": null
+}

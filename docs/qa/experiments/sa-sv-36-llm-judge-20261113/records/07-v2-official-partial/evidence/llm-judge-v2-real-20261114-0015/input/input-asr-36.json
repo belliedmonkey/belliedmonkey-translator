@@ -1,0 +1,510 @@
+{
+  "schema": "belliedmonkey.llm-judge.input.v1",
+  "task": "asr",
+  "items": [
+    {
+      "id": "fleurs-public-candidates/en_us/1668",
+      "reference": "It may also be beneficial for one to buy a Wild Card, which provides entry to either selections of parks in South Africa or all of the South African National Parks.",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "It may also be beneficial for one to buy a wild card, which provides entry to either selections of parks in South Africa or all of the South African national parks."
+        },
+        {
+          "key": "jt4m8c",
+          "text": "It may also be beneficial for one to buy a wild card, which provides entry to either selections of parks in South Africa or all of the South African national parks."
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1668",
+      "reference": "买一张万能卡（Wild Card）也有不少好处。带着这张卡，你可以进入南非的一些公园或全部的国家公园。",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "买一张万能卡也有不少好处 ，带着这张卡你可以进入南非的一些公园或者全部的国家公园。"
+        },
+        {
+          "key": "jt4m8c",
+          "text": "买一张万能卡也有不少好处，带着这张卡，你可以进入南非的一些公园或者全部的国家公园。"
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1669",
+      "reference": "Police superintendent Chandra Shekhar Solanki said the accused appeared in court with covered faces.",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "Police superintendent Chandra Shikar Solanki said that accused appeared in court with covered faces."
+        },
+        {
+          "key": "jt4m8c",
+          "text": "Police superintendent Chandra Shiar Slanki said the accused appeared in court with covered faces."
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1669",
+      "reference": "警察局长钱德拉·谢卡尔·索兰基说，被告人出庭时都蒙住了脸。",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "警察局长钱德拉谢卡尔索兰基说被告人出庭时都蒙住了脸。"
+        },
+        {
+          "key": "jt4m8c",
+          "text": "警察局长钱德拉谢卡尔索兰基说，被告人出庭时都蒙住了脸。"
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1670",
+      "reference": "Their thermal behavior is not as steady as large caves on Earth that often maintain a fairly constant temperature, but it is consistent with these being deep holes in the ground,\" said Glen Cushing of the United States Geological Survey (USGS) Astrogeology Team and of Northern Arizona University located in Flagstaff, Arizona.",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "Their thermal behavior is not as steady as large caves on earth that often maintain a fairly constant temperature. But it's consistent with these being deep holes in the ground, set Glenn Cushing, a United States geological survey, astrogeology team, and of Northern Arizona University, located in Flagstaff, Arizona."
+        },
+        {
+          "key": "jt4m8c",
+          "text": "Their formal behavior is not as steady as large cave on earth that often maintain a fairly constant temperature, but is consistent with these being deep holes in the ground, said Glen Kshing, a United States Geological Sury, Astrogeology team, and of northern Arizona University located in Flagstaff Arizona."
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1670",
+      "reference": "“它们的热行为不像地球上的大型洞穴那么稳定，这些大型洞穴通常会保持相当恒定的温度，但它们与地下深穴的情况很相似，”亚利桑那州旗杆镇美国地质调查局 (USGS) 太空地质团队和北亚利桑那大学的格伦·库欣说道。",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "他们的热行为不像地球上的大型洞穴那么稳定 ，这些大型洞穴通常会保持相当恒定的温度。但它们与地下升雪的情况很相似。亚历桑那州旗甘镇美国地质调查局 USGS太空地质团队和北亚历桑那大学的格伦库星说道。"
+        },
+        {
+          "key": "jt4m8c",
+          "text": "他们的热行为不像地球上的大型洞穴那么稳定，这些大型洞穴通常会保持相当恒定的温度，但他们与地下升雪的情况很相似。亚利桑那州旗干镇美国地质调查局USGS太空地质团队和北亚利桑那大学的格伦库辛说道，。"
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1671",
+      "reference": "Congress began funding the obscenity initiative in fiscal 2005 and specified that the FBI must devote 10 agents to adult pornography.",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "Congress began funding the obscenity initiative in fiscal 2005 and specified that the FBI must devote 10 agents to adult pornography."
+        },
+        {
+          "key": "jt4m8c",
+          "text": "Congress began funding the obscenity initiative in fiscal 2005 and specified that the FBI must devote 10 agents to adult pornography."
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "reference": "国会从 2005 财年开始资助该扫黄倡议，并规定联邦调查局 (FBI) 必须指派 10 名探员专门打击成人色情。",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "国会从 2005年才年开始资助该扫黄倡议并规定联邦调查局必须指派 10名太员专门打击成人色情。"
+        },
+        {
+          "key": "jt4m8c",
+          "text": "国会从2005年财年开始资助该小扫黄倡议，并规定联邦调查局必须指派1名太员专门打击成员色情。"
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1672",
+      "reference": "Be careful not to allow fabric to become too hot (which can cause shrinkage, or in extreme cases, scorch).",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "All right, be careful not to allow fabric to become too hot, which can cause shrinkage, or in extreme cases, scorch."
+        },
+        {
+          "key": "jt4m8c",
+          "text": "Be careful not to allow fabric to become too hot, which can cause shrinkage or in extreme cases, scorch."
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1672",
+      "reference": "小心不要让衣服变得太热（这可能会产生收缩现象，在极端情况下会把衣服烤焦）。",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "小心不要让衣服变得太热 ，这可能会产生收缩现象 ，在极端情况下会把衣服烤焦。"
+        },
+        {
+          "key": "jt4m8c",
+          "text": "小心不要让衣服变得太热，这可能会产生收缩现象。在极端情况下会把衣服烤焦。"
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1673",
+      "reference": "During the Revolutionary War, the thirteen states first formed a weak central government—with the Congress being its only component—under the Articles of Confederation.",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "During the Revolutionary War, the 13 states first formed a weak central government, with the Congress being its only component under the Articles of Confederation."
+        },
+        {
+          "key": "jt4m8c",
+          "text": "During the Revolutionary War, the 13 states first formed a weak central government with the Congress being its only component under the Articles of Confederation."
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1673",
+      "reference": "在独立战争期间，十三个州最初根据《联邦条例》组成了弱小的中央政府（国会是其唯一的组成部分）。",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "在独立战争期间 ，13个州根据联邦条例组成了弱小的中央政府国会是其唯一的组成部分。"
+        },
+        {
+          "key": "jt4m8c",
+          "text": "在独立战争期间，1三个州根据联邦条例组成了弱小的中央政府国会是其唯一的组成部分。"
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1674",
+      "reference": "In some areas boiling water for a minute is enough, in others several minutes are needed.",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "In some areas, boiling water for a minute is enough, and other several minutes are needed."
+        },
+        {
+          "key": "jt4m8c",
+          "text": "In some areas, boiling water for a minute is enough and other several minutes are needed."
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1674",
+      "reference": "在某些地区，水煮一分钟就足够了，在其他地区则需要几分钟的时间。",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "在某些地区水煮 1分钟就足够了 ，在其他地区则需要几分钟的时间。"
+        },
+        {
+          "key": "jt4m8c",
+          "text": "在某些地区，水煮一分钟就足够了，在其他地区则需要几分钟的时间。"
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1675",
+      "reference": "All nouns, alongside the word Sie for you, always begin with a capital letter, even in the middle of a sentence.",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "All nouns alongside the world safe for you, always begin with a capital letter, even in the middle of a sentence."
+        },
+        {
+          "key": "jt4m8c",
+          "text": "All nouns alongside the world say for you. always begin with a capital letter, even in the middle of a sentence."
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1675",
+      "reference": "除去表示您的“Sie”之外的所有名词都应以大写字母开头，即使在句子中间也应如此。",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "除去表示您的 C之外的所有名词都应以大写字幕开头 ，即便在句子中间也应如此。"
+        },
+        {
+          "key": "jt4m8c",
+          "text": "除去表示零的C之外的所有名词都应以大写字母开头，即便在句子中间也应如此。"
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1676",
+      "reference": "As with all South African National Parks, there are daily conservation and entry fees for the park.",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "As with all South African national parks, there are daily conservation and entry fees for the park."
+        },
+        {
+          "key": "jt4m8c",
+          "text": "As with all South African national parks, there are daily conservation and entry fees for the park."
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1676",
+      "reference": "与所有南非国家公园一样，该公园每天都收取养护费和门票费。",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "与所有南非国家公园一样 ，该公园每天都收取养护费和门票费。"
+        },
+        {
+          "key": "jt4m8c",
+          "text": "与所有南非国家公园一样，该公园每天都收取养护费和门票费。"
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1677",
+      "reference": "Today, the only insects that cannot fold back their wings are dragon flies and mayflies.",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "Today, the only insects that cannot fold back their wings are dragonflies and may flies."
+        },
+        {
+          "key": "jt4m8c",
+          "text": "Today, the only insects that cannot fold back their wings are dragonflies and mayflies."
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1677",
+      "reference": "如今，唯一不能向后折叠翅膀的昆虫是蜻蜓和蜉蝣。",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "如今唯一不能向后折叠翅膀的昆虫是蜻蜓和浮游。"
+        },
+        {
+          "key": "jt4m8c",
+          "text": "如今，唯一不能向后折叠翅膀的昆虫是蜻蜓和浮游。"
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1678",
+      "reference": "Oliver Sacks, in his paper The President's Speech, indicated how people who are unable to understand speech because of brain damage are nevertheless able to assess sincerity accurately.",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "Oliver Sachs and his paper, the president's speech, indicated how people who are unable to understand speech because of brain damage are nevertheless able to assess sincerity accurately."
+        },
+        {
+          "key": "jt4m8c",
+          "text": "Oliver Saackchs in his paper, the president's speech indicated how people who are unable to understand speech because of brain damage are nevertheless able to assess sincerity accurately."
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1678",
+      "reference": "奥利弗·萨克斯 (Oliver Sacks) 在他的论文《总统的演讲》中指出，那些因为脑损伤而无法理解语言的人仍然能够准确地判断说话人是否有诚意。",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "奥里弗萨克斯奥live萨克斯在他的论文总统的演讲中指出那些因为脑损伤而无法理解语言的人仍然能够准确地判断说话人是否有诚意。"
+        },
+        {
+          "key": "jt4m8c",
+          "text": "奥利弗萨克斯奥萨克在他的论文总统的演讲中指出，那些因为脑损伤而无法理解语言的人，仍然能够准确地判断说话人是否有诚意。"
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1679",
+      "reference": "Aerosmith have cancelled their remaining concerts on their tour.",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "Aerosmith had canceled their remaining concerts on their tour."
+        },
+        {
+          "key": "jt4m8c",
+          "text": "Arissmith had canceled their remaining concerts on their tour."
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1679",
+      "reference": "空中铁匠乐队已经取消了他们巡回演唱会的剩余场次。",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "空中铁匠乐队已经取消了他们巡回演唱会的剩余场次。"
+        },
+        {
+          "key": "jt4m8c",
+          "text": "空中铁匠乐队已经取消了他们巡回演唱会的剩余场次。"
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1680",
+      "reference": "A well rounded athlete, the tiger can climb (though not well), swim, leap great distances and pull with five times the force of a strong human.",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "A well-rounded athlete, the tiger can climb, though not well, swim, leave great distances, and pull with 5 times the force of a strong human."
+        },
+        {
+          "key": "jt4m8c",
+          "text": "A well rounded athlete, the tiger can climb, though not well, swim, leap great distances and pull with five times the force of a strong human."
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "reference": "老虎是全能运动员，它会攀爬（虽然攀爬能力不是很强）、游泳、跳远，拉力能达到人类大力士的五倍。",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "老虎是全能运动员 ，他会攀爬 ，虽然攀爬能力不是很强 ，游泳跳远拉力能拿到人类大力石的五倍。"
+        },
+        {
+          "key": "jt4m8c",
+          "text": "老虎是全能运动员，它会攀爬，虽然攀爬能力不是很强，游泳跳远拉力能拿到人类大力石的5倍。"
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1681",
+      "reference": "It isn’t alone though, experimentation, and an experiment is a test that is used to eliminate one or more of the possible hypotheses, asking questions, and making observations also guide scientific research.",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "It isn't alone though, experimentation. And an experiment is a test that is used to eliminate one or more of the possible hypotheses, asking questions, and making observations also guide scientific research."
+        },
+        {
+          "key": "jt4m8c",
+          "text": "It isn't alone, though, experimentation, and an experiment is a test that is used to eliminate one or more of the possible hypotheses asking questions and making observations also guide scientific research."
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1681",
+      "reference": "实验是一种用来消除一个或多个可能性假设的试验，不过，实验并不是唯一的方法。提出问题及进行观察也可以指导科学研究。",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "实验是一种用来消除一个或多个可能性假设的实验。不过实验并不是唯一的方法提出问题以及进行观察也可以指导科学研究。"
+        },
+        {
+          "key": "jt4m8c",
+          "text": "实验是一种用来消除一个或多个可能性假设的实验。不过，实验并不是唯一的方法提出问题以及进行观察，也可以指导科学研究。"
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1682",
+      "reference": "While no one knows for certain who wrote it, it is known that early in its life, the large parchment document (it measures 29¾ inches by 24½ inches) was rolled up for storage.",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "While no one knows for Serenhu Roi, it is known that early in its life, the large parchment document, in Messrs. 29, 3/4 inches by 24 and half inches, was rolled up for storage."
+        },
+        {
+          "key": "jt4m8c",
+          "text": "While no one knows for Cin who wrote it, it is known that early in its life, the large par document it measures 29 free4 inches by 24 and half inches was roll up for storage."
+        }
+      ]
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1682",
+      "reference": "虽然没有人能确定作者是谁，但这个大型羊皮纸文档（尺寸为 29¾ 英寸乘以 24½ 英寸）据称在刚写成的时候是卷起来存放的。",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "虽然没有人能确定作者是谁 ，但这个大型羊皮纸文档尺寸为 29又四分之三英寸乘以 24有二分之一英寸。据称在刚写成的时候是卷起来存放的。"
+        },
+        {
+          "key": "jt4m8c",
+          "text": "虽然没有人能确定作者是谁，但这个大型羊皮纸文档尺寸为29又4分之3英寸乘以24又2分之1英寸。据称在刚写成的时候是卷起来存放的。"
+        }
+      ]
+    },
+    {
+      "id": "ascend/00004",
+      "reference": "呃what's the呃",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "我so"
+        },
+        {
+          "key": "jt4m8c",
+          "text": "呃我死的。"
+        }
+      ]
+    },
+    {
+      "id": "ascend/00009",
+      "reference": "no我专业是那个i s m information systems management",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "那我觉爱是那个 ISM impormation sistancemangement。"
+        },
+        {
+          "key": "jt4m8c",
+          "text": "那我就按是那个ISM information systems management。"
+        }
+      ]
+    },
+    {
+      "id": "ascend/00028",
+      "reference": "ok福建",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "OK附件。"
+        },
+        {
+          "key": "jt4m8c",
+          "text": "okK附件。"
+        }
+      ]
+    },
+    {
+      "id": "ascend/00055",
+      "reference": "um运动啊男生一般不都喜欢运动",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "嗯 ，运动啊 ，男生一般不都喜欢运动"
+        },
+        {
+          "key": "jt4m8c",
+          "text": "嗯，运动啊男生一般不都喜欢运动。"
+        }
+      ]
+    },
+    {
+      "id": "ascend/00066",
+      "reference": "哦这么technical",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "哦 ，这么 technicle"
+        },
+        {
+          "key": "jt4m8c",
+          "text": "哦，这么technical的。"
+        }
+      ]
+    },
+    {
+      "id": "ascend/00068",
+      "reference": "computer languages是",
+      "candidates": [
+        {
+          "key": "hx9q2w",
+          "text": "可能平时都 anguage"
+        },
+        {
+          "key": "jt4m8c",
+          "text": "computer人规。"
+        }
+      ]
+    }
+  ]
+}

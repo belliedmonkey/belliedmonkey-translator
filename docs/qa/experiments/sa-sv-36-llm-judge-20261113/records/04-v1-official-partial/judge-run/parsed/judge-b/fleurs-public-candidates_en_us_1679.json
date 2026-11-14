@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fleurs-public-candidates/en_us/1679",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "The candidate uses 'had canceled' instead of 'have cancelled', which is a tense difference but preserves temporal meaning in context. The spelling 'canceled' (American) vs 'cancelled' (British) is a format variation. No semantic deviation or error in entity, number, or negation.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "have cancelled",
+            "hypQuote": "had canceled",
+            "reason": "Tense and spelling variation: 'have cancelled' (present perfect, British spelling) vs 'had canceled' (past perfect, American spelling). The difference is orthographic and grammatical but does not alter core meaning."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.98,
+        "note": "The candidate misspells the band name 'Aerosmith' as 'Arissmith', which is an entity error. The rest of the sentence matches in meaning, though 'had canceled' again differs in tense and spelling.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Aerosmith",
+            "hypQuote": "Arissmith",
+            "reason": "Incorrect band name: 'Arissmith' is not the correct name; the reference 'Aerosmith' refers to the well-known rock band, which is misrepresented in the candidate."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "have cancelled",
+            "hypQuote": "had canceled",
+            "reason": "Tense and spelling variation: 'have cancelled' (present perfect, British) vs 'had canceled' (past perfect, American). This is a surface-level difference without semantic change."
+          }
+        ]
+      }
+    ]
+  }
+}

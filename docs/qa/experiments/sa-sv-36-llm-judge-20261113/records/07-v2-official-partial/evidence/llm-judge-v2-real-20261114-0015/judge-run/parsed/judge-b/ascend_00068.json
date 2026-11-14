@@ -1,0 +1,50 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "ascend/00068",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.3,
+        "note": "Candidate contains unrelated content and does not match reference.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "computer languages是",
+            "hypQuote": "",
+            "reason": "The reference text 'computer languages是' is completely missing in the candidate."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": "computer人规。",
+            "reason": "The candidate contains 'computer人规。' which does not appear in the reference."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.2,
+        "note": "Candidate appears to be fragmented and does not align with reference.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "computer languages是",
+            "hypQuote": "",
+            "reason": "The reference text 'computer languages是' is completely missing in the candidate."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": "可能平时都 anguage",
+            "reason": "The candidate contains '可能平时都 anguage' which does not appear in the reference."
+          }
+        ]
+      }
+    ]
+  }
+}

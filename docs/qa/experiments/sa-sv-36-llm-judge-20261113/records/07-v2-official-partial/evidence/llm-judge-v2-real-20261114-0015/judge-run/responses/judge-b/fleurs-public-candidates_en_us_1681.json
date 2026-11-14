@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 5275,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v2\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1681\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"\",\n      \"findings\": [\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \", and\",\n          \"hypQuote\": \"\",\n          \"reason\": \"The reference contains ', and' before 'asking questions', but this conjunction is missing in the candidate, causing a run-on structure.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \", \",\n          \"hypQuote\": \"\",\n          \"reason\": \"The candidate omits the comma after 'hypotheses', which is present in the reference and separates coordinated clauses.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"\",\n      \"findings\": [\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"\",\n          \"hypQuote\": \".\",\n          \"reason\": \"The candidate inserts a period after 'experimentation', splitting the sentence, which disrupts the flow and adds punctuation not present in the reference.\"\n        },\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"\",\n          \"hypQuote\": \"And\",\n          \"reason\": \"The candidate capitalizes 'And' as a new sentence, which is not in the reference and introduces an addition in structure.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.0002752,
+  "usage": {
+    "inputTokens": 776,
+    "outputTokens": 356,
+    "providerUsd": 0.0002752,
+    "complete": true
+  },
+  "settledUsd": 0.00044
+}

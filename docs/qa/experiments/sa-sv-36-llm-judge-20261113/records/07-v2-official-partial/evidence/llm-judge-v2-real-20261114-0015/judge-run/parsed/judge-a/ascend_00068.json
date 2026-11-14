@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "ascend/00068",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Candidate 1 replaces 'languages是' with '人规' which is a semantic and entity difference and omits the 'languages是' part.",
+        "findings": [
+          {
+            "kind": "semantic",
+            "refQuote": "languages是",
+            "hypQuote": "人规",
+            "reason": "The candidate replaces 'languages是' with '人规', changing the meaning and entity."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "Candidate 2 omits 'computer' and 'languages是' and adds '可能平时都 anguage', which is an addition and omission with semantic impact.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "computer languages是",
+            "hypQuote": "",
+            "reason": "The candidate omits the entire phrase 'computer languages是'."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "computer languages是",
+            "hypQuote": "可能平时都 anguage",
+            "reason": "The candidate adds '可能平时都 anguage' which is not present in the reference and changes the meaning."
+          }
+        ]
+      }
+    ]
+  }
+}

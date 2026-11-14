@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 12595,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"fleurs-public-candidates/cmn_hans_cn/1668\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.95,\"note\":\"\",\"findings\":[{\"kind\":\"omission\",\"refQuote\":\"（Wild Card）\",\"hypQuote\":\"\",\"reason\":\"参考文本中的‘（Wild Card）’在候选文本中缺失\"}]},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.95,\"note\":\"\",\"findings\":[{\"kind\":\"omission\",\"refQuote\":\"（Wild Card）\",\"hypQuote\":\"\",\"reason\":\"参考文本中的‘（Wild Card）’在候选文本中缺失\"},{\"kind\":\"format-only\",\"refQuote\":\"。\",\"hypQuote\":\"。\",\"reason\":\"标点符号使用一致，但空格存在差异\"},{\"kind\":\"format-only\",\"refQuote\":\"，\",\"hypQuote\":\"你可以\",\"reason\":\"‘带着这张卡’后缺少逗号，但语义未变\"}]}]}",
+  "providerUsd": 0.00018558,
+  "usage": {
+    "inputTokens": 742,
+    "outputTokens": 216,
+    "providerUsd": 0.00018558,
+    "complete": true
+  },
+  "settledUsd": 0.0003212
+}

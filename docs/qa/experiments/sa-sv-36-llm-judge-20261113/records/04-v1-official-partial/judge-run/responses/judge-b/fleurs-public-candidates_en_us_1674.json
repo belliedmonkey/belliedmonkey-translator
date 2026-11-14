@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 8294,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1674\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"Candidate contains a grammatical error affecting semantic clarity.\",\n      \"findings\": [\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"in others several minutes are needed\",\n          \"hypQuote\": \"and other several minutes are needed\",\n          \"reason\": \"The reference uses 'in others' to refer to different areas, while the candidate uses 'and other', which is grammatically incorrect and alters the intended meaning by failing to properly connect the contrast between areas.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"Candidate contains a grammatical error affecting semantic clarity and lacks necessary punctuation.\",\n      \"findings\": [\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"in others several minutes are needed\",\n          \"hypQuote\": \"and other several minutes are needed\",\n          \"reason\": \"The reference uses 'in others' to refer to different areas, while the candidate uses 'and other', which is grammatically incorrect and alters the intended meaning by failing to properly connect the contrast between areas.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \", \",\n          \"hypQuote\": \"\",\n          \"reason\": \"The candidate omits the comma after 'In some areas', which is present in the reference and contributes to proper sentence structure and clarity.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.00033538,
+  "usage": {
+    "inputTokens": 471,
+    "outputTokens": 380,
+    "providerUsd": 0.00033538,
+    "complete": true
+  },
+  "settledUsd": 0.0003982
+}

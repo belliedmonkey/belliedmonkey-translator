@@ -1,0 +1,48 @@
+{
+  "diagnosticOnly": true,
+  "notForBackfill": true,
+  "mustNotChangeOfficialPartial": true,
+  "judgeId": "judge-b",
+  "itemId": "ascend/00028",
+  "officialCode": "bad-json",
+  "classification": "model-invalid-json-extra-closer-after-slot-1",
+  "sidecar": {
+    "finishReason": "stop",
+    "outputTokens": 334,
+    "maxTokensSent": 2048,
+    "inputTokens": 669,
+    "provider": "Nebius",
+    "httpStatus": 200,
+    "providerUsd": 0.0002406,
+    "ok": true
+  },
+  "contentCharLen": 1335,
+  "contentUtf8Bytes": 1383,
+  "contentSha256": "74da38ef8c2ea268159a103e96c86d2a756a8201cbdc27c1a6447a8916e69904",
+  "jsonError": {
+    "message": "Expected ',' or ']' after array element in JSON at position 805 (line 1 column 806)",
+    "position": 805,
+    "window": "e reference and has no corresponding element in the original text.\"}]}},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.7,\"note\":\"\",\"finding",
+    "windowStart": 735,
+    "pattern": {
+      "extraCloserAfterSlot1": true,
+      "extraCloserIndex": 801,
+      "unquotedReasonKey": false,
+      "unquotedReasonIndex": null,
+      "duplicateSlotKey": false,
+      "duplicateSlotKeyIndex": null
+    },
+    "endDepths": {
+      "brace": -1,
+      "bracket": 0,
+      "inStr": false,
+      "esc": false
+    },
+    "hasFence": false,
+    "invalidEscapeCount": 0,
+    "losslessAttempts": {
+      "strip": false,
+      "firstToLastObject": false
+    }
+  }
+}

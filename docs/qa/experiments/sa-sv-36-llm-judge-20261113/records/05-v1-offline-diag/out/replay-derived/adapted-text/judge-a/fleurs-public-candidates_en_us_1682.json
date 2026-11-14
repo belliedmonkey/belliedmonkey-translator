@@ -1,0 +1,78 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/en_us/1682",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/en_us/1682",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate 1 has multiple errors including entity, format, and semantic issues.",
+          "findings": [
+            {
+              "kind": "semantic",
+              "refQuote": "who wrote it",
+              "hypQuote": "for Serenhu Roi",
+              "reason": "The phrase 'who wrote it' is replaced by 'for Serenhu Roi', which changes the meaning and introduces an unknown entity."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "(it measures 29¾ inches by 24½ inches)",
+              "hypQuote": "in Messrs. 29, 3/4 inches by 24 and half inches",
+              "reason": "The measurement is expressed differently with added words and punctuation, but the values appear intended to be the same."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "rolled up for storage",
+              "hypQuote": "was rolled up for storage",
+              "reason": "Minor difference in auxiliary verb placement, but meaning is preserved."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.95,
+          "note": "Candidate 2 contains entity, format, omission, and semantic errors.",
+          "findings": [
+            {
+              "kind": "semantic",
+              "refQuote": "who wrote it",
+              "hypQuote": "for Cin who wrote it",
+              "reason": "The addition of 'for Cin' before 'who wrote it' introduces an unknown entity and changes the meaning."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "(it measures 29¾ inches by 24½ inches)",
+              "hypQuote": "it measures 29 free4 inches by 24 and half inches",
+              "reason": "The measurement is expressed differently with a likely misrecognition 'free4' instead of '¾', and '24 and half' instead of '24½'."
+            },
+            {
+              "kind": "omission",
+              "refQuote": "large parchment document",
+              "hypQuote": "large par document",
+              "reason": "The word 'chment' is missing from 'par(chment)', causing omission."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "rolled up for storage",
+              "hypQuote": "was roll up for storage",
+              "reason": "Verb tense and form differ but meaning is preserved."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

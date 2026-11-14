@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "ascend/00066",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "Candidate has a spelling error 'technicle' instead of 'technical' and an added space before the comma.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "哦这么technical",
+            "hypQuote": "哦 ，这么 technicle",
+            "reason": "The candidate adds a space before the comma and misspells 'technical' as 'technicle'."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Candidate adds the particle '的' at the end, which is an addition not present in the reference.",
+        "findings": [
+          {
+            "kind": "addition",
+            "refQuote": "哦这么technical",
+            "hypQuote": "哦，这么technical的。",
+            "reason": "The candidate adds '的' at the end, which is not in the reference."
+          }
+        ]
+      }
+    ]
+  }
+}

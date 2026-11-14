@@ -1,0 +1,103 @@
+{
+  "schema": "belliedmonkey.qa.v2-human-form-index.v1",
+  "semanticHumanReviewed": false,
+  "mustRefreshAfterBackfill": true,
+  "disagreementCount": 17,
+  "sampleCount": 5,
+  "forms": {
+    "disagreement": [
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1668",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/disagreement/fleurs-public-candidates_cmn_hans_cn_1668.json"
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1669",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/disagreement/fleurs-public-candidates_cmn_hans_cn_1669.json"
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/disagreement/fleurs-public-candidates_cmn_hans_cn_1670.json"
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1674",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/disagreement/fleurs-public-candidates_en_us_1674.json"
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1675",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/disagreement/fleurs-public-candidates_en_us_1675.json"
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1676",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/disagreement/fleurs-public-candidates_en_us_1676.json"
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1677",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/disagreement/fleurs-public-candidates_en_us_1677.json"
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/disagreement/fleurs-public-candidates_cmn_hans_cn_1677.json"
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1678",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/disagreement/fleurs-public-candidates_en_us_1678.json"
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1678",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/disagreement/fleurs-public-candidates_cmn_hans_cn_1678.json"
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/disagreement/fleurs-public-candidates_cmn_hans_cn_1679.json"
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1681",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/disagreement/fleurs-public-candidates_en_us_1681.json"
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1682",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/disagreement/fleurs-public-candidates_en_us_1682.json"
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1682",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/disagreement/fleurs-public-candidates_cmn_hans_cn_1682.json"
+      },
+      {
+        "itemId": "ascend/00004",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/disagreement/ascend_00004.json"
+      },
+      {
+        "itemId": "ascend/00066",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/disagreement/ascend_00066.json"
+      },
+      {
+        "itemId": "ascend/00068",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/disagreement/ascend_00068.json"
+      }
+    ],
+    "sample": [
+      {
+        "itemId": "fleurs-public-candidates/en_us/1679",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/sample/fleurs-public-candidates_en_us_1679.json"
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1671",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/sample/fleurs-public-candidates_en_us_1671.json"
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1669",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/sample/fleurs-public-candidates_en_us_1669.json"
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1672",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/sample/fleurs-public-candidates_cmn_hans_cn_1672.json"
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1668",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/v2-backfill-prep-20261114/human-review/forms/sample/fleurs-public-candidates_en_us_1668.json"
+      }
+    ]
+  },
+  "pendingList": "pending-backfill-not-for-review-now.json",
+  "instructions": "INSTRUCTIONS.zh.md"
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "belliedmonkey.llm-judge.human-review.v1",
+  "semanticHumanReviewCount": 0,
+  "earReviewUsedAsSemanticReview": false,
+  "rows": [
+    {
+      "id": "fixture-1",
+      "reason": "sample",
+      "semanticHumanReviewed": false
+    }
+  ]
+}

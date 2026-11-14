@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/en_us/1679",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "have cancelled",
+            "hypQuote": "had canceled",
+            "reason": "The verb tense and spelling differ, but the meaning is preserved: 'have cancelled' vs. 'had canceled' (British vs. American spelling and present perfect vs. past perfect, but same event)."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Aerosmith",
+            "hypQuote": "Arissmith",
+            "reason": "The band name 'Aerosmith' is misrecognized as 'Arissmith', which is a different entity."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "have cancelled",
+            "hypQuote": "had canceled",
+            "reason": "The verb tense and spelling differ: 'have cancelled' vs. 'had canceled', with British vs. American spelling and tense variation, but the core meaning remains."
+          }
+        ]
+      }
+    ]
+  }
+}

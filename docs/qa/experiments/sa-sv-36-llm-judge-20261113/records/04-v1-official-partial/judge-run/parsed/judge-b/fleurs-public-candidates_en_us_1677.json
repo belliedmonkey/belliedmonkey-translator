@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fleurs-public-candidates/en_us/1677",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "The candidate differs from the reference in the spelling of 'dragon flies' versus 'dragonflies'. The reference writes it as two words, while the candidate uses the closed compound form. This is a format-only difference in orthography without a change in meaning.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "dragon flies",
+            "hypQuote": "dragonflies",
+            "reason": "The reference uses the two-word form 'dragon flies', while the candidate uses the closed compound 'dragonflies'. This is a difference in spelling/format, not in meaning or content."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "The candidate splits 'mayflies' into two words as 'may flies', which differs from the reference's closed compound. This is a format-only orthographic difference.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "mayflies",
+            "hypQuote": "may flies",
+            "reason": "The reference uses the closed compound 'mayflies', while the candidate writes it as two words 'may flies'. This is a difference in spelling/format, not in meaning."
+          }
+        ]
+      }
+    ]
+  }
+}

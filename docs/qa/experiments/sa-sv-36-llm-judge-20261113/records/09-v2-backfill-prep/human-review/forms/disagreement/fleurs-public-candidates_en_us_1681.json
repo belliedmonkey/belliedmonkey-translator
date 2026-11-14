@@ -1,0 +1,136 @@
+{
+  "schema": "belliedmonkey.qa.v2-semantic-human-review-form.v1",
+  "list": "disagreement",
+  "itemId": "fleurs-public-candidates/en_us/1681",
+  "initialInventoryOnly": true,
+  "mustRefreshAfterBackfill": true,
+  "semanticHumanReviewed": false,
+  "earReviewUsedAsSemanticReview": false,
+  "doNotPreFillJudgment": true,
+  "officialAgentReviewIsNotHumanReview": true,
+  "reference": "It isn’t alone though, experimentation, and an experiment is a test that is used to eliminate one or more of the possible hypotheses, asking questions, and making observations also guide scientific research.",
+  "slots": {
+    "slot-1": {
+      "text": "It isn't alone, though, experimentation, and an experiment is a test that is used to eliminate one or more of the possible hypotheses asking questions and making observations also guide scientific research."
+    },
+    "slot-2": {
+      "text": "It isn't alone though, experimentation. And an experiment is a test that is used to eliminate one or more of the possible hypotheses, asking questions, and making observations also guide scientific research."
+    }
+  },
+  "officialKindLists": {
+    "judge-a": {
+      "slot-1": [
+        "format-only"
+      ],
+      "slot-2": [
+        "format-only"
+      ]
+    },
+    "judge-b": {
+      "slot-1": [
+        "omission",
+        "omission"
+      ],
+      "slot-2": [
+        "addition",
+        "addition"
+      ]
+    }
+  },
+  "officialVerdicts": {
+    "judge-a": {
+      "model": "openai/gpt-4.1-mini",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "Slot-1 is mostly accurate but misses a comma after 'hypotheses' and omits a comma after 'hypotheses,' which affects clarity slightly.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "one or more of the possible hypotheses, asking questions",
+            "hypQuote": "one or more of the possible hypotheses asking questions",
+            "reason": "Missing comma after 'hypotheses' changes the flow and clarity of the sentence."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Slot-2 introduces a period after 'experimentation' which changes the sentence structure and meaning, splitting the sentence into two. Otherwise, it matches the reference well.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "It isn’t alone though, experimentation, and an experiment is a test",
+            "hypQuote": "It isn't alone though, experimentation. And an experiment is a test",
+            "reason": "Period after 'experimentation' changes sentence structure from one sentence to two."
+          }
+        ]
+      }
+    },
+    "judge-b": {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": ", and",
+            "hypQuote": "",
+            "reason": "The reference contains ', and' before 'asking questions', but this conjunction is missing in the candidate, causing a run-on structure."
+          },
+          {
+            "kind": "omission",
+            "refQuote": ", ",
+            "hypQuote": "",
+            "reason": "The candidate omits the comma after 'hypotheses', which is present in the reference and separates coordinated clauses."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "",
+        "findings": [
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": ".",
+            "reason": "The candidate inserts a period after 'experimentation', splitting the sentence, which disrupts the flow and adds punctuation not present in the reference."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": "And",
+            "reason": "The candidate capitalizes 'And' as a new sentence, which is not in the reference and introduces an addition in structure."
+          }
+        ]
+      }
+    }
+  },
+  "humanAnnotation": {
+    "reviewerId": "",
+    "reviewedAtAsiaShanghai": "",
+    "slots": {
+      "slot-1": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      },
+      "slot-2": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      }
+    },
+    "overallComment": "",
+    "marksCompleteOnlyAfterUserReview": true
+  }
+}

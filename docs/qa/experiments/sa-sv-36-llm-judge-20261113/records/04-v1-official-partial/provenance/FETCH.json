@@ -1,0 +1,14 @@
+{
+  "fetched_at_asia_shanghai": "2026-11-13 22:42:19 CST (UTC+8)",
+  "http_date_header_utc": "Fri, 13 Nov 2026 14:42:19 GMT",
+  "official_url": "https://openrouter.ai/api/v1/models",
+  "http_status": 200,
+  "auth": "none (public GET; docs mention Bearer but unauthenticated catalog returned 200 with cache-control public)",
+  "cf_cache_status": "HIT",
+  "age_seconds": 56,
+  "bytes": 849046,
+  "sha256": "fab1f1c39a93322b8180e41770c12403986460d9e052874c37cd95b971e0ff1c",
+  "total_count": 470,
+  "records": 470,
+  "docs_url": "https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties"
+}

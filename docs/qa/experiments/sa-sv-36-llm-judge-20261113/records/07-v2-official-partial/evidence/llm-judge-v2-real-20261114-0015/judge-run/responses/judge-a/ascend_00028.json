@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 8970,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"ascend/00028\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.9,\"note\":\"Candidate has an addition and a semantic error: '附件' instead of '福建', and 'okK' instead of 'ok'.\",\"findings\":[{\"kind\":\"addition\",\"refQuote\":\"ok福建\",\"hypQuote\":\"okK附件\",\"reason\":\"Candidate adds '附件' which is not in the reference.\"},{\"kind\":\"semantic\",\"refQuote\":\"福建\",\"hypQuote\":\"附件\",\"reason\":\"Candidate replaces '福建' with '附件', changing the meaning.\"}]},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.9,\"note\":\"Candidate has an addition and a semantic error: '附件' instead of '福建', and 'OK' capitalized instead of 'ok'.\",\"findings\":[{\"kind\":\"addition\",\"refQuote\":\"ok福建\",\"hypQuote\":\"OK附件\",\"reason\":\"Candidate adds '附件' which is not in the reference.\"},{\"kind\":\"semantic\",\"refQuote\":\"福建\",\"hypQuote\":\"附件\",\"reason\":\"Candidate replaces '福建' with '附件', changing the meaning.\"},{\"kind\":\"format-only\",\"refQuote\":\"ok\",\"hypQuote\":\"OK\",\"reason\":\"Candidate capitalizes 'ok' to 'OK', a format difference.\"}]}]}",
+  "providerUsd": 0.0007312,
+  "usage": {
+    "inputTokens": 660,
+    "outputTokens": 292,
+    "providerUsd": 0.0007312,
+    "complete": true
+  },
+  "settledUsd": 0.00080432
+}

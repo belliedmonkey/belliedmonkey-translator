@@ -1,0 +1,18 @@
+SenseVoice resource URL provenance 2026-11-13 (Asia/Shanghai)
+
+Pack 01M7A23XQJ3153DSC5ER92SZF3.gz and PR 663 body contain no cursor.com-hosted resource URL.
+Pack lists only the GitHub asr-models zip (already 404 twice; not retried) and the product relay
+https://api.belliedmonkey.com/models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.zip
+(experiment must not call the relay).
+
+Model zip URL used (documented public ModelScope resolve from prior SHA-verified
+/workspace/qa/e1/evidence/e1-bc-modelscope-ensureready-20261025/RESULT.md; Oct 2026
+GET was HTTP 200, 160304482 bytes, sha256 286a4b89c62be15c78f195b908bf746c80a655f07588346ee0383a8f20f21e04):
+https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.zip
+
+Official backend URL (returned by public GitHub API
+GET https://api.github.com/repos/k2-fsa/sherpa-onnx/releases/tags/v2.0.1
+asset name sherpa-onnx-v2.0.1-osx-arm64-static-no-tts.tar.bz2 size 236481414):
+https://github.com/k2-fsa/sherpa-onnx/releases/download/v2.0.1/sherpa-onnx-v2.0.1-osx-arm64-static-no-tts.tar.bz2
+
+Fetches: ordinary curl, no credentials, no cookies, no private API, no audio inference.

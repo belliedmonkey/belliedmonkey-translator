@@ -1,0 +1,7 @@
+{
+  "diagnosticOnly": true,
+  "notForBackfill": true,
+  "recoverableCount": 0,
+  "ids": [],
+  "note": "strip/fence/首尾对象切片均不能在不改 JSON 字节的前提下恢复合法对象。不生成 derived 判决，不修 quote/note/JSON。"
+}

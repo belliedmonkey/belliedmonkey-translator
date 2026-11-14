@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 6845,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"ascend/00066\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.8,\n      \"note\": \"The candidate contains a misspelling of 'technical' as 'technicle', which is a clear deviation from the reference.\",\n      \"findings\": [\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"technical\",\n          \"hypQuote\": \"technicle\",\n          \"reason\": \"The word 'technicle' is a misspelling of 'technical', altering the intended meaning and correctness of the term in the reference.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.7,\n      \"note\": \"The candidate adds the character '的' and a period at the end, which are not present in the reference, introducing both an addition and punctuation difference.\",\n      \"findings\": [\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"\",\n          \"hypQuote\": \"的。\",\n          \"reason\": \"The candidate adds '的。' at the end, which does not appear in the reference, introducing extra grammatical structure and punctuation.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.00026826,
+  "usage": {
+    "inputTokens": 427,
+    "outputTokens": 302,
+    "providerUsd": 0.00026826,
+    "complete": true
+  },
+  "settledUsd": 0.000327
+}

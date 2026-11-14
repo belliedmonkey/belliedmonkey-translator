@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 11473,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v2\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1678\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.85,\n      \"note\": \"\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"Oliver Sacks\",\n          \"hypQuote\": \"Oliver Saackchs\",\n          \"reason\": \"The name 'Oliver Sacks' is misspelled as 'Oliver Saackchs' in the candidate.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"The President's Speech\",\n          \"hypQuote\": \"the president's speech\",\n          \"reason\": \"The title 'The President's Speech' differs in capitalization and lacks quotation marks, but refers to the same work.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.8,\n      \"note\": \"\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"Oliver Sacks\",\n          \"hypQuote\": \"Oliver Sachs\",\n          \"reason\": \"The name 'Oliver Sacks' is misspelled as 'Oliver Sachs' in the candidate.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"The President's Speech\",\n          \"hypQuote\": \"the president's speech\",\n          \"reason\": \"The title 'The President's Speech' differs in capitalization and lacks quotation marks, but refers to the same work.\"\n        },\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"Oliver Sacks, in his paper\",\n          \"hypQuote\": \"Oliver Sachs and his paper\",\n          \"reason\": \"The phrase 'and his paper' incorrectly suggests that Oliver Sachs is separate from the paper, altering the original meaning that the paper belongs to Sacks.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.000414,
+  "usage": {
+    "inputTokens": 764,
+    "outputTokens": 454,
+    "providerUsd": 0.000414,
+    "complete": true
+  },
+  "settledUsd": 0.000516
+}

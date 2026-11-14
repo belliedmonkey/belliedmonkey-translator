@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/en_us/1676",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": true,
+        "confidence": 0,
+        "note": "Both candidates are identical to each other and differ from the reference only in capitalization of 'national parks', which is a minor formatting difference and does not affect meaning.",
+        "findings": []
+      },
+      {
+        "slot": "slot-2",
+        "abstain": true,
+        "confidence": 0,
+        "note": "Both candidates are identical to each other and differ from the reference only in capitalization of 'national parks', which is a minor formatting difference and does not affect meaning.",
+        "findings": []
+      }
+    ]
+  }
+}

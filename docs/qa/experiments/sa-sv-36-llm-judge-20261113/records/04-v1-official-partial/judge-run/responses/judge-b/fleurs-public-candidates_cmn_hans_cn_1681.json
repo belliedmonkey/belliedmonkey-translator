@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 11995,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/cmn_hans_cn/1681\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"Candidate contains a format-only error and an omission.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"试验\",\n          \"hypQuote\": \"实验\",\n          \"reason\": \"The reference uses '试验' while the candidate uses '实验', which is a synonymous term in this context but differs in surface form.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"，\",\n          \"hypQuote\": \"\",\n          \"reason\": \"The candidate omits the comma after '方法' in '不过，实验并不是唯一的方法。' The reference has a comma, but the candidate does not, affecting clause separation.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate contains a format-only error and multiple omissions of punctuation.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"试验\",\n          \"hypQuote\": \"实验\",\n          \"reason\": \"The reference uses '试验' while the candidate uses '实验', which is a synonymous term in this context but differs in surface form.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"，\",\n          \"hypQuote\": \"\",\n          \"reason\": \"The candidate omits the comma after '不过' in '不过，实验并不是唯一的方法。'\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"。\",\n          \"hypQuote\": \"\",\n          \"reason\": \"The candidate omits the period after '方法' in '不过，实验并不是唯一的方法。', merging two sentences without proper punctuation.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"，\",\n          \"hypQuote\": \"\",\n          \"reason\": \"The candidate omits the comma after '观察' in '进行观察，也可以指导科学研究。'\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.00044036,
+  "usage": {
+    "inputTokens": 502,
+    "outputTokens": 504,
+    "providerUsd": 0.00044036,
+    "complete": true
+  },
+  "settledUsd": 0.0005036
+}

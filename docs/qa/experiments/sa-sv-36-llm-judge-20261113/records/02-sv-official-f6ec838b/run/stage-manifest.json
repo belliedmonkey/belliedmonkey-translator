@@ -1,0 +1,218 @@
+[
+  {
+    "id": "fleurs-public-candidates/en_us/1668",
+    "stagedRel": "en_us/12519810849995407480.wav",
+    "stagedSha256": "d6ab97bb7e3232b60b61910d3ac7e1cf37acbcbfd062773b453c76217682f49e",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/cmn_hans_cn/1668",
+    "stagedRel": "cmn_hans_cn/14773716009564433047.wav",
+    "stagedSha256": "7b95a45446dc31d99d50232a7a6dbda26cc9c87eb26aec1263f73e7f9dd6405f",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/en_us/1669",
+    "stagedRel": "en_us/15618717836108767541.wav",
+    "stagedSha256": "40d7e92df0355f4836e2b8fa2a88d7c7e047d0472f0845ca08f0c21257785390",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/cmn_hans_cn/1669",
+    "stagedRel": "cmn_hans_cn/13763174630354430252.wav",
+    "stagedSha256": "de149c29bdb3dd88f3befb247a99b2866aaa9c196f08818d8f2bba06c1ce0c53",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/en_us/1670",
+    "stagedRel": "en_us/2508559905589212221.wav",
+    "stagedSha256": "6dc676eae80109d088233f838226d4164f76befd8aafc772e1a6cb9eaa0d31df",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/cmn_hans_cn/1670",
+    "stagedRel": "cmn_hans_cn/1626393343718951419.wav",
+    "stagedSha256": "ba4d6b659f00765bd39fe3952b1da421733923ee0c9774c4a18d871f4fc4f73c",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/en_us/1671",
+    "stagedRel": "en_us/12784232275162817860.wav",
+    "stagedSha256": "d60875a908926028d9f6f6821af974effbf091116400f6d52dc86e2cae96cd25",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/cmn_hans_cn/1671",
+    "stagedRel": "cmn_hans_cn/17865784740247963652.wav",
+    "stagedSha256": "c7719ea621b9262f207178fe430a8625b220127fc19a9d3f5be8577cbfba8caf",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/en_us/1672",
+    "stagedRel": "en_us/3337787499768294195.wav",
+    "stagedSha256": "cd58bbf4d2aff767cdfb29bc175a4c7ece18c7769248af337f68e6cb645ddc93",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/cmn_hans_cn/1672",
+    "stagedRel": "cmn_hans_cn/12601036378860326355.wav",
+    "stagedSha256": "420a62e5d34c0dde3a8e438bc4ee1249612b5119cbf7758280bf184405e01883",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/en_us/1673",
+    "stagedRel": "en_us/2637301866626572038.wav",
+    "stagedSha256": "1518970aa8eb571854f94481fb8bc1056b112ed4724021402ed608e3794a4de3",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/cmn_hans_cn/1673",
+    "stagedRel": "cmn_hans_cn/6897063611136666657.wav",
+    "stagedSha256": "0513421059b64bafbb0587fdfa72ac706e4f1e303a79b6d226b2dd9db43b2c41",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/en_us/1674",
+    "stagedRel": "en_us/10492135991603561867.wav",
+    "stagedSha256": "ed78d88661c8f76d7b8951665a3c2e9adea23828fe3e70fd9df95465cb8f8ede",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/cmn_hans_cn/1674",
+    "stagedRel": "cmn_hans_cn/15619666715819820695.wav",
+    "stagedSha256": "75ab88f7bfc76e18bb8355139d72f02f4ba87ec3b08d1b14d581822c1576925e",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/en_us/1675",
+    "stagedRel": "en_us/10052240106321793346.wav",
+    "stagedSha256": "7603cae3294309ef70d234180cefccc3b13865ee525262228a636069b9b62841",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/cmn_hans_cn/1675",
+    "stagedRel": "cmn_hans_cn/13333464656670504120.wav",
+    "stagedSha256": "b7caf9b78e8e09ec6732a061c3615c61634b6ffbf78a5dcea717510185cb1046",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/en_us/1676",
+    "stagedRel": "en_us/3236057319333367673.wav",
+    "stagedSha256": "82dffe62952ceca62fb92118b8c1226d3a45eaba7b95ccdb466b6656efec91f6",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/cmn_hans_cn/1676",
+    "stagedRel": "cmn_hans_cn/1153780427490892865.wav",
+    "stagedSha256": "b28ffcf7fbb8978db09ad0007aca48f93506084f379db7a1081f618a96494605",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/en_us/1677",
+    "stagedRel": "en_us/1731561740051730459.wav",
+    "stagedSha256": "5a5a12d06c0a6acaf0a0d737d7c980bce91ec3f652cfa537b3cbaf8e10845dbc",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/cmn_hans_cn/1677",
+    "stagedRel": "cmn_hans_cn/16772375859841179841.wav",
+    "stagedSha256": "04940c7dca3b3189eb51f410f514673259dd9b35243a9a7e3d3472de1c5f0c81",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/en_us/1678",
+    "stagedRel": "en_us/1111475259790805601.wav",
+    "stagedSha256": "2ec0ade3595e05c1e91a751fc73811f69606b9682a23b2eeb48c6840e959bee9",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/cmn_hans_cn/1678",
+    "stagedRel": "cmn_hans_cn/13618157833815227507.wav",
+    "stagedSha256": "07ffccbe5c1fa2e1ee942770abfdb23ad8e3d450b0a1a9eed5d9e039233082e4",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/en_us/1679",
+    "stagedRel": "en_us/1830239880893513318.wav",
+    "stagedSha256": "0f72a68d17c6b3a08bba8591d71aef50d1e72ff6d1634269c095985868f7a09c",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/cmn_hans_cn/1679",
+    "stagedRel": "cmn_hans_cn/15514325222679879585.wav",
+    "stagedSha256": "49d3217d97b9aca836c9d69cdffa68830f987d126669c0fe69bb22507b20cd51",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/en_us/1680",
+    "stagedRel": "en_us/10894616243452123700.wav",
+    "stagedSha256": "7df2a964d8ce3931be897abeac59dd02669c709163fe23e928d917d31cf27601",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/cmn_hans_cn/1680",
+    "stagedRel": "cmn_hans_cn/13300750670399228150.wav",
+    "stagedSha256": "79721ab0386d30676690498bacee2f0032f97028c0bd63ae86e33862c8ad8879",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/en_us/1681",
+    "stagedRel": "en_us/4822858934027125258.wav",
+    "stagedSha256": "8752cda5cc51f24c718320f30ee0e4dcd86df3bb794c3bd122e391cca9516048",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/cmn_hans_cn/1681",
+    "stagedRel": "cmn_hans_cn/14066003160545361452.wav",
+    "stagedSha256": "6cd9c8019accd4b3fad799c8faf41770341085f5cb7b75b3bf8123b3abf3779b",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/en_us/1682",
+    "stagedRel": "en_us/9924305423057523453.wav",
+    "stagedSha256": "7f8e2186df44065aba3331c5fc2f2af07402be60914d255747665be8075d0cb1",
+    "converted": false
+  },
+  {
+    "id": "fleurs-public-candidates/cmn_hans_cn/1682",
+    "stagedRel": "cmn_hans_cn/11229861275679868227.wav",
+    "stagedSha256": "7cda7193eb573699c81b116c916c2ba869b8c1926a2db04fa0e8ae869854a080",
+    "converted": false
+  },
+  {
+    "id": "ascend/00004",
+    "stagedRel": "ascend/00004.wav",
+    "stagedSha256": "b1d784c7c355c79febc73733f61a9faa2564c9f07cdf12caa3dd470f381c0149",
+    "converted": false
+  },
+  {
+    "id": "ascend/00009",
+    "stagedRel": "ascend/00009.wav",
+    "stagedSha256": "7317a4752e95039e6f6c345ef5b15fdd18fc7f48353cc893e6f99218a682c9a3",
+    "converted": false
+  },
+  {
+    "id": "ascend/00028",
+    "stagedRel": "ascend/00028.wav",
+    "stagedSha256": "f790b945050ccc625702f214dc7182c0c0e781a6fd5a82c7d1863c4683414842",
+    "converted": false
+  },
+  {
+    "id": "ascend/00055",
+    "stagedRel": "ascend/00055.wav",
+    "stagedSha256": "866d07fc22025c9450e6e8811cb6b374ab863370182922c054dfa1c1ea46a535",
+    "converted": false
+  },
+  {
+    "id": "ascend/00066",
+    "stagedRel": "ascend/00066.wav",
+    "stagedSha256": "a554fbe3692c170b6aed5a34f34095312fe4b822c1c205eaddf894ee90f21faf",
+    "converted": false
+  },
+  {
+    "id": "ascend/00068",
+    "stagedRel": "ascend/00068.wav",
+    "stagedSha256": "ddf1d1241915e223a8f46e6e00e9f5c0b6574add6d6c984fab26ee5508897958",
+    "converted": false
+  }
+]

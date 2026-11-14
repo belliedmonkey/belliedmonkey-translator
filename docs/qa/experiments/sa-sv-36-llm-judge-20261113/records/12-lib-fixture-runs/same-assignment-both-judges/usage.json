@@ -1,0 +1,26 @@
+{
+  "calls": [
+    {
+      "judgeId": "judge-a",
+      "itemId": "fixture-1",
+      "attempt": 1,
+      "ok": true,
+      "inputTokens": 10,
+      "outputTokens": 2,
+      "usd": 0.01,
+      "costUnknown": false
+    },
+    {
+      "judgeId": "judge-b",
+      "itemId": "fixture-1",
+      "attempt": 1,
+      "ok": true,
+      "inputTokens": 10,
+      "outputTokens": 2,
+      "usd": 0.01,
+      "costUnknown": false
+    }
+  ],
+  "spentUsd": 0.02,
+  "costUnknown": false
+}

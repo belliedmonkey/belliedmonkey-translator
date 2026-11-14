@@ -1,0 +1,84 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.8,
+          "note": "Candidate mostly matches the reference but has minor errors in wording and a typo.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "2005 财年",
+              "hypQuote": "2005年才年",
+              "reason": "The candidate has an extra character '才' and repeats '年', which is a format issue."
+            },
+            {
+              "kind": "omission",
+              "refQuote": "(FBI)",
+              "hypQuote": "联邦调查局",
+              "reason": "The abbreviation (FBI) is missing in the candidate."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "10 名探员",
+              "hypQuote": "10名太员",
+              "reason": "The candidate has a typo '太员' instead of '探员'."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.6,
+          "note": "Candidate has multiple errors including semantic and number differences.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "2005 财年",
+              "hypQuote": "2005年财年",
+              "reason": "The order of '年' and '财年' is reversed but meaning is preserved."
+            },
+            {
+              "kind": "addition",
+              "refQuote": "扫黄倡议",
+              "hypQuote": "小扫黄倡议",
+              "reason": "The candidate adds the character '小' which is not in the reference."
+            },
+            {
+              "kind": "omission",
+              "refQuote": "(FBI)",
+              "hypQuote": "联邦调查局",
+              "reason": "The abbreviation (FBI) is missing in the candidate."
+            },
+            {
+              "kind": "number",
+              "refQuote": "10 名探员",
+              "hypQuote": "1名太员",
+              "reason": "The candidate changes the number from 10 to 1 and has a typo '太员' instead of '探员'."
+            },
+            {
+              "kind": "semantic",
+              "refQuote": "成人色情",
+              "hypQuote": "成员色情",
+              "reason": "The candidate changes '成人' (adult) to '成员' (member), altering the meaning."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 7507,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1675\",\n  \"slots\": {\n    \"slot-1\": {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate has multiple errors including word substitutions and one omission.\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"the word Sie for you\",\n          \"hypQuote\": \"the world safe for you\",\n          \"reason\": \"The phrase 'the word Sie for you' is incorrectly transcribed as 'the world safe for you', changing both words and meaning.\"\n        }\n      ]\n    },\n    \"slot-2\": {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate has multiple errors including word substitutions and punctuation error.\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"the word Sie for you\",\n          \"hypQuote\": \"the world say for you\",\n          \"reason\": \"The phrase 'the word Sie for you' is incorrectly transcribed as 'the world say for you', changing words and meaning.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"always begin with a capital letter, even in the middle of a sentence.\",\n          \"hypQuote\": \"always begin with a capital letter, even in the middle of a sentence.\",\n          \"reason\": \"The candidate incorrectly uses a period instead of a comma after 'you', splitting the sentence.\"\n        }\n      ]\n    }\n  }\n}",
+  "providerUsd": 0.0007916,
+  "usage": {
+    "inputTokens": 487,
+    "outputTokens": 373,
+    "providerUsd": 0.0007916,
+    "complete": true
+  },
+  "settledUsd": 0.00087076
+}

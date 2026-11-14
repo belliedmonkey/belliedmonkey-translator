@@ -1,0 +1,12 @@
+{
+  "retry2": {
+    "ok": false,
+    "code": "retries-disabled",
+    "detail": null,
+    "results": null
+  },
+  "retry0": {
+    "ok": true,
+    "maxRetries": 0
+  }
+}

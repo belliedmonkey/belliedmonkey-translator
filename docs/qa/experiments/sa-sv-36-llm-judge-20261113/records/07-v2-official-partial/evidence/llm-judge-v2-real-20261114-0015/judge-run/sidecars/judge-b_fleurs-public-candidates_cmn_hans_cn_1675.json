@@ -1,0 +1,41 @@
+{
+  "httpStatus": 200,
+  "ok": true,
+  "elapsedMs": 6899,
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+  "judgeId": "judge-b",
+  "responseModel": "qwen/qwen3-235b-a22b-2507",
+  "modelSent": "qwen/qwen3-235b-a22b-2507",
+  "modelMatchesConfig": true,
+  "provider": "Nebius",
+  "providerHeader": null,
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 739,
+    "completion_tokens": 455,
+    "total_tokens": 1194,
+    "cost": 0.0003272,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 624,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0003272,
+      "upstream_inference_prompt_cost": 0.0000542,
+      "upstream_inference_completions_cost": 0.000273
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    },
+    "usd": 0.0003272
+  },
+  "maxTokensSent": 2048,
+  "inputTokens": 739,
+  "outputTokens": 455,
+  "providerUsd": 0.0003272
+}

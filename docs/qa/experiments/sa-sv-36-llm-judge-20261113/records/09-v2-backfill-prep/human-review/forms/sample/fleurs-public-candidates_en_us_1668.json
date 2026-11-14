@@ -1,0 +1,150 @@
+{
+  "schema": "belliedmonkey.qa.v2-semantic-human-review-form.v1",
+  "list": "sample",
+  "itemId": "fleurs-public-candidates/en_us/1668",
+  "initialInventoryOnly": true,
+  "mustRefreshAfterBackfill": true,
+  "semanticHumanReviewed": false,
+  "earReviewUsedAsSemanticReview": false,
+  "doNotPreFillJudgment": true,
+  "officialAgentReviewIsNotHumanReview": true,
+  "reference": "It may also be beneficial for one to buy a Wild Card, which provides entry to either selections of parks in South Africa or all of the South African National Parks.",
+  "slots": {
+    "slot-1": {
+      "text": "It may also be beneficial for one to buy a wild card, which provides entry to either selections of parks in South Africa or all of the South African national parks."
+    },
+    "slot-2": {
+      "text": "It may also be beneficial for one to buy a wild card, which provides entry to either selections of parks in South Africa or all of the South African national parks."
+    }
+  },
+  "officialKindLists": {
+    "judge-a": {
+      "slot-1": [
+        "format-only",
+        "format-only"
+      ],
+      "slot-2": [
+        "format-only",
+        "format-only"
+      ]
+    },
+    "judge-b": {
+      "slot-1": [
+        "format-only",
+        "format-only"
+      ],
+      "slot-2": [
+        "format-only",
+        "format-only"
+      ]
+    }
+  },
+  "officialVerdicts": {
+    "judge-a": {
+      "model": "openai/gpt-4.1-mini",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 1,
+        "note": "Differences are only in capitalization of 'Wild Card' and 'National Parks', which are format-only variations.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "Wild Card",
+            "hypQuote": "wild card",
+            "reason": "Capitalization difference only."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "South African National Parks",
+            "hypQuote": "South African national parks",
+            "reason": "Capitalization difference only."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 1,
+        "note": "Differences are only in capitalization of 'Wild Card' and 'National Parks', which are format-only variations.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "Wild Card",
+            "hypQuote": "wild card",
+            "reason": "Capitalization difference only."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "South African National Parks",
+            "hypQuote": "South African national parks",
+            "reason": "Capitalization difference only."
+          }
+        ]
+      }
+    },
+    "judge-b": {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 1,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "Wild Card",
+            "hypQuote": "wild card",
+            "reason": "The capitalization differs between the reference and the candidate, but the words are otherwise identical."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "National Parks",
+            "hypQuote": "national parks",
+            "reason": "The capitalization differs between the reference and the candidate, but the words are otherwise identical."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 1,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "Wild Card",
+            "hypQuote": "wild card",
+            "reason": "The capitalization differs between the reference and the candidate, but the words are otherwise identical."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "National Parks",
+            "hypQuote": "national parks",
+            "reason": "The capitalization differs between the reference and the candidate, but the words are otherwise identical."
+          }
+        ]
+      }
+    }
+  },
+  "humanAnnotation": {
+    "reviewerId": "",
+    "reviewedAtAsiaShanghai": "",
+    "slots": {
+      "slot-1": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      },
+      "slot-2": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      }
+    },
+    "overallComment": "",
+    "marksCompleteOnlyAfterUserReview": true
+  }
+}

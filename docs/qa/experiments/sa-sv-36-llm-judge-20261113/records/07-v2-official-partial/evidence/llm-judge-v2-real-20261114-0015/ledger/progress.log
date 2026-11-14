@@ -1,0 +1,3 @@
+2026-11-13T16:21:11.631Z start official v2 run in new QA dir; no new probes; no --run until preflight passes
+2026-11-13T16:21:11.638Z starting formal 72-call v2 blind run with budgetUsd=0.22429628 (this-round remaining pool, not a new 0.28 pool)
+2026-11-13T16:28:56.043Z formal v2 run finished code=partial called=true complete=false thisRoundConsumed=0.0452386 cumulativeRemaining=0.17905768

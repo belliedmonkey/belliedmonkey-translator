@@ -1,0 +1,10 @@
+{
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v1\",\"itemId\":\"fixture-1\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":true,\"confidence\":0.2,\"note\":\"fixture abstain\",\"findings\":[]},{\"slot\":\"slot-2\",\"abstain\":true,\"confidence\":0.2,\"note\":\"fixture abstain\",\"findings\":[]}]}",
+  "responseModel": "MODEL_X",
+  "usage": {
+    "inputTokens": 1,
+    "outputTokens": 1,
+    "usd": 0,
+    "costUnknown": false
+  }
+}

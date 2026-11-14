@@ -1,0 +1,68 @@
+{
+  "ok": true,
+  "productMetric": false,
+  "endToEnd": false,
+  "leaderboard": false,
+  "exploratory": true,
+  "ranking": false,
+  "approvedPlannedSetCount": 0,
+  "denominator": 36,
+  "excluded": [
+    "fleurs-frozen-16",
+    "cmn_hans_cn/1663"
+  ],
+  "rates": {
+    "en": {
+      "metric": "wer",
+      "n": 15,
+      "errors": 29,
+      "length": 363,
+      "rate": 0.07988980716253444
+    },
+    "zh": {
+      "metric": "cer",
+      "n": 15,
+      "errors": 57,
+      "length": 624,
+      "rate": 0.09134615384615384
+    },
+    "codeswitch": {
+      "metric": "mer",
+      "n": 6,
+      "errors": 17,
+      "length": 42,
+      "rate": 0.40476190476190477,
+      "ranking": false
+    }
+  },
+  "hypotheses": null,
+  "recognizeStarted": true,
+  "appleResult": false,
+  "senseVoiceResult": true,
+  "code": "ok",
+  "backend": "sensevoice",
+  "processExit": 0,
+  "synthetic": false,
+  "fixtureRates": null,
+  "phases": {
+    "preflightMs": 29.868,
+    "stageMs": 55.515417,
+    "compileMs": null,
+    "assetInstallMs": null,
+    "modelLoadMs": 674,
+    "recognizeMs": 80146.723708,
+    "scoreMs": 7.5785,
+    "packMs": 17.362375
+  },
+  "perf": {
+    "median": 80146.723708,
+    "min": 80146.723708,
+    "max": 80146.723708,
+    "failures": 0,
+    "ranking": false
+  },
+  "repeats": 1,
+  "modelSha256": "c71f0ce00bec95b07744e116345e33d8cbbe08cef896382cf907bf4b51a2cd51",
+  "tokensSha256": "f449eb28dc567533d7fa59be34e2abca8784f771850c78a47fb731a31429a1dc",
+  "stage": "completed"
+}

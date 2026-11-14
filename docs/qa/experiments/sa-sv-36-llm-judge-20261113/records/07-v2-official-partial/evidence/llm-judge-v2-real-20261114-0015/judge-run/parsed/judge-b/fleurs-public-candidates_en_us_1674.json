@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/en_us/1674",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "In some areas boiling water for a minute is enough, in others several minutes are needed.",
+            "hypQuote": "In some areas, boiling water for a minute is enough, and other several minutes are needed.",
+            "reason": "The reference uses 'in others' to refer to other areas, while the candidate uses 'and other', which omits the preposition 'in' and results in a grammatical error and reduced clarity."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "In some areas boiling water for a minute is enough, in others several minutes are needed.",
+            "hypQuote": "In some areas, boiling water for a minute is enough and other several minutes are needed.",
+            "reason": "The reference uses 'in others' to refer to other areas, while the candidate uses 'and other', which omits the preposition 'in' and results in a grammatical error and reduced clarity."
+          }
+        ]
+      }
+    ]
+  }
+}

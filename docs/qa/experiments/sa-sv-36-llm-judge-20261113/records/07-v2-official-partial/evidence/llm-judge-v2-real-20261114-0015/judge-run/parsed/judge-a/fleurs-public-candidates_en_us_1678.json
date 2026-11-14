@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/en_us/1678",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Contains a misspelling of the name 'Oliver Sacks' as 'Oliver Saackchs'. Otherwise matches the reference closely.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Oliver Sacks",
+            "hypQuote": "Oliver Saackchs",
+            "reason": "The candidate misspells the name 'Oliver Sacks' as 'Oliver Saackchs'."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "Contains a misspelling of the name 'Oliver Sacks' as 'Oliver Sachs' and changes 'in his paper' to 'and his paper', which alters the meaning slightly.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Oliver Sacks",
+            "hypQuote": "Oliver Sachs",
+            "reason": "The candidate misspells the name 'Oliver Sacks' as 'Oliver Sachs'."
+          },
+          {
+            "kind": "semantic",
+            "refQuote": "in his paper",
+            "hypQuote": "and his paper",
+            "reason": "The phrase 'in his paper' is changed to 'and his paper', which changes the meaning and connection in the sentence."
+          }
+        ]
+      }
+    ]
+  }
+}

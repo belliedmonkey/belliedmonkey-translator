@@ -1,0 +1,9 @@
+{
+  "code": "dry-run",
+  "ok": true,
+  "itemIds": [
+    "fixture-1",
+    "fixture-2"
+  ],
+  "maxItems": 1
+}

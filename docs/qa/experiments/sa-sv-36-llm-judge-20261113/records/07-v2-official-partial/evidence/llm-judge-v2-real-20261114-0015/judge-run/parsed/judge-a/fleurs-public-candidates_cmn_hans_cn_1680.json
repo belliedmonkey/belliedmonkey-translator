@@ -1,0 +1,56 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "Candidate 1 has minor format and wording differences but introduces an entity error with '大力石' instead of '大力士' and a number format difference with '5倍' instead of '五倍'. Also, it omits the parentheses around the phrase '虽然攀爬能力不是很强'.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "（虽然攀爬能力不是很强）",
+            "hypQuote": "，虽然攀爬能力不是很强，",
+            "reason": "The candidate removes the parentheses around this phrase, changing the format and possibly the nuance."
+          },
+          {
+            "kind": "entity",
+            "refQuote": "大力士",
+            "hypQuote": "大力石",
+            "reason": "The candidate miswrites '大力士' (strongman) as '大力石' (strong stone), which is an entity error."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "五倍",
+            "hypQuote": "5倍",
+            "reason": "The candidate uses digit '5' instead of the Chinese character '五', a format difference."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.85,
+        "note": "Candidate 2 has similar issues as Candidate 1: entity error with '大力石' instead of '大力士', omission of parentheses, and minor spacing differences. It uses the correct number format '五倍'.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "（虽然攀爬能力不是很强）",
+            "hypQuote": "，虽然攀爬能力不是很强 ，",
+            "reason": "The candidate removes the parentheses around this phrase, changing the format and possibly the nuance."
+          },
+          {
+            "kind": "entity",
+            "refQuote": "大力士",
+            "hypQuote": "大力石",
+            "reason": "The candidate miswrites '大力士' (strongman) as '大力石' (strong stone), which is an entity error."
+          }
+        ]
+      }
+    ]
+  }
+}

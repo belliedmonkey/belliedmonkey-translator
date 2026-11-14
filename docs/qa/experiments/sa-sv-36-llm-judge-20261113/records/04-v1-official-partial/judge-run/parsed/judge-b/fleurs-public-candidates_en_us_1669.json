@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fleurs-public-candidates/en_us/1669",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.85,
+        "note": "The candidate contains a name variation and a minor grammatical omission.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Chandra Shekhar Solanki",
+            "hypQuote": "Chandra Shikar Solanki",
+            "reason": "The name 'Chandra Shekhar Solanki' in the reference is rendered as 'Chandra Shikar Solanki' in the candidate, which is a phonetic variation but alters the correct name."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "the",
+            "hypQuote": "",
+            "reason": "The article 'the' before 'accused' is missing in the candidate, which slightly affects grammatical correctness."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.75,
+        "note": "The candidate contains a distorted name that affects entity accuracy.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Chandra Shekhar Solanki",
+            "hypQuote": "Chandra Shiar Slanki",
+            "reason": "The name 'Chandra Shekhar Solanki' is significantly distorted in the candidate as 'Chandra Shiar Slanki', introducing errors in both first and last name components."
+          }
+        ]
+      }
+    ]
+  }
+}

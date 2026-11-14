@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/en_us/1677",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "Compound word formatting difference",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "dragon flies",
+            "hypQuote": "dragonflies",
+            "reason": "The reference uses two words 'dragon flies' while the candidate uses the compound word 'dragonflies', which is a surface-level formatting difference with no change in meaning."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "Compound word formatting difference",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "mayflies",
+            "hypQuote": "may flies",
+            "reason": "The reference uses the compound word 'mayflies' while the candidate uses two words 'may flies', which is a surface-level formatting difference with no change in meaning."
+          }
+        ]
+      }
+    ]
+  }
+}

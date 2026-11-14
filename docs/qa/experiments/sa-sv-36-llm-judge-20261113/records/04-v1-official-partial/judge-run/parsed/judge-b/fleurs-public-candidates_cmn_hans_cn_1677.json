@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "The candidate contains a word substitution error where '蜉蝣' is replaced with '浮游', which changes the meaning from a specific insect to a more general term.",
+        "findings": [
+          {
+            "kind": "semantic",
+            "refQuote": "蜉蝣",
+            "hypQuote": "浮游",
+            "reason": "'蜉蝣' refers to a specific insect (mayfly), while '浮游' generally means 'plankton' or 'floating', leading to a change in meaning."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.85,
+        "note": "The candidate omits the comma after '如今' and substitutes '蜉蝣' with '浮游', affecting both punctuation and meaning.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "如今，",
+            "hypQuote": "如今",
+            "reason": "The comma after '如今' is missing in the candidate, which is present in the reference."
+          },
+          {
+            "kind": "semantic",
+            "refQuote": "蜉蝣",
+            "hypQuote": "浮游",
+            "reason": "'蜉蝣' refers to a specific insect (mayfly), while '浮游' generally means 'plankton' or 'floating', leading to a change in meaning."
+          }
+        ]
+      }
+    ]
+  }
+}

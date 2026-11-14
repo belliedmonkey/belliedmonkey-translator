@@ -1,0 +1,13 @@
+{
+  "code": "no-verdict",
+  "parsed": {
+    "ok": false,
+    "code": "bad-json",
+    "verdict": null
+  },
+  "responseKept": "this is not json and also not a verdict",
+  "judgeSlot": {
+    "judge-a": null,
+    "judge-b": null
+  }
+}

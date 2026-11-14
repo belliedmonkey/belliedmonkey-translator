@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 14786,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1676\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 1,\n      \"note\": \"The candidate matches the reference exactly in meaning and content, with only a capitalization difference in 'national parks' which does not affect semantic meaning.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"South African National Parks\",\n          \"hypQuote\": \"South African national parks\",\n          \"reason\": \"Difference in capitalization of 'National Parks' versus 'national parks' is a formatting variation and does not change the meaning.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 1,\n      \"note\": \"The candidate matches the reference exactly in meaning and content, with only a capitalization difference in 'national parks' which does not affect semantic meaning.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"South African National Parks\",\n          \"hypQuote\": \"South African national parks\",\n          \"reason\": \"Difference in capitalization of 'National Parks' versus 'national parks' is a formatting variation and does not change the meaning.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.00028206,
+  "usage": {
+    "inputTokens": 473,
+    "outputTokens": 313,
+    "providerUsd": 0.00028206,
+    "complete": true
+  },
+  "settledUsd": 0.000345
+}

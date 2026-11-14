@@ -1,0 +1,84 @@
+{
+  "schema": "belliedmonkey.llm-judge.plan.v1",
+  "called": false,
+  "synthetic": false,
+  "asrRubric": "belliedmonkey.llm-judge.asr.v1",
+  "promptTemplateSha256": "a955cddc61e16ef988ee7c4290437218df4653f88ec9a8a45d6cb38adca5bdd6",
+  "seed": 20261113,
+  "temperature": 0,
+  "maxItems": 36,
+  "timeoutMs": 20000,
+  "maxRetries": 0,
+  "budgetUsd": 1,
+  "prices": {
+    "source": "REPLACE_PRICE_SOURCE",
+    "sourceVersion": "REPLACE_PRICE_VERSION",
+    "maxInputTokens": 4000,
+    "maxOutputTokens": 800,
+    "maxTotalTokens": 345600,
+    "maxRequests": 72,
+    "reserveUsd": [
+      {
+        "model": "REPLACE_MODEL_A",
+        "usd": 0.0056,
+        "pricedZero": false
+      },
+      {
+        "model": "REPLACE_MODEL_B",
+        "usd": 0.0056,
+        "pricedZero": false
+      }
+    ]
+  },
+  "judges": [
+    {
+      "id": "judge-a",
+      "model": "REPLACE_MODEL_A",
+      "called": false
+    },
+    {
+      "id": "judge-b",
+      "model": "REPLACE_MODEL_B",
+      "called": false
+    }
+  ],
+  "itemIds": [
+    "fleurs-public-candidates/en_us/1668",
+    "fleurs-public-candidates/cmn_hans_cn/1668",
+    "fleurs-public-candidates/en_us/1669",
+    "fleurs-public-candidates/cmn_hans_cn/1669",
+    "fleurs-public-candidates/en_us/1670",
+    "fleurs-public-candidates/cmn_hans_cn/1670",
+    "fleurs-public-candidates/en_us/1671",
+    "fleurs-public-candidates/cmn_hans_cn/1671",
+    "fleurs-public-candidates/en_us/1672",
+    "fleurs-public-candidates/cmn_hans_cn/1672",
+    "fleurs-public-candidates/en_us/1673",
+    "fleurs-public-candidates/cmn_hans_cn/1673",
+    "fleurs-public-candidates/en_us/1674",
+    "fleurs-public-candidates/cmn_hans_cn/1674",
+    "fleurs-public-candidates/en_us/1675",
+    "fleurs-public-candidates/cmn_hans_cn/1675",
+    "fleurs-public-candidates/en_us/1676",
+    "fleurs-public-candidates/cmn_hans_cn/1676",
+    "fleurs-public-candidates/en_us/1677",
+    "fleurs-public-candidates/cmn_hans_cn/1677",
+    "fleurs-public-candidates/en_us/1678",
+    "fleurs-public-candidates/cmn_hans_cn/1678",
+    "fleurs-public-candidates/en_us/1679",
+    "fleurs-public-candidates/cmn_hans_cn/1679",
+    "fleurs-public-candidates/en_us/1680",
+    "fleurs-public-candidates/cmn_hans_cn/1680",
+    "fleurs-public-candidates/en_us/1681",
+    "fleurs-public-candidates/cmn_hans_cn/1681",
+    "fleurs-public-candidates/en_us/1682",
+    "fleurs-public-candidates/cmn_hans_cn/1682",
+    "ascend/00004",
+    "ascend/00009",
+    "ascend/00028",
+    "ascend/00055",
+    "ascend/00066",
+    "ascend/00068"
+  ],
+  "omittedIds": []
+}

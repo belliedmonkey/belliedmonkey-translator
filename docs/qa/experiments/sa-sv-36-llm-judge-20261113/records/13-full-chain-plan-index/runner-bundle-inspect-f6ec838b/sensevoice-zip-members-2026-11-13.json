@@ -1,0 +1,45 @@
+{
+  "schema": "belliedmonkey.sensevoice-zip-members.v1",
+  "measuredAt": "2026-11-13T08:35:26Z",
+  "requestedUrl": "https://api.belliedmonkey.com/models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.zip",
+  "source": "app/device-models.config.js MT_DEVICE_SENSEVOICE.files[0]",
+  "clientFetch": "URLSession downloadTask with the URL only. No Authorization header and no request body.",
+  "attempts": 1,
+  "redirectHosts": [
+    "www.modelscope.cn",
+    "cdn-lfs-cn-1.modelscope.cn"
+  ],
+  "finalStatus": 200,
+  "contentType": "application/octet-stream",
+  "zipBytes": 160304482,
+  "zipSha256": "286a4b89c62be15c78f195b908bf746c80a655f07588346ee0383a8f20f21e04",
+  "pinMatch": true,
+  "members": [
+    {
+      "name": "model.int8.onnx",
+      "method": "deflate",
+      "uncompressedBytes": 239233841,
+      "compressedBytes": 160168880,
+      "sha256": "c71f0ce00bec95b07744e116345e33d8cbbe08cef896382cf907bf4b51a2cd51"
+    },
+    {
+      "name": "tokens.txt",
+      "method": "deflate",
+      "uncompressedBytes": 315894,
+      "compressedBytes": 135378,
+      "sha256": "f449eb28dc567533d7fa59be34e2abca8784f771850c78a47fb731a31429a1dc"
+    }
+  ],
+  "hubModelInt8Oid": "c71f0ce00bec95b07744e116345e33d8cbbe08cef896382cf907bf4b51a2cd51",
+  "hubModelInt8OidMatchesZipMember": true,
+  "productPinChanged": false,
+  "inferenceRun": false,
+  "macBackend": {
+    "file": "sherpa-onnx-v2.0.1-osx-arm64-static-no-tts.tar.bz2",
+    "bytes": 236481414,
+    "sha256": "e2496931fd955ab449c2df1a6839e4c17cedf451e018cc3efd1a77180980c49b",
+    "offlineBinary": "sherpa-onnx-v2.0.1-osx-arm64-static-no-tts/bin/sherpa-onnx-offline",
+    "executed": false
+  },
+  "note": "The zip sha256 stays the frozen transport identity. The two member sha256 values identify the files inside it. Deflate size is not a difference proof. The GitHub zip URL that returned 404 was not requested."
+}

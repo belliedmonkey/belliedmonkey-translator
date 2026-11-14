@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1682",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "Candidate differs from reference in number format and punctuation placement.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "29¾ 英寸乘以 24½ 英寸",
+            "hypQuote": "29又4分之3英寸乘以24又2分之1英寸",
+            "reason": "The reference uses vulgar fractions (¾, ½), while the candidate spells out the same fractions in words ('又4分之3', '又2分之1'); the numeric value is identical."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Candidate contains a typographical error in number expression and extra space.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "29¾ 英寸乘以 24½ 英寸",
+            "hypQuote": "29又四分之三英寸乘以 24有二分之一英寸",
+            "reason": "The reference uses vulgar fractions; the candidate spells out the fractions in words. '四分之三' matches '¾', but '有二分之一' appears to be a typo for '又二分之一', which would mean '½'. The intended value is likely the same."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "作者是谁，但这个",
+            "hypQuote": "作者是谁 ，但这个",
+            "reason": "The candidate contains an extra space after '是谁' before the comma, which is not present in the reference."
+          }
+        ]
+      }
+    ]
+  }
+}

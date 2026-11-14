@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/en_us/1669",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Chandra Shekhar Solanki",
+            "hypQuote": "Chandra Shikar Solanki",
+            "reason": "The name 'Chandra Shekhar Solanki' is incorrectly transcribed as 'Chandra Shikar Solanki', which is a mismatch in the person's name."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "the",
+            "hypQuote": "",
+            "reason": "The word 'the' before 'accused' is missing in the candidate transcript."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.85,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Chandra Shekhar Solanki",
+            "hypQuote": "Chandra Shiar Slanki",
+            "reason": "The name 'Chandra Shekhar Solanki' is incorrectly transcribed as 'Chandra Shiar Slanki', which is a significant error in the person's name."
+          }
+        ]
+      }
+    ]
+  }
+}

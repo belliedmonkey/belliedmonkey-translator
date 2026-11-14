@@ -1,0 +1,12 @@
+{
+  "systemSha256": "a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923",
+  "planPromptSha": "a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923",
+  "matchesPlan": true,
+  "allSystemIdentical": true,
+  "matchesRubricText": true,
+  "systemUtf8Bytes": 2507,
+  "systemCharLen": 2507,
+  "containsArrayExample": true,
+  "containsNoteMax": true,
+  "containsExactSlice": true
+}

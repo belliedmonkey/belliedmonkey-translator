@@ -1,0 +1,19 @@
+{
+  "contentJoinChars": 1751,
+  "expectedOriginalChars": 1751,
+  "charsDiv4": 438,
+  "requestBodyUtf8Bytes": 1928,
+  "requestBodyKeys": [
+    "model",
+    "temperature",
+    "seed",
+    "max_tokens",
+    "messages"
+  ],
+  "hasSystem": true,
+  "hasUser": true,
+  "userIsJson": true,
+  "includesMaxTokens": true,
+  "bodyLongerThanContentJoin": true,
+  "note": "STRUCTURAL MEASUREMENT ONLY. utf8 bytes are not a model tokenizer count."
+}

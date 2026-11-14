@@ -1,0 +1,59 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/en_us/1680",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/en_us/1680",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Contains minor format and semantic errors.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "A well rounded athlete",
+              "hypQuote": "A well-rounded athlete",
+              "reason": "Hyphenation difference in 'well rounded'."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "(though not well),",
+              "hypQuote": "though not well,",
+              "reason": "Parentheses omitted around 'though not well'."
+            },
+            {
+              "kind": "semantic",
+              "refQuote": "leap great distances",
+              "hypQuote": "leave great distances",
+              "reason": "'leap' is replaced by 'leave', changing meaning."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "five times",
+              "hypQuote": "5 times",
+              "reason": "Number written as digit instead of word."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 1,
+          "note": "Matches reference exactly except for hyphenation and parentheses formatting which are identical.",
+          "findings": []
+        }
+      ]
+    }
+  }
+}

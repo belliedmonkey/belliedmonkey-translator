@@ -1,0 +1,30 @@
+{
+  "calls": [
+    {
+      "judgeId": "judge-a",
+      "itemId": "fixture-1",
+      "attempt": 1,
+      "ok": false,
+      "code": "timeout",
+      "status": null,
+      "inputTokens": null,
+      "outputTokens": null,
+      "usd": null,
+      "costUnknown": true
+    },
+    {
+      "judgeId": "judge-b",
+      "itemId": "fixture-1",
+      "attempt": 1,
+      "ok": false,
+      "code": "timeout",
+      "status": null,
+      "inputTokens": null,
+      "outputTokens": null,
+      "usd": null,
+      "costUnknown": true
+    }
+  ],
+  "spentUsd": null,
+  "costUnknown": true
+}

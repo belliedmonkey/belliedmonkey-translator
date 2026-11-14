@@ -1,0 +1,1044 @@
+[
+  {
+    "judgeId": "judge-a",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+    "officialCode": "bad-json",
+    "classification": {
+      "classId": "model-invalid-json-unquoted-key",
+      "blame": "model-violated-explicit-json-object-constraint",
+      "vsContract": "contract-requires-one-JSON-object; missing opening quote on key reason after empty hypQuote (`\"\",reason\":` not `,\"reason\":`)",
+      "finishReason": "stop",
+      "outputTokens": 451,
+      "maxTokensSent": 2048,
+      "provider": "OpenAI",
+      "httpStatus": 200,
+      "providerUsd": 0.001032,
+      "usageComplete": true
+    },
+    "evidenceNote": "missing opening quote on key reason at 460: \"hypQuote\":\"\",reason\":; JSON.parse position 474: Expected double-quoted property name in JSON at position 474 (line 1 column 475); content 1621 chars / 1749 utf8 bytes; fence=false; illegalEscapes=0; finish=stop out=451/2048",
+    "sidecar": {
+      "finishReason": "stop",
+      "outputTokens": 451,
+      "maxTokensSent": 2048,
+      "inputTokens": 776,
+      "provider": "OpenAI",
+      "httpStatus": 200,
+      "providerUsd": 0.001032,
+      "ok": true
+    },
+    "contentCharLen": 1621,
+    "contentUtf8Bytes": 1749,
+    "contentSha256": "6aa1e1ff91c3842b6d624e153a53953f413ffe67ea57d61d35c7d42baec904bd",
+    "jsonError": {
+      "message": "Expected double-quoted property name in JSON at position 474 (line 1 column 475)",
+      "position": 474,
+      "window": "a format error.\"},{\"kind\":\"omission\",\"refQuote\":\"(FBI)\",\"hypQuote\":\"\",reason\":\"Candidate omits the parenthetical FBI abbreviation.\"},{\"kind\"",
+      "pattern": {
+        "extraCloserAfterSlot1": false,
+        "extraCloserIndex": null,
+        "unquotedReasonKey": true,
+        "unquotedReasonIndex": 460,
+        "duplicateSlotKey": false,
+        "duplicateSlotKeyIndex": null
+      },
+      "endDepths": {
+        "brace": 0,
+        "bracket": 0,
+        "inStr": false,
+        "esc": false
+      },
+      "hasFence": false,
+      "invalidEscapeCount": 0,
+      "losslessAttempts": {
+        "strip": false,
+        "firstToLastObject": false
+      }
+    },
+    "quoteNote": null
+  },
+  {
+    "judgeId": "judge-a",
+    "itemId": "fleurs-public-candidates/en_us/1673",
+    "officialCode": "bad-json",
+    "classification": {
+      "classId": "model-invalid-json-extra-closer-after-slot-1",
+      "blame": "model-violated-explicit-json-object-constraint",
+      "vsContract": "invalid JSON: extra } between slot-1 object and slot-2 element",
+      "finishReason": "stop",
+      "outputTokens": 328,
+      "maxTokensSent": 2048,
+      "provider": "OpenAI",
+      "httpStatus": 200,
+      "providerUsd": 0.000822,
+      "usageComplete": true
+    },
+    "evidenceNote": "extra } after slot-1 at index 742; JSON.parse position 746: Expected ',' or ']' after array element in JSON at position 746 (line 1 column 747); content 1399 chars / 1407 utf8 bytes; fence=false; illegalEscapes=0; finish=stop out=328/2048",
+    "sidecar": {
+      "finishReason": "stop",
+      "outputTokens": 328,
+      "maxTokensSent": 2048,
+      "inputTokens": 743,
+      "provider": "OpenAI",
+      "httpStatus": 200,
+      "providerUsd": 0.000822,
+      "ok": true
+    },
+    "contentCharLen": 1399,
+    "contentUtf8Bytes": 1407,
+    "contentSha256": "c0f13153665c81a43b00bb1ca501bbede96e6d994c2837dc1d2d9a8dd3ded75d",
+    "jsonError": {
+      "message": "Expected ',' or ']' after array element in JSON at position 746 (line 1 column 747)",
+      "position": 746,
+      "window": "Em dash replaced by a comma, a format-only punctuation difference.\"}]}},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.95,\"note\":\"Candidate",
+      "pattern": {
+        "extraCloserAfterSlot1": true,
+        "extraCloserIndex": 742,
+        "unquotedReasonKey": false,
+        "unquotedReasonIndex": null,
+        "duplicateSlotKey": false,
+        "duplicateSlotKeyIndex": null
+      },
+      "endDepths": {
+        "brace": -1,
+        "bracket": 0,
+        "inStr": false,
+        "esc": false
+      },
+      "hasFence": false,
+      "invalidEscapeCount": 0,
+      "losslessAttempts": {
+        "strip": false,
+        "firstToLastObject": false
+      }
+    },
+    "quoteNote": null
+  },
+  {
+    "judgeId": "judge-b",
+    "itemId": "ascend/00009",
+    "officialCode": "bad-json",
+    "classification": {
+      "classId": "model-invalid-json-extra-closer-after-slot-1",
+      "blame": "model-violated-explicit-json-object-constraint",
+      "vsContract": "invalid JSON: extra } between slot-1 object and slot-2 element",
+      "finishReason": "stop",
+      "outputTokens": 413,
+      "maxTokensSent": 2048,
+      "provider": "Nebius",
+      "httpStatus": 200,
+      "providerUsd": 0.000296,
+      "usageComplete": true
+    },
+    "evidenceNote": "extra } after slot-1 at index 964; JSON.parse position 968: Expected ',' or ']' after array element in JSON at position 968 (line 1 column 969); content 1604 chars / 1676 utf8 bytes; fence=false; illegalEscapes=0; finish=stop out=413/2048",
+    "sidecar": {
+      "finishReason": "stop",
+      "outputTokens": 413,
+      "maxTokensSent": 2048,
+      "inputTokens": 697,
+      "provider": "Nebius",
+      "httpStatus": 200,
+      "providerUsd": 0.000296,
+      "ok": true
+    },
+    "contentCharLen": 1604,
+    "contentUtf8Bytes": 1676,
+    "contentSha256": "007163355777dbfcd87224732bbe9e3d320feda3a407f55d62d0485096d24b1b",
+    "jsonError": {
+      "message": "Expected ',' or ']' after array element in JSON at position 968 (line 1 column 969)",
+      "position": 968,
+      "window": "tancemangement' in candidate slot-1, altering the intended entity.\"}]}},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.7,\"note\":\"Minor disc",
+      "pattern": {
+        "extraCloserAfterSlot1": true,
+        "extraCloserIndex": 964,
+        "unquotedReasonKey": false,
+        "unquotedReasonIndex": null,
+        "duplicateSlotKey": false,
+        "duplicateSlotKeyIndex": null
+      },
+      "endDepths": {
+        "brace": -2,
+        "bracket": -1,
+        "inStr": false,
+        "esc": false
+      },
+      "hasFence": false,
+      "invalidEscapeCount": 0,
+      "losslessAttempts": {
+        "strip": false,
+        "firstToLastObject": false
+      }
+    },
+    "quoteNote": null
+  },
+  {
+    "judgeId": "judge-b",
+    "itemId": "ascend/00028",
+    "officialCode": "bad-json",
+    "classification": {
+      "classId": "model-invalid-json-extra-closer-after-slot-1",
+      "blame": "model-violated-explicit-json-object-constraint",
+      "vsContract": "invalid JSON: extra } between slot-1 object and slot-2 element",
+      "finishReason": "stop",
+      "outputTokens": 334,
+      "maxTokensSent": 2048,
+      "provider": "Nebius",
+      "httpStatus": 200,
+      "providerUsd": 0.0002406,
+      "usageComplete": true
+    },
+    "evidenceNote": "extra } after slot-1 at index 801; JSON.parse position 805: Expected ',' or ']' after array element in JSON at position 805 (line 1 column 806); content 1335 chars / 1383 utf8 bytes; fence=false; illegalEscapes=0; finish=stop out=334/2048",
+    "sidecar": {
+      "finishReason": "stop",
+      "outputTokens": 334,
+      "maxTokensSent": 2048,
+      "inputTokens": 669,
+      "provider": "Nebius",
+      "httpStatus": 200,
+      "providerUsd": 0.0002406,
+      "ok": true
+    },
+    "contentCharLen": 1335,
+    "contentUtf8Bytes": 1383,
+    "contentSha256": "74da38ef8c2ea268159a103e96c86d2a756a8201cbdc27c1a6447a8916e69904",
+    "jsonError": {
+      "message": "Expected ',' or ']' after array element in JSON at position 805 (line 1 column 806)",
+      "position": 805,
+      "window": "e reference and has no corresponding element in the original text.\"}]}},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.7,\"note\":\"\",\"finding",
+      "pattern": {
+        "extraCloserAfterSlot1": true,
+        "extraCloserIndex": 801,
+        "unquotedReasonKey": false,
+        "unquotedReasonIndex": null,
+        "duplicateSlotKey": false,
+        "duplicateSlotKeyIndex": null
+      },
+      "endDepths": {
+        "brace": -1,
+        "bracket": 0,
+        "inStr": false,
+        "esc": false
+      },
+      "hasFence": false,
+      "invalidEscapeCount": 0,
+      "losslessAttempts": {
+        "strip": false,
+        "firstToLastObject": false
+      }
+    },
+    "quoteNote": null
+  },
+  {
+    "judgeId": "judge-b",
+    "itemId": "ascend/00055",
+    "officialCode": "quote",
+    "classification": {
+      "classId": "model-quote-not-exact-slice",
+      "blame": "model-violated-explicit-exact-slice-constraint",
+      "vsContract": "refQuote must be exact slice of reference; hypQuote of the same-slot candidate",
+      "failingQuotes": [
+        {
+          "slot": "slot-2",
+          "idx": 1,
+          "kind": "format-only",
+          "kindOk": true,
+          "failQuote": true,
+          "inReference": false,
+          "inSameSlotHypothesis": true,
+          "hypQuoteInSlots": {
+            "slot-1": false,
+            "slot-2": true
+          },
+          "refQuote": "运动。",
+          "hypQuote": "运动。",
+          "refQuoteCharLen": 3,
+          "hypQuoteCharLen": 3,
+          "refIndex": -1,
+          "hypIndex": 13
+        }
+      ],
+      "finishReason": "stop",
+      "outputTokens": 309,
+      "maxTokensSent": 2048,
+      "provider": "Nebius",
+      "httpStatus": 200,
+      "providerUsd": 0.0002318,
+      "usageComplete": true
+    },
+    "evidenceNote": "slot-2#1 kind=format-only refQuote=\"运动。\" (len=3, inRef=false, refIndex=-1) hypQuote=\"运动。\" (len=3, inSameSlot=true, hypIndex=13, inSlots={\"slot-1\":false,\"slot-2\":true})",
+    "sidecar": {
+      "finishReason": "stop",
+      "outputTokens": 309,
+      "maxTokensSent": 2048,
+      "inputTokens": 688,
+      "provider": "Nebius",
+      "httpStatus": 200,
+      "providerUsd": 0.0002318,
+      "ok": true
+    },
+    "contentCharLen": 1237,
+    "contentUtf8Bytes": 1285,
+    "contentSha256": "f5dcbd8967efe6cb927463c320a44bf059af1139ed76fefd2884f8d44e0a99e3",
+    "jsonError": null,
+    "quoteNote": {
+      "missingNoteSlots": [],
+      "oversizeNoteSlots": [],
+      "failingQuotes": [
+        {
+          "slot": "slot-2",
+          "idx": 1,
+          "kind": "format-only",
+          "kindOk": true,
+          "failQuote": true,
+          "inReference": false,
+          "inSameSlotHypothesis": true,
+          "hypQuoteInSlots": {
+            "slot-1": false,
+            "slot-2": true
+          },
+          "refQuote": "运动。",
+          "hypQuote": "运动。",
+          "refQuoteCharLen": 3,
+          "hypQuoteCharLen": 3,
+          "refIndex": -1,
+          "hypIndex": 13
+        }
+      ],
+      "slotNotes": [
+        {
+          "slot": "slot-1",
+          "keys": [
+            "slot",
+            "abstain",
+            "confidence",
+            "note",
+            "findings"
+          ],
+          "noteCharLen": 134,
+          "noteUtf8Bytes": 134,
+          "noteExceeds400": false
+        },
+        {
+          "slot": "slot-2",
+          "keys": [
+            "slot",
+            "abstain",
+            "confidence",
+            "note",
+            "findings"
+          ],
+          "noteCharLen": 97,
+          "noteUtf8Bytes": 97,
+          "noteExceeds400": false
+        }
+      ]
+    }
+  },
+  {
+    "judgeId": "judge-b",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+    "officialCode": "bad-json",
+    "classification": {
+      "classId": "provider-or-gateway-incomplete",
+      "blame": "undetermined-incomplete-response",
+      "vsContract": "cannot-assert-model-violated-json-constraint-because-response-is-incomplete",
+      "finishReason": "error",
+      "outputTokens": 137,
+      "maxTokensSent": 2048,
+      "provider": "Nebius",
+      "httpStatus": 200,
+      "providerUsd": 0,
+      "usageComplete": true,
+      "detail": "finish_reason=error or unterminated stored content; do not call this a completed model JSON error."
+    },
+    "evidenceNote": "JSON.parse position 356: Unterminated string in JSON at position 356 (line 1 column 357); content 356 chars / 494 utf8 bytes; fence=false; illegalEscapes=0; finish=error out=137/2048",
+    "sidecar": {
+      "finishReason": "error",
+      "outputTokens": 137,
+      "maxTokensSent": 2048,
+      "inputTokens": 744,
+      "provider": "Nebius",
+      "httpStatus": 200,
+      "providerUsd": 0,
+      "ok": true
+    },
+    "contentCharLen": 356,
+    "contentUtf8Bytes": 494,
+    "contentSha256": "b4919f50787055865923c8fd4e1f75c7680dcc3bf207fde6c98c25fc4e034038",
+    "jsonError": {
+      "message": "Unterminated string in JSON at position 356 (line 1 column 357)",
+      "position": 356,
+      "window": "正确阿拉伯数字，造成数量理解错误。\"},{\"kind\":\"omission\",\"refQuote\":\"（国会是其唯一的组成部分）\",\"hyp",
+      "pattern": {
+        "extraCloserAfterSlot1": false,
+        "extraCloserIndex": null,
+        "unquotedReasonKey": false,
+        "unquotedReasonIndex": null,
+        "duplicateSlotKey": false,
+        "duplicateSlotKeyIndex": null
+      },
+      "endDepths": {
+        "brace": 3,
+        "bracket": 2,
+        "inStr": true,
+        "esc": false
+      },
+      "hasFence": false,
+      "invalidEscapeCount": 0,
+      "losslessAttempts": {
+        "strip": false,
+        "firstToLastObject": false
+      }
+    },
+    "quoteNote": null
+  },
+  {
+    "judgeId": "judge-b",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1674",
+    "officialCode": "note",
+    "classification": {
+      "classId": "model-missing-required-note-field",
+      "blame": "model-violated-explicit-slot-key-constraint",
+      "vsContract": "each slot keys are exactly slot, abstain, confidence, note, findings; note must be a string; official code \"note\" here is missing field, not length>400",
+      "missingNoteSlots": [
+        "slot-2"
+      ],
+      "oversizeNoteSlots": [],
+      "finishReason": "stop",
+      "outputTokens": 178,
+      "maxTokensSent": 2048,
+      "provider": "Nebius",
+      "httpStatus": 200,
+      "providerUsd": 0.0001578,
+      "usageComplete": true
+    },
+    "evidenceNote": "slot-2 keys=[slot,abstain,confidence,findings] note absent; slot-1 note.length=0 utf8=0 (>400=false)",
+    "sidecar": {
+      "finishReason": "stop",
+      "outputTokens": 178,
+      "maxTokensSent": 2048,
+      "inputTokens": 723,
+      "provider": "Nebius",
+      "httpStatus": 200,
+      "providerUsd": 0.0001578,
+      "ok": true
+    },
+    "contentCharLen": 464,
+    "contentUtf8Bytes": 628,
+    "contentSha256": "6059f3c376611f5c38af1075e2d1a982d8d84f4dcf965b85e04bc20e6abdd17e",
+    "jsonError": null,
+    "quoteNote": {
+      "missingNoteSlots": [
+        "slot-2"
+      ],
+      "oversizeNoteSlots": [],
+      "failingQuotes": [],
+      "slotNotes": [
+        {
+          "slot": "slot-1",
+          "keys": [
+            "slot",
+            "abstain",
+            "confidence",
+            "note",
+            "findings"
+          ],
+          "noteCharLen": 0,
+          "noteUtf8Bytes": 0,
+          "noteExceeds400": false
+        },
+        {
+          "slot": "slot-2",
+          "keys": [
+            "slot",
+            "abstain",
+            "confidence",
+            "findings"
+          ],
+          "noteCharLen": null,
+          "noteUtf8Bytes": null,
+          "noteExceeds400": null
+        }
+      ]
+    }
+  },
+  {
+    "judgeId": "judge-b",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+    "officialCode": "quote",
+    "classification": {
+      "classId": "model-quote-not-exact-slice",
+      "blame": "model-violated-explicit-exact-slice-constraint",
+      "vsContract": "refQuote must be exact slice of reference; hypQuote of the same-slot candidate",
+      "failingQuotes": [
+        {
+          "slot": "slot-1",
+          "idx": 2,
+          "kind": "format-only",
+          "kindOk": true,
+          "failQuote": true,
+          "inReference": false,
+          "inSameSlotHypothesis": true,
+          "hypQuoteInSlots": {
+            "slot-1": true,
+            "slot-2": true
+          },
+          "refQuote": "即便",
+          "hypQuote": "即便",
+          "refQuoteCharLen": 2,
+          "hypQuoteCharLen": 2,
+          "refIndex": -1,
+          "hypIndex": 24
+        }
+      ],
+      "finishReason": "stop",
+      "outputTokens": 455,
+      "maxTokensSent": 2048,
+      "provider": "Nebius",
+      "httpStatus": 200,
+      "providerUsd": 0.0003272,
+      "usageComplete": true
+    },
+    "evidenceNote": "slot-1#2 kind=format-only refQuote=\"即便\" (len=2, inRef=false, refIndex=-1) hypQuote=\"即便\" (len=2, inSameSlot=true, hypIndex=24, inSlots={\"slot-1\":true,\"slot-2\":true})",
+    "sidecar": {
+      "finishReason": "stop",
+      "outputTokens": 455,
+      "maxTokensSent": 2048,
+      "inputTokens": 739,
+      "provider": "Nebius",
+      "httpStatus": 200,
+      "providerUsd": 0.0003272,
+      "ok": true
+    },
+    "contentCharLen": 1325,
+    "contentUtf8Bytes": 1615,
+    "contentSha256": "fe2ebdcd566a3749a4ae97496c0b2a51579325ef18f84a97e195bd3cd3703f4e",
+    "jsonError": null,
+    "quoteNote": {
+      "missingNoteSlots": [],
+      "oversizeNoteSlots": [],
+      "failingQuotes": [
+        {
+          "slot": "slot-1",
+          "idx": 2,
+          "kind": "format-only",
+          "kindOk": true,
+          "failQuote": true,
+          "inReference": false,
+          "inSameSlotHypothesis": true,
+          "hypQuoteInSlots": {
+            "slot-1": true,
+            "slot-2": true
+          },
+          "refQuote": "即便",
+          "hypQuote": "即便",
+          "refQuoteCharLen": 2,
+          "hypQuoteCharLen": 2,
+          "refIndex": -1,
+          "hypIndex": 24
+        }
+      ],
+      "slotNotes": [
+        {
+          "slot": "slot-1",
+          "keys": [
+            "slot",
+            "abstain",
+            "confidence",
+            "note",
+            "findings"
+          ],
+          "noteCharLen": 0,
+          "noteUtf8Bytes": 0,
+          "noteExceeds400": false
+        },
+        {
+          "slot": "slot-2",
+          "keys": [
+            "slot",
+            "abstain",
+            "confidence",
+            "note",
+            "findings"
+          ],
+          "noteCharLen": 0,
+          "noteUtf8Bytes": 0,
+          "noteExceeds400": false
+        }
+      ]
+    }
+  },
+  {
+    "judgeId": "judge-b",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1676",
+    "officialCode": "note",
+    "classification": {
+      "classId": "model-missing-required-note-field",
+      "blame": "model-violated-explicit-slot-key-constraint",
+      "vsContract": "each slot keys are exactly slot, abstain, confidence, note, findings; note must be a string; official code \"note\" here is missing field, not length>400",
+      "missingNoteSlots": [
+        "slot-2"
+      ],
+      "oversizeNoteSlots": [],
+      "finishReason": "stop",
+      "outputTokens": 150,
+      "maxTokensSent": 2048,
+      "provider": "Parasail",
+      "httpStatus": 200,
+      "providerUsd": 0.00016436,
+      "usageComplete": true
+    },
+    "evidenceNote": "slot-2 keys=[slot,abstain,confidence,findings] note absent; slot-1 note.length=0 utf8=0 (>400=false)",
+    "sidecar": {
+      "finishReason": "stop",
+      "outputTokens": 150,
+      "maxTokensSent": 2048,
+      "inputTokens": 718,
+      "provider": "Parasail",
+      "httpStatus": 200,
+      "providerUsd": 0.00016436,
+      "ok": true
+    },
+    "contentCharLen": 391,
+    "contentUtf8Bytes": 549,
+    "contentSha256": "b77e3e6cffd4e85c447eaa23c7ac750f1288adbc6edd52f34acd3847625b0d3a",
+    "jsonError": null,
+    "quoteNote": {
+      "missingNoteSlots": [
+        "slot-2"
+      ],
+      "oversizeNoteSlots": [],
+      "failingQuotes": [],
+      "slotNotes": [
+        {
+          "slot": "slot-1",
+          "keys": [
+            "slot",
+            "abstain",
+            "confidence",
+            "note",
+            "findings"
+          ],
+          "noteCharLen": 0,
+          "noteUtf8Bytes": 0,
+          "noteExceeds400": false
+        },
+        {
+          "slot": "slot-2",
+          "keys": [
+            "slot",
+            "abstain",
+            "confidence",
+            "findings"
+          ],
+          "noteCharLen": null,
+          "noteUtf8Bytes": null,
+          "noteExceeds400": null
+        }
+      ]
+    }
+  },
+  {
+    "judgeId": "judge-b",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+    "officialCode": "quote",
+    "classification": {
+      "classId": "model-quote-not-exact-slice",
+      "blame": "model-violated-explicit-exact-slice-constraint",
+      "vsContract": "refQuote must be exact slice of reference; hypQuote of the same-slot candidate",
+      "failingQuotes": [
+        {
+          "slot": "slot-2",
+          "idx": 1,
+          "kind": "format-only",
+          "kindOk": true,
+          "failQuote": true,
+          "inReference": true,
+          "inSameSlotHypothesis": false,
+          "hypQuoteInSlots": {
+            "slot-1": true,
+            "slot-2": false
+          },
+          "refQuote": "五倍",
+          "hypQuote": "5倍",
+          "refQuoteCharLen": 2,
+          "hypQuoteCharLen": 2,
+          "refIndex": 43,
+          "hypIndex": -1
+        }
+      ],
+      "finishReason": "stop",
+      "outputTokens": 669,
+      "maxTokensSent": 2048,
+      "provider": "Parasail",
+      "httpStatus": 200,
+      "providerUsd": 0.00058544,
+      "usageComplete": true
+    },
+    "evidenceNote": "slot-2#1 kind=format-only refQuote=\"五倍\" (len=2, inRef=true, refIndex=43) hypQuote=\"5倍\" (len=2, inSameSlot=false, hypIndex=-1, inSlots={\"slot-1\":true,\"slot-2\":false})",
+    "sidecar": {
+      "finishReason": "stop",
+      "outputTokens": 669,
+      "maxTokensSent": 2048,
+      "inputTokens": 760,
+      "provider": "Parasail",
+      "httpStatus": 200,
+      "providerUsd": 0.00058544,
+      "ok": true
+    },
+    "contentCharLen": 2456,
+    "contentUtf8Bytes": 2752,
+    "contentSha256": "ac3c58d2fc660401c03a449ae8449cdc27adbdfaea5d9d41a833995e87211943",
+    "jsonError": null,
+    "quoteNote": {
+      "missingNoteSlots": [],
+      "oversizeNoteSlots": [],
+      "failingQuotes": [
+        {
+          "slot": "slot-2",
+          "idx": 1,
+          "kind": "format-only",
+          "kindOk": true,
+          "failQuote": true,
+          "inReference": true,
+          "inSameSlotHypothesis": false,
+          "hypQuoteInSlots": {
+            "slot-1": true,
+            "slot-2": false
+          },
+          "refQuote": "五倍",
+          "hypQuote": "5倍",
+          "refQuoteCharLen": 2,
+          "hypQuoteCharLen": 2,
+          "refIndex": 43,
+          "hypIndex": -1
+        }
+      ],
+      "slotNotes": [
+        {
+          "slot": "slot-1",
+          "keys": [
+            "slot",
+            "abstain",
+            "confidence",
+            "note",
+            "findings"
+          ],
+          "noteCharLen": 0,
+          "noteUtf8Bytes": 0,
+          "noteExceeds400": false
+        },
+        {
+          "slot": "slot-2",
+          "keys": [
+            "slot",
+            "abstain",
+            "confidence",
+            "note",
+            "findings"
+          ],
+          "noteCharLen": 0,
+          "noteUtf8Bytes": 0,
+          "noteExceeds400": false
+        }
+      ]
+    }
+  },
+  {
+    "judgeId": "judge-b",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1681",
+    "officialCode": "bad-json",
+    "classification": {
+      "classId": "model-invalid-json-duplicate-slot-key",
+      "blame": "model-violated-explicit-json-object-constraint",
+      "vsContract": "invalid JSON: \"slot\": \"slot\": \"slot-2\"",
+      "finishReason": "stop",
+      "outputTokens": 430,
+      "maxTokensSent": 2048,
+      "provider": "Parasail",
+      "httpStatus": 200,
+      "providerUsd": 0.0003927,
+      "usageComplete": true
+    },
+    "evidenceNote": "duplicate slot key at 813: \"slot\": \"slot\": \"slot-2\"; JSON.parse position 827: Expected ',' or '}' after property value in JSON at position 827 (line 26 column 21); content 1700 chars / 1762 utf8 bytes; fence=false; illegalEscapes=0; finish=stop out=430/2048",
+    "sidecar": {
+      "finishReason": "stop",
+      "outputTokens": 430,
+      "maxTokensSent": 2048,
+      "inputTokens": 749,
+      "provider": "Parasail",
+      "httpStatus": 200,
+      "providerUsd": 0.0003927,
+      "ok": true
+    },
+    "contentCharLen": 1700,
+    "contentUtf8Bytes": 1762,
+    "contentSha256": "ad8def665dd084488b4ab9a96682f17e604bfb4fac810d681754a785f51315c4",
+    "jsonError": {
+      "message": "Expected ',' or '}' after property value in JSON at position 827 (line 26 column 21)",
+      "position": 827,
+      "window": "ty and structure.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"no",
+      "pattern": {
+        "extraCloserAfterSlot1": false,
+        "extraCloserIndex": null,
+        "unquotedReasonKey": false,
+        "unquotedReasonIndex": null,
+        "duplicateSlotKey": true,
+        "duplicateSlotKeyIndex": 813
+      },
+      "endDepths": {
+        "brace": 0,
+        "bracket": 0,
+        "inStr": false,
+        "esc": false
+      },
+      "hasFence": false,
+      "invalidEscapeCount": 0,
+      "losslessAttempts": {
+        "strip": false,
+        "firstToLastObject": false
+      }
+    },
+    "quoteNote": null
+  },
+  {
+    "judgeId": "judge-b",
+    "itemId": "fleurs-public-candidates/en_us/1670",
+    "officialCode": "note",
+    "classification": {
+      "classId": "model-missing-required-note-field",
+      "blame": "model-violated-explicit-slot-key-constraint",
+      "vsContract": "each slot keys are exactly slot, abstain, confidence, note, findings; note must be a string; official code \"note\" here is missing field, not length>400",
+      "missingNoteSlots": [
+        "slot-2"
+      ],
+      "oversizeNoteSlots": [],
+      "finishReason": "stop",
+      "outputTokens": 559,
+      "maxTokensSent": 2048,
+      "provider": "Parasail",
+      "httpStatus": 200,
+      "providerUsd": 0.00056606,
+      "usageComplete": true
+    },
+    "evidenceNote": "slot-2 keys=[slot,abstain,confidence,findings] note absent; slot-1 note.length=0 utf8=0 (>400=false)",
+    "sidecar": {
+      "finishReason": "stop",
+      "outputTokens": 559,
+      "maxTokensSent": 2048,
+      "inputTokens": 849,
+      "provider": "Parasail",
+      "httpStatus": 200,
+      "providerUsd": 0.00056606,
+      "ok": true
+    },
+    "contentCharLen": 2248,
+    "contentUtf8Bytes": 2248,
+    "contentSha256": "6e4c862fb51df02bf8995038575c7783c1bb4c2c6ac30cf1b7dc8fa23e6704c7",
+    "jsonError": null,
+    "quoteNote": {
+      "missingNoteSlots": [
+        "slot-2"
+      ],
+      "oversizeNoteSlots": [],
+      "failingQuotes": [],
+      "slotNotes": [
+        {
+          "slot": "slot-1",
+          "keys": [
+            "slot",
+            "abstain",
+            "confidence",
+            "note",
+            "findings"
+          ],
+          "noteCharLen": 0,
+          "noteUtf8Bytes": 0,
+          "noteExceeds400": false
+        },
+        {
+          "slot": "slot-2",
+          "keys": [
+            "slot",
+            "abstain",
+            "confidence",
+            "findings"
+          ],
+          "noteCharLen": null,
+          "noteUtf8Bytes": null,
+          "noteExceeds400": null
+        }
+      ]
+    }
+  },
+  {
+    "judgeId": "judge-b",
+    "itemId": "fleurs-public-candidates/en_us/1672",
+    "officialCode": "bad-json",
+    "classification": {
+      "classId": "model-invalid-json-extra-closer-after-slot-1",
+      "blame": "model-violated-explicit-json-object-constraint",
+      "vsContract": "invalid JSON: extra } between slot-1 object and slot-2 element",
+      "finishReason": "stop",
+      "outputTokens": 253,
+      "maxTokensSent": 2048,
+      "provider": "Parasail",
+      "httpStatus": 200,
+      "providerUsd": 0.00024998,
+      "usageComplete": true
+    },
+    "evidenceNote": "extra } after slot-1 at index 631; JSON.parse position 635: Expected ',' or ']' after array element in JSON at position 635 (line 1 column 636); content 1014 chars / 1014 utf8 bytes; fence=false; illegalEscapes=0; finish=stop out=253/2048",
+    "sidecar": {
+      "finishReason": "stop",
+      "outputTokens": 253,
+      "maxTokensSent": 2048,
+      "inputTokens": 741,
+      "provider": "Parasail",
+      "httpStatus": 200,
+      "providerUsd": 0.00024998,
+      "ok": true
+    },
+    "contentCharLen": 1014,
+    "contentUtf8Bytes": 1014,
+    "contentSha256": "ab4e4aa737d455c667f35d2d015d2e407eb9ca6cabac1991cf297b36c1dc4bc4",
+    "jsonError": {
+      "message": "Expected ',' or ']' after array element in JSON at position 635 (line 1 column 636)",
+      "position": 635,
+      "window": " replaces them with a comma, altering punctuation but not meaning.\"}]}},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.98,\"note\":\"\",\"findin",
+      "pattern": {
+        "extraCloserAfterSlot1": true,
+        "extraCloserIndex": 631,
+        "unquotedReasonKey": false,
+        "unquotedReasonIndex": null,
+        "duplicateSlotKey": false,
+        "duplicateSlotKeyIndex": null
+      },
+      "endDepths": {
+        "brace": -1,
+        "bracket": 0,
+        "inStr": false,
+        "esc": false
+      },
+      "hasFence": false,
+      "invalidEscapeCount": 0,
+      "losslessAttempts": {
+        "strip": false,
+        "firstToLastObject": false
+      }
+    },
+    "quoteNote": null
+  },
+  {
+    "judgeId": "judge-b",
+    "itemId": "fleurs-public-candidates/en_us/1673",
+    "officialCode": "bad-json",
+    "classification": {
+      "classId": "model-invalid-json-extra-closer-after-slot-1",
+      "blame": "model-violated-explicit-json-object-constraint",
+      "vsContract": "invalid JSON: extra } between slot-1 object and slot-2 element",
+      "finishReason": "stop",
+      "outputTokens": 361,
+      "maxTokensSent": 2048,
+      "provider": "Nebius",
+      "httpStatus": 200,
+      "providerUsd": 0.0003672,
+      "usageComplete": true
+    },
+    "evidenceNote": "extra } after slot-1 at index 701; JSON.parse position 705: Expected ',' or ']' after array element in JSON at position 705 (line 1 column 706); content 1509 chars / 1519 utf8 bytes; fence=false; illegalEscapes=0; finish=stop out=361/2048",
+    "sidecar": {
+      "finishReason": "stop",
+      "outputTokens": 361,
+      "maxTokensSent": 2048,
+      "inputTokens": 753,
+      "provider": "Nebius",
+      "httpStatus": 200,
+      "providerUsd": 0.0003672,
+      "ok": true
+    },
+    "contentCharLen": 1509,
+    "contentUtf8Bytes": 1519,
+    "contentSha256": "be6ab46eb770773168df11fabfed7b2603473d47dc427cfb95fdb38c5b470159",
+    "jsonError": {
+      "message": "Expected ',' or ']' after array element in JSON at position 705 (line 1 column 706)",
+      "position": 705,
+      "window": " a comma, altering the punctuation style but not the core meaning.\"}]}},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.85,\"note\":\"\",\"findin",
+      "pattern": {
+        "extraCloserAfterSlot1": true,
+        "extraCloserIndex": 701,
+        "unquotedReasonKey": false,
+        "unquotedReasonIndex": null,
+        "duplicateSlotKey": false,
+        "duplicateSlotKeyIndex": null
+      },
+      "endDepths": {
+        "brace": -1,
+        "bracket": 0,
+        "inStr": false,
+        "esc": false
+      },
+      "hasFence": false,
+      "invalidEscapeCount": 0,
+      "losslessAttempts": {
+        "strip": false,
+        "firstToLastObject": false
+      }
+    },
+    "quoteNote": null
+  },
+  {
+    "judgeId": "judge-b",
+    "itemId": "fleurs-public-candidates/en_us/1680",
+    "officialCode": "bad-json",
+    "classification": {
+      "classId": "model-invalid-json-extra-closer-after-slot-1",
+      "blame": "model-violated-explicit-json-object-constraint",
+      "vsContract": "invalid JSON: extra } between slot-1 object and slot-2 element",
+      "finishReason": "stop",
+      "outputTokens": 295,
+      "maxTokensSent": 2048,
+      "provider": "Venice",
+      "httpStatus": 200,
+      "providerUsd": 0.00033495,
+      "usageComplete": true
+    },
+    "evidenceNote": "extra } after slot-1 at index 697; JSON.parse position 701: Expected ',' or ']' after array element in JSON at position 701 (line 1 column 702); content 1184 chars / 1184 utf8 bytes; fence=false; illegalEscapes=0; finish=stop out=295/2048",
+    "sidecar": {
+      "finishReason": "stop",
+      "outputTokens": 295,
+      "maxTokensSent": 2048,
+      "inputTokens": 758,
+      "provider": "Venice",
+      "httpStatus": 200,
+      "providerUsd": 0.00033495,
+      "ok": true
+    },
+    "contentCharLen": 1184,
+    "contentUtf8Bytes": 1184,
+    "contentSha256": "d40abbb87125c011315a69af013da61e687647f673c1e8224baa5fc4711d7a3c",
+    "jsonError": {
+      "message": "Expected ',' or ']' after array element in JSON at position 701 (line 1 column 702)",
+      "position": 701,
+      "window": "e' is incorrect and changes the meaning from the reference 'leap'.\"}]}},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.95,\"note\":\"\",\"findin",
+      "pattern": {
+        "extraCloserAfterSlot1": true,
+        "extraCloserIndex": 697,
+        "unquotedReasonKey": false,
+        "unquotedReasonIndex": null,
+        "duplicateSlotKey": false,
+        "duplicateSlotKeyIndex": null
+      },
+      "endDepths": {
+        "brace": -1,
+        "bracket": 0,
+        "inStr": false,
+        "esc": false
+      },
+      "hasFence": false,
+      "invalidEscapeCount": 0,
+      "losslessAttempts": {
+        "strip": false,
+        "firstToLastObject": false
+      }
+    },
+    "quoteNote": null
+  }
+]

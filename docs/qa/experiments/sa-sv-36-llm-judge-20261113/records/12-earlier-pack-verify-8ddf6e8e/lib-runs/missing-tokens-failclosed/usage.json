@@ -1,0 +1,24 @@
+{
+  "calls": [
+    {
+      "judgeId": "judge-a",
+      "itemId": "fixture-1",
+      "ok": false,
+      "code": null,
+      "reserveUsd": 0.0056,
+      "settledUsd": null,
+      "providerUsd": 0.5,
+      "inputTokens": null,
+      "outputTokens": null,
+      "elapsedMs": 1,
+      "aborted": false,
+      "costUnknown": true,
+      "providerExceededDeclaredCap": false,
+      "maxTokensFieldProviderVerified": false
+    }
+  ],
+  "spentUsd": 0.0056,
+  "settledUsd": null,
+  "costUnknown": true,
+  "providerUsdIgnored": true
+}

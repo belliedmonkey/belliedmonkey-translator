@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 6040,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"fleurs-public-candidates/cmn_hans_cn/1671\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.7,\"note\":\"Candidate has minor format and entity errors but mostly matches the reference content.\",\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"2005 财年\",\"hypQuote\":\"2005年才年\",\"reason\":\"Candidate has an extra character '才' and repeats '年', which is a format error.\"},{\"kind\":\"omission\",\"refQuote\":\"(FBI)\",\"hypQuote\":\"\",reason\":\"Candidate omits the parenthetical FBI abbreviation.\"},{\"kind\":\"entity\",\"refQuote\":\"探员\",\"hypQuote\":\"太员\",\"reason\":\"Candidate miswrites '探员' as '太员', changing the meaning.\"}]},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.6,\"note\":\"Candidate has multiple errors including omission, entity, and semantic changes affecting meaning.\",\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"2005 财年\",\"hypQuote\":\"2005年财年\",\"reason\":\"Candidate omits space between '2005' and '财年', a minor format difference.\"},{\"kind\":\"addition\",\"refQuote\":\"该扫黄倡议\",\"hypQuote\":\"该小扫黄倡议\",\"reason\":\"Candidate adds the character '小' which is not in the reference.\"},{\"kind\":\"omission\",\"refQuote\":\"(FBI)\",\"hypQuote\":\"\",reason\":\"Candidate omits the FBI abbreviation.\"},{\"kind\":\"entity\",\"refQuote\":\"探员\",\"hypQuote\":\"太员\",\"reason\":\"Candidate miswrites '探员' as '太员'.\"},{\"kind\":\"number\",\"refQuote\":\"10 名\",\"hypQuote\":\"1名\",\"reason\":\"Candidate changes the number of agents from 10 to 1, altering the meaning.\"},{\"kind\":\"semantic\",\"refQuote\":\"打击成人色情\",\"hypQuote\":\"打击成员色情\",\"reason\":\"Candidate changes '成人色情' (adult pornography) to '成员色情' (member pornography), which changes the meaning.\"}]}]}",
+  "providerUsd": 0.001032,
+  "usage": {
+    "inputTokens": 776,
+    "outputTokens": 451,
+    "providerUsd": 0.001032,
+    "complete": true
+  },
+  "settledUsd": 0.0011352
+}

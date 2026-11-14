@@ -1,0 +1,48 @@
+{
+  "diagnosticOnly": true,
+  "notForBackfill": true,
+  "mustNotChangeOfficialPartial": true,
+  "judgeId": "judge-b",
+  "itemId": "fleurs-public-candidates/en_us/1680",
+  "officialCode": "bad-json",
+  "classification": "model-invalid-json-extra-closer-after-slot-1",
+  "sidecar": {
+    "finishReason": "stop",
+    "outputTokens": 295,
+    "maxTokensSent": 2048,
+    "inputTokens": 758,
+    "provider": "Venice",
+    "httpStatus": 200,
+    "providerUsd": 0.00033495,
+    "ok": true
+  },
+  "contentCharLen": 1184,
+  "contentUtf8Bytes": 1184,
+  "contentSha256": "d40abbb87125c011315a69af013da61e687647f673c1e8224baa5fc4711d7a3c",
+  "jsonError": {
+    "message": "Expected ',' or ']' after array element in JSON at position 701 (line 1 column 702)",
+    "position": 701,
+    "window": "e' is incorrect and changes the meaning from the reference 'leap'.\"}]}},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.95,\"note\":\"\",\"findin",
+    "windowStart": 631,
+    "pattern": {
+      "extraCloserAfterSlot1": true,
+      "extraCloserIndex": 697,
+      "unquotedReasonKey": false,
+      "unquotedReasonIndex": null,
+      "duplicateSlotKey": false,
+      "duplicateSlotKeyIndex": null
+    },
+    "endDepths": {
+      "brace": -1,
+      "bracket": 0,
+      "inStr": false,
+      "esc": false
+    },
+    "hasFence": false,
+    "invalidEscapeCount": 0,
+    "losslessAttempts": {
+      "strip": false,
+      "firstToLastObject": false
+    }
+  }
+}

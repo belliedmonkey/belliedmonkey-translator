@@ -1,0 +1,70 @@
+{
+  "ok": true,
+  "productMetric": false,
+  "endToEnd": false,
+  "leaderboard": false,
+  "exploratory": true,
+  "ranking": false,
+  "approvedPlannedSetCount": 0,
+  "denominator": 36,
+  "excluded": [
+    "fleurs-frozen-16",
+    "cmn_hans_cn/1663"
+  ],
+  "rates": {
+    "en": {
+      "metric": "wer",
+      "n": 15,
+      "errors": 36,
+      "length": 363,
+      "rate": 0.09917355371900827
+    },
+    "zh": {
+      "metric": "cer",
+      "n": 15,
+      "errors": 57,
+      "length": 624,
+      "rate": 0.09134615384615384
+    },
+    "codeswitch": {
+      "metric": "mer",
+      "n": 6,
+      "errors": 24,
+      "length": 42,
+      "rate": 0.5714285714285714,
+      "ranking": false
+    }
+  },
+  "hypotheses": null,
+  "recognizeMs": null,
+  "recognizeStarted": true,
+  "appleResult": true,
+  "senseVoiceResult": false,
+  "code": "ok",
+  "processExit": 0,
+  "synthetic": false,
+  "fixtureRates": null,
+  "phases": {
+    "preflightMs": 28.833375,
+    "stageMs": 44.83825,
+    "compileMs": 1987.356917,
+    "assetInstallMs": 972.0135,
+    "modelLoadMs": null,
+    "recognizeMs": 9262.119209,
+    "scoreMs": 6.134292,
+    "packMs": 8.057333
+  },
+  "perf": {
+    "median": 9262.119209,
+    "min": 9262.119209,
+    "max": 9262.119209,
+    "failures": 0,
+    "ranking": false
+  },
+  "repeats": 1,
+  "saLocaleApplied": {
+    "ascend": "zh-CN",
+    "swiftConfig": "cmn_hans_cn",
+    "searched": false
+  }
+}

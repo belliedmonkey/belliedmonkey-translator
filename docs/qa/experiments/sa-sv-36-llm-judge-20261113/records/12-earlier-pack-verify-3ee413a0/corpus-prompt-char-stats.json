@@ -1,0 +1,191 @@
+{
+  "itemCount": 36,
+  "rubricChars": 1593,
+  "maxChars": 2697,
+  "minChars": 1736,
+  "maxCharsDiv4": 675,
+  "conservativeUpperBoundTokensIfOnePerChar": 2697,
+  "items": [
+    {
+      "id": "fleurs-public-candidates/en_us/1668",
+      "chars": 2236,
+      "charsDiv4": 559
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1668",
+      "chars": 1883,
+      "charsDiv4": 471
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1669",
+      "chars": 2041,
+      "charsDiv4": 511
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1669",
+      "chars": 1832,
+      "charsDiv4": 458
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1670",
+      "chars": 2697,
+      "charsDiv4": 675
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1670",
+      "chars": 2048,
+      "charsDiv4": 512
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1671",
+      "chars": 2143,
+      "charsDiv4": 536
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "chars": 1899,
+      "charsDiv4": 475
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1672",
+      "chars": 2070,
+      "charsDiv4": 518
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1672",
+      "chars": 1861,
+      "charsDiv4": 466
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1673",
+      "chars": 2237,
+      "charsDiv4": 560
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1673",
+      "chars": 1877,
+      "charsDiv4": 470
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1674",
+      "chars": 2012,
+      "charsDiv4": 503
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1674",
+      "chars": 1844,
+      "charsDiv4": 461
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1675",
+      "chars": 2081,
+      "charsDiv4": 521
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1675",
+      "chars": 1864,
+      "charsDiv4": 466
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1676",
+      "chars": 2041,
+      "charsDiv4": 511
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1676",
+      "chars": 1835,
+      "charsDiv4": 459
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1677",
+      "chars": 2007,
+      "charsDiv4": 502
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1677",
+      "chars": 1818,
+      "charsDiv4": 455
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1678",
+      "chars": 2302,
+      "charsDiv4": 576
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1678",
+      "chars": 1942,
+      "charsDiv4": 486
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1679",
+      "chars": 1932,
+      "charsDiv4": 483
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1679",
+      "chars": 1822,
+      "charsDiv4": 456
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1680",
+      "chars": 2170,
+      "charsDiv4": 543
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "chars": 1885,
+      "charsDiv4": 472
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1681",
+      "chars": 2364,
+      "charsDiv4": 591
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1681",
+      "chars": 1918,
+      "charsDiv4": 480
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1682",
+      "chars": 2270,
+      "charsDiv4": 568
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1682",
+      "chars": 1942,
+      "charsDiv4": 486
+    },
+    {
+      "id": "ascend/00004",
+      "chars": 1741,
+      "charsDiv4": 436
+    },
+    {
+      "id": "ascend/00009",
+      "chars": 1849,
+      "charsDiv4": 463
+    },
+    {
+      "id": "ascend/00028",
+      "chars": 1736,
+      "charsDiv4": 434
+    },
+    {
+      "id": "ascend/00055",
+      "chars": 1770,
+      "charsDiv4": 443
+    },
+    {
+      "id": "ascend/00066",
+      "chars": 1763,
+      "charsDiv4": 441
+    },
+    {
+      "id": "ascend/00068",
+      "chars": 1764,
+      "charsDiv4": 441
+    }
+  ],
+  "note": "ceil(chars/4) is recorded for comparison only; it is not a safe input upper bound."
+}

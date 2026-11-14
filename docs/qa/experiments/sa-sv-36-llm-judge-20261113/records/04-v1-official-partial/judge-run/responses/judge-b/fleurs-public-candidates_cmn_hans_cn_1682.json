@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 5757,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/cmn_hans_cn/1682\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"Candidate differs from reference in number format and punctuation placement.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"29¾ 英寸乘以 24½ 英寸\",\n          \"hypQuote\": \"29又4分之3英寸乘以24又2分之1英寸\",\n          \"reason\": \"The reference uses vulgar fractions (¾, ½), while the candidate spells out the same fractions in words ('又4分之3', '又2分之1'); the numeric value is identical.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate contains a typographical error in number expression and extra space.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"29¾ 英寸乘以 24½ 英寸\",\n          \"hypQuote\": \"29又四分之三英寸乘以 24有二分之一英寸\",\n          \"reason\": \"The reference uses vulgar fractions; the candidate spells out the fractions in words. '四分之三' matches '¾', but '有二分之一' appears to be a typo for '又二分之一', which would mean '½'. The intended value is likely the same.\"\n        },\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"作者是谁，但这个\",\n          \"hypQuote\": \"作者是谁 ，但这个\",\n          \"reason\": \"The candidate contains an extra space after '是谁' before the comma, which is not present in the reference.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.000327,
+  "usage": {
+    "inputTokens": 564,
+    "outputTokens": 449,
+    "providerUsd": 0.000327,
+    "complete": true
+  },
+  "settledUsd": 0.000472
+}

@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 18189,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v2\",\n  \"itemId\": \"ascend/00066\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"technical\",\n          \"hypQuote\": \"technicle\",\n          \"reason\": \"The word 'technicle' is a misspelling of 'technical', but phonetically similar and likely a transcription error.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.85,\n      \"note\": \"\",\n      \"findings\": [\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"\",\n          \"hypQuote\": \"的。\",\n          \"reason\": \"The candidate adds '的。' at the end, which does not appear in the reference.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"technical\",\n          \"hypQuote\": \"technical\",\n          \"reason\": \"The word 'technical' is correctly transcribed but followed by additional characters.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.00026764,
+  "usage": {
+    "inputTokens": 674,
+    "outputTokens": 285,
+    "providerUsd": 0.00026764,
+    "complete": true
+  },
+  "settledUsd": 0.0003628
+}

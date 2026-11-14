@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 13465,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/cmn_hans_cn/1669\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"The candidate omits spaces between the name components in the reference.\",\n      \"findings\": [\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"钱德拉·谢卡尔·索兰基\",\n          \"hypQuote\": \"钱德拉谢卡尔索兰基\",\n          \"reason\": \"The reference includes middle name separators (·) in the name, which are missing in the candidate.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.98,\n      \"note\": \"The candidate matches the reference exactly except for the spacing in the name, which is a format-only difference.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"钱德拉·谢卡尔·索兰基\",\n          \"hypQuote\": \"钱德拉谢卡尔索兰基\",\n          \"reason\": \"The candidate writes the name without separators, but the name components are the same; this is a surface formatting difference.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.00027982,
+  "usage": {
+    "inputTokens": 481,
+    "outputTokens": 307,
+    "providerUsd": 0.00027982,
+    "complete": true
+  },
+  "settledUsd": 0.0003418
+}

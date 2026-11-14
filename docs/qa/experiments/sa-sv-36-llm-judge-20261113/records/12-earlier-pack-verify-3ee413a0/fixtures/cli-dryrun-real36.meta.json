@@ -1,0 +1,13 @@
+{
+  "status": 0,
+  "stderr": "",
+  "code": "dry-run",
+  "called": false,
+  "synthetic": false,
+  "results": null,
+  "itemCount": 36,
+  "omittedIds": [],
+  "notAssessedCount": 36,
+  "invokedRunFlag": false,
+  "realLlmCalled": false
+}

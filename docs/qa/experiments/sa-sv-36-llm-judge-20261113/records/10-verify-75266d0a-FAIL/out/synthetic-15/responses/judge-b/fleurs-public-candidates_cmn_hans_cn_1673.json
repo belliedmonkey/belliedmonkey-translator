@@ -1,0 +1,23 @@
+{
+  "stage": "finished",
+  "transportOk": true,
+  "generationOk": true,
+  "finishReason": "stop",
+  "providerError": false,
+  "usageComplete": true,
+  "parseCode": "bad-json",
+  "modelFormatFault": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 0,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"fleurs-public-candidates/cmn_hans_cn/1673\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.8,\"note\":\"\",\"findings\":[{\"kind\":\"number\",\"refQuote\":\"十三个州\",\"hypQuote\":\"1三个州\",\"reason\":\"'十三个州' 表示13个州，而 '1三个州' 是错误的数字表达，既非标准汉字数字也非正确阿拉伯数字，造成数量理解错误。\"},{\"kind\":\"omission\",\"refQuote\":\"（国会是其唯一的组成部分）\",\"hyp",
+  "providerUsd": 0.001,
+  "usage": {
+    "inputTokens": 700,
+    "outputTokens": 120,
+    "providerUsd": 0.001,
+    "complete": true
+  },
+  "settledUsd": 0.000236
+}

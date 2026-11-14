@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 6061,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1674\",\n  \"slots\": {\n    \"slot-1\": {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.8,\n      \"note\": \"Candidate 1 introduces a conjunction 'and' and changes 'in others' to 'and other', which alters the meaning and introduces a grammatical issue.\",\n      \"findings\": [\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"in others several minutes are needed\",\n          \"hypQuote\": \"and other several minutes are needed\",\n          \"reason\": \"The phrase 'in others' is changed to 'and other', which changes the meaning and is grammatically incorrect.\"\n        },\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"In some areas boiling water for a minute is enough, in others several minutes are needed.\",\n          \"hypQuote\": \"In some areas, boiling water for a minute is enough, and other several minutes are needed.\",\n          \"reason\": \"The addition of 'and' before 'other several minutes are needed' is not present in the reference.\"\n        }\n      ]\n    },\n    \"slot-2\": {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.8,\n      \"note\": \"Candidate 2 omits the comma after 'areas' and changes 'in others' to 'and other', which alters the meaning and introduces a grammatical issue.\",\n      \"findings\": [\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"in others several minutes are needed\",\n          \"hypQuote\": \"and other several minutes are needed\",\n          \"reason\": \"The phrase 'in others' is changed to 'and other', which changes the meaning and is grammatically incorrect.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"In some areas boiling water for a minute is enough, in others several minutes are needed.\",\n          \"hypQuote\": \"In some areas, boiling water for a minute is enough and other several minutes are needed.\",\n          \"reason\": \"The comma after 'areas' is added, but the comma after 'enough' is missing, changing the sentence flow.\"\n        }\n      ]\n    }\n  }\n}",
+  "providerUsd": 0.001002,
+  "usage": {
+    "inputTokens": 469,
+    "outputTokens": 509,
+    "providerUsd": 0.001002,
+    "complete": true
+  },
+  "settledUsd": 0.0011022
+}

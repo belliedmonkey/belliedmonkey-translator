@@ -1,0 +1,20 @@
+{
+  "nCalls": 0,
+  "code": "budget-blocked",
+  "called": false,
+  "reserve": 0.0056,
+  "budgetUsd": 0.0001,
+  "planExists": true,
+  "planReserveUsd": [
+    {
+      "model": "MODEL_X",
+      "usd": 0.0056,
+      "pricedZero": false
+    },
+    {
+      "model": "MODEL_Y",
+      "usd": 0.0056,
+      "pricedZero": false
+    }
+  ]
+}

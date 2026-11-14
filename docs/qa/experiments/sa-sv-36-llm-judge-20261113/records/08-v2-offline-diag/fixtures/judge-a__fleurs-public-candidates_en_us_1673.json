@@ -1,0 +1,48 @@
+{
+  "diagnosticOnly": true,
+  "notForBackfill": true,
+  "mustNotChangeOfficialPartial": true,
+  "judgeId": "judge-a",
+  "itemId": "fleurs-public-candidates/en_us/1673",
+  "officialCode": "bad-json",
+  "classification": "model-invalid-json-extra-closer-after-slot-1",
+  "sidecar": {
+    "finishReason": "stop",
+    "outputTokens": 328,
+    "maxTokensSent": 2048,
+    "inputTokens": 743,
+    "provider": "OpenAI",
+    "httpStatus": 200,
+    "providerUsd": 0.000822,
+    "ok": true
+  },
+  "contentCharLen": 1399,
+  "contentUtf8Bytes": 1407,
+  "contentSha256": "c0f13153665c81a43b00bb1ca501bbede96e6d994c2837dc1d2d9a8dd3ded75d",
+  "jsonError": {
+    "message": "Expected ',' or ']' after array element in JSON at position 746 (line 1 column 747)",
+    "position": 746,
+    "window": "Em dash replaced by a comma, a format-only punctuation difference.\"}]}},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.95,\"note\":\"Candidate",
+    "windowStart": 676,
+    "pattern": {
+      "extraCloserAfterSlot1": true,
+      "extraCloserIndex": 742,
+      "unquotedReasonKey": false,
+      "unquotedReasonIndex": null,
+      "duplicateSlotKey": false,
+      "duplicateSlotKeyIndex": null
+    },
+    "endDepths": {
+      "brace": -1,
+      "bracket": 0,
+      "inStr": false,
+      "esc": false
+    },
+    "hasFence": false,
+    "invalidEscapeCount": 0,
+    "losslessAttempts": {
+      "strip": false,
+      "firstToLastObject": false
+    }
+  }
+}

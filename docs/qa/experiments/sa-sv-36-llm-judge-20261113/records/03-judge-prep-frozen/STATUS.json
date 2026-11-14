@@ -1,0 +1,21 @@
+{
+  "builtAt": "2026-11-13 17:23:02 +0800 (CST)",
+  "timezone": "Asia/Shanghai (UTC+8)",
+  "blockedOnSecondArm": false,
+  "paired": true,
+  "itemCount": 36,
+  "alignment": "15/15/6",
+  "realLlmCalled": false,
+  "cliRunFlagUsed": false,
+  "providerSelected": false,
+  "judgePackageValidForDryRun": true,
+  "officialRunBlockedOn": [
+    "no provider or explicit model ids selected (operator decision, not this stream)",
+    "budget usd=0 cap bypass and timeout evidence/stop defects should be fixed in the package before a paid --run"
+  ],
+  "pairManifest": "pair-manifest.json",
+  "judgeInput": "input-asr-36.json",
+  "armMapping": "arm-mapping.json",
+  "dryRunReal36": "dryrun-real36/summary.json",
+  "audit": "audit/AUDIT.md"
+}

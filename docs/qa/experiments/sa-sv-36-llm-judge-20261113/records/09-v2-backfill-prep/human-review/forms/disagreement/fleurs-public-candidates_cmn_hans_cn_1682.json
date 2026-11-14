@@ -1,0 +1,129 @@
+{
+  "schema": "belliedmonkey.qa.v2-semantic-human-review-form.v1",
+  "list": "disagreement",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1682",
+  "initialInventoryOnly": true,
+  "mustRefreshAfterBackfill": true,
+  "semanticHumanReviewed": false,
+  "earReviewUsedAsSemanticReview": false,
+  "doNotPreFillJudgment": true,
+  "officialAgentReviewIsNotHumanReview": true,
+  "reference": "虽然没有人能确定作者是谁，但这个大型羊皮纸文档（尺寸为 29¾ 英寸乘以 24½ 英寸）据称在刚写成的时候是卷起来存放的。",
+  "slots": {
+    "slot-1": {
+      "text": "虽然没有人能确定作者是谁，但这个大型羊皮纸文档尺寸为29又4分之3英寸乘以24又2分之1英寸。据称在刚写成的时候是卷起来存放的。"
+    },
+    "slot-2": {
+      "text": "虽然没有人能确定作者是谁 ，但这个大型羊皮纸文档尺寸为 29又四分之三英寸乘以 24有二分之一英寸。据称在刚写成的时候是卷起来存放的。"
+    }
+  },
+  "officialKindLists": {
+    "judge-a": {
+      "slot-1": [
+        "format-only"
+      ],
+      "slot-2": [
+        "format-only"
+      ]
+    },
+    "judge-b": {
+      "slot-1": [
+        "format-only"
+      ],
+      "slot-2": [
+        "format-only",
+        "omission"
+      ]
+    }
+  },
+  "officialVerdicts": {
+    "judge-a": {
+      "model": "openai/gpt-4.1-mini",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "Candidate uses a different phrasing for the dimensions but conveys the same numeric values in a more verbose way; no semantic difference detected.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "29¾ 英寸乘以 24½ 英寸",
+            "hypQuote": "29又4分之3英寸乘以24又2分之1英寸",
+            "reason": "The candidate spells out the fractions differently but the numeric values correspond to the reference."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.7,
+        "note": "Candidate uses a different phrasing for the dimensions with slight variation in wording but same numeric values; no semantic difference detected.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "29¾ 英寸乘以 24½ 英寸",
+            "hypQuote": "29又四分之三英寸乘以 24有二分之一英寸",
+            "reason": "The candidate spells out the fractions differently but the numeric values correspond to the reference."
+          }
+        ]
+      }
+    },
+    "judge-b": {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "29¾ 英寸乘以 24½ 英寸",
+            "hypQuote": "29又4分之3英寸乘以24又2分之1英寸",
+            "reason": "数字表达方式不同，但数值相同，使用汉字分数与阿拉伯数字加分数符号的转换"
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "29¾ 英寸乘以 24½ 英寸",
+            "hypQuote": "29又四分之三英寸乘以 24有二分之一英寸",
+            "reason": "数字表达方式不同，但数值相同，使用汉字分数；其中‘有’应为‘又’，属常见同音替代，语义未变"
+          },
+          {
+            "kind": "omission",
+            "refQuote": "（尺寸为 29¾ 英寸乘以 24½ 英寸）",
+            "hypQuote": "尺寸为 29又四分之三英寸乘以 24有二分之一英寸",
+            "reason": "参考文本中尺寸信息被括号包围，候选文本中括号缺失，导致格式和可能的强调信息丢失"
+          }
+        ]
+      }
+    }
+  },
+  "humanAnnotation": {
+    "reviewerId": "",
+    "reviewedAtAsiaShanghai": "",
+    "slots": {
+      "slot-1": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      },
+      "slot-2": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      }
+    },
+    "overallComment": "",
+    "marksCompleteOnlyAfterUserReview": true
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "nCalls": 2,
+  "code": "item-cap",
+  "ok": false,
+  "doubleBlindComplete": false,
+  "resultIds": [
+    {
+      "id": "fixture-1",
+      "complete": true
+    },
+    {
+      "id": "fixture-2",
+      "complete": false
+    }
+  ],
+  "humanReviewRows": [
+    {
+      "id": "fixture-1",
+      "reason": "sample",
+      "semanticHumanReviewed": false
+    }
+  ]
+}

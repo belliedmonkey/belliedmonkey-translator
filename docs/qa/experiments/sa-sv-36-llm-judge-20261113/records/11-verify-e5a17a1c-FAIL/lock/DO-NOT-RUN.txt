@@ -1,0 +1,1 @@
+Honest lock built from official parsed 57/15, but the pack does not yet enforce that correspondence. Do not --run until a later pack verifies lists against origin results.

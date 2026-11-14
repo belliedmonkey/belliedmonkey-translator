@@ -1,0 +1,48 @@
+{
+  "schema": "belliedmonkey.llm-judge.config.v1",
+  "seed": 20261113,
+  "temperature": 0,
+  "sampleCount": 6,
+  "maxItems": 36,
+  "timeoutMs": 120000,
+  "maxRetries": 0,
+  "budgetUsd": 0.22429628,
+  "judges": [
+    {
+      "id": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "endpointEnv": "JUDGE_OPENROUTER_URL",
+      "keyEnv": "JUDGE_OPENROUTER_KEY"
+    },
+    {
+      "id": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "endpointEnv": "JUDGE_OPENROUTER_URL",
+      "keyEnv": "JUDGE_OPENROUTER_KEY"
+    }
+  ],
+  "prices": {
+    "schema": "belliedmonkey.llm-judge.prices.v1",
+    "source": "https://openrouter.ai/api/v1/models and https://openrouter.ai/api/v1/models/{id}/endpoints",
+    "sourceVersion": "2026-11-13T22:42:19+08:00;catalog_sha256=fab1f1c39a93322b8180e41770c12403986460d9e052874c37cd95b971e0ff1c;gpt-4.1-mini_record_sha256=ef472b851fa2d50167e6d0f9add0f7f9404f4e55d8e7cca75e70b66e86718c93;qwen3-235b-a22b-2507_record_sha256=fa13fb0cd1b89157a5fd9b7d2432e184a97526ed3fc494b7e06e9823e9cd2723;endpoints_gpt_sha256=c55d140b0532c149e47af5263e1aa44e2c708a1866e1b0dc01fef7397ae532d8;endpoints_qwen_sha256=a1437fd63b5fb0182977abad83b74312eea19c9654cf616e3260263fb8599234;rate_basis=conservative_max_listed_provider_envelope",
+    "maxInputTokens": 1152,
+    "maxOutputTokens": 2048,
+    "maxTotalTokens": 230400,
+    "maxRequests": 72,
+    "models": {
+      "openai/gpt-4.1-mini": {
+        "inputUsdPerToken": 4.4e-07,
+        "outputUsdPerToken": 1.76e-06,
+        "pricedZero": false
+      },
+      "qwen/qwen3-235b-a22b-2507": {
+        "inputUsdPerToken": 2e-07,
+        "outputUsdPerToken": 8e-07,
+        "pricedZero": false
+      }
+    }
+  },
+  "inputBound": {
+    "kind": "counter"
+  }
+}

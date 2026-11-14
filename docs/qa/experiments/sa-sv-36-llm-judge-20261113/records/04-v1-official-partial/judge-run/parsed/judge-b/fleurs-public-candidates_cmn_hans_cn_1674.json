@@ -1,0 +1,49 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1674",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": true,
+        "confidence": 0,
+        "note": "Candidate matches the reference exactly.",
+        "findings": []
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "Candidate differs from reference in spacing and number format.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "一分钟",
+            "hypQuote": "1分钟",
+            "reason": "The reference uses the written form '一分钟' while the candidate uses the numeric digit '1分钟'. This is a surface-level format difference with no semantic change."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "，",
+            "hypQuote": "",
+            "reason": "The candidate omits the full-width comma after '某些地区' that is present in the reference."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": " ",
+            "reason": "The candidate adds a space before '1分钟' which does not appear in the reference."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": " ",
+            "reason": "The candidate adds a space after '足够了' which does not appear in the reference."
+          }
+        ]
+      }
+    ]
+  }
+}

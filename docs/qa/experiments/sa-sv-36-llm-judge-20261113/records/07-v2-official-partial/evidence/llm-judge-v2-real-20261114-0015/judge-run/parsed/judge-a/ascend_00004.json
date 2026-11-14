@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "ascend/00004",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Candidate 1 replaces the English phrase with a Chinese phrase and omits the filler '呃' and the English words 'what's the'.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "呃what's the呃",
+            "hypQuote": "我so",
+            "reason": "Candidate 1 omits the entire English phrase and the filler '呃' from the reference."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Candidate 2 includes the filler '呃' but adds '我死的' which is not present in the reference, and omits the English phrase 'what's the'.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "what's the",
+            "hypQuote": "呃我死的。",
+            "reason": "Candidate 2 omits the English phrase 'what's the' from the reference."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "呃what's the呃",
+            "hypQuote": "呃我死的。",
+            "reason": "Candidate 2 adds '我死的' which is not present in the reference."
+          }
+        ]
+      }
+    ]
+  }
+}

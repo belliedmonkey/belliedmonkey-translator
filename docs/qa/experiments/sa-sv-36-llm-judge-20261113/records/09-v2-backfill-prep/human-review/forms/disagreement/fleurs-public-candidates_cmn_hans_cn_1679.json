@@ -1,0 +1,90 @@
+{
+  "schema": "belliedmonkey.qa.v2-semantic-human-review-form.v1",
+  "list": "disagreement",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+  "initialInventoryOnly": true,
+  "mustRefreshAfterBackfill": true,
+  "semanticHumanReviewed": false,
+  "earReviewUsedAsSemanticReview": false,
+  "doNotPreFillJudgment": true,
+  "officialAgentReviewIsNotHumanReview": true,
+  "reference": "空中铁匠乐队已经取消了他们巡回演唱会的剩余场次。",
+  "slots": {
+    "slot-1": {
+      "text": "空中铁匠乐队已经取消了他们巡回演唱会的剩余场次。"
+    },
+    "slot-2": {
+      "text": "空中铁匠乐队已经取消了他们巡回演唱会的剩余场次。"
+    }
+  },
+  "officialKindLists": {
+    "judge-a": {
+      "slot-1": [],
+      "slot-2": []
+    },
+    "judge-b": {
+      "slot-1": [
+        "abstain"
+      ],
+      "slot-2": [
+        "abstain"
+      ]
+    }
+  },
+  "officialVerdicts": {
+    "judge-a": {
+      "model": "openai/gpt-4.1-mini",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 1,
+        "note": "Candidate exactly matches the reference.",
+        "findings": []
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 1,
+        "note": "Candidate exactly matches the reference.",
+        "findings": []
+      }
+    },
+    "judge-b": {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": true,
+        "confidence": 0,
+        "note": "Both candidates are identical to the reference and each other.",
+        "findings": []
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": true,
+        "confidence": 0,
+        "note": "Both candidates are identical to the reference and each other.",
+        "findings": []
+      }
+    }
+  },
+  "humanAnnotation": {
+    "reviewerId": "",
+    "reviewedAtAsiaShanghai": "",
+    "slots": {
+      "slot-1": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      },
+      "slot-2": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      }
+    },
+    "overallComment": "",
+    "marksCompleteOnlyAfterUserReview": true
+  }
+}

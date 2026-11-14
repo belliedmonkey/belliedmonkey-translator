@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 11719,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1681\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"The candidate omits punctuation present in the reference, which affects readability but not meaning. No semantic, entity, number, or negation errors are present.\",\n      \"findings\": [\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \", asking questions, and making observations also guide scientific research.\",\n          \"hypQuote\": \" asking questions and making observations also guide scientific research.\",\n          \"reason\": \"The candidate omits the comma after 'hypotheses' and the comma after 'questions', which are present in the reference.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"The candidate splits the sentence after 'experimentation', altering the flow. It also omits a comma after 'hypotheses'.\",\n      \"findings\": [\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"experimentation, and an experiment\",\n          \"hypQuote\": \"experimentation. And an experiment\",\n          \"reason\": \"The candidate replaces the comma and lowercase 'and' with a period and capitalized 'And', introducing a sentence break not in the reference.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \", asking questions, and making observations also guide scientific research.\",\n          \"hypQuote\": \" asking questions, and making observations also guide scientific research.\",\n          \"reason\": \"The candidate omits the comma after 'hypotheses'.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.0003458,
+  "usage": {
+    "inputTokens": 529,
+    "outputTokens": 400,
+    "providerUsd": 0.0003458,
+    "complete": true
+  },
+  "settledUsd": 0.0004258
+}

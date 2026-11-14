@@ -1,0 +1,380 @@
+{
+  "note": "NOT a two-judge result and NOT a model-declared winner (rubric forbids winners). judge-a produced 0 valid parses, so there is no official win/tie/disagreement between judges. The qwenPrefer field is a one-judge derived count of non-format-only findings after slot-to-arm mapping, provided only as descriptive residue of the 32 parsed Qwen verdicts.",
+  "twoJudge": {
+    "bothOk": 0,
+    "saPreferredByBoth": 0,
+    "svPreferredByBoth": 0,
+    "tieBoth": 0,
+    "split": 0,
+    "notComparableOrPartial": 36
+  },
+  "qwenOnlyDerived": {
+    "not-comparable": 3,
+    "sv": 12,
+    "sa": 7,
+    "tie": 10,
+    "unparsed": 4
+  },
+  "items": [
+    {
+      "id": "fleurs-public-candidates/en_us/1668",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "not-comparable",
+      "contentFindings": {
+        "sa": null,
+        "sv": null
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1668",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "sv",
+      "contentFindings": {
+        "sa": 2,
+        "sv": 1
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1669",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "sv",
+      "contentFindings": {
+        "sa": 2,
+        "sv": 1
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1669",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "sv",
+      "contentFindings": {
+        "sa": 1,
+        "sv": 0
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1670",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "sa",
+      "contentFindings": {
+        "sa": 3,
+        "sv": 5
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1670",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "sa",
+      "contentFindings": {
+        "sa": 5,
+        "sv": 6
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1671",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "tie",
+      "contentFindings": {
+        "sa": 0,
+        "sv": 0
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "sa",
+      "contentFindings": {
+        "sa": 0,
+        "sv": 4
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1672",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "sv",
+      "contentFindings": {
+        "sa": 1,
+        "sv": 0
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1672",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "tie",
+      "contentFindings": {
+        "sa": 0,
+        "sv": 0
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1673",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "tie",
+      "contentFindings": {
+        "sa": 0,
+        "sv": 0
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1673",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "tie",
+      "contentFindings": {
+        "sa": 2,
+        "sv": 2
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1674",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "sa",
+      "contentFindings": {
+        "sa": 1,
+        "sv": 2
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1674",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "not-comparable",
+      "contentFindings": {
+        "sa": 3,
+        "sv": null
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1675",
+      "judgeA": "null",
+      "judgeB": "null",
+      "qwenPrefer": "unparsed",
+      "contentFindings": {
+        "sa": null,
+        "sv": null
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1675",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "sv",
+      "contentFindings": {
+        "sa": 2,
+        "sv": 1
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1676",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "tie",
+      "contentFindings": {
+        "sa": 0,
+        "sv": 0
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1676",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "sv",
+      "contentFindings": {
+        "sa": 1,
+        "sv": 0
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1677",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "tie",
+      "contentFindings": {
+        "sa": 0,
+        "sv": 0
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1677",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "sv",
+      "contentFindings": {
+        "sa": 2,
+        "sv": 1
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1678",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "tie",
+      "contentFindings": {
+        "sa": 1,
+        "sv": 1
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1678",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "tie",
+      "contentFindings": {
+        "sa": 1,
+        "sv": 1
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1679",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "sa",
+      "contentFindings": {
+        "sa": 0,
+        "sv": 1
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1679",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "tie",
+      "contentFindings": {
+        "sa": 0,
+        "sv": 0
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1680",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "sv",
+      "contentFindings": {
+        "sa": 1,
+        "sv": 0
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "judgeA": "null",
+      "judgeB": "null",
+      "qwenPrefer": "unparsed",
+      "contentFindings": {
+        "sa": null,
+        "sv": null
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1681",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "sv",
+      "contentFindings": {
+        "sa": 2,
+        "sv": 1
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1681",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "sv",
+      "contentFindings": {
+        "sa": 3,
+        "sv": 1
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1682",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "sa",
+      "contentFindings": {
+        "sa": 2,
+        "sv": 4
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1682",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "sv",
+      "contentFindings": {
+        "sa": 1,
+        "sv": 0
+      }
+    },
+    {
+      "id": "ascend/00004",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "not-comparable",
+      "contentFindings": {
+        "sa": null,
+        "sv": null
+      }
+    },
+    {
+      "id": "ascend/00009",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "sv",
+      "contentFindings": {
+        "sa": 2,
+        "sv": 1
+      }
+    },
+    {
+      "id": "ascend/00028",
+      "judgeA": "null",
+      "judgeB": "null",
+      "qwenPrefer": "unparsed",
+      "contentFindings": {
+        "sa": null,
+        "sv": null
+      }
+    },
+    {
+      "id": "ascend/00055",
+      "judgeA": "null",
+      "judgeB": "null",
+      "qwenPrefer": "unparsed",
+      "contentFindings": {
+        "sa": null,
+        "sv": null
+      }
+    },
+    {
+      "id": "ascend/00066",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "tie",
+      "contentFindings": {
+        "sa": 1,
+        "sv": 1
+      }
+    },
+    {
+      "id": "ascend/00068",
+      "judgeA": "null",
+      "judgeB": "ok",
+      "qwenPrefer": "sa",
+      "contentFindings": {
+        "sa": 2,
+        "sv": 3
+      }
+    }
+  ]
+}

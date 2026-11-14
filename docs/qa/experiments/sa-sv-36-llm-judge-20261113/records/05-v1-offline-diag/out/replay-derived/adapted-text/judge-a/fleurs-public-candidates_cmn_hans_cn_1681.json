@@ -1,0 +1,15 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1681",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": false,
+  "diagnosticCode": "quote",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": false,
+    "code": "quote",
+    "verdict": null
+  }
+}
