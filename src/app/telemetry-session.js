@@ -16,6 +16,9 @@
 //
 // 本文件是 ESM、无 JSX、无 React，`test/harness.js` 的 loadSrc() 能直接跑。
 import Registry from '../lib/registry.js';
+// 首屏三段式的**既有**判定（纯函数，不读存储/不摸 DOM）；app_open 只借用它，
+// 不在这里另写一套包屏状态机。见 firstrun.js 的 step()。
+import * as FirstRun from './firstrun.js';
 
 // BEL-223 的五个功能面（build/telemetry.config.js 的 SURFACES 同源）。
 //   listen       对话 · 实时听译页
@@ -25,9 +28,10 @@ import Registry from '../lib/registry.js';
 //   web_caption  网页字幕入口 —— **App 没有这个面**（扩展的 subtitle-adapter 才发），
 //                所以 App 侧只登记、不产生；缺口写进 RESULT。
 export const SURFACES = ['listen', 'live_caption', 'quick', 'doc', 'web_caption'];
-// 冷启默认面：首页的主功能是「对话 · 实时听译」，所以没有上次面时记 listen。
-// 有上次面（tm:lastSurface）时用上次面 —— 这是 BEL-225 的「冷启按首页/上次面判定」规则。
-// 登录墙本身不是五个功能面之一：登录墙前的 app_open 仍用这个规则给 surface。
+// 冷启默认面（其它事件用）：首页的主功能是「对话 · 实时听译」，所以没有上次面时记 listen。
+// BEL-225 起 app_open 不再用这个功能面：它记的是「打开时落在哪一屏」
+// （login / packs / app_home，见 appOpenScreen）。DEFAULT_SURFACE 仍供 auth_ok /
+// live_gate 等按功能面出数的事件使用。
 export const DEFAULT_SURFACE = 'listen';
 
 const K = {
@@ -229,13 +233,52 @@ export function currentSurfaceAsync() {
 //   signed_out = 读成功、确实没有会话
 //   unknown    = 读失败（读不到 ≠ 已退出，同 LearnAuth 的既有判据）
 // 这个事件不 await 登录流程、也不在登录成功后再补发 —— 它就在冷启这一刻。
+//
+// surface（BEL-225）= 打开时落在哪一屏，不是功能面：
+//   signed_out → login（面对登录墙）
+//   signed_in  → FirstRun.step() 判包屏：packs（首启包未完成）或 app_home
+//   unknown    → 不带（不猜）
+//   quick 面板 → 不带（它是独立快捷窗，不属这三屏）
+// 包屏判定只读**既有**的两个落盘信号：shell-model 写的 `listenPacksDone`，以及
+// telemetry-session.packsReady() 在最近一次探包后写的 `tm:packsReady.kinds` 快照；
+// 再交给 FirstRun.step() 判。没有快照 = 这台设备还没探过包（首启）⇒ packs。
+const PACKS_DONE_KEY = 'listenPacksDone';
+
+async function appOpenScreen(authState) {
+  // quick 面板不是 login / packs / app_home 这三屏；main.jsx 在 quick 冷启时会先
+  // enter('quick')，这里同步就能看到。
+  if (currentSurfaceSync() === 'quick') return '';
+  if (authState === 'signed_out') return 'login';
+  if (authState !== 'signed_in') return '';
+  let packsDone = false;
+  let snapshot = null;
+  try {
+    const r = await sget([PACKS_DONE_KEY, K.packsReady]);
+    packsDone = !!r[PACKS_DONE_KEY];
+    const v = r[K.packsReady];
+    if (v && v.kinds && typeof v.kinds === 'object') snapshot = v.kinds;
+  } catch (_) { /* 读不到就按首启包屏处理 */ }
+  if (packsDone) return 'app_home';
+  // 没探过包（全新安装 / 刚升级）⇒ 首启包屏还没走完。
+  if (!snapshot) return 'packs';
+  // 快照里缺席的 kind = 上次探包时「这一档没有需求」，不是「未就绪」；
+  // 因此只有显式 false 才算缺包。等价于 FirstRun.step 的包判据。
+  const screen = FirstRun.step({
+    loggedIn: true,
+    packsDone: false,
+    asrPack: snapshot.asr !== false,
+    ttsPack: snapshot.tts !== false,
+    basePack: snapshot.base !== false,
+  });
+  return screen === 'packs' ? 'packs' : 'app_home';
+}
+
 let appOpenFlight = null;
 export function appOpen() {
   if (appOpenFlight) return appOpenFlight;
   appOpenFlight = (async () => {
     // 冷启第一件事先读开关：关掉时连 track() 都不调，队列里不会多出一条 app_open。
     if (!(await telemetryOn())) return false;
-    const surface = await currentSurfaceAsync();
     let authState = 'unknown';
     try {
       if (typeof LearnAuth !== 'undefined' && LearnAuth && typeof LearnAuth.currentStable === 'function') {
@@ -244,7 +287,10 @@ export function appOpen() {
         authState = session ? 'signed_in' : (loadErr ? 'unknown' : 'signed_out');
       }
     } catch (_) { authState = 'unknown'; }
-    track('app_open', { launch_id: LAUNCH_ID, surface, auth_state: authState });
+    const surface = await appOpenScreen(authState);
+    const props = { launch_id: LAUNCH_ID, auth_state: authState };
+    if (surface) props.surface = surface;   // unknown / quick：键缺席，不猜
+    track('app_open', props);
     return true;
   })().catch(() => false);
   return appOpenFlight;
