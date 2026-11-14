@@ -1570,8 +1570,11 @@ reason to lose what you learned」）只考虑过「同一个人退出再登回�
 
 - 新键 `learnDbOwnerBackend`：认领主库时写下 `MT_BACKEND.url`。
 - 没有这个键的设备（1.15.0 之前认领的，今天的每一台）按「**本构建之前**的后端」算：切过后端的产物里
-  构建写入 `MT_BACKEND.previousUrl`（中国版 = 东京），没切过的产物没有这一项，就等于当前后端 —— 国际版
-  行为逐字不变。
+  构建写入 `MT_BACKEND.previousUrl`；中国版的值是哨兵 `https://backend.invalid`（`.invalid` 主机，DNS
+  永远解析不到）。它**只用于这一次归属比较**，功能上等价于「上一后端 ≠ CN」：不做任何跨后端的数据
+  导入/导出，从不发请求，也**从不写回 storage**。没切过的产物没有这一项，就等于当前后端 —— 国际版
+  行为逐字不变。BEL-259 的构建门只查本 flavor 生效的 `url` / `anonKey`，`previousUrl` 明确在判据之外
+  （否则会把哨兵当占位后端误杀）。
 - 登录时若主库的认领后端 ≠ 当前后端：**两个后端的 userId 不可比**，「是不是同一个人」这个问题在这里没有
   答案，所以不走 `owner_mismatch` 那条保护，而是**由这次登录的账号接管主库**（改写 owner 与 backend，
   选中主库），并写一个待办标记 `learnRehome`。
