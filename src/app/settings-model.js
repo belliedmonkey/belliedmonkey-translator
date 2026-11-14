@@ -266,7 +266,7 @@ async function claimAndApply(opts) {
   } catch (e) {
     // BEL-223：领取失败**只记事件**，文案/流程一个字都不改（错误原样抛回调用方）。
     // 两个 App 入口（登录即领取、设置页「领取 / 改回」）都经过这里，所以只接一处。
-    try { TelemetrySession.grantClaimFail(e && e.code); } catch (_) {}
+    try { TelemetrySession.grantClaimFail(e, o.path); } catch (_) {}
     throw e;
   }
   // 账号变了 ⇒ 整段作废：不读设置、不写盘、不 trackEngineSet。返回值带 stale，

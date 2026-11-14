@@ -255,6 +255,19 @@ Rules:
   }
 
   async function apiFetchInner(url, opts, label, diag, timeoutMs) {
+    // BEL-224：只给自家中继补匿名 install_id（`relayHeaders` 对 vendor URL 返回 {}），
+    // 且必须在选路之前 —— 直连与后台代理拿到的是同一份 opts，两条路都覆盖。
+    // 遥测不存在 / 关掉 / 取值失败都静默跳过：归因绝不能挡住翻译。
+    if (typeof MTTelemetry !== 'undefined' && MTTelemetry && MTTelemetry.relayHeaders) {
+      try {
+        const extra = await MTTelemetry.relayHeaders(url);
+        if (extra && Object.keys(extra).length) {
+          opts = Object.assign({}, opts, {
+            headers: Object.assign({}, (opts && opts.headers) || {}, extra),
+          });
+        }
+      } catch (_) {}
+    }
     let resp;
     let usedRoute = null;
     const origin = originOf(url);

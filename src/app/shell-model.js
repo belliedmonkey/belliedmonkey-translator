@@ -390,6 +390,11 @@ export function bootShell() {
         provider,
         userId: session && session.userId,
         accessToken: session && session.accessToken,
+        // BEL-223 2026-11-14：method 由登录响应里的 GoTrue 服务端时间戳当场判定，
+        // 随 session 一起带到这里（不落存储）。methodResolved 明确告诉发送口
+        // 「已经判过了」——即使 method 为空也不要再拿本机首见历史猜。
+        method: session && session.authMethod,
+        methodResolved: true,
       });
     } catch (_) { return null; }
   }
