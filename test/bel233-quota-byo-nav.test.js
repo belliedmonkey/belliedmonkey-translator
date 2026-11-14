@@ -1,13 +1,19 @@
 // test/bel233-quota-byo-nav.test.js — BEL-233 · 额度卡「用自己的 key」必须页内导航。
 //
-// 缺陷：`grantAction('byo')` 取注册表第一个带 keyUrl 的提供商（OpenAI），点一下就
-// `openExternal(platform.openai.com)`，把用户踢出 App。产品令：App only 改成页内导航，
-// 与 #app-adv-hint-go 一致（分项档先确认、取消原地不动），不再外跳。
+// 缺陷一：`grantAction('byo')` 取注册表第一个带 keyUrl 的提供商（OpenAI），点一下就
+// `openExternal(platform.openai.com)`，把用户踢出 App。产品令：App only 改成页内导航。
+//
+// 缺陷二（本卡）：byo 只是「此刻要填自己的 key」的视图意图，一个字节配置都不写。
+// 旧实现只在内存 detailRef=true 时才 `setDetailFn(false)`，于是「已存 optDetailMode=true
+// 但本次以额度态打开设置页」时 detailRef 仍是 false，跳过切档，随后 keyMode effect 又把
+// 存储里的 true 贴回来 —— 用户落在分项。现在 byo **无条件** `setDetailFn(false)`，不再
+// 弹「改用一键会覆盖当前分项配置」确认；「一键」tab 的 switchMode 确认原样保留。
+// quickAvail=false 的兜底：不置 keyMode、留额度卡，送用户到 #notes-api-key 并 focus/select。
 //
 // 这里不用 jsdom：把真实的 `grantAction` 函数体从 settings-view.jsx 里按大括号配平
 // 截出来，塞进 `new Function`，只注入它执行 byo 分支要用的闭包（settingsModel /
-// LearnDialog / detailRef / setDetailFn / setPage / requestAnimationFrame / $）。
-// 截的是真源码，所以断言的是点击后**真的调了什么**，不是源码里有没有某行字。
+// LearnDialog / t / detailRef / setDetailFn / setPage / requestAnimationFrame / $ /
+// quickAvail）。截的是真源码，所以断言的是点击后**真的调了什么**，不是源码里有没有某行字。
 
 const fs = require('fs');
 const path = require('path');
@@ -50,12 +56,15 @@ const GRANT_ACTION = functionSource(VIEW, 'async function grantAction(id, sessio
 // JS 允许它们悬空（真源码里它们来自组件闭包）。
 const makeGrantAction = new Function(
   'settingsModel', 'Registry', 'LearnDialog', 't', 'detailRef',
-  'setDetailFn', 'setPage', 'requestAnimationFrame', '$',
+  'setDetailFn', 'setPage', 'requestAnimationFrame', '$', 'quickAvail',
   GRANT_ACTION + '\nreturn grantAction;'
 );
 
-function makeHarness({ detail = false, confirmResult = true } = {}) {
-  const calls = { openExternal: [], setPage: [], scroll: [], setDetailFn: [], confirm: [], t: [], raf: 0, order: [] };
+function makeHarness({ detail = false, quickAvail = true } = {}) {
+  const calls = {
+    openExternal: [], setPage: [], scroll: [], notesScroll: [], setDetailFn: [],
+    confirm: [], t: [], raf: 0, order: [], focus: 0, select: 0,
+  };
   const hooks = { openExternal: (url) => { calls.openExternal.push(url); calls.order.push('openExternal'); } };
   const settingsModel = { hooks: () => hooks };
   // 注册表里**确实**有带 keyUrl 的提供商 —— 旧实现会因此外跳；新实现必须视而不见。
@@ -68,7 +77,7 @@ function makeHarness({ detail = false, confirmResult = true } = {}) {
     confirm: async (msg, opts) => {
       calls.confirm.push({ msg, opts });
       calls.order.push('confirm');
-      return confirmResult;
+      return true;
     },
   };
   const t = (key, fallback) => { calls.t.push({ key, fallback }); return fallback; };
@@ -86,67 +95,77 @@ function makeHarness({ detail = false, confirmResult = true } = {}) {
       calls.order.push('scroll:' + (opts && opts.block));
     },
   };
-  const $ = (id) => (id === 'quick-setup-card' ? quickCard : null);
+  const notesInput = {
+    scrollIntoView: (opts) => {
+      calls.notesScroll.push(opts);
+      calls.order.push('notes-scroll:' + (opts && opts.block));
+    },
+    focus: () => { calls.focus += 1; calls.order.push('focus'); },
+    select: () => { calls.select += 1; calls.order.push('select'); },
+  };
+  const $ = (id) => (id === 'quick-setup-card' ? quickCard
+    : id === 'notes-api-key' ? notesInput : null);
   const requestAnimationFrame = (fn) => { calls.raf += 1; fn(); };
   const grantAction = makeGrantAction(
     settingsModel, Registry, LearnDialog, t, detailRef,
-    setDetailFn, setPage, requestAnimationFrame, $
+    setDetailFn, setPage, requestAnimationFrame, $, quickAvail
   );
   return { calls, grantAction };
 }
 
 describe('BEL-233 · 额度卡「用自己的 key」页内导航（App only）', () => {
-  test('★ byo 点击：openExternal 0 次；setPage(sec-engines)；一键卡 scrollIntoView 一次', async () => {
-    const h = makeHarness({ detail: false });
+  test('★ byo 点击：openExternal 0 次；无条件 setDetailFn(false)；setPage(sec-engines)；一键卡滚一次', async () => {
+    const h = makeHarness({ detail: false, quickAvail: true });
     await h.grantAction('byo', null);
     eq(h.calls.openExternal.length, 0, 'byo 还在外跳 ' + h.calls.openExternal.join(', '));
     deepEq(h.calls.setPage, ['sec-engines'], '没有进引擎子页');
     eq(h.calls.scroll.length, 1, '一键卡应恰好滚动一次');
     deepEq(h.calls.scroll[0], { block: 'start' }, '滚动位置不是 quick-setup-card 的顶端');
     eq(h.calls.raf, 1, '滚动没有挂在 requestAnimationFrame 里');
-    // 一键档已经是目标档位：不该问确认，也不该再切档。
-    eq(h.calls.confirm.length, 0, '一键档不该弹分项覆盖确认');
-    eq(h.calls.setDetailFn.length, 0, '一键档不该再调 setDetailFn');
+    // byo 不写配置，也不该再问「改用一键会覆盖当前分项配置」。
+    eq(h.calls.confirm.length, 0, 'byo 不该弹分项覆盖确认');
+    deepEq(h.calls.setDetailFn, [false], 'byo 必须无条件切到一键档一次');
+    deepEq(h.calls.order, ['detail:false', 'page:sec-engines', 'scroll:start'],
+      '切档/导航/滚动的顺序不对');
   });
 
-  test('★ 分项档 + 取消：setDetailFn 未调、未导航、未滚动、无 openExternal', async () => {
-    const h = makeHarness({ detail: true, confirmResult: false });
+  test('★ 分项档（内存 detail=true）：不弹确认、setDetailFn(false) 一次，然后导航 + 滚动', async () => {
+    const h = makeHarness({ detail: true, quickAvail: true });
     await h.grantAction('byo', null);
-    eq(h.calls.confirm.length, 1, '分项档切换前一键前必须确认一次');
-    eq(h.calls.confirm[0].msg, '改用一键会覆盖当前分项配置', '确认框文案不是 wireModeTabs 那句');
-    deepEq(h.calls.confirm[0].opts, { ok: '改用一键', cancel: '取消' }, '确认框按钮文案不对');
-    deepEq(h.calls.t.map((x) => x.key), [
-      'opt_mode_switch_to_quick', 'opt_mode_switch_to_quick_ok', 'opt_mode_switch_cancel',
-    ], '没有复用 wireModeTabs 的 i18n key（文案会与档位切换漂移）');
-    eq(h.calls.setDetailFn.length, 0, '取消后仍切了档');
-    eq(h.calls.setPage.length, 0, '取消后仍导航了');
-    eq(h.calls.scroll.length, 0, '取消后仍滚动了');
-    eq(h.calls.raf, 0, '取消后仍排了滚动');
-    eq(h.calls.openExternal.length, 0, '取消后仍外跳了');
-    deepEq(h.calls.order, ['confirm'], '取消路径除确认外不该有任何副作用');
-  });
-
-  test('★ 分项档 + 确认：setDetailFn(false) 一次，然后导航 + 滚动', async () => {
-    const h = makeHarness({ detail: true, confirmResult: true });
-    await h.grantAction('byo', null);
-    eq(h.calls.confirm.length, 1, '确认框没弹');
-    deepEq(h.calls.setDetailFn, [false], '确认后没有且仅切到一键档一次');
-    deepEq(h.calls.setPage, ['sec-engines'], '确认后没进引擎子页');
-    eq(h.calls.scroll.length, 1, '确认后没滚到一键卡');
+    eq(h.calls.confirm.length, 0, '删掉的正是 byo 路径这次确认');
+    deepEq(h.calls.setDetailFn, [false], '没有且仅切到一键档一次');
+    deepEq(h.calls.setPage, ['sec-engines'], '没进引擎子页');
+    eq(h.calls.scroll.length, 1, '没滚到一键卡');
     deepEq(h.calls.scroll[0], { block: 'start' }, '滚动位置不对');
-    eq(h.calls.openExternal.length, 0, '确认路径仍外跳了');
-    // 顺序：先确认 → 落档 → 导航 → 滚动。反过来会让用户看到分项页闪一下再跳。
-    deepEq(h.calls.order, ['confirm', 'detail:false', 'page:sec-engines', 'scroll:start'],
-      '确认/切档/导航/滚动的顺序不对');
+    eq(h.calls.openExternal.length, 0, '仍外跳了');
+    deepEq(h.calls.order, ['detail:false', 'page:sec-engines', 'scroll:start'],
+      '切档/导航/滚动的顺序不对（确认已删除）');
   });
 
-  test('★ 一键档：直接导航 + 滚动（无确认、无切档）', async () => {
-    const h = makeHarness({ detail: false });
+  test('★ 一键档：同样无条件切档 + 导航 + 滚动（无确认）', async () => {
+    const h = makeHarness({ detail: false, quickAvail: true });
     await h.grantAction('byo', null);
-    deepEq(h.calls.order, ['page:sec-engines', 'scroll:start'],
-      '一键档应立即导航并滚动，不应有确认或切档');
-    eq(h.calls.setDetailFn.length, 0, '一键档切了档');
+    deepEq(h.calls.order, ['detail:false', 'page:sec-engines', 'scroll:start'],
+      '一键档也应无确认、切档一次、立即导航并滚动');
+    deepEq(h.calls.setDetailFn, [false], '一键档没有走无条件 setDetailFn(false)');
+    eq(h.calls.confirm.length, 0, '一键档弹了确认');
     eq(h.calls.openExternal.length, 0, '一键档外跳了');
+  });
+
+  test('★ quickAvail=false 兜底：返回 false、不切档、不滚一键卡，滚 #notes-api-key 并 focus/select', async () => {
+    const h = makeHarness({ detail: true, quickAvail: false });
+    const moved = await h.grantAction('byo', null);
+    eq(moved, false, '兜底必须返回 false，调用方才会撤回 keyMode、留下额度卡');
+    deepEq(h.calls.setPage, ['sec-engines'], '兜底应进引擎子页（分项档）');
+    eq(h.calls.setDetailFn.length, 0, '兜底不该再切档');
+    eq(h.calls.scroll.length, 0, '兜底不该滚一键卡');
+    deepEq(h.calls.notesScroll, [{ block: 'start' }], '兜底没有把 #notes-api-key 滚进视野');
+    eq(h.calls.focus, 1, '兜底没有聚焦 #notes-api-key');
+    eq(h.calls.select, 1, '兜底没有全选 grant 圆点，粘 key 会接在后面');
+    eq(h.calls.confirm.length, 0, '兜底不该弹任何确认');
+    eq(h.calls.openExternal.length, 0, '兜底外跳了');
+    deepEq(h.calls.order, ['page:sec-engines', 'notes-scroll:start', 'focus', 'select'],
+      '兜底的导航/滚动/聚焦顺序不对');
   });
 
   test('旧外跳实现已从 byo 分支删除（keyUrl 只留在一键配置页）', () => {
@@ -155,8 +174,14 @@ describe('BEL-233 · 额度卡「用自己的 key」页内导航（App only）',
     ok(!/openExternal/.test(byo), 'byo 分支里还留着 openExternal');
     ok(!/keyUrl/.test(byo), 'byo 分支里还在读 keyUrl');
     ok(!/Registry\.providers/.test(byo), 'byo 分支里还在挑注册表提供商');
+    ok(!/LearnDialog\.confirm/.test(byo), 'byo 分支里还留着覆盖确认');
+    ok(!/settingsModel\.set\b/.test(byo), 'byo 分支在写配置（byo 不该写一个字节）');
+    ok(/if \(!quickAvail\)/.test(byo), 'byo 分支没有 quickAvail=false 的兜底');
+    ok(/await setDetailFn\(false\)/.test(byo), 'byo 分支没有无条件切到一键档');
     ok(/setPage\('sec-engines'\)/.test(byo), 'byo 分支没有页内导航');
     ok(/\$\('quick-setup-card'\)\.scrollIntoView\(\{ block: 'start' \}\)/.test(byo),
       'byo 分支没有滚到一键卡');
+    ok(/\$\('notes-api-key'\)/.test(byo) && /\.focus\(\)/.test(byo) && /\.select\(\)/.test(byo),
+      'byo 兜底没有把用户送到 #notes-api-key 并 focus/select');
   });
 });
