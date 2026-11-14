@@ -184,7 +184,14 @@ describe('llm judge error observation and supplement selection', () => {
       pairs: [{ itemId: 'cmn_hans_cn/1673', judgeId: 'judge-b' }],
     };
     const originDir = fs.mkdtempSync(path.join(os.tmpdir(), 'judge-origin-'));
-    fs.writeFileSync(path.join(originDir, 'summary.json'), JSON.stringify({ code: 'partial', official: true }) + '\n');
+    fs.writeFileSync(path.join(originDir, 'summary.json'), JSON.stringify({
+      code: 'partial',
+      official: true,
+      results: [
+        { id: 'en_us/1668', judges: { 'judge-a': JSON.parse(legal('en_us/1668')), 'judge-b': JSON.parse(legal('en_us/1668')) } },
+        { id: 'cmn_hans_cn/1673', judges: { 'judge-a': JSON.parse(legal('cmn_hans_cn/1673')), 'judge-b': null } },
+      ],
+    }) + '\n');
     const originBefore = crypto.createHash('sha256').update(fs.readFileSync(path.join(originDir, 'summary.json'))).digest('hex');
     const inputSha = crypto.createHash('sha256').update(JSON.stringify(input()), 'utf8').digest('hex');
     const originLock = {
