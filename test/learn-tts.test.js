@@ -54,6 +54,8 @@ function setup(opts = {}) {
     // 语言未知时按脚本挑音色要用它（tts.js 的 scriptLang）。不注入的话那条路
     // 会静默退回「猜不出」，于是新加的断言全都在考一个不存在的分支。
     LearnRules: loadModule('learn-rules.js', { window: {} }).LearnRules,
+    // BEL-224：relay 请求要补 install_id；测试注入一个记录调用参数的桩。
+    MTTelemetry: opts.MTTelemetry,
     // The vm sandbox inherits no globals, so the abort path only exists here if it is
     // handed in — and without it the timeout test would silently exercise nothing.
     AbortController,
@@ -408,6 +410,24 @@ describe('LearnTTS — speech-compat transport & cache', () => {
     eq(body.model, 'kokoro');
     eq(body.voice, 'af');
     eq(body.input, 'Hello world');
+  });
+
+  test('relay 请求带 x-mt-install-id；vendor 请求不带（BEL-224）', async () => {
+    const INSTALL = '11111111-1111-4111-8111-111111111111';
+    const { TTS, calls } = setup({
+      MTTelemetry: {
+        relayHeaders: async (url) => (/\/bt-relay(?:\/|$)/i.test(String(url || ''))
+          ? { 'x-mt-install-id': INSTALL } : {}),
+      },
+    });
+    TTS.configure(Object.assign({}, cfg, {
+      baseUrl: 'https://backend.example/functions/v1/bt-relay/audio/speech',
+    }));
+    await TTS.getAudio('Hello world', 'en');
+    eq(calls.fetch[0].init.headers['x-mt-install-id'], INSTALL);
+    TTS.configure(cfg);                                    // vendor 端点（127.0.0.1 自建）
+    await TTS.getAudio('Hello again', 'en');
+    ok(!('x-mt-install-id' in calls.fetch[1].init.headers), 'vendor 请求绝不能带 install_id');
   });
 
   test('尾斜杠原样保留 —— 我们既不补路径，也不替用户裁字符', async () => {

@@ -6,10 +6,10 @@
 //   ④ heartbeat 同一天只入队一次；installed 只在 id 首次生成时
 //   ⑤ 没有遥测规格（MT_TELEMETRY = null）⇒ 不外发；auth_fail 留在本机（mt:diag）
 //   ⑤d 中国版有境内 URL ⇒ 与国际版同一条 track；auth_fail 发往该主机，flavor=china
-const { loadModule, describe, test, ok, eq } = require('./harness');
+const { loadModule, describe, test, ok, eq, deepEq } = require('./harness');
 const cfg = require('../build/telemetry.config.js');
 
-function load({ china = false, sends = [], flavor = null, telemetry = undefined } = {}) {
+function load({ china = false, sends = [], flavor = null, telemetry = undefined, crypto = require('crypto').webcrypto } = {}) {
   const store = {};
   const ls = {};                       // WKWebView / 页面里的 localStorage（本机诊断落在它上面）
   const tel = telemetry !== undefined ? telemetry : (china ? null : {
@@ -29,7 +29,7 @@ function load({ china = false, sends = [], flavor = null, telemetry = undefined 
       removeItem: (k) => { delete ls[k]; },
     },
     navigator: { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 Version/26.0 Mobile/15E148 Safari/604.1', platform: 'iPhone', language: 'zh-CN' },
-    crypto: require('crypto').webcrypto,
+    crypto,
     fetch: async (url, init) => { sends.push({ url, body: JSON.parse(init.body) }); return { ok: true }; },
     chrome: { i18n: { getUILanguage: () => 'zh-CN' }, storage: { local: {
       get: (keys, cb) => cb(Object.fromEntries(keys.map((k) => [k, store[k]]))),
@@ -41,6 +41,48 @@ function load({ china = false, sends = [], flavor = null, telemetry = undefined 
   return { T: ctx.MTTelemetry, store, sends, ls };
 }
 const q = (store, T) => store[T.KEYS.queue] || [];
+
+describe('MTTelemetry — relayHeaders 只给自家中继带 install_id（BEL-224）', () => {
+  const RELAY = 'https://backend.example/functions/v1/bt-relay/chat/completions';
+  test('/bt-relay/... ⇒ x-mt-install-id，值就是 installId() 的匿名 uuid', async () => {
+    const { T } = load();
+    const { id } = await T.installId();
+    eq((await T.relayHeaders(RELAY))['x-mt-install-id'], id);
+    eq((await T.relayHeaders(RELAY))['x-mt-install-id'], id, '同一个 install 的 id 稳定');
+  });
+
+  test('URL 以 /bt-relay 结尾、大小写不同也命中', async () => {
+    const { T } = load();
+    const { id } = await T.installId();
+    eq((await T.relayHeaders('https://backend.example/functions/v1/bt-relay'))['x-mt-install-id'], id);
+    eq((await T.relayHeaders('https://backend.example/functions/v1/BT-RELAY/audio/speech'))['x-mt-install-id'], id);
+  });
+
+  test('vendor URL ⇒ {} —— 一个字节都不加', async () => {
+    const { T } = load();
+    await T.installId();
+    deepEq(await T.relayHeaders('https://api.openai.com/v1/chat/completions'), {});
+    deepEq(await T.relayHeaders('https://api.deepseek.com/v1/chat/completions'), {});
+    deepEq(await T.relayHeaders('https://vendor.example/bt-relay-ish/chat'), {});
+    deepEq(await T.relayHeaders(''), {});
+  });
+
+  test('enabled()=false ⇒ {}（遥测关掉不发；relay 记 skip 日志）', async () => {
+    const { T } = load();
+    await T.installId();
+    await T.setEnabled(false);
+    deepEq(await T.relayHeaders(RELAY), {});
+  });
+
+  test('拿不到 id / installId 失败 ⇒ {}，绝不抛（归因不能挡住翻译）', async () => {
+    // randomUUID 返回空串：id 存在但为空 ⇒ 不发。
+    const noId = load({ crypto: { randomUUID: () => '' } });
+    deepEq(await noId.T.relayHeaders(RELAY), {});
+    // 没有可用 crypto：installId 直接失败 ⇒ 仍返回 {}，且不成为未处理的 rejection。
+    const broken = load({ crypto: {} });
+    deepEq(await broken.T.relayHeaders(RELAY), {});
+  });
+});
 
 describe('MTTelemetry — 白名单在客户端就守住', () => {
   test('① 表外事件名不入队', async () => {

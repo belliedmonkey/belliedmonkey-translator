@@ -326,6 +326,14 @@ var LearnTTS = (() => {
       format: cfg.format,
     });
     const init = { method: 'POST', headers: req.headers, body: JSON.stringify(req.body) };
+    // BEL-224：只给自家中继补匿名 install_id（vendor URL 返回 {}，init 原样不动）。
+    // 归因失败 / 遥测关掉都静默跳过 —— 不能因为少一个 header 让朗读失败。
+    if (typeof MTTelemetry !== 'undefined' && MTTelemetry && MTTelemetry.relayHeaders) {
+      try {
+        const extra = await MTTelemetry.relayHeaders(url);
+        if (extra && Object.keys(extra).length) init.headers = Object.assign({}, init.headers, extra);
+      } catch (_) {}
+    }
     // A self-hosted speech endpoint that omits `Access-Control-Allow-Origin` makes
     // WebKit kill the fetch before any status is visible — a bare TypeError ("Load
     // failed") that reads exactly like "host unreachable" (measured 2026-08-13,
