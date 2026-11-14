@@ -299,6 +299,26 @@ var MTTelemetry = (() => {
     return false;
   }
 
+  // ── 中继归因：install_id 只随自家 relay 请求走 header（BEL-224）──────────────
+  // 病：2026-11-14 的 v51 窗口里 grant_debited 0 条、106 条 grant_event_skipped
+  // grant_debited no_install_id —— relay 的出账请求上没有 install_id，扣费成功也
+  // 认不出是谁。relay 的 attributionOf() 已经认 header `x-mt-install-id`（也认
+  // body / multipart），且按 UUID_RE 校验，所以客户端只需把同一个匿名 id 带上。
+  //
+  // 三条边界：
+  //   ① 只对自家中继（URL 命中 `/bt-relay`）发；vendor 请求一个字节都不加。
+  //   ② 只看 enabled()：用户关掉遥测就不发（relay 记 skip，隐私优先）。
+  //   ③ 任何异常都吞掉返回 {}：归因失败绝不能挡住翻译、朗读、转写、解析。
+  // 放 header 而不是 URL / body：不进 Referer / 访问日志，且 body 形状不用为它改。
+  async function relayHeaders(url) {
+    try {
+      if (!/\/bt-relay(?:\/|$)/i.test(String(url || ''))) return {};
+      if (!(await enabled())) return {};
+      const { id } = await installId();
+      return id ? { 'x-mt-install-id': id } : {};
+    } catch (_) { return {}; }
+  }
+
   // ── 初始化：installed（首次）+ heartbeat（每个自然日一次）+ 扩展页打开即 flush ──
   // 单飞（#387）：App 包里 app.js 与 review.js 各调一次 init，两次并发。同一页面只跑一次，
   // 后来的调用等第一次的结果；flushNow 各自照办（flush 自带 5 秒软锁）。
@@ -334,7 +354,7 @@ var MTTelemetry = (() => {
   }
 
   return {
-    track, once, flush, init, enabled, setEnabled, installId, dwell,
+    track, once, flush, init, enabled, setEnabled, installId, relayHeaders, dwell,
     // 测试与调试
     _shape: shape, _envelope: envelope, host, device, KEYS: K, FLUSH_AT, QUEUE_CAP,
     // 本机诊断（没有遥测规格时的 auth_fail）：只读出口，给测试与设备容器回读用。

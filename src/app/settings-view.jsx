@@ -884,7 +884,7 @@ export default function SettingsView() {
     }
     grantBusy.current = true; await paintGrant(session);
     try {
-      await settingsModel.claimAndApply({ overwrite: id === 'restore', say: hooks.say });
+      await settingsModel.claimAndApply({ overwrite: id === 'restore', say: hooks.say, path: 'manual' });
     } catch (e) {
       if (e && e.code === 'grant_unavailable') grantUnavailable.current = true;
       if (hooks.say) hooks.say(String((e && e.message) || e));

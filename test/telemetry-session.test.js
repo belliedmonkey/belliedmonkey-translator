@@ -64,6 +64,8 @@ function load(opts) {
     currentStable: async () => null,
     lastLoadError: () => '',
   };
+  if (o.navigator) sandbox.navigator = o.navigator;
+  if (o.AppQuick) sandbox.AppQuick = o.AppQuick;
   if (o.backend) sandbox.window.MT_BACKEND = o.backend;
   if (o.flavor) sandbox.window.MT_FLAVOR = o.flavor;
   const ctx = loadSrc(MOD, 'TelemetrySession', sandbox);
@@ -142,7 +144,7 @@ describe('BEL-225 app_open', () => {
     const { TS, events, sandbox } = load({ telemetrySpec: TEL_SPEC });
     TS.installLaunchId();
     await TS.appOpen();
-    sandbox.MTTelemetry.track('asr_entry', { surface: 'app_home', result: 'started' });
+    sandbox.MTTelemetry.track('asr_entry', { surface: 'listen', result: 'started' });
     eq(events.length, 2, 'app_open 与 asr_entry 都应入队');
     deepEq(events.map((e) => e.name), ['app_open', 'asr_entry']);
     ok(/^[0-9a-f]{32}$/.test(events[0].props.launch_id), 'app_open.launch_id 必须是 32-hex');
@@ -232,8 +234,9 @@ describe('BEL-223 auth_ok', () => {
 
     eq(events.length, 1);
     eq(events[0].name, 'auth_ok');
-    eq(events[0].props.surface, 'listen');
+    eq(events[0].props.surface, 'login');
     eq(events[0].props.provider, 'google');
+    ok(/^[0-9a-f]{32}$/.test(events[0].props.launch_id), 'auth_ok 必须带同一次启动的 launch_id');
     eq(events[0].props.method, 'signup');
   });
 
@@ -243,6 +246,44 @@ describe('BEL-223 auth_ok', () => {
     await TS.noteAuthOk({ provider: 'email', userId: 'u1', accessToken: 't' });
     await TS.noteAuthOk({ provider: 'email', userId: 'u2', accessToken: 't' });
     deepEq(events.map((e) => e.props.method), ['signup', 'signin', 'signup']);
+  });
+
+  test('登录回执已判定 method=signin ⇒ 直接用，不调用 classifyMethod（不写本机首见）', async () => {
+    const { TS, events, store } = load();
+    await TS.noteAuthOk({
+      provider: 'google', userId: 'u1', accessToken: 't',
+      method: 'signin', methodResolved: true,
+    });
+    eq(events.length, 1);
+    eq(events[0].props.method, 'signin');
+    ok(!('tm:authSeen' in store), '回执已判定时不该再写本机首见历史');
+  });
+
+  test('回执判过但 method 空 ⇒ auth_ok 省略 method 键（空串会被整条拒收）', async () => {
+    const calls = [];
+    const fetch = async (url, init) => { calls.push({ url, init }); return { ok: true, status: 200 }; };
+    const { TS, events, store } = load({ fetch, backend: { url: 'https://bt.test' } });
+    await TS.noteAuthOk({
+      provider: 'email', userId: 'u1', accessToken: 't',
+      method: '', methodResolved: true,
+    });
+    eq(events.length, 1);
+    eq(events[0].name, 'auth_ok');
+    ok(!('method' in events[0].props), 'method 为空必须省略键，不能发空串');
+    eq(events[0].props.surface, 'login');
+    ok(/^[0-9a-f]{32}$/.test(events[0].props.launch_id), 'surface/launch_id 照发');
+    ok(!('tm:authSeen' in store), 'method 判过为空时也不许回头猜');
+    // 第一方窄口：列/正文都传空串（bt_auth_ok.method 是 not null default ''）。
+    eq(calls.length, 1);
+    eq(calls[0].init.headers['x-mt-method'], '');
+    eq(JSON.parse(calls[0].init.body).method, '');
+  });
+
+  test('老调用方（无 methodResolved）仍走 classifyMethod 兼容兜底', async () => {
+    const { TS, events, store } = load();
+    await TS.noteAuthOk({ provider: 'email', userId: 'u-old', accessToken: 't' });
+    eq(events[0].props.method, 'signup');
+    deepEq(store['tm:authSeen'], ['u-old'], '老调用方应仍写本机首见历史');
   });
 
   test('第一方窄口失败不阻塞：返回 false、不抛、匿名事件照发、debug 不含令牌', async () => {
@@ -268,15 +309,72 @@ describe('BEL-223 auth_ok', () => {
 });
 
 describe('BEL-223 live_gate / grant_claim_fail / launch_id', () => {
-  test('live_gate 两态都用字符串枚举，不是 JSON 布尔', () => {
+  test('live_gate：探测成功也记 result=ok；字符串布尔 + ticket 全属性', () => {
     const { TS, events } = load();
-    TS.liveGate('listen', true);
-    TS.liveGate('live_caption', false);
-    TS.liveGate('live_caption', 'true');
-    deepEq(events.map((e) => e.name), ['live_gate', 'live_gate', 'live_gate']);
-    deepEq(events.map((e) => e.props.ok), ['true', 'false', 'true']);
-    deepEq(events.map((e) => e.props.surface), ['listen', 'live_caption', 'live_caption']);
-    ok(events.every((e) => typeof e.props.ok === 'string'), 'ok 必须是字符串');
+    TS.liveGate({
+      surface: 'listen', ok: true, bridgeState: 'ok', probeReason: '',
+      result: 'ok', osVersion: 'iOS 26.0.1', osMeetsMin: true, probeLocale: 'zh-CN',
+      firstRefresh: true, reusedPriorState: false,
+    });
+    eq(events.length, 1);
+    eq(events[0].name, 'live_gate');
+    const p = events[0].props;
+    eq(p.surface, 'listen');
+    eq(p.ok, 'true');
+    eq(p.result, 'ok');
+    eq(p.window, 'main');
+    eq(p.os_version, 'ios_26_0_1', 'os_version 走 id 型：小写、点换成下划线');
+    eq(p.os_meets_min, 'true');
+    eq(p.probe_locale, 'zh-cn', 'probe_locale 走 id 型');
+    eq(p.reason_copy_class, 'other', '成功时没有灰态文案');
+    eq(p.first_refresh, 'true');
+    eq(p.reused_prior_state, 'false');
+    ok(/^[0-9a-f]{32}$/.test(p.launch_id), 'live_gate 必须带同一次启动的 launch_id');
+    deepEq(Object.keys(p).sort(), ['first_refresh', 'launch_id', 'ok', 'os_meets_min',
+      'os_version', 'probe_locale', 'reason_copy_class', 'result', 'reused_prior_state',
+      'surface', 'window'].sort());
+  });
+
+  test('live_gate：先桥后探针的 result 映射（每种失败各一条）', () => {
+    const cases = [
+      [{ bridgeState: 'script_missing' }, 'script_missing', 'need_os'],
+      [{ bridgeState: 'channel_missing' }, 'channel_missing', 'need_os'],
+      [{ bridgeState: 'ok', probeReason: 'locale' }, 'locale_unsupported', 'switch_locale'],
+      [{ bridgeState: 'ok', probeReason: 'timeout' }, 'probe_timeout', 'other'],
+      [{ bridgeState: 'ok', probeReason: 'os' }, 'os_below_min', 'need_os'],
+    ];
+    for (const [input, want, copy] of cases) {
+      const { TS, events } = load();
+      TS.liveGate(Object.assign({ surface: 'listen', ok: false, firstRefresh: true }, input));
+      eq(events[0].props.result, want, JSON.stringify(input));
+      eq(events[0].props.ok, 'false', JSON.stringify(input));
+      eq(events[0].props.reason_copy_class, copy, JSON.stringify(input));
+    }
+  });
+
+  test('live_gate：iOS ≥26 而原生只报 os ⇒ no_transcriber（UA 只读主版本）', () => {
+    const { TS, events } = load({
+      navigator: { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_1 like Mac OS X)' },
+    });
+    TS.liveGate({ surface: 'listen', ok: false, bridgeState: 'ok', probeReason: 'os', firstRefresh: true });
+    eq(events[0].props.result, 'no_transcriber');
+    eq(events[0].props.os_version, 'ios_26_1');
+    eq(events[0].props.os_meets_min, 'true', 'no_transcriber 的前提是系统够新');
+  });
+
+  test('live_gate：复用上次结论 / 第二次刷新 都记成字符串布尔', () => {
+    const { TS, events } = load();
+    TS.liveGate({ surface: 'live_caption', ok: true, result: 'ok', firstRefresh: false, reusedPriorState: true });
+    eq(events[0].props.first_refresh, 'false');
+    eq(events[0].props.reused_prior_state, 'true');
+    eq(events[0].props.surface, 'live_caption');
+  });
+
+  test('live_gate：Mac 快译第二窗不走首页闸，一条都不发', () => {
+    const a = load({ AppQuick: { isQuickMode: () => true } });
+    a.TS.liveGate({ surface: 'quick', ok: true, result: 'ok', firstRefresh: true });
+    eq(a.events.length, 0);
+    eq(a.TS.windowKind(), 'quick');
   });
 
   test('grant_claim_fail 的 code 归一化到注册表七值', () => {
@@ -289,6 +387,28 @@ describe('BEL-223 live_gate / grant_claim_fail / launch_id', () => {
       rate_limited: 'busy', 'weird raw text!': 'unavailable',
     };
     for (const [raw, want] of Object.entries(cases)) eq(TS.grantClaimCode(raw), want, raw);
+  });
+
+  test('grant_claim_fail 的真实 reason / copy_class / path（旧 code 同发）', () => {
+    const cases = [
+      [{ code: 'offline' }, 'silent', 'network', 'retryable'],
+      [{ code: 'busy' }, 'silent', 'busy', 'retryable'],
+      [{ code: 'server', status: 503 }, 'manual', 'server', 'retryable'],
+      [{ code: 'signed_out' }, 'manual', 'revoked', 'revoked'],
+      [{ code: 'grant_revoked', status: 401 }, 'silent', 'revoked', 'revoked'],
+      [{ code: 'grant_unavailable', status: 503 }, 'silent', 'server', 'retryable'],
+      [{ code: 'grant_misconfigured' }, 'silent', 'server', 'retryable'],
+      [{ code: 'exhausted' }, 'silent', 'other', 'retryable'],
+    ];
+    for (const [err, path, reason, copy] of cases) {
+      const { TS, events } = load();
+      TS.grantClaimFail(err, path);
+      eq(events[0].props.reason, reason, JSON.stringify(err));
+      eq(events[0].props.copy_class, copy, JSON.stringify(err));
+      eq(events[0].props.path, path, JSON.stringify(err));
+      eq(events[0].props.surface, 'listen');
+      ok(typeof events[0].props.code === 'string' && events[0].props.code, '旧 code 必须同发');
+    }
   });
 
   test('grant_claim_fail 事件带当前 surface 与归一化 code', () => {
@@ -457,16 +577,18 @@ describe('BEL-226 pack_download_* / packs_ready', () => {
 describe('spec 等就位：track() 入口的 200ms 缓冲', () => {
   test('spec 立即就位 → 事件仍同步入队（与改动前一致）', () => {
     const { TS, events } = load();
-    TS.liveGate('listen', true);
+    TS.liveGate({ surface: 'listen', ok: true, result: 'ok', firstRefresh: true });
     eq(events.length, 1, 'spec 在时不许被缓冲改成异步');
     eq(events[0].name, 'live_gate');
-    deepEq(events[0].props, { surface: 'listen', ok: 'true' });
+    eq(events[0].props.surface, 'listen');
+    eq(events[0].props.ok, 'true');
+    eq(events[0].props.result, 'ok');
   });
 
   test('spec 延迟 50ms 就位 → 200ms 内入队', async () => {
     const { TS, events, sandbox } = load({ telemetrySpec: null });
     const t0 = Date.now();
-    TS.liveGate('listen', true);
+    TS.liveGate({ surface: 'listen', ok: true, result: 'ok', firstRefresh: true });
     eq(events.length, 0, 'spec 未到不能提前入队');
     await new Promise((r) => setTimeout(r, 50));
     eq(events.length, 0, '50ms 时 spec 尚未就位');
@@ -476,7 +598,9 @@ describe('spec 等就位：track() 入口的 200ms 缓冲', () => {
     ok(got, 'spec 就位后 200ms 内必须入队');
     ok(dt <= 200, '从调用到入队必须 ≤200ms，实际 ' + dt + 'ms');
     eq(events[0].name, 'live_gate');
-    deepEq(events[0].props, { surface: 'listen', ok: 'true' }, '不改事件名/属性');
+    eq(events[0].props.surface, 'listen');
+    eq(events[0].props.ok, 'true');
+    eq(events[0].props.result, 'ok', '不改事件名/结果');
   });
 
   test('spec 始终缺失 → 200ms 后放弃：不入队、不抛错', async () => {
@@ -573,7 +697,7 @@ describe('opt-out 闸：新事件与 bt-auth-ok 受同一个开关约束', () =>
     s['tm:on'] = false;
     const a = loadReal({ store: s });
     await a.TS.appOpen();
-    a.TS.liveGate('listen', true);
+    a.TS.liveGate({ surface: 'listen', ok: true, result: 'ok', firstRefresh: true });
     a.TS.grantClaimFail('unavailable');
     await a.TS.packStart('listen');
     await a.TS.packOk('live_caption');

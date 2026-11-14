@@ -164,6 +164,14 @@ var LearnAuth = (() => {
   }
 
   async function store(next) {
+    // `authMethod` 只活在这一登录次的返回对象里：storage / cached / listeners 拿到的
+    // 都是删掉它之后的副本，返回的仍是原对象（登录调用方读得到）。这样会话恢复与
+    // token 刷新都不会把「上次是怎么进来的」误当成这一次的回执。
+    const loginSession = next;
+    if (next && typeof next === 'object') {
+      next = Object.assign({}, next);
+      delete next.authMethod;
+    }
     cached = next;
     loaded = true;
     if (next) {
@@ -179,16 +187,39 @@ var LearnAuth = (() => {
       try { await LearnStore.setMeta(LEGACY_KEY, null); } catch (_) {}
     }
     for (const fn of listeners.slice()) { try { fn(next); } catch (_) {} }
-    return next;
+    return loginSession;
   }
 
-  function sessionFrom(json) {
+  // ─── auth_ok.method 的回执判定（BEL-223，2026-11-14 产品口径）───────────────
+  //
+  // GoTrue 在登录响应里同时带 user.created_at 与 user.last_sign_in_at，两者都是
+  // **服务端时间**：首次签发 token 时 last_sign_in_at 被设成接近 created_at，再次
+  // 登录才明显大于。所以这一次是 signup 还是 signin，可以在收到响应时当场判定，
+  // 不需要拿本机「首见」历史猜。只读这两个时间戳；identities 不读、不存。
+  //
+  // 误差边界（写进 RESULT，不在这里补救）：账号创建后 5s 内重登仍记 signup；
+  // last_sign_in_at 为 null 的管理员/导入账号首次登录记 signup；时间戳缺失或不可
+  // 解析记 ''（不知道，不猜）。
+  function authMethodFrom(user) {
+    const u = user || {};
+    const created = Date.parse(u.created_at);
+    if (!Number.isFinite(created)) return '';
+    if (u.last_sign_in_at == null || u.last_sign_in_at === '') return 'signup';
+    const last = Date.parse(u.last_sign_in_at);
+    if (!Number.isFinite(last)) return '';
+    // if 而不是三元：test/error-copy.test.js 把 `? 'x' : 'y'` 当作从状态码分支出来的
+    // 错误 code 扫。这两个是 auth_ok.method 的值，不是错误码。
+    if (Math.abs(last - created) <= 5000) return 'signup';
+    return 'signin';
+  }
+
+  function sessionFrom(json, opts) {
     if (!json || !json.access_token) {
       const e = new Error('no session in response');
       e.code = 'bad_response';
       throw e;
     }
-    return {
+    const session = {
       accessToken: json.access_token,
       refreshToken: json.refresh_token || null,
       expiresAt: Date.now() + (Number(json.expires_in) || 3600) * 1000,
@@ -201,6 +232,10 @@ var LearnAuth = (() => {
       // 当前后端签出的会话去认领 / 接管主库。老会话没有这个字段 ⇒ 按「本构建之前的后端」算。
       backend: MT_BACKEND.url,
     };
+    // 只有四条登录路径传 { login: true }；refresh 不传 —— authMethod 属于「这次
+    // 登录」，不是会话属性，恢复/刷新时没有意义。
+    if (opts && opts.login === true) session.authMethod = authMethodFrom(json.user);
+    return session;
   }
 
   // 界面上「你是谁」只有一个口径。手机号用户没有 email，邮箱用户没有 phone，
@@ -252,7 +287,7 @@ var LearnAuth = (() => {
       const json = await post('/verify', field === 'phone'
         ? { type: 'sms', phone: normPhone(who), token: String(code || '').trim() }
         : { type: 'email', email: String(who || '').trim(), token: String(code || '').trim() });
-      return store(sessionFrom(json));
+      return store(sessionFrom(json, { login: true }));
     } catch (e) {
       authFail(field, 'verify', e);
       throw e;
@@ -272,7 +307,7 @@ var LearnAuth = (() => {
         email: String(email || '').trim(),
         password: String(password || ''),
       });
-      return store(sessionFrom(json));
+      return store(sessionFrom(json, { login: true }));
     } catch (e) {
       authFail('email', 'password', e);
       throw e;
@@ -613,7 +648,7 @@ var LearnAuth = (() => {
         auth_code: String(ticket.code),
         code_verifier: pending.verifier,
       });
-      return store(sessionFrom(json));
+      return store(sessionFrom(json, { login: true }));
     } catch (e) {
       authFail(provider, 'exchange', e);
       throw e;
@@ -646,7 +681,7 @@ var LearnAuth = (() => {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const json = await post('/token?grant_type=id_token', body);
-        return store(sessionFrom(json));
+        return store(sessionFrom(json, { login: true }));
       } catch (e) {
         last = e;
         if (!retryable(e) || attempt === 2) break;
