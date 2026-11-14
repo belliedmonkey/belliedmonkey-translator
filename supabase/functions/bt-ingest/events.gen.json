@@ -335,8 +335,27 @@
         "live_caption",
         "quick",
         "doc",
-        "web_caption"
-      ]
+        "web_caption",
+        "first_run_packs",
+        "settings_packs"
+      ],
+      "pack_kind": [
+        "asr",
+        "tts",
+        "lid",
+        "vad"
+      ],
+      "pack_id": "id",
+      "locale": "id",
+      "download_id": "id",
+      "launch_id": "id",
+      "source": [
+        "system",
+        "github",
+        "modelscope",
+        "other"
+      ],
+      "attempt": "int"
     },
     "pack_download_ok": {
       "setup_id": "id",
@@ -345,8 +364,27 @@
         "live_caption",
         "quick",
         "doc",
-        "web_caption"
-      ]
+        "web_caption",
+        "first_run_packs",
+        "settings_packs"
+      ],
+      "pack_kind": [
+        "asr",
+        "tts",
+        "lid",
+        "vad"
+      ],
+      "pack_id": "id",
+      "locale": "id",
+      "download_id": "id",
+      "launch_id": "id",
+      "source": [
+        "system",
+        "github",
+        "modelscope",
+        "other"
+      ],
+      "attempt": "int"
     },
     "pack_download_fail": {
       "setup_id": "id",
@@ -355,18 +393,69 @@
         "live_caption",
         "quick",
         "doc",
-        "web_caption"
+        "web_caption",
+        "first_run_packs",
+        "settings_packs"
+      ],
+      "pack_kind": [
+        "asr",
+        "tts",
+        "lid",
+        "vad"
+      ],
+      "pack_id": "id",
+      "locale": "id",
+      "download_id": "id",
+      "launch_id": "id",
+      "source": [
+        "system",
+        "github",
+        "modelscope",
+        "other"
+      ],
+      "attempt": "int",
+      "reason": [
+        "network",
+        "timeout",
+        "disk",
+        "hash",
+        "unsupported",
+        "other"
       ],
       "code": "id"
     },
     "packs_ready": {
       "setup_id": "id",
+      "selection_id": "id",
+      "launch_id": "id",
+      "surface": [
+        "listen",
+        "live_caption",
+        "quick",
+        "doc",
+        "web_caption",
+        "first_run_packs",
+        "settings_packs"
+      ],
       "ready_kind": [
         "base",
         "asr",
         "tts",
-        "all"
+        "all",
+        "downloaded",
+        "preexisting",
+        "mixed"
       ],
+      "asr_required": "int",
+      "asr_ready": "int",
+      "tts_required": "int",
+      "tts_ready": "int",
+      "base_ready": [
+        "true",
+        "false"
+      ],
+      "required_count": "int",
+      "ready_count": "int",
       "required": "int",
       "ready": "int"
     },
