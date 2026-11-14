@@ -71,6 +71,26 @@ describe('MTTelemetry — 白名单在客户端就守住', () => {
   });
 });
 
+test('BEL-223 新属性全部过真 shape：live_gate / auth_ok / grant_claim_fail / translate_ok', async () => {
+  const { T, store } = load();
+  eq(await T.track('live_gate', {
+    surface: 'listen', ok: 'true', result: 'ok', os_version: 'ios_26_0_1',
+    os_meets_min: 'true', probe_locale: 'zh-cn', reason_copy_class: 'other',
+    window: 'main', launch_id: '0123456789abcdef0123456789abcdef',
+    first_refresh: 'true', reused_prior_state: 'false',
+  }), true);
+  eq(await T.track('auth_ok', {
+    surface: 'login', provider: 'google', method: 'signin',
+    launch_id: '0123456789abcdef0123456789abcdef',
+  }), true);
+  eq(await T.track('grant_claim_fail', {
+    surface: 'listen', code: 'revoked', reason: 'revoked', copy_class: 'revoked', path: 'manual',
+  }), true);
+  eq(await T.track('translate_ok', { provider: 'deepseek', kind: 'subtitle', surface: 'live_caption' }), true);
+  const names = q(store, T).map((e) => e.name);
+  eq(names.join(','), 'live_gate,auth_ok,grant_claim_fail,translate_ok');
+});
+
 describe('MTTelemetry — 开关与心跳', () => {
   test('③ 关掉：发唯一一条 telemetry_off，清 id / 队列，之后 track 空操作', async () => {
     const { T, store, sends } = load();
