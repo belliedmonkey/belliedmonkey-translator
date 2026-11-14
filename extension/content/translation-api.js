@@ -225,7 +225,12 @@ Rules:
     // 保留 name：BEL-247 / ACCEPT-6 要遥测仍能看见 `AbortError`（而不是被冲成
     // 泛泛的 Error）。`code` 仍是 timeout，分类与遥测的既有判据不变。
     if (e && e.name) err.name = e.name;
-    err.code = (e && e.name === 'AbortError') ? 'timeout' : 'network';
+    // directFetch 现在自己给出 deadline/abort 终态（正文也可能在超时后才结束），
+    // 这两个具名状态不能被下面的分类冲成 network —— 冲掉了会触发「换条路再发
+    // 一遍」，把一次已经用掉 20 s 的等待翻倍，也会让取消被当成传输失败重试。
+    if (e && e.deadline) { err.code = 'timeout'; err.deadline = true; }
+    else if (e && e.aborted) { err.code = 'aborted'; err.aborted = true; }
+    else err.code = (e && e.name === 'AbortError') ? 'timeout' : 'network';
     // ACCEPT-6：proxy 超时走的是「**保留原回退**」那一条 —— 名字还原成 AbortError
     // 之后，如果只看 code!=='network' 就不再回退直连，等于改了 BEL-114 的路由策略。
     // 这个标志让 apiFetchInner 仍然执行原来的回退，遥测同时拿到 AbortError。
@@ -276,17 +281,61 @@ Rules:
     if (signal && signal.aborted) throw abortError();
     const ctrl = new AbortController();
     let onAbort = null;
+    let timer = null;
+    const fail = () => (signal && signal.aborted ? abortError() : deadlineError(url, 'direct'));
+    // The 20 s / deadline timer must cover the BODY, not just the response headers.
+    // It used to be cleared as soon as fetch() resolved; a response whose body never
+    // ended then had no bound at all and held its concurrency slot forever (five of
+    // them starved every same-context translate). Cleanup happens when the body is
+    // consumed, or when the body race below rejects.
+    const cleanup = () => {
+      if (timer) { clearTimeout(timer); timer = null; }
+      if (signal && onAbort) { signal.removeEventListener('abort', onAbort); onAbort = null; }
+    };
     if (signal) {
-      onAbort = () => ctrl.abort();
+      onAbort = () => { try { ctrl.abort(); } catch (_) {} };
       signal.addEventListener('abort', onAbort, { once: true });
     }
-    const timer = setTimeout(() => ctrl.abort(), timeoutMs || RequestShape.timeoutMs());
+    timer = setTimeout(() => {
+      timer = null;
+      cleanup();
+      try { ctrl.abort(); } catch (_) {}
+    }, timeoutMs || RequestShape.timeoutMs());
+    let resp;
     try {
-      return await fetch(url, Object.assign({}, opts, { signal: ctrl.signal }));
-    } finally {
-      clearTimeout(timer);
-      if (signal && onAbort) signal.removeEventListener('abort', onAbort);
+      resp = await fetch(url, Object.assign({}, opts, { signal: ctrl.signal }));
+    } catch (e) {
+      cleanup();
+      if (ctrl.signal.aborted) throw fail();
+      throw e;
     }
+    // Race the body read against the same abort. Real fetch rejects a body read when
+    // its signal aborts; the race makes the bound explicit and testable even for a
+    // Response stand-in that ignores the signal (no reliance on browser internals).
+    const consume = (fn) => (...args) => new Promise((resolve, reject) => {
+      if (ctrl.signal.aborted) { cleanup(); return reject(fail()); }
+      let settled = false;
+      let onBodyAbort = null;
+      const finish = (settle, value) => {
+        if (settled) return;
+        settled = true;
+        if (onBodyAbort) ctrl.signal.removeEventListener('abort', onBodyAbort);
+        cleanup();
+        settle(value);
+      };
+      onBodyAbort = () => finish(reject, fail());
+      ctrl.signal.addEventListener('abort', onBodyAbort, { once: true });
+      Promise.resolve().then(() => fn.apply(resp, args)).then(
+        (v) => finish(resolve, v),
+        (e) => finish(reject, e),
+      );
+    });
+    // The proxy path already returns a plain stand-in (a Response cannot cross the
+    // message boundary), so returning the same shape here keeps both routes uniform.
+    return {
+      ok: resp.ok, status: resp.status, statusText: resp.statusText, headers: resp.headers,
+      text: consume(resp.text), json: consume(resp.json),
+    };
   }
 
   // `diag` 是可选的诊断出参（设置页的「测试连接」传它）。放在这里而不是改返回值：
@@ -489,7 +538,10 @@ Rules:
     }, o.label, o.diag, o.timeoutMs, o.deadline, o.signal);
     // 正文按 text 读再 parse，而不是 resp.json()：apiFetch 的错误分支也这么读，两边
     // 保持一致，且畸形正文抛的是我们能定位的 SyntaxError 而不是 fetch 内部的。
-    const parsed = JSON.parse(await resp.text());
+    const bodyText = await resp.text();
+    // 取消与正文读可能同时完成：先到者赢，不把已经失去调用方的结果交出去。
+    if (o.signal && o.signal.aborted) throw abortError();
+    const parsed = JSON.parse(bodyText);
     const out = String(o.extract(parsed) || '').trim();
     // HTTP 200 + 空正文 = 服务端没意见，是我们要的东西没拿到。其中有一种必须单独说：
     // 推理模型把整个输出预算烧在思考上，一个字都没吐。它长得像「网络不好，再试一次」，
@@ -802,6 +854,7 @@ Rules:
   const OCR_SYSTEM = 'You are an OCR engine. Transcribe ALL text in the image verbatim, in reading order. Separate paragraphs with a blank line. Output the text only: no translation, no commentary, no markdown fences. If the image contains no text, output an empty string.';
   async function ocr(dataUri, provider, apiKey, baseUrl, model, opts) {
     await RequestShape.ready();
+    const o = opts || {};
     return enqueue(async () => {
       const p = providerById(provider);
       if (!p) { const e = new Error(`Unknown provider: ${provider}`); e.status = 0; e.code = 'unknown_provider'; e.retryable = false; throw e; }
@@ -811,10 +864,14 @@ Rules:
       const fmt = WireFormat.formatFor(url, p.type, mdl);
       const req = RequestShape.build(fmt, { url, apiKey, model: mdl, providerId: provider, needsKey: EngineState.needsKey({ provider }), keyOwner: RequestShape.ownerOf('chat'), system: OCR_SYSTEM, user: 'Transcribe the text in this image.', image: dataUri, budget: MAX_OUT_TRANSLATION * 2 });
       if (req.error) { const e = new Error(req.error); e.status = 0; e.code = req.error; e.retryable = false; throw e; }
-      const diag = opts && opts.diag;
+      const diag = o.diag;
       if (diag) { diag.url = url; diag.paramRow = req.caps.id; diag.bodyKeys = Object.keys(req.body); }
-      return callChatAPI({ diag, url, headers: req.headers, body: req.body, label: p.label || provider, extract: req.extract });
-    });
+      // 与 translate 同一条截止语义：绝对 deadline 由调用方给，否则真正开始执行时
+      // 起算总预算。交给 directFetch 后它会一直管到 resp.text() 读完，而不是只到响应头。
+      const deadline = o.deadline || (Date.now() + (o.budgetMs || DEFAULT_TRANSPORT_BUDGET_MS));
+      return callChatAPI({ diag, url, headers: req.headers, body: req.body, label: p.label || provider, extract: req.extract,
+        timeoutMs: o.timeoutMs, deadline, signal: o.signal });
+    }, { signal: o.signal });
   }
 
   // ─── 对话·实时听译的「修正 + 翻译」一次调用（learning-design §9.6.1）───────────
@@ -852,8 +909,12 @@ Rules:
       if (req.error) { const e = new Error(req.error); e.status = 0; e.code = req.error; e.retryable = false; throw e; }
       const diag = o.diag;
       if (diag) { diag.url = url; diag.paramRow = req.caps.id; diag.bodyKeys = Object.keys(req.body); }
-      return callChatAPI({ diag, url, headers: req.headers, body: req.body, label: p.label || provider, extract: req.extract, timeoutMs: o.timeoutMs });
-    });
+      // signal 与绝对 deadline 和 translate/ocr 同语义：排队可移除，飞行中可 abort，
+      // timeoutMs 由 directFetch 一直管到正文读完。
+      const deadline = o.deadline || (Date.now() + (o.budgetMs || DEFAULT_TRANSPORT_BUDGET_MS));
+      return callChatAPI({ diag, url, headers: req.headers, body: req.body, label: p.label || provider, extract: req.extract,
+        timeoutMs: o.timeoutMs, deadline, signal: o.signal });
+    }, { signal: o.signal });
   }
 
   return { translate, ocr, listenPass, detectLanguage, parseLangCode, DETECT_SYSTEM, defaultProvider, resolveProvider, needsKey, serverSays, sentRealKey, LANG_NAMES, OCR_SYSTEM };
