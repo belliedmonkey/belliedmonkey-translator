@@ -727,12 +727,23 @@ export async function packOk(token) {
   } catch (_) { return ''; }
 }
 
-// 六值归一化。只看错误对象里的 reason/code/why 与异常名，**不**把原始报错或 URL 发出去。
+// 六值归一化。只看错误对象里的结构化取消/超时标志与 reason/code/why/name/message，
+// **不**把原始报错或 URL 发出去。
+// 顺序：显式取消/中止 → timeout → hash → disk → network → unsupported → other。
+// 显式取消必须最先判：取消串里常带 connect/network，不能把「用户取消」记成网络失败。
 export function packFailReason(err) {
   const e = (err && typeof err === 'object') ? err : { message: String(err || '') };
-  if (e.mtSttTimeout) return 'timeout';
+  const lower = (v) => String(v == null ? '' : v).toLowerCase();
+  // 取消词只认 reason/code 两个结构化字段，不看自由文本。
+  const isCancelWord = (v) => /^(cancelled|canceled|abort)$/.test(lower(v));
   const raw = [e.reason, e.code, e.why, e.name, e.message].filter(Boolean).join(' ').toLowerCase();
-  if (/timeout|timed[ _-]?out|stt-timeout/.test(raw)) return 'timeout';
+  const timeout = !!e.mtSttTimeout || /timeout|timed[ _-]?out|stt-timeout/.test(raw);
+  // 显式取消一律 other（六值里没有 cancelled）：即使 message 里带 connect/timeout，
+  // 也不能记成 network/timeout。AbortError 只在没有 timeout 标志时才算取消。
+  if (e.cancelled === true || e.canceled === true || e.mtCancelled === true ||
+      isCancelWord(e.reason) || isCancelWord(e.code) ||
+      (lower(e.name) === 'aborterror' && !timeout)) return 'other';
+  if (timeout) return 'timeout';
   if (/sha|hash|checksum|integrity|mismatch/.test(raw)) return 'hash';
   if (/disk|enospc|no[ _-]?space|storage[ _-]?full|quota/.test(raw)) return 'disk';
   if (/offline|network|http|dns|connect|socket|unreachable|not connected|econn|fetch/.test(raw)) return 'network';
