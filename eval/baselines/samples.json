@@ -1,0 +1,6 @@
+{
+  "schema": "belliedmonkey.baseline-samples.v1",
+  "version": "samples-0",
+  "records": [],
+  "blocked": "No authorized, redacted real failure sample is in this repository. This batch did not read production content, credentials, or paid-model outputs. An empty catalog is the record, not a completed sample set."
+}

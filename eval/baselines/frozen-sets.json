@@ -1,0 +1,5 @@
+{
+  "schema": "belliedmonkey.baseline-frozen-sets.v1",
+  "sets": [],
+  "blocked": "A frozen set cannot be cut until samples-0 is replaced by an authorized catalog. Changing a future set requires a new version id. This file is the empty pin, not a measured split."
+}

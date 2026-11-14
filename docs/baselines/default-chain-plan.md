@@ -1,0 +1,70 @@
+# 默认链路评测方案
+
+这是后续测量方案，不是产品实现，也不是已经收集的样本或成绩。PR 663 里的 16 句文件助手仍是 `sa` 组件。`cbc0c0e1` 的两次一键运行和 `3bd90f75` 的只打包不属于本方案的端到端或性能结论。
+
+## 当前源码里的默认臂
+
+国际版 Mac、flavor 不是 `china`、`zhAsrE1 !== false` 时，`src/app/listen-model.js` 把 `zhAsrE1Arm` 设为 `e1_b1`。`src/store/schema.js` 里 `zhAsrE1` 的默认值是 `true`。中国版和非 Mac 保持 `sa`。听译和实时字幕共用这个臂值；字幕不走对话的模型断句。
+
+`app/native/e1-sensevoice.swift` 的 `RecognizerFactory.make` 只在臂是 `e1_b1` 且主语言是 `zh` 时返回 `MTE1B1Transcriber`，否则返回 `MTDeviceTranscriber`。`e1_b1` 是 SpeechAnalyzer 的 partial，加上 `language: "zh"`、`useInverseTextNormalization: true` 的 SenseVoice 定稿。VAD 锁是 `sil0.5_thr0.3_max8`：静音 0.5 秒、阈值 0.3、最长 8 秒。模型没装好时 `ensureReady` 失败并回退 SA，回退原因是封闭枚举。配置写成 `e1_b1` 不能代替运行时记录；没有实际臂和回退原因的行必须排除，或单独成列，不能猜。
+
+`app/native/speech-bridge.swift` 里「Release 下 resolveArm 恒 sa」那句注释和 `resolveArm` 的实现不一致。以 `listen-model.js` 和 `resolveArm` 的代码为准。
+
+麦克风 PCM 留在原生进程。`_testInjectFinal` 绕过识别，不是文件入口。`eval/baselines/asr/product-asr-mac.swift` 是另一个进程里的 `sa` 文件助手，不能复用成 `e1_b1`。
+
+## 时钟
+
+每个延迟都要写出起点、终点和配对键。时间原点是呈现给识别器的单调钟：文件注入时是第一帧交给识别器的时刻，实时麦克风时是第一帧音频回调的时刻。编译和资源安装不在这些区间里。没有对齐信息时，依赖语音起止的指标标 `blocked`。原生钟和 JS 钟如果没有同一次配对校准，不能把两边的时间相减；能记录的只是事件，不能称为屏幕。流式阶段互相重叠，阶段耗时不能相加当成端到端。
+
+| 指标 | 起点 | 终点 | 配对 | 现在能记的 | 不能声称的 |
+|---|---|---|---|---|---|
+| 首 partial | 呈现钟上的语音起点，样本索引除以 16000 | 驱动可见行的第一条 partial 事件 | 句 id | 事件时刻，若只有事件 | 屏幕上出现。没有绘制钟则 `blocked` |
+| final commit | 呈现钟上的语音终点 | 行提交事件。`row.lat.final` 是提交时的 `now()` | 句 id | 事件 | 屏幕 |
+| caption render | 同一语音终点 | 字幕行绘制事件 | 句 id | 无绘制钟 | 事件提交不是字幕绘制，标 `blocked` |
+| translation render | final commit 的事件时刻 | `row.tr` 被写入的事件时刻 | 句 id | 事件 | `row.lat.pass` 只是 `translate()` 调用到返回的时长，不是这段，也不是端到端 |
+| tts onset | `LearnTTS.speak` 被调用的 `now()` | 该 promise 落定的 `now()`。旁边注释写的是引擎报告开始出声 | 行 `rid` | `row.lat.ttsStart` 这个差值 | 在核对 `LearnTTS.speak` 的落点之前，不能把它称为喇叭出声或屏幕状态 |
+
+文件快推和 16 kHz 实时送入是两列。快推的数字不能写成实时延迟。
+
+## 译文质量和字幕可读性
+
+翻译质量不看参考字符串是否完全相同。双语各一名评委独立盲评，争议由第三人仲裁。每一句分开记：意义保全、关键实体和数字、否定、遗漏、幻觉、术语、流畅度。同一句再分两列：识别结果往下传的译文，以及用参考转写当输入的译文。后者才把识别错误和翻译错误分开。
+
+字幕可读性不只是屏幕上的字等于 final。还要记断行、行长、该行显示了多久、修订有没有闪烁、以及和语音的同步。没有绘制记录的项标 `blocked`。
+
+## 样本
+
+现有 16 句仍是可重复的 `sa` 文件 smoke，不改参考，不计入下面的新集合。新集合要单独版本化。下面的数目是首轮计划目标，不是已收集的数量，也不是统计显著的保证。真实失败样本仍是 0，不用公开朗读或计划名额去填。
+
+每条只进一个主格子，避免交叉重复计数。首轮计划 30 条：
+
+| 主格子 | zh | en | 混语 |
+|---|---|---|---|
+| 干净短句 | 2 | 2 | 2 |
+| 干净长句 | 2 | 2 | 2 |
+| 口音 | 2 | 2 | 2 |
+| 噪声 | 2 | 2 | 2 |
+| 连续对话 | 2 | 2 | 2 |
+
+每条记录来源、license、revision、文件哈希、同意、隐私处理、参考转写、参考译文，以及人审。`cmn_hans_cn/1663` 已有一条人耳记录，校验器里 `zh1663AudioChecked` 为 true。结论是两处括注都读出，整句与官方原文相符，所以不改参考，也不重算已有 CER。批准集合仍是空的。
+
+离线契约是 `node eval/baselines/default-chain-check.js`。空的批准集合退出码 2，`rates` 为 null。`--selftest` 是合成夹具，不能发布成实测。`node eval/baselines/asr/fetch-public-candidates.js --offline` 核对另一批 30 条公开朗读的文本和缓存 wav；缺一条就失败。它不增加 `actualCount`，也不代替人审。产品桥仍等另一次批准。端到端仍 **待测**。
+
+成本边界：这 30 条的标注是人工转写和人工译文，不调用付费模型。没有捐献的同意音频之前，格子保持空。
+
+## 性能
+
+每个要比较的条件至少五次，并且交替配对、顺序和 seed 先写下来。不是所有条件合起来共五次。报告 median 和 range，分母写上成功、失败和超时。五次不够就不报 p95。没有数据就不写 SLO。
+
+## 产品桥，等待另一次批准
+
+本文件不实现，也不派实现。若以后批准，改动只加在现有 `stt-start`、`RecognizerFactory.make` 和 `MTE1B1Transcriber` 的 PCM 入口上，让同一进程按真实臂喂文件，并分开记录 partial、SenseVoice final 和回退原因。不新增第二套识别器。编译和资源安装继续排除在延迟之外。
+
+## 顺序
+
+1. 协议里写明三行不能混：`sa` 文件组件、`e1_b1` partial、`e1_b1` final。
+2. 人耳核对 1663。这一条已记在 `eval/baselines/asr/zh1663-ear-2026-11-13.json`。其余样本仍没有人审。
+3. 样本规则和空的失败集保持为零，直到真的有同意捐献。
+4. 产品桥停在批准门。
+5. 批准之后才做同一音频的阶段输出，再做实时听译，然后实时字幕。
+6. 时钟齐全之后才做每条件五次交替。网页和文档不在这个顺序里。

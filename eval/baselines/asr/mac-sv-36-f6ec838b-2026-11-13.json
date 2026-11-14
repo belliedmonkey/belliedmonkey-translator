@@ -1,0 +1,106 @@
+{
+  "schema": "baseline-sv-36-chair.v1",
+  "commitUnderTest": "f6ec838b",
+  "readByThisAgent": false,
+  "sourceFilesRead": false,
+  "hypothesisFileCopied": false,
+  "chairBox": "/workspace/baseline-sa-sv-36-20261113/results/f6ec838b-sv/",
+  "boxContains": ["run", "pack", "probe", "rescore", "REPORT", "SHA256SUMS"],
+  "authorization": "t43/t44",
+  "startedAt": "2026-11-13T17:11:51+08:00",
+  "endedAt": "2026-11-13T17:13:11+08:00",
+  "exit": 0,
+  "nonemptyHypotheses": 36,
+  "recognitionFailures": 0,
+  "productMetric": false,
+  "endToEnd": false,
+  "leaderboard": false,
+  "ranking": false,
+  "exploratory": true,
+  "approvedPlannedSetCount": 0,
+  "repeats": 1,
+  "alternatingRepeats": 0,
+  "speedRanking": false,
+  "rates": {
+    "en15": { "metric": "wer", "errors": 29, "length": 363 },
+    "zh15": { "metric": "cer", "errors": 57, "length": 624 },
+    "ascend6": { "metric": "mer", "errors": 17, "length": 42, "ranking": false }
+  },
+  "sameRuleSa": {
+    "en15": { "errors": 36, "length": 363 },
+    "zh15": { "errors": 57, "length": 624 },
+    "ascend6": { "errors": 24, "length": 42 }
+  },
+  "zhTotalsMatchSa": true,
+  "zhItemsMatchSa": false,
+  "ascendItems": [
+    { "id": "00004", "errors": 4, "length": 5 },
+    { "id": "00009", "errors": 6, "length": 13 },
+    { "id": "00028", "errors": 3, "length": 3 },
+    { "id": "00055", "errors": 1, "length": 14 },
+    { "id": "00066", "errors": 1, "length": 4 },
+    { "id": "00068", "errors": 2, "length": 3 }
+  ],
+  "v1RescoreAgrees": true,
+  "v1Unchanged": true,
+  "fleursFloat32AcceptedByBackend": true,
+  "runnerTranscode": false,
+  "pins": {
+    "modelZipSha256": "286a4b89c62be15c78f195b908bf746c80a655f07588346ee0383a8f20f21e04",
+    "modelOnnxSha256": "c71f0ce00bec95b07744e116345e33d8cbbe08cef896382cf907bf4b51a2cd51",
+    "vocabularySha256": "f449eb28dc567533d7fa59be34e2abca8784f771850c78a47fb731a31429a1dc",
+    "backendTarSha256": "e2496931fd955ab449c2df1a6839e4c17cedf451e018cc3efd1a77180980c49b",
+    "binaryBytes": 29996336,
+    "binarySha256": "5a2d733a900cd6956a04432026fbf625e5912e694a8c8698fa69929659e0cf66",
+    "binaryFormat": "Mach-O arm64",
+    "provider": "cpu",
+    "threads": 2,
+    "language": "zh",
+    "itn": true
+  },
+  "modelscopeUrl": "https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.zip",
+  "relayInvoked": false,
+  "credentialsUsed": false,
+  "timing": {
+    "wallSeconds": 80.57,
+    "userSeconds": 155.45,
+    "sysSeconds": 2.11,
+    "phasesMs": {
+      "preflight": 29.868,
+      "stage": 55.515,
+      "compile": null,
+      "assetInstall": null,
+      "modelLoad": 674,
+      "recognize": 80146.724,
+      "score": 7.579,
+      "pack": 17.362
+    },
+    "loadavgStart": [4.78, 4.11, 3.36],
+    "loadavgEnd": [5.34, 4.55, 3.6],
+    "machine": "M2 Pro 12-core 16GB",
+    "os": "macOS 27",
+    "node": "26.10"
+  },
+  "probe": {
+    "id": "ascend/00004",
+    "exit": 0,
+    "text": "我死的。",
+    "seconds": 1.5,
+    "inDenominator": false
+  },
+  "evidence": {
+    "firstSha256": "bbc4a0cae169d5e66557fc4cd73cca05055c4ec8928119ea6778ff4faacdaa0c",
+    "unchangedAfterPack": true,
+    "packSha256": "8a57cea938cce2dd05cc9afc845e84a2db5a110f7dd2642163d6331705596076",
+    "saEvidenceUnchanged": true
+  },
+  "sourceReview": {
+    "senseVoiceProcesses": 1,
+    "senseVoiceWavsPerProcess": 36,
+    "modelLoadIsFirstStderrMatch": true,
+    "modelLoadIsSum": false,
+    "saProcesses": 1,
+    "saNewSpeechModulePerItem": true,
+    "comparableSpeed": false
+  }
+}

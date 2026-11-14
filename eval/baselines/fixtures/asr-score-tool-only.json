@@ -1,0 +1,11 @@
+{
+  "schema": "belliedmonkey.public-asr-set.v1",
+  "id": "asr-score-tool-only",
+  "kind": "tool-only",
+  "productMetric": false,
+  "note": "Synthetic strings for the scorer only. Not FLEURS, not a system hypothesis, not a quality baseline.",
+  "items": [
+    { "id": "en-1", "lang": "en", "reference": "hello world" },
+    { "id": "zh-1", "lang": "zh", "reference": "今天天气" }
+  ]
+}

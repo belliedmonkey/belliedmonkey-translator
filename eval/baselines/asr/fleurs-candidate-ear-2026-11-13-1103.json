@@ -1,0 +1,50 @@
+{
+  "schema": "belliedmonkey.fleurs-candidate-ear-review.v1",
+  "reviewer": "ZHAO ZHANG",
+  "reviewedAt": "2026-11-13T11:03+08:00",
+  "timezone": "Asia/Shanghai",
+  "verbatim": "确认。都是对的。usgc也读出了",
+  "verbatimNote": "The user's spelling usgc is kept. The official text still says USGS and is not rewritten.",
+  "license": "CC-BY-4.0",
+  "revision": "70bb2e84b976b7e960aa89f1c648e09c59f894dd",
+  "humanVerifiedCount": 3,
+  "approvedPlannedSetCount": 0,
+  "items": [
+    {
+      "source": "fleurs-public-candidates",
+      "config": "cmn_hans_cn",
+      "sentenceId": "1669",
+      "audioName": "13763174630354430252.wav",
+      "audioSha256": "de149c29bdb3dd88f3befb247a99b2866aaa9c196f08818d8f2bba06c1ce0c53",
+      "bytes": 437818,
+      "raw": "警察局长钱德拉·谢卡尔·索兰基说，被告人出庭时都蒙住了脸。",
+      "playbackSha256": "5d7c585f846b1be6e1b9c29e781c8bc23ead79335fa9b0faaf383e56f9297a20",
+      "playbackRole": "playback-only",
+      "userParenthetical": ""
+    },
+    {
+      "source": "fleurs-public-candidates",
+      "config": "en_us",
+      "sentenceId": "1670",
+      "audioName": "2508559905589212221.wav",
+      "audioSha256": "6dc676eae80109d088233f838226d4164f76befd8aafc772e1a6cb9eaa0d31df",
+      "bytes": 1875258,
+      "raw": "Their thermal behavior is not as steady as large caves on Earth that often maintain a fairly constant temperature, but it is consistent with these being deep holes in the ground,\" said Glen Cushing of the United States Geological Survey (USGS) Astrogeology Team and of Northern Arizona University located in Flagstaff, Arizona.",
+      "playbackSha256": "fe34fc8a160c54bc2cde3e014cdcb4087fe90d8e9c98efac457408988a7d810e",
+      "playbackRole": "playback-only",
+      "userParenthetical": "usgc也读出了"
+    },
+    {
+      "source": "fleurs-public-candidates",
+      "config": "cmn_hans_cn",
+      "sentenceId": "1670",
+      "audioName": "1626393343718951419.wav",
+      "audioSha256": "ba4d6b659f00765bd39fe3952b1da421733923ee0c9774c4a18d871f4fc4f73c",
+      "bytes": 1647418,
+      "raw": "“它们的热行为不像地球上的大型洞穴那么稳定，这些大型洞穴通常会保持相当恒定的温度，但它们与地下深穴的情况很相似，”亚利桑那州旗杆镇美国地质调查局 (USGS) 太空地质团队和北亚利桑那大学的格伦·库欣说道。",
+      "playbackSha256": "7cb6d39639e832c05d3f9ba9bcae979dea8dcda08a6d2cecb23f35e4f14e8b98",
+      "playbackRole": "playback-only",
+      "userParenthetical": "usgc也读出了"
+    }
+  ]
+}

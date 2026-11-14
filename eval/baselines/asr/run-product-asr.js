@@ -1,0 +1,1027 @@
+'use strict';
+
+// Eval-only gate for the product ASR path. It does not change the app.
+// On this repository the live recognizer is Apple SpeechAnalyzer (macOS 26 /
+// iOS 26) inside app/native/speech-bridge.swift. English never leaves that
+// path. Chinese on international Mac defaults to arm e1_b1, which still runs
+// inside that process (SpeechAnalyzer partials plus a SenseVoice final).
+// This host cannot execute that process. The command fail-closes: it checks
+// the frozen wavs, then refuses to write a hypothesis file.
+
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const os = require('os');
+const { execFileSync, spawn } = require('child_process');
+const { wavInfo } = require('./wav-info.js');
+
+const DEFAULT_SET = path.join(__dirname, 'fleurs-public-v1.json');
+const HELPER = path.join(__dirname, 'product-asr-mac.swift');
+
+function sha256(buf) {
+  return crypto.createHash('sha256').update(buf).digest('hex');
+}
+
+function macMajor(version) {
+  const n = parseInt(String(version || '').split('.')[0], 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
+const ASSET_LOCALE = {
+  en_us: 'en-US',
+  cmn_hans_cn: 'zh-CN',
+};
+
+function assetPlan(input) {
+  const install = input.install === true;
+  const statuses = input.statuses || {};
+  const base = {
+    productMetric: false,
+    hypotheses: null,
+    arm: 'sa',
+    installRequested: false,
+    manualReserve: false,
+    releaseLocales: false,
+    maxAttempts: 2,
+    timeoutMs: 15 * 60 * 1000,
+  };
+  const locales = [];
+  for (const config of input.configs || []) {
+    const locale = ASSET_LOCALE[config];
+    if (!locale) {
+      return Object.assign({}, base, {
+        ok: false,
+        code: 'unsupported-locale',
+        locale: config,
+      });
+    }
+    if (locales.indexOf(locale) === -1) locales.push(locale);
+  }
+  const assets = locales.map((locale) => {
+    const status = statuses[locale] || 'unknown';
+    return { locale: locale, status: status, installed: status === 'installed' };
+  });
+  const unsupported = assets.filter((row) => row.status === 'unsupported');
+  if (unsupported.length) {
+    return Object.assign({}, base, {
+      ok: false,
+      code: 'unsupported-locale',
+      locale: unsupported[0].locale,
+      status: 'unsupported',
+      assets: assets,
+    });
+  }
+  const missing = assets.filter((row) => !row.installed);
+  if (!missing.length) {
+    return Object.assign({}, base, { ok: true, code: 'assets-installed', assets: assets });
+  }
+  if (!install) {
+    return Object.assign({}, base, {
+      ok: false,
+      code: 'speech-assets-not-installed',
+      assets: assets,
+    });
+  }
+  return Object.assign({}, base, {
+    ok: true,
+    code: 'request-install',
+    installRequested: true,
+    locales: missing.map((row) => row.locale),
+    assets: assets,
+  });
+}
+
+function redactText(value) {
+  return String(value).replace(/(?:\/Users\/|\/home\/|file:\/\/)\S+/g, '<path>');
+}
+
+function redactChain(chain) {
+  return (chain || []).map((link) => {
+    const userInfo = {};
+    const raw = link && link.userInfo ? link.userInfo : {};
+    for (const key of Object.keys(raw)) {
+      const value = raw[key];
+      userInfo[key] = typeof value === 'string' ? redactText(value).slice(0, 300) : value;
+    }
+    return {
+      swiftType: link && link.swiftType ? link.swiftType : '',
+      domain: link && link.domain ? link.domain : '',
+      code: link && link.code != null ? link.code : null,
+      description: redactText(link && link.description ? link.description : '').slice(0, 500),
+      userInfo: userInfo,
+    };
+  });
+}
+
+function reportFailure(input) {
+  const phase = input.phase === 'install' ? 'install' : 'recognition';
+  if (phase === 'install') {
+    const classified = classifyAssetError(input.error || {});
+    classified.phase = 'install';
+    classified.rates = null;
+    classified.hypotheses = null;
+    return classified;
+  }
+  const underlying = input.underlyingCode;
+  const code = underlying === 'speech-assets-not-installed' || underlying === 'unsupported-locale'
+    ? underlying
+    : 'recognition-failed';
+  return {
+    ok: false,
+    code: code,
+    phase: 'recognition',
+    stage: input.stage || 'unspecified',
+    locale: input.locale == null ? '' : input.locale,
+    sampleId: input.sampleId == null ? '' : input.sampleId,
+    installFlag: input.installFlag === true,
+    hypotheses: null,
+    rates: null,
+    productMetric: false,
+    arm: 'sa',
+    sameProductProcess: false,
+    matchesIntlMacChineseDefaultArm: false,
+    endToEnd: false,
+    permissionPrompt: 'unknown',
+    chain: redactChain(input.chain),
+  };
+}
+
+function pcmReadAction(framePosition, length) {
+  if (framePosition >= length) return { action: 'end', callRead: false };
+  return { action: 'read', callRead: true };
+}
+
+function readThrownAction(error, framePosition, length) {
+  const atEnd = framePosition >= length;
+  const nilError = error
+    && error.domain === 'Foundation._GenericObjCError'
+    && error.code === 0
+    && error.description === 'nilError';
+  if (atEnd && nilError) return { action: 'end', hypotheses: null };
+  return { action: 'throw', hypotheses: null };
+}
+
+function converterOutputAction(status, hasNsError) {
+  if (status === 'endOfStream') return { action: 'end', throw: false, hypotheses: null };
+  if (status === 'inputRanDry') return { action: 'continue', throw: false, hypotheses: null };
+  if (status === 'haveData') return { action: 'yield', throw: false, hypotheses: null };
+  return {
+    action: 'throw',
+    throw: true,
+    useNsError: hasNsError === true,
+    hypotheses: null,
+  };
+}
+
+function diagnosticPlan(input) {
+  const on = input.diagnosticFirst === true;
+  const selected = input.diagnosticPath === 'apple-file'
+    ? 'apple-analyzeSequence-file'
+    : input.diagnosticPath === 'manual'
+      ? 'manual-pcm-analyzer-input'
+      : null;
+  return {
+    diagnosticFirst: on,
+    diagnosticPath: input.diagnosticPath || '',
+    itemLimit: on ? 1 : null,
+    completeSet: !on,
+    notAFullSetScore: on,
+    productMetric: false,
+    rates: null,
+    hypotheses: null,
+    sameProductProcess: false,
+    endToEnd: false,
+    arm: 'sa',
+    nodeTimeoutMs: on ? 3 * 60 * 1000 : 15 * 60 * 1000,
+    runCapMs: 45 * 1000,
+    compileCapMs: 90 * 1000,
+    feeds: selected ? [selected] : [],
+  };
+}
+
+function lastSampleTime(spec) {
+  const start = spec && spec.startFrame;
+  const count = spec && spec.frameCount;
+  const rate = spec && spec.sampleRate;
+  const blank = { hypotheses: null, rates: null, productMetric: false };
+  if (!Number.isInteger(start) || start < 0) {
+    return Object.assign(blank, { ok: false, code: 'bad-start' });
+  }
+  if (!Number.isInteger(count) || count <= 0) {
+    return Object.assign(blank, { ok: false, code: 'zero-input' });
+  }
+  if (typeof rate !== 'number' || !(rate > 0) || !Number.isFinite(rate)) {
+    return Object.assign(blank, { ok: false, code: 'bad-rate' });
+  }
+  const value = start + count - 1;
+  return Object.assign(blank, {
+    ok: true,
+    code: 'ok',
+    value: value,
+    timescale: rate,
+    seconds: value / rate,
+    exclusiveEndSeconds: (start + count) / rate,
+  });
+}
+
+function aggregateFinalSegments(events) {
+  const pieces = [];
+  for (const ev of events || []) {
+    if (!ev || ev.isFinal !== true) continue;
+    const text = typeof ev.text === 'string' ? ev.text : '';
+    const idx = pieces.findIndex((piece) => piece.rangeStart === ev.rangeStart && piece.rangeEnd === ev.rangeEnd);
+    if (idx >= 0) pieces[idx].text = text;
+    else pieces.push({ rangeStart: ev.rangeStart, rangeEnd: ev.rangeEnd, text: text });
+  }
+  return {
+    text: pieces.map((piece) => piece.text).join(''),
+    finalCount: pieces.length,
+    hypotheses: null,
+    rates: null,
+    productMetric: false,
+  };
+}
+
+function fileReaderFinish(kind) {
+  const blank = { hypotheses: null, rates: null, productMetric: false, success: false };
+  if (kind === 'live-mic') {
+    return Object.assign(blank, {
+      awaitsReader: false,
+      sessionFinish: null,
+      through: null,
+      cancelsReader: false,
+      volatileIsFinal: false,
+      productCode: true,
+    });
+  }
+  if (kind === 'manual-pcm-file' || kind === 'apple-file') {
+    return Object.assign(blank, {
+      awaitsReader: true,
+      sessionFinish: 'finalizeAndFinish(through:)',
+      through: 'last-sample',
+      cancelsReader: false,
+      volatileIsFinal: false,
+      productCode: false,
+    });
+  }
+  return Object.assign(blank, { awaitsReader: false, sessionFinish: null, code: 'unknown-kind' });
+}
+
+function diagnosticSnapshot(state) {
+  const snap = {
+    stage: state && state.stage ? state.stage : '',
+    fed: state ? state.fed : 0,
+    finishRequestedFrame: state ? state.finishRequestedFrame : 0,
+    exclusiveEndFrame: state ? state.exclusiveEndFrame : 0,
+    inputLastEndFrame: state ? state.inputLastEndFrame : 0,
+    finalizeReturned: !!(state && state.finalizeReturned),
+    resultEventsReceived: state && state.resultEventsReceived ? state.resultEventsReceived : 0,
+    finalSegments: state && state.finalSegments ? state.finalSegments : [],
+    hypotheses: null,
+    rates: null,
+    productMetric: false,
+    success: false,
+  };
+  if (state && state.completed === true) {
+    snap.diagnosticText = typeof state.diagnosticText === 'string' ? state.diagnosticText : '';
+  }
+  return snap;
+}
+
+function baselineRunPlan(input) {
+  const count = input && input.count;
+  const audioSeconds = input && input.audioSeconds;
+  const base = {
+    productMetric: false,
+    sameProductProcess: false,
+    endToEnd: false,
+    matchesIntlMacChineseDefaultArm: false,
+    hypotheses: null,
+    rates: null,
+    success: null,
+    compileCapMs: 90 * 1000,
+    perItemCapMs: 45 * 1000,
+    processCapMs: 180 * 1000,
+    launcher: 'swiftc',
+    assetAttempts: 1,
+    manualReserve: false,
+    releaseLocales: false,
+  };
+  if (count !== 16) return Object.assign(base, { ok: false, code: 'need-16', processExit: 2 });
+  if (typeof audioSeconds !== 'number' || !(audioSeconds < 180)) {
+    return Object.assign(base, {
+      ok: false,
+      code: 'audio-longer-than-cap',
+      processExit: 2,
+      audioSeconds: audioSeconds,
+    });
+  }
+  return Object.assign(base, {
+    ok: true,
+    code: 'run-16',
+    processExit: 0,
+    audioSeconds: audioSeconds,
+    completeSet: true,
+  });
+}
+
+function acceptHypotheses(rows, expectedCount) {
+  const reject = {
+    ok: false,
+    processExit: 2,
+    hypotheses: null,
+    rates: null,
+    productMetric: false,
+    sameProductProcess: false,
+    endToEnd: false,
+    completeSet: false,
+    success: null,
+  };
+  if (!Array.isArray(rows) || rows.length !== expectedCount) return reject;
+  for (const row of rows) {
+    if (!row || typeof row.id !== 'string' || typeof row.hypothesis !== 'string') return reject;
+  }
+  return {
+    ok: true,
+    processExit: 0,
+    count: rows.length,
+    hypothesesFile: 'hypotheses.json',
+    hypotheses: null,
+    rates: null,
+    productMetric: false,
+    sameProductProcess: false,
+    endToEnd: false,
+    completeSet: true,
+    success: null,
+  };
+}
+
+function diagnosticInvocation(input) {
+  const prepare = input.prepareAssets === true;
+  const first = input.diagnosticFirst === true;
+  const pathName = input.diagnosticPath || '';
+  const base = {
+    hypotheses: null,
+    rates: null,
+    productMetric: false,
+    sameProductProcess: false,
+    endToEnd: false,
+  };
+  if (prepare && !(first && (pathName === 'apple-file' || pathName === 'manual'))) {
+    return Object.assign(base, {
+      ok: false,
+      code: 'prepare-assets-requires-one-sentence',
+      processExit: 2,
+      prepare: false,
+      sameProcess: false,
+    });
+  }
+  if (first && pathName !== 'apple-file' && pathName !== 'manual' && pathName !== 'both') {
+    return Object.assign(base, {
+      ok: false,
+      code: 'need-diagnostic-path',
+      processExit: 2,
+      prepare: false,
+      sameProcess: false,
+    });
+  }
+  return Object.assign(base, {
+    ok: true,
+    code: 'ok',
+    processExit: 0,
+    prepare: prepare,
+    sameProcess: prepare,
+    path: pathName,
+  });
+}
+
+function interpretSupervisedExit(result) {
+  const signal = result.signal || null;
+  const killedByCap = result.cap != null || signal === 'SIGTERM';
+  const code = result.code == null ? null : result.code;
+  const swiftExit = killedByCap ? null : code;
+  const failed = killedByCap || swiftExit !== 0;
+  return {
+    ok: !failed,
+    path: result.path || 'apple-analyzeSequence-file',
+    phase: result.phase || (killedByCap ? 'killed' : 'exited'),
+    timedOut: killedByCap,
+    signal: signal,
+    swiftExit: swiftExit,
+    processExit: failed ? 2 : 0,
+    hypotheses: null,
+    rates: null,
+    productMetric: false,
+    notAProductScore: true,
+    notAFullSetScore: true,
+    completeSet: false,
+    success: false,
+    sameProductProcess: false,
+    endToEnd: false,
+  };
+}
+
+function stageKillDecision(state) {
+  if (state.now - state.started >= state.processCapMs) return 'process-cap';
+  if ((state.phase === 'prepare-before' || state.phase === 'prepare-after') && state.now - state.phaseAt >= state.prepareCapMs) {
+    return 'prepare-cap';
+  }
+  if (state.phase === 'recognize-before' && state.now - state.phaseAt >= state.recognizeCapMs) {
+    return 'recognize-cap';
+  }
+  return null;
+}
+
+function diagnosticProcesses(input) {
+  const which = input.diagnosticPath;
+  const names = which === 'both' ? ['manual', 'apple-file']
+    : (which === 'apple-file' || which === 'manual') ? [which] : [];
+  if (!names.length) {
+    return { ok: false, code: 'need-diagnostic-path', processes: [], totalCapMs: 3 * 60 * 1000 };
+  }
+  const processes = names.map((name) => {
+    const plan = diagnosticPlan({ diagnosticFirst: true, diagnosticPath: name });
+    return {
+      path: name,
+      feed: plan.feeds[0],
+      separateProcess: true,
+      compileCapMs: plan.compileCapMs,
+      runCapMs: plan.runCapMs,
+      hypotheses: null,
+      notAProductScore: name === 'apple-file',
+      sameProductProcess: false,
+    };
+  });
+  return { ok: true, processes: processes, totalCapMs: 3 * 60 * 1000 };
+}
+
+function diagnosticAggregate(pathRecords) {
+  const records = pathRecords || [];
+  const failed = records.length === 0 || records.some((item) => {
+    if (!item || item.timedOut) return true;
+    if (item.swiftExit == null || item.swiftExit !== 0) return true;
+    return false;
+  });
+  return {
+    paths: records,
+    hypotheses: null,
+    rates: null,
+    productMetric: false,
+    completeSet: false,
+    notAFullSetScore: true,
+    success: false,
+    swiftExit: null,
+    timedOut: records.some((item) => item && item.timedOut),
+    processExit: failed ? 2 : 0,
+  };
+}
+
+function pathTimeoutRecord(err, partial) {
+  const failure = childFailure(err, partial || null);
+  return {
+    ok: false,
+    path: partial && (partial.feed || partial.path) ? (partial.feed || partial.path) : '',
+    phase: failure.timedOut ? 'killed' : 'exited',
+    timedOut: failure.timedOut,
+    signal: failure.signal,
+    swiftExit: failure.swiftExit,
+    resultEventsReceived: partial && partial.resultEventsReceived ? partial.resultEventsReceived : 0,
+    success: false,
+    hypotheses: null,
+    rates: null,
+    productMetric: false,
+    code: failure.code,
+  };
+}
+
+function coverageReport(inputs, finishRequestedFrame) {
+  let cursor = 0;
+  let continuous = true;
+  for (const row of inputs || []) {
+    if (row.startFrame !== cursor) continuous = false;
+    cursor = row.endFrame;
+  }
+  return {
+    continuous: continuous,
+    lastInputEndFrame: cursor,
+    finishMatchesCoveredEnd: finishRequestedFrame === cursor,
+    completeSet: false,
+    hypotheses: null,
+    rates: null,
+    productMetric: false,
+  };
+}
+
+function childFailure(err, trace) {
+  const signal = err && err.signal ? err.signal : null;
+  const status = err && err.status != null ? err.status : null;
+  const timedOut = !!(err && (err.killed || err.code === 'ETIMEDOUT' || (signal && status == null)));
+  const base = {
+    ok: false,
+    arm: 'sa',
+    sameProductProcess: false,
+    matchesIntlMacChineseDefaultArm: false,
+    endToEnd: false,
+    productMetric: false,
+    hypotheses: null,
+    rates: null,
+    permissionPrompt: 'unknown',
+    stage: trace && trace.stage ? trace.stage : 'unknown',
+    sampleId: trace && trace.sampleId ? trace.sampleId : '',
+    locale: trace && trace.locale ? trace.locale : '',
+  };
+  if (timedOut) {
+    return Object.assign(base, {
+      code: 'recognition-timeout',
+      timedOut: true,
+      signal: signal || 'SIGTERM',
+      swiftExit: null,
+    });
+  }
+  return Object.assign(base, {
+    code: 'recognition-failed',
+    timedOut: false,
+    signal: signal,
+    swiftExit: status,
+  });
+}
+
+function classifyAssetError(err) {
+  const attempts = err && err.attempts != null ? err.attempts : null;
+  let code = 'asset-install-failed';
+  if (err && err.timeout) code = 'asset-download-timeout';
+  else if (err && err.domain === 'SFSpeechErrorDomain' && err.code === 11) code = 'reservation-unavailable';
+  else if (err && err.domain === 'SFSpeechErrorDomain' && err.code === 4) code = 'unsupported-locale';
+  else if (err && err.domain === 'NSURLErrorDomain') code = 'asset-download-failed';
+  return {
+    ok: false,
+    code: code,
+    hypotheses: null,
+    productMetric: false,
+    attempts: attempts,
+  };
+}
+
+function planRun(input) {
+  const items = input.items || [];
+  const errors = [];
+  for (const item of items) {
+    if (!item.present) errors.push({ id: item.id, code: 'missing-audio' });
+    else if (!item.shaMatch) errors.push({ id: item.id, code: 'hash-mismatch' });
+    else if (!item.wavOk) errors.push({ id: item.id, code: 'unreadable-wav' });
+    else if (item.samples !== item.numSamples) errors.push({ id: item.id, code: 'sample-count' });
+  }
+  const base = {
+    productMetric: false,
+    hypotheses: null,
+    arm: 'sa',
+    component: 'apple-speech-analyzer-file',
+    sameProductProcess: false,
+    matchesIntlMacChineseDefaultArm: false,
+    intlMacChineseDefaultArm: 'e1_b1',
+    endToEnd: false,
+    swiftCompiledByPackager: false,
+  };
+  if (errors.length) {
+    return Object.assign(base, { ok: false, code: 'sample-check', errors });
+  }
+  if (input.platform !== 'darwin') {
+    return Object.assign(base, {
+      ok: false,
+      code: 'need-apple-speechanalyzer',
+      host: { platform: input.platform, release: input.release || '' },
+      evidence: [
+        'app/native/speech-bridge.swift creates SpeechAnalyzer and feeds AnalyzerInput from device PCM',
+        'RecognizerFactory.make in app/native/e1-sensevoice.swift returns MTDeviceTranscriber unless lane is zh and arm is e1_b1',
+        'e1_b1 still runs inside the Apple process: SpeechAnalyzer partials plus MTE1SenseVoice.decode after the sil0.5_thr0.3_max8 VAD',
+      ],
+      requires: 'macOS 26 or iOS 26, with the system speech assets installed for en-US and zh-CN',
+    });
+  }
+  if (macMajor(input.macProductVersion) < 26) {
+    return Object.assign(base, {
+      ok: false,
+      code: 'need-macos-26',
+      macProductVersion: input.macProductVersion || '',
+    });
+  }
+  return Object.assign(base, {
+    ok: true,
+    code: 'run-sa-file',
+    helper: 'eval/baselines/asr/product-asr-mac.swift',
+    eligibleToAttemptCompileAndRun: true,
+    macProductVersion: input.macProductVersion || '',
+    note: 'Darwin macOS major >= 26, including 27, may attempt to compile and run the SA file helper. That detection is not a compile result. swiftCompiledByPackager stays false. The helper is the sa arm only. It is not the app process, not intl-Mac Chinese default e1_b1, and not an end-to-end listen or subtitle run.',
+  });
+}
+
+function inspectItem(item, root) {
+  const rel = item.audioCache;
+  const abs = path.isAbsolute(rel) ? rel : path.join(root, rel);
+  const out = {
+    id: item.id,
+    present: fs.existsSync(abs),
+    shaMatch: false,
+    wavOk: false,
+    samples: null,
+    numSamples: item.numSamples,
+  };
+  if (!out.present) return out;
+  const buf = fs.readFileSync(abs);
+  out.shaMatch = sha256(buf) === item.audioSha256;
+  const info = wavInfo(buf);
+  if (!info) return out;
+  out.wavOk = true;
+  out.samples = info.samples;
+  return out;
+}
+
+function macProductVersion() {
+  try {
+    const text = execFileSync('sw_vers', ['-productVersion'], { encoding: 'utf8' });
+    return text.trim();
+  } catch (_) {
+    return '';
+  }
+}
+
+function superviseChild(bin, args, opts) {
+  return new Promise((resolve) => {
+    const child = spawn(bin, args, { stdio: 'inherit' });
+    const started = Date.now();
+    const grace = opts.killGraceMs == null ? 5000 : opts.killGraceMs;
+    let phase = 'start';
+    let phaseAt = started;
+    let cap = null;
+    let settled = false;
+    let killTimer = null;
+    function finish(payload) {
+      if (settled) return;
+      settled = true;
+      clearInterval(timer);
+      if (killTimer) clearTimeout(killTimer);
+      resolve(payload);
+    }
+    const timer = setInterval(() => {
+      try {
+        const parsed = JSON.parse(fs.readFileSync(opts.phaseFile, 'utf8'));
+        if (parsed.phase && parsed.phase !== phase) {
+          phase = parsed.phase;
+          phaseAt = Date.now();
+        }
+      } catch (_) {}
+      const reason = stageKillDecision({
+        started: started,
+        phase: phase,
+        phaseAt: phaseAt,
+        now: Date.now(),
+        processCapMs: opts.processCapMs,
+        prepareCapMs: opts.prepareCapMs,
+        recognizeCapMs: opts.recognizeCapMs,
+      });
+      if (reason && !cap) {
+        cap = reason;
+        child.kill('SIGTERM');
+        killTimer = setTimeout(() => {
+          if (!settled) child.kill('SIGKILL');
+        }, grace);
+      }
+    }, 200);
+    child.on('error', () => {
+      finish({ code: null, signal: null, cap: cap, phase: 'spawn-error' });
+    });
+    child.on('exit', (code, signal) => {
+      finish({ code: code, signal: signal, cap: cap, phase: phase });
+    });
+  });
+}
+
+async function main(argv) {
+  const args = argv.slice(2);
+  let setPath = DEFAULT_SET;
+  let outDir = '';
+  let installAssets = false;
+  let diagnosticFirst = false;
+  let diagnosticPath = '';
+  let prepareAssets = false;
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--set') setPath = args[++i];
+    else if (args[i] === '--out-dir') outDir = args[++i];
+    else if (args[i] === '--install-assets') installAssets = true;
+    else if (args[i] === '--diagnostic-first') diagnosticFirst = true;
+    else if (args[i] === '--diagnostic-path') diagnosticPath = args[++i];
+    else if (args[i] === '--diagnostic-prepare-assets') prepareAssets = true;
+    else {
+      console.error('unknown arg ' + args[i]);
+      process.exit(1);
+    }
+  }
+  const set = JSON.parse(fs.readFileSync(setPath, 'utf8'));
+  const root = path.join(__dirname, '..', '..', '..');
+  const inspected = (set.items || []).map((item) => inspectItem(item, root));
+  const plan = planRun({
+    platform: process.platform,
+    release: os.release(),
+    macProductVersion: process.platform === 'darwin' ? macProductVersion() : '',
+    items: inspected,
+  });
+  const diag = diagnosticPlan({ diagnosticFirst: diagnosticFirst });
+  plan.checked = inspected.length;
+  plan.installFlag = installAssets;
+  plan.installRequested = false;
+  plan.diagnosticFirst = diag.diagnosticFirst;
+  plan.completeSet = diag.completeSet;
+  plan.notAFullSetScore = diag.notAFullSetScore;
+  plan.rates = null;
+  console.log(JSON.stringify(plan, null, 2));
+  if (!plan.ok) process.exit(2);
+  if (!outDir) {
+    console.error('{"ok":false,"code":"need-out-dir","productMetric":false,"hypotheses":null,"arm":"sa"}');
+    process.exit(2);
+  }
+  const dest = path.resolve(outDir);
+  fs.mkdirSync(dest, { recursive: true });
+  const metaPath = path.join(dest, 'run-metadata.json');
+  const hypPath = path.join(dest, 'hypotheses.json');
+  const meta = {
+    arm: 'sa',
+    component: 'apple-speech-analyzer-file',
+    sameProductProcess: false,
+    matchesIntlMacChineseDefaultArm: false,
+    intlMacChineseDefaultArm: 'e1_b1',
+    endToEnd: false,
+    productMetric: false,
+    swiftCompiledByPackager: false,
+    installFlag: installAssets,
+    installRequested: false,
+    note: 'sa arm file feed only. Not the intl-Mac Chinese default e1_b1 arm and not an end-to-end result.',
+  };
+  fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+  const invocation = diagnosticInvocation({
+    prepareAssets: prepareAssets,
+    diagnosticFirst: diagnosticFirst,
+    diagnosticPath: diagnosticPath,
+  });
+  if (!invocation.ok) {
+    meta.code = invocation.code;
+    meta.hypotheses = null;
+    meta.rates = null;
+    meta.success = false;
+    meta.swiftExit = null;
+    fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+    process.exit(invocation.processExit);
+  }
+  if (prepareAssets) {
+    const bin = path.join(dest, 'diag-sa');
+    const sourceSha = crypto.createHash('sha256').update(fs.readFileSync(HELPER)).digest('hex');
+    const experimentStart = Date.now();
+    try {
+      execFileSync('swiftc', [
+        '-framework', 'Speech', '-framework', 'AVFoundation', '-framework', 'CoreMedia',
+        HELPER, '-o', bin,
+      ], { stdio: 'inherit', timeout: 90 * 1000 });
+    } catch (err) {
+      const rec = pathTimeoutRecord(err, { feed: 'compile', resultEventsReceived: 0 });
+      rec.phase = 'compile';
+      if (rec.timedOut) rec.code = 'compile-timeout';
+      const agg = diagnosticAggregate([rec]);
+      meta.paths = agg.paths;
+      meta.hypotheses = null;
+      meta.rates = null;
+      meta.timedOut = agg.timedOut;
+      meta.signal = rec.signal;
+      meta.swiftExit = null;
+      meta.success = false;
+      fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+      process.exit(agg.processExit);
+    }
+    const elapsed = Date.now() - experimentStart;
+    const processCapMs = Math.min(180 * 1000, (4 * 60 * 1000) - elapsed);
+    const watched = await superviseChild(bin, [
+      '--set', setPath, '--out', hypPath,
+      '--status-out', path.join(dest, 'asset-status.json'),
+      '--diagnostic-first', '--diagnostic-path', diagnosticPath, '--diagnostic-prepare-assets',
+      '--source-sha256', sourceSha, '--runtime-kind', 'compiled-binary',
+    ], {
+      phaseFile: path.join(dest, 'diagnostic-phase.json'),
+      processCapMs: processCapMs,
+      prepareCapMs: 120 * 1000,
+      recognizeCapMs: 45 * 1000,
+    });
+    const view = interpretSupervisedExit(Object.assign({}, watched, {
+      path: diagnosticPath === 'manual' ? 'manual-pcm-analyzer-input' : 'apple-analyzeSequence-file',
+    }));
+    const agg = diagnosticAggregate([view]);
+    meta.paths = agg.paths;
+    meta.hypotheses = null;
+    meta.rates = null;
+    meta.completeSet = false;
+    meta.notAFullSetScore = true;
+    meta.notAProductScore = true;
+    meta.timedOut = agg.timedOut;
+    meta.signal = view.signal;
+    meta.swiftExit = null;
+    meta.success = false;
+    meta.cap = watched.cap;
+    fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+    try { fs.unlinkSync(hypPath); } catch (_) {}
+    process.exit(agg.processExit);
+  }
+  if (diagnosticFirst) {
+    const specs = diagnosticProcesses({ diagnosticPath: diagnosticPath });
+    if (!specs.ok) {
+      meta.code = specs.code;
+      meta.hypotheses = null;
+      meta.rates = null;
+      meta.success = false;
+      fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+      process.exit(2);
+    }
+    const bin = path.join(dest, 'diag-sa');
+    const caps = diagnosticPlan({ diagnosticFirst: true, diagnosticPath: diagnosticPath });
+    try {
+      execFileSync('swiftc', [
+        '-framework', 'Speech', '-framework', 'AVFoundation', '-framework', 'CoreMedia',
+        HELPER, '-o', bin,
+      ], { stdio: 'inherit', timeout: caps.compileCapMs });
+    } catch (err) {
+      const rec = pathTimeoutRecord(err, { feed: 'compile', resultEventsReceived: 0 });
+      rec.phase = 'compile';
+      meta.paths = [rec];
+      meta.hypotheses = null;
+      meta.rates = null;
+      meta.timedOut = rec.timedOut;
+      meta.signal = rec.signal;
+      meta.swiftExit = null;
+      meta.success = false;
+      fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+      process.exit(2);
+    }
+    const pathRecords = [];
+    for (const proc of specs.processes) {
+      try {
+        execFileSync(bin, [
+          '--set', setPath, '--out', hypPath,
+          '--status-out', path.join(dest, 'asset-status.json'),
+          '--diagnostic-first', '--diagnostic-path', proc.path,
+        ], { stdio: 'inherit', timeout: proc.runCapMs });
+        pathRecords.push({
+          path: proc.feed,
+          phase: 'exited',
+          timedOut: false,
+          signal: null,
+          swiftExit: 0,
+          success: false,
+          hypotheses: null,
+          rates: null,
+          productMetric: false,
+          notAProductScore: proc.notAProductScore,
+        });
+      } catch (err) {
+        let partial = { feed: proc.feed, resultEventsReceived: 0 };
+        try {
+          const doc = JSON.parse(fs.readFileSync(path.join(dest, 'diagnostic-run.json'), 'utf8'));
+          const hit = (doc.paths || []).find((item) => item.feed === proc.feed) || {};
+          partial.resultEventsReceived = hit.resultEventsReceived || 0;
+        } catch (_) {}
+        pathRecords.push(pathTimeoutRecord(err, partial));
+      }
+    }
+    const agg = diagnosticAggregate(pathRecords);
+    meta.paths = agg.paths;
+    meta.hypotheses = null;
+    meta.rates = null;
+    meta.completeSet = false;
+    meta.notAFullSetScore = true;
+    meta.timedOut = agg.timedOut;
+    meta.swiftExit = null;
+    meta.success = false;
+    fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+    try { fs.unlinkSync(hypPath); } catch (_) {}
+    process.exit(agg.processExit);
+  }
+  if (!diagnosticFirst && !prepareAssets && !installAssets) {
+    const audioSeconds = (set.items || []).reduce((sum, item) => sum + (item.durationSeconds || 0), 0);
+    const planned = baselineRunPlan({ count: (set.items || []).length, audioSeconds: audioSeconds });
+    meta.audioSeconds = audioSeconds;
+    meta.compileCapMs = planned.compileCapMs;
+    meta.perItemCapMs = planned.perItemCapMs;
+    meta.processCapMs = planned.processCapMs;
+    meta.rates = null;
+    meta.productMetric = false;
+    meta.completeSet = false;
+    if (!planned.ok) {
+      meta.code = planned.code;
+      meta.hypotheses = null;
+      meta.success = null;
+      fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+      process.exit(planned.processExit);
+    }
+    const bin = path.join(dest, 'baseline-sa');
+    try {
+      execFileSync('swiftc', [
+        '-framework', 'Speech', '-framework', 'AVFoundation', '-framework', 'CoreMedia',
+        HELPER, '-o', bin,
+      ], { stdio: 'inherit', timeout: planned.compileCapMs });
+    } catch (err) {
+      const rec = pathTimeoutRecord(err, { feed: 'compile', resultEventsReceived: 0 });
+      meta.code = rec.timedOut ? 'compile-timeout' : 'compile-failed';
+      meta.timedOut = rec.timedOut;
+      meta.signal = rec.signal;
+      meta.swiftExit = rec.timedOut ? null : rec.swiftExit;
+      meta.hypotheses = null;
+      meta.rates = null;
+      meta.success = null;
+      fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+      try { fs.unlinkSync(hypPath); } catch (_) {}
+      process.exit(2);
+    }
+    const watched = await superviseChild(bin, [
+      '--set', setPath, '--out', hypPath,
+      '--status-out', path.join(dest, 'asset-status.json'),
+    ], {
+      phaseFile: path.join(dest, 'diagnostic-phase.json'),
+      processCapMs: planned.processCapMs,
+      prepareCapMs: planned.processCapMs,
+      recognizeCapMs: planned.processCapMs,
+    });
+    const killed = watched.cap != null || watched.signal === 'SIGTERM' || watched.signal === 'SIGKILL';
+    if (killed || watched.code !== 0) {
+      meta.code = killed ? (watched.cap || 'killed') : 'recognition-failed';
+      meta.timedOut = killed;
+      meta.signal = watched.signal || null;
+      meta.swiftExit = killed ? null : watched.code;
+      meta.hypotheses = null;
+      meta.rates = null;
+      meta.success = null;
+      meta.completeSet = false;
+      fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+      try { fs.unlinkSync(hypPath); } catch (_) {}
+      process.exit(2);
+    }
+    let rows = null;
+    try { rows = JSON.parse(fs.readFileSync(hypPath, 'utf8')); } catch (_) { rows = null; }
+    const accepted = acceptHypotheses(rows, (set.items || []).length);
+    if (!accepted.ok) {
+      meta.code = 'incomplete-hypotheses';
+      meta.hypotheses = null;
+      meta.rates = null;
+      meta.success = null;
+      meta.completeSet = false;
+      meta.swiftExit = 0;
+      fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+      try { fs.unlinkSync(hypPath); } catch (_) {}
+      process.exit(accepted.processExit);
+    }
+    meta.hypothesesFile = accepted.hypothesesFile;
+    meta.hypothesisCount = accepted.count;
+    meta.completeSet = true;
+    meta.rates = null;
+    meta.productMetric = false;
+    meta.success = null;
+    meta.swiftExit = 0;
+    meta.timedOut = false;
+    fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+    process.exit(0);
+  }
+  const swiftArgs = [HELPER, '--set', setPath, '--out', hypPath, '--status-out', path.join(dest, 'asset-status.json')];
+  if (installAssets) swiftArgs.push('--install-assets');
+  const diagTimeout = diagnosticPlan({ diagnosticFirst: false }).nodeTimeoutMs;
+  try {
+    execFileSync('swift', swiftArgs, {
+      stdio: 'inherit',
+      timeout: installAssets ? (15 * 60 * 1000) + 30000 : diagTimeout,
+    });
+  } catch (err) {
+    let trace = null;
+    try {
+      trace = JSON.parse(fs.readFileSync(path.join(dest, 'recognition-trace.json'), 'utf8'));
+    } catch (_) {}
+    Object.assign(meta, childFailure(err, trace));
+    fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+    try { fs.unlinkSync(hypPath); } catch (_) {}
+    process.exit(2);
+  }
+  meta.swiftExit = 0;
+  if (installAssets || diagnosticFirst) {
+    meta.hypotheses = null;
+    meta.rates = null;
+    meta.completeSet = !diagnosticFirst;
+    meta.notAFullSetScore = diagnosticFirst;
+    meta.recognition = false;
+  } else {
+    meta.hypothesesFile = 'hypotheses.json';
+  }
+  fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+}
+
+if (require.main === module) main(process.argv);
+
+module.exports = {
+  planRun, macMajor, inspectItem, assetPlan, classifyAssetError, reportFailure, redactText,
+  pcmReadAction, readThrownAction, converterOutputAction, childFailure,
+  diagnosticPlan, coverageReport, diagnosticProcesses, pathTimeoutRecord, diagnosticAggregate,
+  diagnosticInvocation, interpretSupervisedExit, stageKillDecision, superviseChild,
+  lastSampleTime, aggregateFinalSegments, fileReaderFinish, diagnosticSnapshot,
+  baselineRunPlan, acceptHypotheses,
+};

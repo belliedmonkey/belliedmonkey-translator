@@ -1,0 +1,17 @@
+{
+  "schema": "belliedmonkey.baseline-sample-record.v1",
+  "id": "tool-only-synthetic-1",
+  "form": "webpage-text",
+  "stage": "translation",
+  "text": "TOOL_ONLY_SYNTHETIC_SENTENCE",
+  "authorization": {
+    "kind": "tool-only",
+    "note": "Invented string used only to prove the checker rejects non-baseline fixtures. Not a failure case and not a quality item."
+  },
+  "redaction": {
+    "identity": false,
+    "text": false,
+    "audio": false
+  },
+  "setVersion": null
+}

@@ -1,0 +1,53 @@
+{
+  "schema": "baseline-sa-pack-existing-chair.v1",
+  "commit": "3bd90f75",
+  "readByThisAgent": false,
+  "sourceFilesRead": false,
+  "sourceSha256": null,
+  "hypothesisFileCopied": false,
+  "scoreRecomputed": false,
+  "recognitionRun": false,
+  "swiftcInvoked": false,
+  "scoreInvoked": false,
+  "ranSixteenClips": false,
+  "chairBox": "/workspace/baseline-sa-mac-20261112/one-command-ustar-verification/",
+  "at": "2026-11-12T17:17:32+08:00",
+  "timezone": "Asia/Shanghai",
+  "command": "node run-sa-file.js --pack-existing <copy-of-cbc0c0e1-run1>",
+  "sourceRunCommit": "cbc0c0e1",
+  "sourceRun": "run1-copy",
+  "originalRunUntouched": true,
+  "exit": 0,
+  "stderrEmpty": true,
+  "stdout": {
+    "appleResult": false,
+    "rates": null,
+    "newAppleRecognition": false
+  },
+  "unchanged": {
+    "hypothesisSha256": "b0dae4d76fdef94c8f051f436f01f864cafea19fff493685bd0c75ab042e8ea6",
+    "scoreSha256": "21a887d1fa30f86a2bc57f9f6f6900aa6c5bc62b117a97aafdd6555e3b9dc9e5",
+    "summarySha256": "5752da98ef0446154e5f3a11da32e83fdfff54fbb762a4f21f9f4c1df65d3503",
+    "mtimeUnchanged": true
+  },
+  "archive": {
+    "sha256": "d942a5c8774c0a6573e61336a7f29a1cbcc747cf6ad48e163e6eb8c795b0656a",
+    "bytes": 2944,
+    "format": "ustar",
+    "memberCount": 6,
+    "typeflag": "0",
+    "members": [
+      { "name": "run-summary.json", "bytes": 1349 },
+      { "name": "score.json", "bytes": 473 },
+      { "name": "hypotheses.json", "bytes": 3227 },
+      { "name": "child-stdout.txt", "bytes": 0 },
+      { "name": "child-stderr.txt", "bytes": 0 },
+      { "name": "MANIFEST.sha256", "bytes": 408, "sha256": "35e8ee881095ebb8526a0237723b15e714fe9f193b5c1f9b14b18573b1531633" }
+    ],
+    "fivePayloadsMatchManifest": true,
+    "payloadDigestsNotCopiedHere": "The chair reported that the five packed files matched the manifest. Those five digests are not repeated in this file.",
+    "absent": ["appleDouble", "pax", "extraMember", "symlink", "directory", "absolutePath", "dotDot", "audio", "binary", "secret", "privatePath"]
+  },
+  "separateFrom": ["cbc0c0e1-two-full-runs", "f1f1cbb2-pack-failure"],
+  "notAProductScore": true
+}

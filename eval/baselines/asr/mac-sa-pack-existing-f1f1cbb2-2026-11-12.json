@@ -1,0 +1,38 @@
+{
+  "schema": "baseline-sa-pack-existing-chair.v1",
+  "commit": "f1f1cbb2",
+  "readByThisAgent": false,
+  "sourceFilesRead": false,
+  "sourceSha256": null,
+  "hypothesisFileCopied": false,
+  "scoreRecomputed": false,
+  "recognitionRun": false,
+  "chairBox": "/workspace/baseline-sa-mac-20261112/one-command-cache-fix-verification/",
+  "at": "2026-11-12T16:59:45+08:00",
+  "command": "node run-sa-file.js --pack-existing <copy-of-existing-success-run>",
+  "exit": 2,
+  "codeReported": "evidence-pack-failed",
+  "innerCodeBeforeSwallow": "archive-members",
+  "appleDoubleSuppressed": true,
+  "tar": "bsdtar 3.5.3",
+  "flagsPresent": [
+    "COPYFILE_DISABLE=1",
+    "COPY_EXTENDED_ATTRIBUTES_DISABLE=1",
+    "--disable-copyfile"
+  ],
+  "formatRequested": null,
+  "members": {
+    "regular": 6,
+    "paxTypeflagX": 6,
+    "total": 12,
+    "paxNameShape": "PaxHeader/<file>"
+  },
+  "archiveUnlinked": true,
+  "hypothesisUnchanged": true,
+  "scoreUnchanged": true,
+  "summaryUnchanged": true,
+  "originalRunPreserved": true,
+  "ustarFixIncluded": false,
+  "ustarFixMacVerified": false,
+  "notASuccess": true
+}

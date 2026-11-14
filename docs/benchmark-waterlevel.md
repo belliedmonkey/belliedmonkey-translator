@@ -1,5 +1,9 @@
 # Effect vs industry waterline · 效果与业界水位
 
+This file is the 2026-10 snapshot. It is not the current per-form baseline.
+The durable index is [`docs/baselines/README.md`](baselines/README.md).
+Numbers below were not re-measured under that protocol; read them as historical reference only.
+
 Period / 期次：**2026-10** (first issue / 首期)  
 Data cutoff / 数据截止：2026-10-23 (Asia/Shanghai)  
 Quality endorsement / 质量背书：quality director approved the five bullets below for README (PASS ≠ merge to production code).  

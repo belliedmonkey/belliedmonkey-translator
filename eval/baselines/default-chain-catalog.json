@@ -1,0 +1,55 @@
+{
+  "schema": "belliedmonkey.default-chain-catalog.v1",
+  "smoke": {
+    "path": "eval/baselines/asr/fleurs-public-v1.json",
+    "role": "sa-file-component-smoke"
+  },
+  "plannedTarget": 30,
+  "records": [],
+  "realFailures": 0,
+  "zh1663AudioChecked": true,
+  "zh1663Review": {
+    "path": "eval/baselines/asr/zh1663-ear-2026-11-13.json",
+    "role": "ear-review"
+  },
+  "publicCandidates": {
+    "path": "eval/baselines/asr/public-candidates-v1.json",
+    "role": "public-candidate-intake"
+  },
+  "publicCandidateAudio": {
+    "path": "eval/baselines/asr/public-candidates-audio-v1.json",
+    "role": "public-candidate-audio"
+  },
+  "fleursCandidateReview": {
+    "path": "eval/baselines/asr/fleurs-candidate-ear-2026-11-13.json",
+    "role": "ear-review"
+  },
+  "fleursCandidateReview1103": {
+    "path": "eval/baselines/asr/fleurs-candidate-ear-2026-11-13-1103.json",
+    "role": "ear-review"
+  },
+  "fleursCandidateReview1109": {
+    "path": "eval/baselines/asr/fleurs-candidate-ear-2026-11-13-1109.json",
+    "role": "ear-review"
+  },
+  "fleursCandidateReview1240": {
+    "path": "eval/baselines/asr/fleurs-candidate-ear-2026-11-13-1240.json",
+    "role": "ear-review"
+  },
+  "fleursCandidateReview1319": {
+    "path": "eval/baselines/asr/fleurs-candidate-ear-2026-11-13-1319.json",
+    "role": "ear-review"
+  },
+  "fleursCandidateReview1520": {
+    "path": "eval/baselines/asr/fleurs-candidate-ear-2026-11-13-1520.json",
+    "role": "ear-review"
+  },
+  "ascendCandidates": {
+    "path": "eval/baselines/ascend/ascend-test-v1.json",
+    "role": "text-screen-only"
+  },
+  "ascendReview": {
+    "path": "eval/baselines/ascend/ascend-ear-2026-11-13.json",
+    "role": "ear-review"
+  }
+}

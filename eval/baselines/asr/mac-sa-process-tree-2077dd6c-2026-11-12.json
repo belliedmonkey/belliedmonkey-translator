@@ -1,0 +1,51 @@
+{
+  "schema": "baseline-sa-process-tree-chair.v1",
+  "commit": "2077dd6cb5588d9867455ea0f00ea76b0b7542d0",
+  "chairSupplied": true,
+  "readByThisAgent": false,
+  "directRawReview": false,
+  "sourceFilesRead": false,
+  "swiftcInvoked": false,
+  "recognitionRun": false,
+  "scoreRecomputed": false,
+  "sixteenClipRerun": false,
+  "chairBox": "/workspace/baseline-sa-mac-20261112/process-tree-2077dd6c-verification/",
+  "copyOnlyInventorySha256": "7f45af1290b60f70d3d06076739b48ec9a089f2638e167aeffe2b5335e2fd4d3",
+  "packageSha256": "b18cf3e12b91403e7468eeb72dfc26e5e1e9316dd2f5c1cf4b6a451eb15aebf2",
+  "runSaFileSha256": "1d30ea44ac97891de4c56ff0c641a6d92024f4735819ea5ba5ccb6b8fcf7d6a7",
+  "host": {
+    "os": "macOS 27",
+    "build": "26A428",
+    "kernel": "darwin",
+    "arch": "arm64",
+    "node": "26.10",
+    "nodePath": "/opt/homebrew/bin/node"
+  },
+  "startedAt": "2026-11-12T18:36:38+08:00",
+  "endedAt": "2026-11-12T18:36:41+08:00",
+  "receiptStartedAt": "2026-11-12T10:36:38.531Z",
+  "receiptEndedAt": "2026-11-12T10:36:40.971Z",
+  "command": "SA_MAC_OUT=mac-run-out /opt/homebrew/bin/node driver.js",
+  "exit": 0,
+  "stderrEmpty": true,
+  "passed": 3,
+  "failed": 0,
+  "cases": [
+    "grandchild ignores SIGTERM and the direct child exits before grace; SIGKILL still happens",
+    "ESRCH, Windows rejection, bystander spared",
+    "direct child ignores SIGTERM and is SIGKILL; not a score"
+  ],
+  "receiptSha256": "dfdc0f483c154a33f26303b935d2ef437b5680a8062ac3fb6dcbc1a9dbbcdb13",
+  "stdoutSha256": "a725f12505b68558e1e3e501c87ff15c5af78f3047cfd50d69fbc2d7b21ed4c4",
+  "grandchildPidFileName": "73208",
+  "externalKill0Exit": 1,
+  "externalPsShowsProcess": false,
+  "bystanderPidPersisted": false,
+  "directChildPidPersisted": false,
+  "independentRecheckOfBystanderAndDirectChild": false,
+  "livenessCheck": "original tests process.kill(pid, 0) only",
+  "fixtureSummaries": {
+    "rates": null,
+    "appleResult": false
+  }
+}

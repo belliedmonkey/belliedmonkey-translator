@@ -1,0 +1,36 @@
+{
+  "schema": "belliedmonkey.ear-review.v1",
+  "id": "cmn_hans_cn/1663",
+  "audioName": "17125746560393607835.wav",
+  "reviewer": "ZHAO ZHANG",
+  "reviewedAt": "2026-11-13T09:23+08:00",
+  "timezone": "Asia/Shanghai",
+  "setting": "大肚猴翻译首席科学家",
+  "audio": {
+    "bytes": 856378,
+    "sha256": "0b242eb4c06512556915e53463bb712beaffc56bcee751865c7461d79e93e95c",
+    "sampleRate": 16000,
+    "durationSeconds": 13.38,
+    "revision": "70bb2e84b976b7e960aa89f1c648e09c59f894dd",
+    "license": "CC-BY-4.0"
+  },
+  "playbackCopy": {
+    "role": "playback-only",
+    "encoding": "16-bit-pcm",
+    "sha256": "5d88c9a11344318c1599740a94113dc7d149a711dee845c4f5ac800bd91c311b",
+    "note": "Playback copy only. The ear-check evidence is the frozen original wav hash, not this copy, and this copy is not a reference."
+  },
+  "raw": "智利首选登山目的地科茶莫山谷 (Cochamó Valley) 被称为南美洲的优胜美地 (Yosemite)，这里有各式各样的花岗岩大石壁和峭壁。",
+  "questions": {
+    "latinParentheticalSpoken": "两处都读出",
+    "transcriptMismatchOrUncertain": false
+  },
+  "conclusions": [
+    "两处括注都读出来了（Cochamó Valley 与 Yosemite）",
+    "整句与官方原文相符，没有明显出入"
+  ],
+  "referenceEdit": false,
+  "humanVerifiedCount": 1,
+  "approvedPlannedSetCount": 0,
+  "productMetric": false
+}

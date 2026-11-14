@@ -1,0 +1,233 @@
+{
+  "schema": "belliedmonkey.ascend-candidate-set.v1",
+  "id": "ascend-test-codeswitch-v1",
+  "kind": "public-candidate",
+  "productMetric": false,
+  "notAUserFailureSet": true,
+  "notAnEndToEndBaseline": true,
+  "humanVerified": false,
+  "humanVerifiedCount": 0,
+  "approvedPlannedSetCount": 0,
+  "realFailureCount": 0,
+  "donationActualCount": 0,
+  "publicCandidateCount": 6,
+  "totalBytes": 398662,
+  "totalDurationSeconds": 12.45,
+  "license": {
+    "spdx": "CC-BY-SA-4.0",
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "source": "CAiRE/ASCEND dataset card, Licensing Information, at the pinned card revision"
+  },
+  "codeLicenseNote": "MIT is not the data license.",
+  "publisher": {
+    "dataset": "CAiRE/ASCEND",
+    "cardRevision": "737e9800ae31be9932ba8464c80366559bd28424",
+    "description": "The dataset card calls this spontaneous Chinese-English code-switching in multi-turn conversation, collected in Hong Kong. The paper abstract calls the speech clean. Those sentences describe the collection. They are not a finding about these six clips."
+  },
+  "source": {
+    "split": "test",
+    "path": "main/test-00000-of-00001.parquet",
+    "cardRevision": "737e9800ae31be9932ba8464c80366559bd28424",
+    "sha256": "a4c81d2b5ed6124f052089a695972808c16e0ce0c365ec9773c5d1a8fcf043a7",
+    "bytes": 105756434,
+    "requestedUrl": "https://huggingface.co/datasets/CAiRE/ASCEND/resolve/737e9800ae31be9932ba8464c80366559bd28424/main/test-00000-of-00001.parquet",
+    "status": 200,
+    "responseHost": "us.aws.cdn.hf.co",
+    "etag": "\"ba7b4ccf87147de927830d992b8c76261a467ed7d610d4fe592cfa49fd15444b\"",
+    "contentLength": "105756434",
+    "contentType": "application/octet-stream",
+    "xRepoCommit": "737e9800ae31be9932ba8464c80366559bd28424"
+  },
+  "selection": {
+    "split": "test",
+    "sort": "id ascending",
+    "limit": 6,
+    "rule": "Keep a test row only when the official transcription has a Han character and a Latin letter. Sort by id. Take the first 6. This is a text screen, not an ear check. The six clips are not adjacent recordings, so continuous dialogue stays unknown."
+  },
+  "buckets": {
+    "accent": {
+      "count": 0,
+      "status": "unknown"
+    },
+    "noise": {
+      "count": 0,
+      "status": "unknown"
+    },
+    "codeSwitchHuman": {
+      "count": 0,
+      "status": "unknown"
+    },
+    "codeSwitchText": {
+      "count": 6,
+      "status": "text-screen-only"
+    },
+    "continuousDialogue": {
+      "count": 0,
+      "status": "unknown"
+    }
+  },
+  "items": [
+    {
+      "id": "00004",
+      "split": "test",
+      "sessionId": 1,
+      "originalSpeakerId": 17,
+      "topic": "persona",
+      "publisherLanguage": "mixed",
+      "transcription": "呃what's the呃",
+      "transcriptionSha256": "e29533b086fe392d12b226490b8e89d0830ddbcd415e50975e40cf7c85df3b28",
+      "durationSeconds": 1.36,
+      "sourceAudioPath": "ses1_spk17_L3834_25.3200_1.3600.wav",
+      "audioName": "00004.wav",
+      "audioSha256": "b1d784c7c355c79febc73733f61a9faa2564c9f07cdf12caa3dd470f381c0149",
+      "bytes": 43564,
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 16,
+      "samples": 21760,
+      "textScreen": "han-plus-latin-letter",
+      "ear": {
+        "accent": "unknown",
+        "noise": "unknown",
+        "codeSwitch": "unknown",
+        "continuousDialogue": "unknown"
+      },
+      "humanReviewed": false
+    },
+    {
+      "id": "00009",
+      "split": "test",
+      "sessionId": 1,
+      "originalSpeakerId": 17,
+      "topic": "persona",
+      "publisherLanguage": "mixed",
+      "transcription": "no我专业是那个i s m information systems management",
+      "transcriptionSha256": "eb0214fb675edb634a7bb75a3d4b64385d99ce08c35ec180c2580b77c6c415bd",
+      "durationSeconds": 4.03,
+      "sourceAudioPath": "ses1_spk17_L3856_48.7500_4.0300.wav",
+      "audioName": "00009.wav",
+      "audioSha256": "7317a4752e95039e6f6c345ef5b15fdd18fc7f48353cc893e6f99218a682c9a3",
+      "bytes": 129004,
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 16,
+      "samples": 64480,
+      "textScreen": "han-plus-latin-letter",
+      "ear": {
+        "accent": "unknown",
+        "noise": "unknown",
+        "codeSwitch": "unknown",
+        "continuousDialogue": "unknown"
+      },
+      "humanReviewed": false
+    },
+    {
+      "id": "00028",
+      "split": "test",
+      "sessionId": 1,
+      "originalSpeakerId": 17,
+      "topic": "persona",
+      "publisherLanguage": "mixed",
+      "transcription": "ok福建",
+      "transcriptionSha256": "0050c9ca9622ddef36d84a44097b880d07f128eab616b15519ed60965b7628a6",
+      "durationSeconds": 1.02,
+      "sourceAudioPath": "ses1_spk17_L3934_126.4300_1.0200.wav",
+      "audioName": "00028.wav",
+      "audioSha256": "f790b945050ccc625702f214dc7182c0c0e781a6fd5a82c7d1863c4683414842",
+      "bytes": 32684,
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 16,
+      "samples": 16320,
+      "textScreen": "han-plus-latin-letter",
+      "ear": {
+        "accent": "unknown",
+        "noise": "unknown",
+        "codeSwitch": "unknown",
+        "continuousDialogue": "unknown"
+      },
+      "humanReviewed": false
+    },
+    {
+      "id": "00055",
+      "split": "test",
+      "sessionId": 1,
+      "originalSpeakerId": 17,
+      "topic": "persona",
+      "publisherLanguage": "mixed",
+      "transcription": "um运动啊男生一般不都喜欢运动",
+      "transcriptionSha256": "f6a2e7afcfbd2f8a875171cf4c9777b79a4cc42e543a3c1847c1df1b194b6147",
+      "durationSeconds": 3,
+      "sourceAudioPath": "ses1_spk17_L4048_269.6200_3.0000.wav",
+      "audioName": "00055.wav",
+      "audioSha256": "866d07fc22025c9450e6e8811cb6b374ab863370182922c054dfa1c1ea46a535",
+      "bytes": 96044,
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 16,
+      "samples": 48000,
+      "textScreen": "han-plus-latin-letter",
+      "ear": {
+        "accent": "unknown",
+        "noise": "unknown",
+        "codeSwitch": "unknown",
+        "continuousDialogue": "unknown"
+      },
+      "humanReviewed": false
+    },
+    {
+      "id": "00066",
+      "split": "test",
+      "sessionId": 1,
+      "originalSpeakerId": 17,
+      "topic": "persona",
+      "publisherLanguage": "mixed",
+      "transcription": "哦这么technical",
+      "transcriptionSha256": "0f7692e53442b0dbbdd575e5f9d0ed728cb8a75beb16d68f1c83d61310a00cbd",
+      "durationSeconds": 1.59,
+      "sourceAudioPath": "ses1_spk17_L4095_324.5700_1.5900.wav",
+      "audioName": "00066.wav",
+      "audioSha256": "a554fbe3692c170b6aed5a34f34095312fe4b822c1c205eaddf894ee90f21faf",
+      "bytes": 50922,
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 16,
+      "samples": 25439,
+      "textScreen": "han-plus-latin-letter",
+      "ear": {
+        "accent": "unknown",
+        "noise": "unknown",
+        "codeSwitch": "unknown",
+        "continuousDialogue": "unknown"
+      },
+      "humanReviewed": false
+    },
+    {
+      "id": "00068",
+      "split": "test",
+      "sessionId": 1,
+      "originalSpeakerId": 17,
+      "topic": "persona",
+      "publisherLanguage": "mixed",
+      "transcription": "computer languages是",
+      "transcriptionSha256": "45d2d917106711f0d403aaac541d19c2901133d660cf689a3e2999105e1a415d",
+      "durationSeconds": 1.45,
+      "sourceAudioPath": "ses1_spk17_L4099_330.4200_1.4500.wav",
+      "audioName": "00068.wav",
+      "audioSha256": "ddf1d1241915e223a8f46e6e00e9f5c0b6574add6d6c984fab26ee5508897958",
+      "bytes": 46444,
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 16,
+      "samples": 23200,
+      "textScreen": "han-plus-latin-letter",
+      "ear": {
+        "accent": "unknown",
+        "noise": "unknown",
+        "codeSwitch": "unknown",
+        "continuousDialogue": "unknown"
+      },
+      "humanReviewed": false
+    }
+  ]
+}
