@@ -91,7 +91,7 @@ const EVENTS = {
     launch_id: 'id',
     surface: SURFACES,
   },
-  translate_ok: { provider: 'id', kind: TRANSLATE_KINDS, ms: 'int' },   // doc：文档翻译（2026-09-11，learning-design §9.7）
+  translate_ok: { provider: 'id', kind: TRANSLATE_KINDS, ms: 'int', surface: SURFACES },   // doc：文档翻译（2026-09-11，learning-design §9.7）
   translate_fail: {
     provider: 'id',
     // BEL-247：与 translate_ok 共用 TRANSLATE_KINDS —— 「哪个功能面的失败」必须能
@@ -160,19 +160,41 @@ const EVENTS = {
   // 服务端另写第一方 bt_auth_ok（含 user_id），这条匿名事件不带 user_id；两边可由
   // install_id 对上（仅支持与滥用排查，不进第三方）。
   auth_ok: {
-    surface: SURFACES,
+    // BEL-223：登录成功这个动作发生在**登录面**，不是五个功能面之一 —— 加 `login`，
+    // 旧五值照留（1.23.3 老客户端仍可能发功能面）。`launch_id` 与同一次冷启的其他
+    // 事件共用一个 32-hex id；method 的口径不变（本机首见 = signup，缺口见 RESULT）。
+    surface: SURFACES.concat(['login']),
     provider: ['apple', 'google', 'email', 'phone', 'unknown'],
     method: ['signup', 'signin'],
+    launch_id: 'id',
   },
-  // 实时字幕的开门判定（BEL-223）：`ok` 是这次判定过没过。注册表没有 bool 类型，
-  // 所以钉成字符串枚举 'true' / 'false'；P1 发之前自己 String(ok)，不要发 JSON 布尔。
-  live_gate: { surface: SURFACES, ok: ['true', 'false'] },
-  // 领取失败（BEL-223）。code 的七个值来自 extension 的 grant_err_* 文案键
-  // （exhausted / unavailable / misconfigured / revoked / invalid / model / busy）——
-  // 与 translate_fail.code 同一条纪律：不在枚举里的码会被服务端整条拒，宁可先钉全。
+  // 实时字幕 / 首页入口的开门判定（BEL-223）：`ok` 是旧 P0 的过没过（保留以收老行），
+  // `result` 才是原因拆分。注册表没有 bool 类型，两个布尔都钉成字符串枚举。
+  // `os_version` / `probe_locale` 用 id 型（小写、≤32）：扩展冻结，okValue 只认
+  // 数组 / int / id —— 带点的大写 `iOS_26.0.1` 会被客户端整条丢掉，所以发送口归一化成
+  // `ios_26_0_1` / `en-us` 这种形状（原始版本串不进事件）。
+  live_gate: {
+    surface: SURFACES,
+    ok: ['true', 'false'],
+    result: ['script_missing', 'channel_missing', 'os_below_min', 'no_transcriber',
+      'locale_unsupported', 'probe_timeout', 'ok'],
+    os_version: 'id',
+    os_meets_min: ['true', 'false'],
+    probe_locale: 'id',
+    reason_copy_class: ['need_os', 'switch_locale', 'other'],
+    window: ['main', 'quick', 'other'],
+    launch_id: 'id',
+    first_refresh: ['true', 'false'],
+    reused_prior_state: ['true', 'false'],
+  },
+  // 领取失败（BEL-223）。code 是旧 P0 的七个文案键（保留以收 1.23.3 老行）；
+  // reason / copy_class / path 是本轮补的真实原因、文案类别与入口路径。
   grant_claim_fail: {
     surface: SURFACES,
     code: ['exhausted', 'unavailable', 'misconfigured', 'revoked', 'invalid', 'model', 'busy'],
+    reason: ['network', 'busy', 'server', 'revoked', 'other'],
+    copy_class: ['revoked', 'retryable'],
+    path: ['silent', 'manual'],
   },
   // 语言包下载（BEL-226）。`setup_id` 是一条「把包配齐」的流程 id，**跨启动保持不变**，
   // 所以「上次没下完、这次接着下」能串成一条；start/ok/fail 用同一个 setup_id。
@@ -244,7 +266,10 @@ const EVENTS = {
   // `gesture_needed` **保留但不再产生**：Safari 页内手势那套机制随 Tier B 一起下掉了
   // （domain-design §2.4 第 3 条）。枚举留着是因为历史行还在表里，删掉会让旧数据读不回来。
   asr_entry: {
-    surface: ['popup', 'notice', 'pill', 'app_home', 'popup_app_row'],
+    // BEL-223：`started` 要能分开「对话听译」与「实时字幕」两个页面，所以 surface
+    // 补 listen / live_caption；旧入口值（popup / notice / pill / app_home /
+    // popup_app_row）全部保留 —— `app_home` 仍是灰卡 no_live 的值。
+    surface: ['popup', 'notice', 'pill', 'app_home', 'popup_app_row', 'listen', 'live_caption'],
     result: ['started', 'no_media', 'no_engine', 'no_live', 'gesture_needed', 'to_app'],
     // BEL-223：这里的 surface 是「入口」，不是功能面五值；只补 launch_id。
     launch_id: 'id',
@@ -338,10 +363,12 @@ const SEAMS = {
   translate_ok: [
     { host: 'ext', file: 'extension/content/content-webpage.js', match: "kind: 'page'" },
     { host: 'ext', file: 'extension/content/subtitle-adapter.js', match: "kind: 'subtitle'" },
-    ...SHARED('src/shared/doc-view.js', { match: "kind: 'doc'" }),
+    { host: 'ext', file: 'extension/content/subtitle-adapter.js', match: "surface: 'web_caption'" },
+    ...SHARED('src/shared/doc-view.js', { match: "surface: 'doc'" }),
     { host: 'app', file: 'src/app/listen-model.js', match: "kind: 'subtitle'" },
+    { host: 'app', file: 'src/app/listen-model.js', match: "surface: funnelSurface()" },
     // quick：Mac 快速翻译（telemetry-design §3.5）。面板页不初始化遥测，经 mtQuick 中继到主页面，由 handoff.js 代发。
-    { host: 'app', file: 'app/handoff.js', match: "kind: 'quick'" },
+    { host: 'app', file: 'app/handoff.js', match: "surface: 'quick'" },
     { host: 'ext', surface: 'translate-fill', none: '补译文是学习层给已捕获的卡片补一个译文，不是一次用户发起的翻译会话（§3.3 裁定 2）' },
     { host: 'app', surface: 'translate-fill', none: '同一份 translate-fill.js，同一条裁定：后台补译文不算翻译会话' },
   ],
@@ -392,15 +419,15 @@ const SEAMS = {
   ],
   auth_ok: [
     { host: 'ext', none: 'extension/ 在本拍冻结（CWS 1.23.3 在审）；auth_ok 只接 App' },
-    { host: 'app', file: 'src/app/telemetry-session.js', match: "track('auth_ok'" },
+    { host: 'app', file: 'src/app/telemetry-session.js', match: "surface: 'login'" },
   ],
   live_gate: [
     { host: 'ext', none: 'extension/ 在本拍冻结（CWS 1.23.3 在审）；live_gate 只接 App' },
-    { host: 'app', file: 'src/app/telemetry-session.js', match: "track('live_gate'" },
+    { host: 'app', file: 'src/app/telemetry-session.js', match: "result: result" },
   ],
   grant_claim_fail: [
     { host: 'ext', none: 'extension/ 在本拍冻结（CWS 1.23.3 在审）；grant_claim_fail 只接 App' },
-    { host: 'app', file: 'src/app/telemetry-session.js', match: "track('grant_claim_fail'" },
+    { host: 'app', file: 'src/app/telemetry-session.js', match: "reason: reason" },
   ],
   pack_download_start: [
     { host: 'ext', none: '扩展没有 App 的离线语言包下载流程；BEL-226 只接 App' },

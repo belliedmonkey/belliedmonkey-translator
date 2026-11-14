@@ -134,10 +134,10 @@ describe('SourcesView.groupHandoff —— 按入口 + 月份一行，新月份�
 
 describe('AppHandoff.relayResult — 面板页的遥测由主页面代发（telemetry-design §3.5）', () => {
   const sent = []; const track = { track: (n, p) => sent.push({ n, p }) };
-  test('成功 ⇒ translate_ok{provider, kind:quick, ms}，属性全在白名单里', () => {
+  test('成功 ⇒ translate_ok{provider, kind:quick, surface:quick, ms}，属性全在白名单里', () => {
     const { EVENTS } = require(path.join(ROOT, 'build', 'telemetry.config.js'));
     sent.length = 0; eq(H.relayResult({ ok: true, provider: 'deepseek', ms: 640, text: '不该出现' }, track), 'ok');
-    deepEq(sent[0], { n: 'translate_ok', p: { provider: 'deepseek', kind: 'quick', ms: 640 } });
+    deepEq(sent[0], { n: 'translate_ok', p: { provider: 'deepseek', kind: 'quick', surface: 'quick', ms: 640 } });
     ok(EVENTS.translate_ok.kind.indexOf('quick') >= 0, '白名单里没有 quick ⇒ 客户端会静默丢掉');
   });
   test('失败 ⇒ translate_fail{kind:quick}；ms 只在非负整数时发（不补假 0）', () => {

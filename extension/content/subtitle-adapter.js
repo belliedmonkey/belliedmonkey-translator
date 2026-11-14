@@ -145,7 +145,7 @@ var SubtitleAdapter = (() => {
         // 的守卫后面，没加载遥测的构建里就一次都不计（今天的构建都加载了，所以没发作过）。
         try { if (typeof MTFeedback !== 'undefined' && MTFeedback.noteOkSession) MTFeedback.noteOkSession().catch(() => {}); } catch (_) {}
         if (typeof MTTelemetry === 'undefined') return;
-        MTTelemetry.track('translate_ok', { provider: String((settings && settings.provider) || ''), kind: 'subtitle', ms: Date.now() - subSince });
+        MTTelemetry.track('translate_ok', { provider: String((settings && settings.provider) || ''), kind: 'subtitle', surface: 'web_caption', ms: Date.now() - subSince });
       },
       onFail: (e) => {
         if (!(typeof MTTelemetry !== 'undefined')) return;
