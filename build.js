@@ -33,6 +33,9 @@ const DIST = path.join(ROOT,
 const ZIP = path.join(ROOT,
   TARGET === 'firefox' ? 'belliedmonkeytranslator-firefox.xpi'
     : (FLAVOR === 'china' ? 'belliedmonkeytranslator-china.zip' : 'belliedmonkeytranslator.zip'));
+// The host-app bundle is a second emission path (BEL-197). Its directory name is
+// needed by the BEL-259 marker writer as well as by the app-bundle block below.
+const APP_OUT_NAME = FLAVOR === 'china' ? 'dist-app-china' : 'dist-app';
 
 // BEL-172 (P0 scrub): backend host / anon key are build-time values. The source carries
 // inert placeholders; this installs the injected config into the require cache so every
@@ -48,6 +51,16 @@ const GRANT_MODELS = require('./build/grant-models.config.js');
 // still written (so it can be loaded unpacked for testing) but the packaged
 // artifact is withheld — see the Gate B escape hatch in validateManifest().
 let SKIP_ZIP = null;
+
+// BEL-259: local-preview escape hatch. Exactly the string "1"; refused in any
+// release-like context. When it is on, SKIP_ZIP is forced and .not-shippable is
+// written into BOTH dist and dist-app*. See backendInject.placeholderMode().
+const PLACEHOLDER = backendInject.placeholderMode(process.env);
+if (PLACEHOLDER.enabled && PLACEHOLDER.refused) {
+  err(`MT_ALLOW_PLACEHOLDER_BACKEND=1 is local-preview only, but this looks like a release build (${PLACEHOLDER.refused})`);
+  process.exit(1);
+}
+const ALLOW_PLACEHOLDER = PLACEHOLDER.enabled;
 
 // RETIRED as of Gate B (v1.4.0, 2026-08-09): the source switch is now true, so
 // `MT_SYNC=on` is a no-op kept only so old muscle memory / scripts don't fail.
@@ -127,7 +140,15 @@ function chinaGrant() {
 function switchBackend(text, what, cn) {
   // 切之前的地址留在产物里（previousUrl）：bindCorpus 靠它认出「主库是在旧后端认领的」
   // （learning-design §8.4.3「后端换了」）—— 否则老用户在新后端一登录，本机的卡就挂到一个再也登不上的身份下。
+  //
+  // BEL-260：空 previousUrl 是**禁止项**，不是「等同于当前后端」。priorBackend() 会把它
+  // 退成 CN，于是老会话/无记录的主库被误判成本机 CN 主库，CN 账号拿到空库，旧卡看不见
+  // （2026-09-22 的形状）。这里 fail closed，防止上游源码被改成空 url 后静默写出空哨兵。
   const prev = (/^  url: '([^']*)',/m.exec(text) || [])[1] || '';
+  if (!prev) {
+    console.error(`✗ backend switch: ${what} 的顶层 url 为空 —— 不能写入空的 previousUrl（BEL-260）`);
+    process.exit(1);
+  }
   text = text.replace(/^(  url: '[^']*',.*)$/m, `$1\n  previousUrl: '${prev}', // CHINA build: 切后端之前的地址（build.js）`);
   const out = [['url', cn.url], ['anonKey', cn.anonKey]].reduce((acc, [key, val]) => {
     // 只匹配**顶层**那一条（行首两个空格），不碰 china 块里的同名键（四个空格）。
@@ -1277,6 +1298,36 @@ if (fs.readFileSync(path.join(__dirname, 'src', 'app', 'listen-model.js'), 'utf8
 const isFirefox = TARGET === 'firefox';
 console.log(`\n\x1b[1mBuilding Mobile Translator — ${isFirefox ? 'Firefox' : 'Chrome/Safari'} · flavor: ${FLAVOR}\x1b[0m\n`);
 
+// ─── BEL-259: backend gate — BEFORE fs.rmSync(DIST) / copyDir(SRC, DIST) ────
+//
+// The single hard-fail point for every shippable artifact (dist*, zips, xpi and
+// the two Safari project trees, which consume dist/dist-app). If the ACTIVE
+// backend is still a placeholder, nothing is written: a failed build cannot
+// leave a loadable-but-dead artifact behind for someone to archive anyway.
+//
+// `previousUrl` is intentionally not part of this call: it is the BEL-260
+// sentinel, not a backend the client talks to.
+if (ALLOW_PLACEHOLDER) {
+  SKIP_ZIP = 'placeholder backend allowed for local preview (MT_ALLOW_PLACEHOLDER_BACKEND=1)';
+  log('\x1b[33mMT_ALLOW_PLACEHOLDER_BACKEND=1 — placeholder backend allowed for LOCAL PREVIEW ONLY；'
+    + 'no zip/xpi, .not-shippable markers will be written\x1b[0m');
+}
+try {
+  const gate = backendInject.assertShippable(backendInjection.config, {
+    flavor: FLAVOR,
+    values: backendInjection.values,
+    allowPlaceholder: ALLOW_PLACEHOLDER,
+  });
+  for (const w of gate.warnings) {
+    log(`\x1b[33mplaceholder allowed for preview: ${w.message}\x1b[0m`);
+  }
+  log(`Backend gate passed (flavor=${FLAVOR}, active=${gate.active}, host=${gate.host || '(none)'},`
+    + ` anonKey=sha256:${gate.anonKeySha8})`);
+} catch (e) {
+  err(e.message);
+  process.exit(1);
+}
+
 // Clean
 if (fs.existsSync(DIST)) fs.rmSync(DIST, { recursive: true });
 if (fs.existsSync(ZIP)) fs.unlinkSync(ZIP);
@@ -1312,6 +1363,10 @@ if (FLAVOR === 'china') {
 
 // Copy sources
 copyDir(SRC, DIST);
+// BEL-259: put the preview marker down as soon as DIST exists, so a later gate
+// failing cannot leave an unmarked loadable tree behind. The end-of-build block
+// below also writes/removes both markers for the normal paths.
+if (SKIP_ZIP) fs.writeFileSync(path.join(DIST, '.not-shippable'), SKIP_ZIP + '\n');
 log(`Copied extension sources → ${path.basename(DIST)}/`);
 
 // BEL-172: inject the real backend host/anon key into the copied config (placeholders
@@ -1491,7 +1546,7 @@ nameLengthGate(DIST);
 // extension is clean and the app is not, the two were built from different flavors.
 {
   const { buildAppBundle } = require('./build/app-bundle.js');
-  const APP_OUT = FLAVOR === 'china' ? 'dist-app-china' : 'dist-app';
+  const APP_OUT = APP_OUT_NAME;
   // syncOn flip retired with Gate B — the source flag is true; the bundle
   // concatenates it as-is.
   // 中国版从 dist-china/ 取生成物（那里才是 flavor 过滤后的注册表）。
@@ -1499,13 +1554,22 @@ nameLengthGate(DIST);
     FLAVOR === 'china' ? { genRoot: DIST, limitProviders,
       rewriteHostLiterals: true,
       switchBackend: chinaBackendReady() ? (text, what) => switchBackend(text, what, chinaBackend()) : null } : {});
-  // 两条发射路径必须指向同一个后端：china.ready=true 时中国版 App 包里不许再出现 *.supabase.co。
+  // BEL-259: mark the host-app tree as soon as it exists (preview / E2E builds
+  // must not leave an unmarked dist-app* behind if a later gate fails).
+  if (SKIP_ZIP) fs.writeFileSync(path.join(ROOT, APP_OUT, '.not-shippable'), SKIP_ZIP + '\n');
+  // BEL-259: the shared artifact checker replaces the one-off `previousUrl` regex
+  // that used to live here. It reads only the ACTIVE `url`/`anonKey` from Script.js,
+  // so the BEL-260 `.invalid` previousUrl sentinel is outside the criteria by
+  // construction. The public china-gate scan below still rejects any *.supabase.co
+  // host anywhere in the bundle (previousUrl included) — no exemption was added.
   if (FLAVOR === 'china' && chinaBackendReady()) {
-    const js = fs.readFileSync(path.join(ROOT, APP_OUT, 'Script.js'), 'utf8');
-    // previousUrl 那一行豁免：它只拿来比较（bindCorpus 认旧主库），从不发请求。别处出现一次都算红。
-    const tokyo = js.split('\n').filter((l) => !/^  previousUrl: '/.test(l)).join('\n').match(/https:\/\/[a-z0-9]+\.supabase\.co/g) || [];
-    if (tokyo.length) { err(`${APP_OUT}/Script.js 里还有 ${tokyo.length} 处 *.supabase.co（${[...new Set(tokyo)].join(', ')}）—— china.ready=true 时中国版 App 必须连境内后端`); process.exit(1); }
-    log('China flavor: App 包后端 → ' + chinaBackend().url + '（与扩展同一个）');
+    if (ALLOW_PLACEHOLDER) {
+      log('\x1b[33mChina flavor: App backend check skipped (placeholder preview)\x1b[0m');
+    } else {
+      const { assertBackendInjected } = require('./scripts/lib/release-gate.js');
+      assertBackendInjected({ dist: path.join(ROOT, APP_OUT), flavor: 'china' });
+      log('China flavor: App 包后端 → ' + chinaBackend().url + '（与扩展同一个）');
+    }
   }
   // 系统翻译扩展的裁剪包（learning-design §9.9）。与 App 包同一条 flavor 纪律：
   // 中国版从 dist-china/ 取生成物。它也要过下面那两道门 —— 同一份传输代码，
@@ -1546,11 +1610,20 @@ nameLengthGate(DIST);
 // release-checklist「Gate B 的缺口」: SKIP_ZIP withholds the .zip, but the iOS
 // shippable is an .xcarchive built FROM dist/, which SKIP_ZIP never touched —
 // so a bypassed build could still reach TestFlight/App Store unimpeded. The
-// marker travels with dist/; scripts/verify-ios-bundle.js refuses (exit 1) when
-// it is present, and a normal build removes it.
-const MARKER = path.join(DIST, '.not-shippable');
-if (SKIP_ZIP) fs.writeFileSync(MARKER, SKIP_ZIP + '\n');
-else if (fs.existsSync(MARKER)) fs.unlinkSync(MARKER);
+// marker travels with BOTH emission paths (dist and dist-app*, BEL-259): the
+// host app reads dist-app, and the Xcode project reads dist. A normal build
+// removes stale markers from both.
+const MARKER_DIRS = [DIST, path.join(ROOT, APP_OUT_NAME)];
+if (SKIP_ZIP) {
+  for (const d of MARKER_DIRS) {
+    if (fs.existsSync(d)) fs.writeFileSync(path.join(d, '.not-shippable'), SKIP_ZIP + '\n');
+  }
+} else {
+  for (const d of MARKER_DIRS) {
+    const marker = path.join(d, '.not-shippable');
+    if (fs.existsSync(marker)) fs.unlinkSync(marker);
+  }
+}
 
 // Zip (Firefox .xpi is just a zip)
 if (SKIP_ZIP) {
