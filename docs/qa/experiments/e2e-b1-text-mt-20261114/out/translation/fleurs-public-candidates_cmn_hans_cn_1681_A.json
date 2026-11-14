@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1681|A",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1681",
+  "condition": "A",
+  "sourceKind": "reference",
+  "targetLang": "en",
+  "source": "实验是一种用来消除一个或多个可能性假设的试验，不过，实验并不是唯一的方法。提出问题及进行观察也可以指导科学研究。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "An experiment is a test designed to eliminate one or more possible hypotheses, but it is not the only method. Asking questions and making observations can also guide scientific research.",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 148,
+    "total_tokens": 734,
+    "completion_tokens": 586,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 148
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 550,
+      "text_tokens": 586
+    }
+  },
+  "error": null
+}

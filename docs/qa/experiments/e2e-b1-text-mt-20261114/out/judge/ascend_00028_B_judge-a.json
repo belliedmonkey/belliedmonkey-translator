@@ -1,0 +1,81 @@
+{
+  "pairId": "ascend/00028|B",
+  "itemId": "ascend/00028",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate translation reflects the ASR output, which misrecognized '福建' as '附件', changing the meaning from a place name to 'attachment'."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "The place name '福建' is mistranslated as 'attachment', losing the entity."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation present in source or target."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material content omitted."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No added information beyond ASR error."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "No domain-specific terminology involved."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The target sentence is fluent and natural."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "ok福建",
+        "targetQuote": "OK, attachment.",
+        "reason": "The candidate translation follows the ASR output 'OK附件' which changes the meaning from 'Fujian' (a place) to 'attachment', thus failing to preserve the original meaning."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "福建",
+        "targetQuote": "attachment",
+        "reason": "The place name '福建' is mistranslated as 'attachment', losing the original entity."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 404,
+    "completion_tokens": 274,
+    "total_tokens": 678,
+    "cost": 0.0006,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0006,
+      "upstream_inference_prompt_cost": 0.0001616,
+      "upstream_inference_completions_cost": 0.0004384
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0006
+}

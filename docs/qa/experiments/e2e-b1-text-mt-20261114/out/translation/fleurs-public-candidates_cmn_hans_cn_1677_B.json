@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1677|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+  "condition": "B",
+  "sourceKind": "sa_hypothesis",
+  "targetLang": "en",
+  "source": "如今唯一不能向后折叠翅膀的昆虫是蜻蜓和浮游。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "Today, the only insects that cannot fold their wings backward are dragonflies and mayflies.",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 136,
+    "total_tokens": 1013,
+    "completion_tokens": 877,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 136
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 856,
+      "text_tokens": 877
+    }
+  },
+  "error": null
+}

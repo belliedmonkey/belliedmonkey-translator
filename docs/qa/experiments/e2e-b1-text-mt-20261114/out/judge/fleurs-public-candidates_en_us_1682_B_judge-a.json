@@ -1,0 +1,81 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1682|B",
+  "itemId": "fleurs-public-candidates/en_us/1682",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "incorrect subject introduced"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "numbers and measurements correctly rendered"
+      },
+      "negation": {
+        "pass": true,
+        "note": "negation preserved"
+      },
+      "omission": {
+        "pass": true,
+        "note": "no material omission"
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "invented proper name '塞伦胡·罗伊' not in source"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "terms translated appropriately"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "natural Chinese"
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "While no one knows for certain who wrote it",
+        "targetQuote": "尽管无人知晓塞伦胡·罗伊的详情",
+        "reason": "The candidate introduces a proper name '塞伦胡·罗伊' which is not present in the source, changing the meaning and subject."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "While no one knows for certain who wrote it",
+        "targetQuote": "尽管无人知晓塞伦胡·罗伊的详情",
+        "reason": "The candidate invents a proper name '塞伦胡·罗伊' that does not exist in the source text."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 541,
+    "completion_tokens": 263,
+    "total_tokens": 804,
+    "cost": 0.0006372,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0006372,
+      "upstream_inference_prompt_cost": 0.0002164,
+      "upstream_inference_completions_cost": 0.0004208
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0006372
+}

@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1672|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1672",
+  "condition": "B",
+  "sourceKind": "sa_hypothesis",
+  "targetLang": "en",
+  "source": "小心不要让衣服变得太热 ，这可能会产生收缩现象 ，在极端情况下会把衣服烤焦。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "Be careful not to overheat the garments, as this may cause them to shrink, and in extreme cases, could even scorch the fabric.",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 143,
+    "total_tokens": 859,
+    "completion_tokens": 716,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 143
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 684,
+      "text_tokens": 716
+    }
+  },
+  "error": null
+}

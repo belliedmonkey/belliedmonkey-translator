@@ -1,0 +1,81 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1671|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate adds 'only' which introduces a temporal exclusivity not present in the source, altering the meaning."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "The year 2005 and the number 10 are correctly rendered."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation errors; polarity is preserved."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omissions from the source."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The addition of 'only' introduces a temporal restriction not in the source, constituting a hallucination."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "'anti-pornography initiative', 'FBI', 'agents', 'combat adult pornography' are appropriate and consistent."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally to a native English speaker."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "国会从 2005 财年开始资助该扫黄倡议",
+        "targetQuote": "Congress only began funding the anti-pornography initiative in 2005",
+        "reason": "The addition of 'only' implies exclusivity or delay not present in the original, altering the intended meaning."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "国会从 2005 财年开始资助该扫黄倡议",
+        "targetQuote": "Congress only began funding the anti-pornography initiative in 2005",
+        "reason": "The word 'only' is not supported by the source and introduces a temporal limitation that does not exist in the original."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 498,
+    "completion_tokens": 346,
+    "total_tokens": 844,
+    "cost": 0.0003342,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0003342,
+      "upstream_inference_prompt_cost": 0.0000747,
+      "upstream_inference_completions_cost": 0.0002595
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0003342
+}

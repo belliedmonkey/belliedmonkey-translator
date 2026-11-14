@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1673|B",
+  "itemId": "fleurs-public-candidates/en_us/1673",
+  "condition": "B",
+  "sourceKind": "sa_hypothesis",
+  "targetLang": "zh-CN",
+  "source": "During the Revolutionary War, the 13 states first formed a weak central government, with the Congress being its only component under the Articles of Confederation.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "独立战争期间，13个州首先组建了一个弱势的中央政府，依据《邦联条例》，国会为其唯一组成机构。",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 154,
+    "total_tokens": 565,
+    "completion_tokens": 411,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 154
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 381,
+      "text_tokens": 411
+    }
+  },
+  "error": null
+}

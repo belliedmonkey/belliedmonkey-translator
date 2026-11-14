@@ -1,0 +1,28 @@
+{
+  "pairId": "ascend/00028|B",
+  "itemId": "ascend/00028",
+  "condition": "B",
+  "sourceKind": "sa_hypothesis",
+  "targetLang": "en",
+  "source": "OK附件。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "OK, attachment.",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 125,
+    "total_tokens": 608,
+    "completion_tokens": 483,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 125
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 476,
+      "text_tokens": 483
+    }
+  },
+  "error": null
+}

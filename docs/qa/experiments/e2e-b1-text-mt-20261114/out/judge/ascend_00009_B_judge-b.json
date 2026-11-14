@@ -1,0 +1,87 @@
+{
+  "pairId": "ascend/00009|B",
+  "itemId": "ascend/00009",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate incorrectly renders 'my major is' as 'I think it's', changing the meaning from a statement of fact to an opinion."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "'information systems management' is inaccurately rendered as 'sistancemangement' in the ASR input, and the candidate fails to correct it to the correct term."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation in source or translation."
+      },
+      "omission": {
+        "pass": false,
+        "note": "The word 'no' at the beginning of the source is omitted in the candidate translation, altering the intended meaning."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No hallucinated content beyond ASR errors."
+      },
+      "terminology": {
+        "pass": false,
+        "note": "'information systems management' is a key term that is misrepresented due to ASR error, and the candidate does not recover the correct term."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The sentence is fluent despite inaccuracies."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "no我专业是那个i s m information systems management",
+        "targetQuote": "Then I think it's that ISM",
+        "reason": "The candidate translates a declarative statement about the speaker's major as a personal opinion, distorting the original meaning."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "no",
+        "targetQuote": "",
+        "reason": "The negation 'no' at the start of the source is completely omitted, potentially indicating correction or rejection of a prior statement, which is lost in translation."
+      },
+      {
+        "dimension": "terminology",
+        "sourceQuote": "information systems management",
+        "targetQuote": "sistancemangement",
+        "reason": "The domain-specific term 'information systems management' is corrupted in ASR and not corrected in the translation, leading to a significant terminology error."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 430,
+    "completion_tokens": 387,
+    "total_tokens": 817,
+    "cost": 0.00036548,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00036548,
+      "upstream_inference_prompt_cost": 0.00005588,
+      "upstream_inference_completions_cost": 0.0003096
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00036548
+}

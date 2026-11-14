@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1676|B",
+  "itemId": "fleurs-public-candidates/en_us/1676",
+  "condition": "B",
+  "sourceKind": "sa_hypothesis",
+  "targetLang": "zh-CN",
+  "source": "As with all South African national parks, there are daily conservation and entry fees for the park.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "与南非所有国家公园一样，该公园也收取每日保育费和入园费。",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 142,
+    "total_tokens": 653,
+    "completion_tokens": 511,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 142
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 492,
+      "text_tokens": 511
+    }
+  },
+  "error": null
+}

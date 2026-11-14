@@ -1,0 +1,87 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1680|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate incorrectly attributes swimming, long jumping, and pulling power collectively as reaching five times that of human strongmen, while the source specifies only pulling power reaches five t"
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "The number 'five times' is incorrectly applied to swimming and long jumping in addition to pulling power, misrepresenting the source."
+      },
+      "negation": {
+        "pass": true,
+        "note": "The negation 'not particularly strong' correctly reflects 'not very strong' in climbing ability."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information from the source is omitted."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The candidate adds the unsupported claim that swimming and long jumping abilities reach five times that of human strongmen, which is not in the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology such as 'all-around athletes', 'climb', 'swimming', 'long jumping', and 'pulling power' are appropriate and consistent."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally to a native English speaker."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "拉力能达到人类大力士的五倍",
+        "targetQuote": "swimming, long jumping, and pulling power can reach five times that of human strongmen",
+        "reason": "The source specifies only pulling power reaches five times that of human strongmen, but the translation incorrectly extends this to swimming and long jumping, altering the meaning."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "五倍",
+        "targetQuote": "five times",
+        "reason": "While 'five times' is correct, it is wrongly applied to swimming and long jumping in addition to pulling power, leading to numerical misrepresentation."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "拉力能达到人类大力士的五倍",
+        "targetQuote": "swimming, long jumping, and pulling power can reach five times that of human strongmen",
+        "reason": "The candidate invents that swimming and long jumping reach five times human capability, which is not supported by the source."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 493,
+    "completion_tokens": 449,
+    "total_tokens": 942,
+    "cost": 0.0004239,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0004239,
+      "upstream_inference_prompt_cost": 0.0000647,
+      "upstream_inference_completions_cost": 0.0003592
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0004239
+}

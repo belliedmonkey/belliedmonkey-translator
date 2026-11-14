@@ -1,0 +1,75 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1677|B",
+  "itemId": "fleurs-public-candidates/en_us/1677",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate incorrectly renders 'mayflies' as two separate words in the source ASR, but the translation '蜉蝣' is correct; however, the ASR error 'may flies' introduces ambiguity that the candidate do"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "Both 'dragonflies' and 'mayflies' are correctly identified and translated as '蜻蜓' and '蜉蝣' respectively."
+      },
+      "negation": {
+        "pass": true,
+        "note": "The negation 'cannot fold back' is accurately conveyed in the translation."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information is omitted from the translation."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No content is added that is not supported by the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Technical terms like 'fold back their wings' are appropriately translated."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The Chinese translation reads naturally to a native speaker."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "may flies",
+        "targetQuote": "蜉蝣",
+        "reason": "The ASR output splits 'mayflies' into two words, which could imply a different meaning, but the candidate translates it correctly as '蜉蝣'. However, since the candidate is based on a flawed input and the authoritative source clearly states 'mayflies' as one word, the meaning dimension fails due to potential ambiguity not resolved in the translation process."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 444,
+    "completion_tokens": 323,
+    "total_tokens": 767,
+    "cost": 0.00031624,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00031624,
+      "upstream_inference_prompt_cost": 0.00005784,
+      "upstream_inference_completions_cost": 0.0002584
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00031624
+}

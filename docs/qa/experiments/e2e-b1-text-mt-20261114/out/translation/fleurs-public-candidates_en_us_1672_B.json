@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1672|B",
+  "itemId": "fleurs-public-candidates/en_us/1672",
+  "condition": "B",
+  "sourceKind": "sa_hypothesis",
+  "targetLang": "zh-CN",
+  "source": "All right, be careful not to allow fabric to become too hot, which can cause shrinkage, or in extreme cases, scorch.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "好的，请注意不要让布料温度过高，以免引起缩水，极端情况下甚至会被烫焦。",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 151,
+    "total_tokens": 850,
+    "completion_tokens": 699,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 151
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 677,
+      "text_tokens": 699
+    }
+  },
+  "error": null
+}

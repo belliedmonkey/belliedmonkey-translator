@@ -1,0 +1,66 @@
+{
+  "schema": "belliedmonkey.qa.experiment-record.v1",
+  "record": "e2e-b1-text-mt-20261114",
+  "date": "2026-11-14",
+  "kind": "exploratory component contrast, not a product metric and not a ranking",
+  "conditions": {
+    "A": "gold transcript as source",
+    "B": "product SA hypothesis as source"
+  },
+  "items": 36,
+  "translations": 72,
+  "judgeCallsFormal": 144,
+  "result": {
+    "A_allDimPass": "36/36",
+    "B_allDimPass": "15/35",
+    "A_over_B_items": 20,
+    "meaning": {
+      "A": 1.0,
+      "B": 0.634
+    },
+    "entities_numbers": {
+      "A": 1.0,
+      "B": 0.761
+    },
+    "hallucination": {
+      "A": 1.0,
+      "B": 0.817
+    },
+    "omission": {
+      "A": 1.0,
+      "B": 0.873
+    },
+    "negation": {
+      "A": 1.0,
+      "B": 1.0
+    },
+    "fluency": {
+      "A": 1.0,
+      "B": 1.0
+    }
+  },
+  "judge": {
+    "models": [
+      "openai/gpt-4.1-mini",
+      "qwen/qwen3-235b-a22b-2507"
+    ],
+    "agreement": 52,
+    "disagreement": 19,
+    "humanGold": false,
+    "tprTnrKnown": false
+  },
+  "attribution": "bottleneck is upstream recognition, not translation",
+  "cost": {
+    "judgeUsd": "0.08481643",
+    "translationTokens": {
+      "prompt": 10559,
+      "completion": 46720,
+      "reasoning": 44682
+    }
+  },
+  "scoresUnchanged": {
+    "officialV1V2": "partial",
+    "saSvEditRates": "unchanged",
+    "semanticHumanReviewCount": 0
+  }
+}

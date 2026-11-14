@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1668|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1668",
+  "condition": "B",
+  "sourceKind": "sa_hypothesis",
+  "targetLang": "en",
+  "source": "买一张万能卡也有不少好处 ，带着这张卡你可以进入南非的一些公园或者全部的国家公园。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "Buying a Wild Card also offers quite a few benefits. With this card, you can enter select parks in South Africa or all of the national parks.",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 142,
+    "total_tokens": 709,
+    "completion_tokens": 567,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 142
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 534,
+      "text_tokens": 567
+    }
+  },
+  "error": null
+}

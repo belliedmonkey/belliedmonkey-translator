@@ -1,0 +1,506 @@
+[
+  {
+    "pairId": "fleurs-public-candidates/en_us/1668|A",
+    "itemId": "fleurs-public-candidates/en_us/1668",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1668|B",
+    "itemId": "fleurs-public-candidates/en_us/1668",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1668|A",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1668",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1668|B",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1668",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1669|A",
+    "itemId": "fleurs-public-candidates/en_us/1669",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1669|B",
+    "itemId": "fleurs-public-candidates/en_us/1669",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1669|A",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1669",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1669|B",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1669",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1670|A",
+    "itemId": "fleurs-public-candidates/en_us/1670",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1670|B",
+    "itemId": "fleurs-public-candidates/en_us/1670",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1670|A",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1670|B",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1671|A",
+    "itemId": "fleurs-public-candidates/en_us/1671",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1671|B",
+    "itemId": "fleurs-public-candidates/en_us/1671",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1671|A",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1671|B",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1672|A",
+    "itemId": "fleurs-public-candidates/en_us/1672",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1672|B",
+    "itemId": "fleurs-public-candidates/en_us/1672",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1672|A",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1672",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1672|B",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1672",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1673|A",
+    "itemId": "fleurs-public-candidates/en_us/1673",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1673|B",
+    "itemId": "fleurs-public-candidates/en_us/1673",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1673|A",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1673|B",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1674|A",
+    "itemId": "fleurs-public-candidates/en_us/1674",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1674|B",
+    "itemId": "fleurs-public-candidates/en_us/1674",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1674|A",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1674",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1674|B",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1674",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1675|A",
+    "itemId": "fleurs-public-candidates/en_us/1675",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1675|B",
+    "itemId": "fleurs-public-candidates/en_us/1675",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1675|A",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1675|B",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1676|A",
+    "itemId": "fleurs-public-candidates/en_us/1676",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1676|B",
+    "itemId": "fleurs-public-candidates/en_us/1676",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1676|A",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1676",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1676|B",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1676",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1677|A",
+    "itemId": "fleurs-public-candidates/en_us/1677",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1677|B",
+    "itemId": "fleurs-public-candidates/en_us/1677",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1677|A",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1677|B",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1678|A",
+    "itemId": "fleurs-public-candidates/en_us/1678",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1678|B",
+    "itemId": "fleurs-public-candidates/en_us/1678",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1678|A",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1678",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1678|B",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1678",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1679|A",
+    "itemId": "fleurs-public-candidates/en_us/1679",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1679|B",
+    "itemId": "fleurs-public-candidates/en_us/1679",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1679|A",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1679|B",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1680|A",
+    "itemId": "fleurs-public-candidates/en_us/1680",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1680|B",
+    "itemId": "fleurs-public-candidates/en_us/1680",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1680|A",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1680|B",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1681|A",
+    "itemId": "fleurs-public-candidates/en_us/1681",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1681|B",
+    "itemId": "fleurs-public-candidates/en_us/1681",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1681|A",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1681",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1681|B",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1681",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1682|A",
+    "itemId": "fleurs-public-candidates/en_us/1682",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/en_us/1682|B",
+    "itemId": "fleurs-public-candidates/en_us/1682",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "zh-CN"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1682|A",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1682",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "fleurs-public-candidates/cmn_hans_cn/1682|B",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1682",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "ascend/00004|A",
+    "itemId": "ascend/00004",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "ascend/00004|B",
+    "itemId": "ascend/00004",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "ascend/00009|A",
+    "itemId": "ascend/00009",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "ascend/00009|B",
+    "itemId": "ascend/00009",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "ascend/00028|A",
+    "itemId": "ascend/00028",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "ascend/00028|B",
+    "itemId": "ascend/00028",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "ascend/00055|A",
+    "itemId": "ascend/00055",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "ascend/00055|B",
+    "itemId": "ascend/00055",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "ascend/00066|A",
+    "itemId": "ascend/00066",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "ascend/00066|B",
+    "itemId": "ascend/00066",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "ascend/00068|A",
+    "itemId": "ascend/00068",
+    "condition": "A",
+    "sourceKind": "reference",
+    "targetLang": "en"
+  },
+  {
+    "pairId": "ascend/00068|B",
+    "itemId": "ascend/00068",
+    "condition": "B",
+    "sourceKind": "sa_hypothesis",
+    "targetLang": "en"
+  }
+]

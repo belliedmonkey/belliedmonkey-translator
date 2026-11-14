@@ -1,0 +1,75 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1677|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys the intended meaning despite the ASR error."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "'浮游' (ASR error for '蜉蝣') was incorrectly rendered as 'mayflies', which is contextually correct but based on a misrecognition."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation is correctly preserved."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omissions."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No hallucinations."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is appropriate and consistent."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation is fluent and natural."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "浮游",
+        "targetQuote": "mayflies",
+        "reason": "The ASR output misrecognized '蜉蝣' as '浮游', which means 'plankton' or 'floating organisms', but the candidate translated it as 'mayflies', correctly restoring the intended entity despite the input error. However, since the candidate was produced from the erroneous input, this counts as a failure to preserve the entity as given in the ASR output."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 441,
+    "completion_tokens": 267,
+    "total_tokens": 708,
+    "cost": 0.00027102,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00027102,
+      "upstream_inference_prompt_cost": 0.00005742,
+      "upstream_inference_completions_cost": 0.0002136
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00027102
+}

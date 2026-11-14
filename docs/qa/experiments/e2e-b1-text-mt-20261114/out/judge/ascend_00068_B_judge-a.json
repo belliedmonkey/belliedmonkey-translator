@@ -1,0 +1,87 @@
+{
+  "pairId": "ascend/00068|B",
+  "itemId": "ascend/00068",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The original phrase 'computer languages是' indicates a statement about computer languages, but the candidate translation 'Probably it's mostly just language' introduces uncertainty and changes the mean"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "No entities or numbers present to compare."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation present in source or candidate."
+      },
+      "omission": {
+        "pass": false,
+        "note": "The candidate omits the explicit mention of 'computer languages'."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No information added beyond the source."
+      },
+      "terminology": {
+        "pass": false,
+        "note": "The term 'computer languages' is not preserved; 'language' alone is less precise."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The candidate reads naturally in English."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "computer languages是",
+        "targetQuote": "Probably it's mostly just language",
+        "reason": "The candidate introduces uncertainty and changes the meaning from a statement about computer languages to a probable statement about language in general."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "computer languages是",
+        "targetQuote": "Probably it's mostly just language",
+        "reason": "The candidate omits the explicit mention of 'computer' in 'computer languages', reducing specificity."
+      },
+      {
+        "dimension": "terminology",
+        "sourceQuote": "computer languages",
+        "targetQuote": "language",
+        "reason": "The candidate fails to preserve the domain-specific term 'computer languages', instead using the more general 'language'."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 411,
+    "completion_tokens": 319,
+    "total_tokens": 730,
+    "cost": 0.0006748,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0006748,
+      "upstream_inference_prompt_cost": 0.0001644,
+      "upstream_inference_completions_cost": 0.0005104
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0006748
+}

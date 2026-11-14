@@ -1,0 +1,68 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1675|A",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+  "condition": "A",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys that all nouns except 'Sie' meaning 'you' must be capitalized, even mid-sentence."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "No specific entities or numbers; 'Sie' is correctly rendered."
+      },
+      "negation": {
+        "pass": true,
+        "note": "The exclusion of 'Sie' is correctly negated in the translation."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information is omitted."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No invented content; all details are supported by the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "'Sie' and 'nouns' are appropriately used in context."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The sentence reads naturally in English."
+      }
+    },
+    "findings": []
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 407,
+    "completion_tokens": 183,
+    "total_tokens": 590,
+    "cost": 0.00019906,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00019906,
+      "upstream_inference_prompt_cost": 0.00005266,
+      "upstream_inference_completions_cost": 0.0001464
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00019906
+}

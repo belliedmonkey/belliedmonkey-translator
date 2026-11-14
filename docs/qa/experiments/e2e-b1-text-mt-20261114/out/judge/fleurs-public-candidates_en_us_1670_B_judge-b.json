@@ -1,0 +1,87 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1670|B",
+  "itemId": "fleurs-public-candidates/en_us/1670",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate incorrectly separates the attribution of the quote, making it seem that '该校位于亚利桑那州弗拉格斯塔夫' refers to the university alone, while the source clearly attributes both the USGS and Northern A"
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "'美国地质调查局天体地质研究团队兼北亚利桑那大学' incorrectly implies Glen Cushing is affiliated with both organizations in a parallel structure without clarifying that Northern Arizona University is located in Flagstaff. Th"
+      },
+      "negation": {
+        "pass": true,
+        "note": "The negation 'not as steady' is correctly rendered as '不如...那样稳定', preserving the original polarity."
+      },
+      "omission": {
+        "pass": false,
+        "note": "The candidate omits the explicit location 'located in Flagstaff, Arizona' as a descriptor of Northern Arizona University, which is present in the authoritative source and important for full attributio"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No information is invented beyond what is in the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Technical terms like 'thermal behavior' and 'deep holes in the ground' are accurately translated."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in Chinese."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "Glen Cushing of the United States Geological Survey (USGS) Astrogeology Team and of Northern Arizona University located in Flagstaff, Arizona.",
+        "targetQuote": "美国地质调查局天体地质研究团队兼北亚利桑那大学的格伦·库欣表示，该校位于亚利桑那州弗拉格斯塔夫。",
+        "reason": "The candidate misattributes the location phrase 'located in Flagstaff, Arizona' to the university alone and separates it syntactically, altering the original meaning that both institutions are associated with Cushing and that the university is specifically located in Flagstaff."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "Northern Arizona University located in Flagstaff, Arizona",
+        "targetQuote": "北亚利桑那大学，该校位于亚利桑那州弗拉格斯塔夫",
+        "reason": "The candidate fails to preserve the full entity information by not clearly linking the location to the university in the same syntactic structure, leading to potential ambiguity."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "located in Flagstaff, Arizona",
+        "targetQuote": "亚利桑那州弗拉格斯塔夫",
+        "reason": "The phrase 'located in Flagstaff, Arizona' is reduced to just the location name without the verb, resulting in a less precise rendering and partial omission of the original descriptive clause."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 586,
+    "completion_tokens": 603,
+    "total_tokens": 1189,
+    "cost": 0.00054015,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00054015,
+      "upstream_inference_prompt_cost": 0.0000879,
+      "upstream_inference_completions_cost": 0.00045225
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00054015
+}

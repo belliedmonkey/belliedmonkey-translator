@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1680|A",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+  "condition": "A",
+  "sourceKind": "reference",
+  "targetLang": "en",
+  "source": "老虎是全能运动员，它会攀爬（虽然攀爬能力不是很强）、游泳、跳远，拉力能达到人类大力士的五倍。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "Tigers are all-around athletes; they can climb (though they aren't particularly adept at it), swim, and leap great distances, and their pulling strength can reach five times that of a human strongman.",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 149,
+    "total_tokens": 1015,
+    "completion_tokens": 866,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 149
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 821,
+      "text_tokens": 866
+    }
+  },
+  "error": null
+}

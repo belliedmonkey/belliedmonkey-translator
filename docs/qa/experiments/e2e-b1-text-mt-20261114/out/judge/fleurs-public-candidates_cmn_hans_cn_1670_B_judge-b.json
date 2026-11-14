@@ -1,0 +1,87 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1670|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate incorrectly translates '地下深穴' (deep underground caves) as 'subsurface snow accumulation', which is a significant meaning shift."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "'旗杆镇' is correctly 'Flagstaff', but '格伦·库欣' is rendered as 'Glen Cushing' without the middle dot, and '亚利桑那' is mistranscribed in ASR as '亚历桑那' and reflected in the candidate without correction."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation is correctly preserved."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omissions from the source."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "'subsurface snow accumulation' is a hallucination not supported by the source, which refers to '地下深穴' (deep underground cavities or caves), not snow."
+      },
+      "terminology": {
+        "pass": false,
+        "note": "'地下深穴' is a geological term meaning deep underground caves or voids, not 'snow accumulation'; this is a critical terminology error."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation is fluent and reads naturally."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "但它们与地下深穴的情况很相似",
+        "targetQuote": "they closely resemble the conditions of subsurface snow accumulation",
+        "reason": "The source refers to deep underground caves, while the target incorrectly introduces 'snow accumulation', altering the core meaning."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "亚利桑那州旗杆镇",
+        "targetQuote": "Flagstaff, Arizona",
+        "reason": "'旗杆镇' should be explicitly rendered as 'Flagstaff' and is correct, but the name '格伦·库欣' is rendered without the proper diacritic or spacing as 'Glen Cushing', and '亚利桑那' is inconsistently transcribed as 'Arizona' while ASR has '亚历桑那', indicating potential inconsistency."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "地下深穴",
+        "targetQuote": "subsurface snow accumulation",
+        "reason": "The target invents 'snow accumulation', which is not present or implied in the source; the source refers to deep underground cavities."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 588,
+    "completion_tokens": 479,
+    "total_tokens": 1067,
+    "cost": 0.0004612,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0004612,
+      "upstream_inference_prompt_cost": 0.000078,
+      "upstream_inference_completions_cost": 0.0003832
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0004612
+}

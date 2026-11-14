@@ -1,0 +1,75 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1680|B",
+  "itemId": "fleurs-public-candidates/en_us/1680",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "'leave great distances' misheard from 'leap great distances' leads to '腾跃极远距离' which inaccurately conveys the action."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "Numbers correctly rendered as '5倍'."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation '虽不擅长攀爬' correctly reflects 'though not well'."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omissions from source."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No invented content beyond source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Domain terms like '攀援', '腾跃' are appropriate."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "Target is fluent and natural."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "leap great distances",
+        "targetQuote": "腾跃极远距离",
+        "reason": "The ASR error 'leave' for 'leap' was interpreted as '腾跃', which preserves the idea of jumping, but the candidate inherits a misrepresentation from the misheard input; however, '腾跃' is a reasonable translation of 'leap', so the meaning defect is minor but present due to reliance on incorrect input."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 496,
+    "completion_tokens": 276,
+    "total_tokens": 772,
+    "cost": 0.00028592,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00028592,
+      "upstream_inference_prompt_cost": 0.00006512,
+      "upstream_inference_completions_cost": 0.0002208
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00028592
+}

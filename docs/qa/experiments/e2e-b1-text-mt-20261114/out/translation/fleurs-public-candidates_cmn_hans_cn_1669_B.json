@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1669|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1669",
+  "condition": "B",
+  "sourceKind": "sa_hypothesis",
+  "targetLang": "en",
+  "source": "警察局长钱德拉谢卡尔索兰基说被告人出庭时都蒙住了脸。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "Police Commissioner Chandrashekhar Solanki stated that all the defendants appeared in court with their faces covered.",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 140,
+    "total_tokens": 902,
+    "completion_tokens": 762,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 140
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 737,
+      "text_tokens": 762
+    }
+  },
+  "error": null
+}

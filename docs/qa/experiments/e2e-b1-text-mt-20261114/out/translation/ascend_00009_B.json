@@ -1,0 +1,28 @@
+{
+  "pairId": "ascend/00009|B",
+  "itemId": "ascend/00009",
+  "condition": "B",
+  "sourceKind": "sa_hypothesis",
+  "targetLang": "en",
+  "source": "那我觉爱是那个 ISM impormation sistancemangement。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "Then I think it's that ISM Information System Management.",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 136,
+    "total_tokens": 928,
+    "completion_tokens": 792,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 136
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 777,
+      "text_tokens": 792
+    }
+  },
+  "error": null
+}

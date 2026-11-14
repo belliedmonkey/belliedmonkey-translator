@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1670|B",
+  "itemId": "fleurs-public-candidates/en_us/1670",
+  "condition": "B",
+  "sourceKind": "sa_hypothesis",
+  "targetLang": "zh-CN",
+  "source": "Their thermal behavior is not as steady as large caves on earth that often maintain a fairly constant temperature. But it's consistent with these being deep holes in the ground, set Glenn Cushing, a United States geological survey, astrogeology team, and of Northern Arizona University, located in Flagstaff, Arizona.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "它们的热学特性不如地球上的大型洞穴那样稳定，后者通常能保持相当恒定的温度。但这与地下深坑的特征相符。美国地质调查局天体地质研究团队兼北亚利桑那大学的格伦·库欣表示，该校位于亚利桑那州弗拉格斯塔夫。",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 185,
+    "total_tokens": 1401,
+    "completion_tokens": 1216,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 185
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 1148,
+      "text_tokens": 1216
+    }
+  },
+  "error": null
+}

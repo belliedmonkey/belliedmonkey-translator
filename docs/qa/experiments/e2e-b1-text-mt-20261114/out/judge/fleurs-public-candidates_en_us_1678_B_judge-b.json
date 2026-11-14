@@ -1,0 +1,75 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1678|B",
+  "itemId": "fleurs-public-candidates/en_us/1678",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys the core message about brain-damaged individuals retaining the ability to assess sincerity despite speech comprehension loss."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "'Oliver Sacks' is misspelled as 'Oliver Sachs' in the ASR input, and the candidate retains '奥利弗·萨克斯' which corresponds to 'Sachs' instead of the correct '萨克斯' for 'Sacks'. This misrepresents the name."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negations in the source; translation correctly does not introduce any."
+      },
+      "omission": {
+        "pass": true,
+        "note": "All key information from the source is included in the translation."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "Nothing is added that is not supported by the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terms like '脑损伤' (brain damage) and '真诚程度' (sincerity) are appropriately used."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The Chinese translation reads naturally and idiomatically."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "Oliver Sacks",
+        "targetQuote": "奥利弗·萨克斯",
+        "reason": "The candidate translation uses '萨克斯' which reflects the ASR error 'Sachs' instead of the correct 'Sacks', leading to an incorrect rendering of the person's name."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 498,
+    "completion_tokens": 312,
+    "total_tokens": 810,
+    "cost": 0.000315,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.000315,
+      "upstream_inference_prompt_cost": 0.0000654,
+      "upstream_inference_completions_cost": 0.0002496
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.000315
+}

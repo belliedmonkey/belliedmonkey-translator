@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1674|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1674",
+  "condition": "B",
+  "sourceKind": "sa_hypothesis",
+  "targetLang": "en",
+  "source": "在某些地区水煮 1分钟就足够了 ，在其他地区则需要几分钟的时间。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "In some regions, boiling for one minute is sufficient, while in others, it takes a few minutes.",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 137,
+    "total_tokens": 647,
+    "completion_tokens": 510,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 137
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 486,
+      "text_tokens": 510
+    }
+  },
+  "error": null
+}

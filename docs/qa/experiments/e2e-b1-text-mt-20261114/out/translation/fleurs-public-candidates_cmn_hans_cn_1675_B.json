@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1675|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+  "condition": "B",
+  "sourceKind": "sa_hypothesis",
+  "targetLang": "en",
+  "source": "除去表示您的 C之外的所有名词都应以大写字幕开头 ，即便在句子中间也应如此。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "All nouns except the \"C\" representing \"you\" should start with a capital letter, even in the middle of a sentence.",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 143,
+    "total_tokens": 677,
+    "completion_tokens": 534,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 143
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 505,
+      "text_tokens": 534
+    }
+  },
+  "error": null
+}

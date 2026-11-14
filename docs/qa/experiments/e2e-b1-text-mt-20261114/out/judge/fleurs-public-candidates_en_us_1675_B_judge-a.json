@@ -1,0 +1,87 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1675|B",
+  "itemId": "fleurs-public-candidates/en_us/1675",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate mistranslates 'Sie for you' as '安全' (safe), changing the meaning."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "No entities or numbers to preserve."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation present."
+      },
+      "omission": {
+        "pass": false,
+        "note": "The candidate omits the concept of the word 'Sie' and replaces it with '安全'."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The candidate introduces '安全' (safe), which is not in the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is consistent where applicable."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The sentence reads naturally in Chinese."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "the word Sie for you",
+        "targetQuote": "“安全”一词，对你而言",
+        "reason": "The candidate mistranslates 'Sie' as '安全' (safe), altering the meaning."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "the word Sie for you",
+        "targetQuote": "“安全”一词，对你而言",
+        "reason": "The candidate omits the concept of the word 'Sie' and replaces it with '安全'."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "the word Sie for you",
+        "targetQuote": "“安全”一词，对你而言",
+        "reason": "The candidate introduces '安全' (safe), which is not present in the source."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 477,
+    "completion_tokens": 320,
+    "total_tokens": 797,
+    "cost": 0.0007028,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0007028,
+      "upstream_inference_prompt_cost": 0.0001908,
+      "upstream_inference_completions_cost": 0.000512
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0007028
+}

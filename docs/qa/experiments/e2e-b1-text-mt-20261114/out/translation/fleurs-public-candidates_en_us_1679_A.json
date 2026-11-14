@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1679|A",
+  "itemId": "fleurs-public-candidates/en_us/1679",
+  "condition": "A",
+  "sourceKind": "reference",
+  "targetLang": "zh-CN",
+  "source": "Aerosmith have cancelled their remaining concerts on their tour.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "空中铁匠乐队已取消其巡演剩余的演唱会。",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 135,
+    "total_tokens": 1126,
+    "completion_tokens": 991,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 135
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 977,
+      "text_tokens": 991
+    }
+  },
+  "error": null
+}
