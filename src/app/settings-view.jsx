@@ -842,18 +842,28 @@ export default function SettingsView() {
     const hooks = settingsModel.hooks();
     if (id === 'signin') { if (hooks.onSignIn) hooks.onSignIn(); return; }
     if (id === 'byo') {
-      // BEL-233（1.23.4，App only）：额度卡的「用自己的 key」不再把用户踢到
-      // platform.openai.com —— 注册表第一个带 keyUrl 的提供商不等于用户想配的那家。
-      // 走与 #app-adv-hint-go 同一条页内路径：分项档先用 wireModeTabs 的确认框问一次
-      // （切换会覆盖分项配置），取消就原地不动；确认后切一键、进引擎子页、滚到一键卡。
-      // keyUrl 仍只在一键配置页里用；options.jsx（扩展）按令不动。
-      if (detailRef.current) {
-        const ok = await LearnDialog.confirm(
-          t('opt_mode_switch_to_quick', '改用一键会覆盖当前分项配置'),
-          { ok: t('opt_mode_switch_to_quick_ok', '改用一键'), cancel: t('opt_mode_switch_cancel', '取消') });
-        if (!ok) return false;
-        await setDetailFn(false);
+      // BEL-233（1.23.4，App only）：额度卡的「用自己的 key」是「此刻要填自己的 key」的
+      // 视图意图，一个字节配置都不写 —— 不弹「改用一键会覆盖当前分项配置」的确认
+      // （那句话在此刻不成立），也不进分项 OpenAI。无外跳：keyUrl 只在一键配置页里用；
+      // options.jsx（扩展）按令不动。
+      if (!quickAvail) {
+        // 没有任何可一键的平台：留在分项档，把用户送到「翻译 API Key」输入框。
+        // 不置 keyMode（调用方看到 false 会撤回，额度卡留下），不自动清 apiKey。
+        setPage('sec-engines');
+        requestAnimationFrame(() => {
+          try {
+            const input = $('notes-api-key');
+            if (!input) return;
+            input.scrollIntoView({ block: 'start' });
+            input.focus();
+            input.select();
+          } catch (_) {}
+        });
+        return false;
       }
+      // 无条件落一键档：存储里的 optDetailMode=true 由 keyMode effect 的 forceQuick
+      // 一起忽略，两处都改，只改一处会被翻回分项。
+      await setDetailFn(false);
       setPage('sec-engines');
       requestAnimationFrame(() => {
         try { $('quick-setup-card').scrollIntoView({ block: 'start' }); } catch (_) {}
@@ -885,7 +895,8 @@ export default function SettingsView() {
     }
   }
 
-  async function setupQuickCard(session, say) {
+  async function setupQuickCard(session, say, opts) {
+    const forceQuick = !!(opts && opts.forceQuick);
     if (!$('quick-setup')) return;
     // **已经挂上的卡不重画。** paintNow 在每次写盘之后都会跑一遍（一键配好 → 写盘 → 重画
     // 详细档的三组字段），而 renderQuickSetup 是清空重建 —— 于是用户刚粘进去的 key、
@@ -897,7 +908,8 @@ export default function SettingsView() {
       try { await detailWriteRef.current; } catch (_) {}   // 先等在途的档位写入，别拿旧值盖掉用户刚点的档
       try { on = await settingsModel.readStoredDetail(); } catch (_) {}
       // 只切档、不落盘（persist:false）：这里读出来的就是盘上的值，写回是多余的一笔。
-      await setDetailFn(on, false);
+      // forceQuick（byo 的 keyMode effect）例外：存储里的 optDetailMode=true 必须被忽略。
+      await setDetailFn(forceQuick ? false : on, false);
       return;
     }
     // 回显：已经配过的 key 要在卡上看得见（QuickSetup.prefill：翻译那一路优先，退到朗读/转写）。
@@ -931,7 +943,8 @@ export default function SettingsView() {
     let on = false;
     try { await detailWriteRef.current; } catch (_) {}   // 同上：先等在途的档位写入
     try { on = await settingsModel.readStoredDetail(); } catch (_) {}
-    await setDetailFn(on, false);
+    // forceQuick：byo 已经把视图意图切到一键，绝不能把存储里的分项档再贴回来。
+    await setDetailFn(forceQuick ? false : on, false);
   }
 
   // BEL-233 r3：额度卡上的「用自己的 key」把 keyMode 打开后，一键卡是**新挂载**的
@@ -941,7 +954,8 @@ export default function SettingsView() {
   useEffect(() => {
     if (!keyMode) return;
     const h = settingsModel.hooks();
-    setupQuickCard(settingsModel.currentSession(), h.say).catch(() => {});
+    // forceQuick：byo 刚把意图切到一键，这次重画必须忽略存储里的 optDetailMode=true。
+    setupQuickCard(settingsModel.currentSession(), h.say, { forceQuick: true }).catch(() => {});
   }, [keyMode]);
 
   // §9.2 in the app: write the SAME keys review.js reads, and reconfigure
