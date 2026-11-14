@@ -125,7 +125,9 @@ async function waitUntil(fn, ms) {
 }
 
 describe('BEL-225 app_open', () => {
-  test('一次冷启一条；launch_id 同启动一致；登录墙前的未登录也能发', async () => {
+  const signedIn = { currentStable: async () => ({ userId: 'u' }), lastLoadError: () => '' };
+
+  test('一次冷启一条；launch_id 同启动一致；登录墙前的未登录记 login', async () => {
     const { TS, events } = load();
     eq(TS.launchId(), TS.launchId(), '同一次启动的 launch_id 必须一致');
     await TS.appOpen();
@@ -134,7 +136,7 @@ describe('BEL-225 app_open', () => {
     eq(events[0].name, 'app_open');
     eq(events[0].props.launch_id, TS.launchId());
     ok(/^[0-9a-f]{32}$/.test(events[0].props.launch_id), 'launch_id 必须是 32 位小写十六进制');
-    eq(events[0].props.surface, 'listen', '没有上次面时按首页默认面 listen');
+    eq(events[0].props.surface, 'login', 'signed_out 面对登录墙 ⇒ login');
     eq(events[0].props.auth_state, 'signed_out');
     ok(!('entry_kind' in events[0].props), 'entry_kind 没约定 ⇒ 不带');
   });
@@ -152,39 +154,64 @@ describe('BEL-225 app_open', () => {
     eq(events[1].props.launch_id, TS.launchId());
   });
 
-  test('会话已读出 ⇒ signed_in；读失败 ⇒ unknown（不是 signed_out）', async () => {
-    const a = load({ learnAuth: { currentStable: async () => ({ userId: 'u' }), lastLoadError: () => '' } });
+  test('已登录：包屏已完成 ⇒ app_home；首启未完成/没探过包 ⇒ packs', async () => {
+    const done = store();
+    done['listenPacksDone'] = 1;
+    const a = load({ store: done, learnAuth: signedIn });
     await a.TS.appOpen();
     eq(a.events[0].props.auth_state, 'signed_in');
+    eq(a.events[0].props.surface, 'app_home', 'packsDone ⇒ app_home');
 
+    // 全新登录：没写过 listenPacksDone、也没有探包快照 ⇒ 首启包屏。
+    const first = load({ learnAuth: signedIn });
+    await first.TS.appOpen();
+    eq(first.events[0].props.surface, 'packs', 'signed_in + 首启包屏未完成 ⇒ packs');
+
+    // 上次探包快照里还有缺包 ⇒ 仍是 packs。
+    const waiting = store();
+    waiting['tm:packsReady'] = { setup_id: 'setup', kinds: { base: true, asr: false, tts: true, all: false } };
+    const b = load({ store: waiting, learnAuth: signedIn });
+    await b.TS.appOpen();
+    eq(b.events[0].props.surface, 'packs', '快照显示缺包 ⇒ packs');
+
+    // 快照全齐但 packsDone 还没写（升级老用户）⇒ 已就绪，落 app_home。
+    const ready = store();
+    ready['tm:packsReady'] = { setup_id: 'setup', kinds: { base: true, asr: true, tts: true, all: true } };
+    const c = load({ store: ready, learnAuth: signedIn });
+    await c.TS.appOpen();
+    eq(c.events[0].props.surface, 'app_home', '快照全齐 ⇒ app_home');
+  });
+
+  test('unknown ⇒ 不带 surface（不猜）', async () => {
     const b = load({ learnAuth: { currentStable: async () => null, lastLoadError: () => 'storage read failed' } });
     await b.TS.appOpen();
     eq(b.events[0].props.auth_state, 'unknown');
+    ok(!('surface' in b.events[0].props), 'unknown 不许带 surface');
   });
 
-  test('surface 规则：上次面优先（doc），同一个面落盘给下一次冷启', async () => {
+  test('quick 面板不属这三屏 ⇒ 不带 surface；app_open 不再发功能面', async () => {
+    const qs = store();
+    qs['tm:lastSurface'] = 'quick';
+    const q = load({ store: qs, learnAuth: signedIn });
+    q.TS.enter('quick');
+    await q.TS.appOpen();
+    ok(!('surface' in q.events[0].props), 'quick 冷启不带 surface');
+
+    // 上次功能面是 doc，但未登录 ⇒ 仍是 login（不再继承 tm:lastSurface）。
     const s = store();
     s['tm:lastSurface'] = 'doc';
     const a = load({ store: s });
     await a.TS.appOpen();
-    eq(a.events[0].props.surface, 'doc');
+    eq(a.events[0].props.surface, 'login', 'app_open.surface 不再取功能面');
+  });
 
-    const b = load();
-    b.TS.enter('live_caption');
-    eq(b.TS.currentSurfaceSync(), 'live_caption');
-    // enter 的落盘是异步回调；等一拍再重开模块模拟下一次冷启。
-    await new Promise((r) => setTimeout(r, 0));
-    eq(b.store['tm:lastSurface'], 'live_caption');
-    const c = load({ store: b.store });
-    await c.TS.appOpen();
-    eq(c.events[0].props.surface, 'live_caption');
-
-    // quick 是独立面板的冷启，不是主 App 的「上次面」。
-    const qs = store();
-    qs['tm:lastSurface'] = 'quick';
-    const q = load({ store: qs });
-    await q.TS.appOpen();
-    eq(q.events[0].props.surface, 'listen', '主 App 冷启不继承 quick 面板的 surface');
+  test('只打开/刷新会话不发 auth_ok，也不写第一方窄口', async () => {
+    const s = store();
+    const a = loadReal({ store: s });
+    await a.TS.appOpen();
+    await settle();
+    eq(a.fetches.length, 0, 'app_open 不许 POST bt-auth-ok');
+    deepEq((s['tm:queue'] || []).map((e) => e.name), ['app_open'], '只有 app_open 入队');
   });
 
   test('App 没有 web_caption 这个面：enter 不接受它', () => {
