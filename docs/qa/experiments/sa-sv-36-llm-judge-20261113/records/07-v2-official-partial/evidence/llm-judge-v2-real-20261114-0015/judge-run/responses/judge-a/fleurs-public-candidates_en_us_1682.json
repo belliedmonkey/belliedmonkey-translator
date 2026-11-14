@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 3982,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"fleurs-public-candidates/en_us/1682\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.7,\"note\":\"Candidate has multiple errors including entity and format issues, but retains some structure of the original sentence.\",\"findings\":[{\"kind\":\"entity\",\"refQuote\":\"who wrote it\",\"hypQuote\":\"for Serenhu Roi\",\"reason\":\"The phrase 'who wrote it' is replaced by 'for Serenhu Roi', which changes the meaning and introduces an incorrect entity.\"},{\"kind\":\"format-only\",\"refQuote\":\"(it measures 29¾ inches by 24½ inches)\",\"hypQuote\":\"in Messrs. 29, 3/4 inches by 24 and half inches\",\"reason\":\"The measurement is presented with different formatting and additional words, altering the original parenthetical and numeric style.\"}]},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.6,\"note\":\"Candidate contains entity, format, and omission errors affecting clarity and accuracy.\",\"findings\":[{\"kind\":\"entity\",\"refQuote\":\"who wrote it\",\"hypQuote\":\"for Cin who wrote it\",\"reason\":\"The addition of 'for Cin' before 'who wrote it' introduces an incorrect entity not present in the reference.\"},{\"kind\":\"format-only\",\"refQuote\":\"(it measures 29¾ inches by 24½ inches)\",\"hypQuote\":\"it measures 29 free4 inches by 24 and half inches\",\"reason\":\"The measurement is distorted with 'free4' instead of '¾' and different wording for '24½', affecting the original format.\"},{\"kind\":\"omission\",\"refQuote\":\"was rolled up for storage.\",\"hypQuote\":\"was roll up for storage.\",\"reason\":\"The phrase 'was rolled up for storage' is partially omitted or incorrectly formed as 'was roll up for storage', affecting grammatical correctness and completeness.\"}]}]}",
+  "providerUsd": 0.0009596,
+  "usage": {
+    "inputTokens": 787,
+    "outputTokens": 403,
+    "providerUsd": 0.0009596,
+    "complete": true
+  },
+  "settledUsd": 0.00105556
+}

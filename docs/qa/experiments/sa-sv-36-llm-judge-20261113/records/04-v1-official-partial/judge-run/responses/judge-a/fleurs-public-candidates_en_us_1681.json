@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 6141,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1681\",\n  \"slots\": {\n    \"slot-1\": {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Minor punctuation differences, no significant change in meaning.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"It isn’t alone though, experimentation, and an experiment is a test that is used to eliminate one or more of the possible hypotheses, asking questions, and making observations also guide scientific research.\",\n          \"hypQuote\": \"It isn't alone, though, experimentation, and an experiment is a test that is used to eliminate one or more of the possible hypotheses asking questions and making observations also guide scientific research.\",\n          \"reason\": \"Comma placement differs slightly; missing comma after 'hypotheses' in candidate.\"\n        }\n      ]\n    },\n    \"slot-2\": {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.8,\n      \"note\": \"Punctuation change introduces a sentence break that alters the flow and potentially the meaning.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"It isn’t alone though, experimentation, and an experiment is a test that is used to eliminate one or more of the possible hypotheses, asking questions, and making observations also guide scientific research.\",\n          \"hypQuote\": \"It isn't alone though, experimentation. And an experiment is a test that is used to eliminate one or more of the possible hypotheses, asking questions, and making observations also guide scientific research.\",\n          \"reason\": \"Period after 'experimentation' changes sentence structure and flow.\"\n        }\n      ]\n    }\n  }\n}",
+  "providerUsd": 0.0008532,
+  "usage": {
+    "inputTokens": 525,
+    "outputTokens": 402,
+    "providerUsd": 0.0008532,
+    "complete": true
+  },
+  "settledUsd": 0.00093852
+}

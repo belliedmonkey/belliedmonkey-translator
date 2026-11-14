@@ -1,0 +1,74 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fleurs-public-candidates/en_us/1682",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.75,
+        "note": "Multiple errors in entity, number format, and omission/addition detected.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "who wrote it",
+            "hypQuote": "for Serenhu Roi",
+            "reason": "The phrase 'who wrote it' is replaced with 'for Serenhu Roi', which is a non-sequitur and incorrect entity reference."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "29¾ inches by 24½ inches",
+            "hypQuote": "29, 3/4 inches by 24 and half inches",
+            "reason": "Numerical measurements are expressed differently but represent the same values; '29¾' vs '29, 3/4' and '24½' vs '24 and half'."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": "in Messrs.",
+            "reason": "The phrase 'in Messrs.' appears in the candidate but has no counterpart in the reference and is likely a misrecognition."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.65,
+        "note": "Significant errors in entity, number, and grammar; partial omissions and distortions.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "who wrote it",
+            "hypQuote": "Cin who wrote it",
+            "reason": "The phrase 'who wrote it' is preceded by 'Cin', which appears to be a misrecognition or insertion with no basis in the reference."
+          },
+          {
+            "kind": "number",
+            "refQuote": "29¾ inches",
+            "hypQuote": "29 free4 inches",
+            "reason": "'29¾ inches' is misrepresented as '29 free4 inches', which is a clear numerical distortion and not a valid format variation."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "24½ inches",
+            "hypQuote": "24 and half inches",
+            "reason": "'24½ inches' is rendered as '24 and half inches', which is a valid spoken variation of the same quantity."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "the large parchment document",
+            "hypQuote": "the large par document",
+            "reason": "The word 'parchment' is reduced to 'par', omitting significant content and altering clarity."
+          },
+          {
+            "kind": "semantic",
+            "refQuote": "was rolled up for storage",
+            "hypQuote": "was roll up for storage",
+            "reason": "'was roll up' is grammatically incorrect and changes the meaning from past passive tense to an incomplete construction, affecting semantic accuracy."
+          }
+        ]
+      }
+    ]
+  }
+}

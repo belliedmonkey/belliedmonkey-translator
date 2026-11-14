@@ -1,0 +1,23 @@
+{
+  "stage": "finished",
+  "transportOk": true,
+  "generationOk": true,
+  "finishReason": "stop",
+  "providerError": false,
+  "usageComplete": true,
+  "parseCode": "note",
+  "modelFormatFault": false,
+  "code": null,
+  "status": null,
+  "elapsedMs": 0,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"fleurs-public-candidates/cmn_hans_cn/1674\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":1,\"note\":\"\",\"findings\":[]},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.95,\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"水煮一分钟\",\"hypQuote\":\"水煮 1分钟\",\"reason\":\"数字'一'与'1'的表达方式不同，语义相同，属于格式差异\"},{\"kind\":\"format-only\",\"refQuote\":\"足够了，在其他地区\",\"hypQuote\":\"足够了 ，在其他地区\",\"reason\":\"标点空格差异，中文逗号前后不应有空格，此处多出空格，属于格式问题\"}]}]}",
+  "providerUsd": 0.001,
+  "usage": {
+    "inputTokens": 700,
+    "outputTokens": 120,
+    "providerUsd": 0.001,
+    "complete": true
+  },
+  "settledUsd": 0.000236
+}

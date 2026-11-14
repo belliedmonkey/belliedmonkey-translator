@@ -1,0 +1,220 @@
+{
+  "schema": "belliedmonkey.qa.v2-semantic-human-review-form.v1",
+  "list": "disagreement",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+  "initialInventoryOnly": true,
+  "mustRefreshAfterBackfill": true,
+  "semanticHumanReviewed": false,
+  "earReviewUsedAsSemanticReview": false,
+  "doNotPreFillJudgment": true,
+  "officialAgentReviewIsNotHumanReview": true,
+  "reference": "“它们的热行为不像地球上的大型洞穴那么稳定，这些大型洞穴通常会保持相当恒定的温度，但它们与地下深穴的情况很相似，”亚利桑那州旗杆镇美国地质调查局 (USGS) 太空地质团队和北亚利桑那大学的格伦·库欣说道。",
+  "slots": {
+    "slot-1": {
+      "text": "他们的热行为不像地球上的大型洞穴那么稳定 ，这些大型洞穴通常会保持相当恒定的温度。但它们与地下升雪的情况很相似。亚历桑那州旗甘镇美国地质调查局 USGS太空地质团队和北亚历桑那大学的格伦库星说道。"
+    },
+    "slot-2": {
+      "text": "他们的热行为不像地球上的大型洞穴那么稳定，这些大型洞穴通常会保持相当恒定的温度，但他们与地下升雪的情况很相似。亚利桑那州旗干镇美国地质调查局USGS太空地质团队和北亚利桑那大学的格伦库辛说道，。"
+    }
+  },
+  "officialKindLists": {
+    "judge-a": {
+      "slot-1": [
+        "entity",
+        "entity",
+        "semantic",
+        "semantic"
+      ],
+      "slot-2": [
+        "addition",
+        "entity",
+        "entity",
+        "semantic",
+        "semantic"
+      ]
+    },
+    "judge-b": {
+      "slot-1": [
+        "entity",
+        "entity",
+        "omission",
+        "semantic"
+      ],
+      "slot-2": [
+        "addition",
+        "entity",
+        "entity",
+        "omission",
+        "semantic"
+      ]
+    }
+  },
+  "officialVerdicts": {
+    "judge-a": {
+      "model": "openai/gpt-4.1-mini",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.7,
+        "note": "Candidate 1 has multiple errors including entity and semantic errors, such as '他们' instead of '它们', '地下升雪' instead of '地下深穴', and '亚历桑那州旗甘镇' instead of '亚利桑那州旗杆镇'.",
+        "findings": [
+          {
+            "kind": "semantic",
+            "refQuote": "它们的热行为",
+            "hypQuote": "他们的热行为",
+            "reason": "The reference uses '它们' (they for objects), but candidate uses '他们' (they for people), changing the meaning."
+          },
+          {
+            "kind": "semantic",
+            "refQuote": "地下深穴",
+            "hypQuote": "地下升雪",
+            "reason": "The candidate replaces '深穴' (deep caves) with '升雪' (rising snow), which changes the meaning."
+          },
+          {
+            "kind": "entity",
+            "refQuote": "亚利桑那州旗杆镇",
+            "hypQuote": "亚历桑那州旗甘镇",
+            "reason": "The candidate misspells the place name, changing '旗杆镇' to '旗甘镇'."
+          },
+          {
+            "kind": "entity",
+            "refQuote": "格伦·库欣",
+            "hypQuote": "格伦库星",
+            "reason": "The candidate misspells the person's name, changing '库欣' to '库星'."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.6,
+        "note": "Candidate 2 has similar errors as candidate 1, including '他们' instead of '它们', '地下升雪' instead of '地下深穴', and misspellings in place and person names. Also, an extraneous comma appears at the end.",
+        "findings": [
+          {
+            "kind": "semantic",
+            "refQuote": "它们的热行为",
+            "hypQuote": "他们的热行为",
+            "reason": "The reference uses '它们' (they for objects), but candidate uses '他们' (they for people), changing the meaning."
+          },
+          {
+            "kind": "semantic",
+            "refQuote": "地下深穴",
+            "hypQuote": "地下升雪",
+            "reason": "The candidate replaces '深穴' (deep caves) with '升雪' (rising snow), which changes the meaning."
+          },
+          {
+            "kind": "entity",
+            "refQuote": "亚利桑那州旗杆镇",
+            "hypQuote": "亚利桑那州旗干镇",
+            "reason": "The candidate misspells the place name, changing '旗杆镇' to '旗干镇'."
+          },
+          {
+            "kind": "entity",
+            "refQuote": "格伦·库欣",
+            "hypQuote": "格伦库辛",
+            "reason": "The candidate misspells the person's name, changing '库欣' to '库辛'."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "格伦·库欣说道。",
+            "hypQuote": "格伦库辛说道，。",
+            "reason": "Candidate 2 adds an extraneous comma before the period, which is not present in the reference."
+          }
+        ]
+      }
+    },
+    "judge-b": {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.85,
+        "note": "",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "美国地质调查局 (USGS)",
+            "hypQuote": "美国地质调查局 USGS",
+            "reason": "括号缺失，影响格式一致性"
+          },
+          {
+            "kind": "entity",
+            "refQuote": "亚利桑那州旗杆镇",
+            "hypQuote": "亚历桑那州旗甘镇",
+            "reason": "地名翻译错误，'旗杆镇'被误作'旗甘镇'"
+          },
+          {
+            "kind": "entity",
+            "refQuote": "格伦·库欣",
+            "hypQuote": "格伦库星",
+            "reason": "人名错误，'格伦·库欣'被误作'格伦库星'"
+          },
+          {
+            "kind": "semantic",
+            "refQuote": "地下深穴",
+            "hypQuote": "地下升雪",
+            "reason": "'深穴'与'升雪'语义完全不同，属严重语义错误"
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "美国地质调查局 (USGS)",
+            "hypQuote": "美国地质调查局USGS",
+            "reason": "括号缺失，影响格式一致性"
+          },
+          {
+            "kind": "entity",
+            "refQuote": "亚利桑那州旗杆镇",
+            "hypQuote": "亚利桑那州旗干镇",
+            "reason": "地名错误，'旗杆镇'被误作'旗干镇'"
+          },
+          {
+            "kind": "entity",
+            "refQuote": "格伦·库欣",
+            "hypQuote": "格伦库辛",
+            "reason": "人名错误，'格伦·库欣'被误作'格伦库辛'"
+          },
+          {
+            "kind": "semantic",
+            "refQuote": "地下深穴",
+            "hypQuote": "地下升雪",
+            "reason": "'深穴'与'升雪'语义完全不同，属严重语义错误"
+          },
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": "，。",
+            "reason": "句末多出标点符号'，。'"
+          }
+        ]
+      }
+    }
+  },
+  "humanAnnotation": {
+    "reviewerId": "",
+    "reviewedAtAsiaShanghai": "",
+    "slots": {
+      "slot-1": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      },
+      "slot-2": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      }
+    },
+    "overallComment": "",
+    "marksCompleteOnlyAfterUserReview": true
+  }
+}

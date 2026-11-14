@@ -1,0 +1,47 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "elapsedMs": 1097,
+  "content": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14",
+  "provider": "Parasail",
+  "responseModel": "qwen/qwen3-235b-a22b-2507",
+  "finishReason": "length",
+  "usage": {
+    "prompt_tokens": 76,
+    "completion_tokens": 32,
+    "total_tokens": 108,
+    "cost": 0.00003624,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00003624,
+      "upstream_inference_prompt_cost": 0.00001064,
+      "upstream_inference_completions_cost": 0.0000256
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    },
+    "usd": 0.00003624
+  },
+  "providerUsd": 0.00003624,
+  "verdict": {
+    "pass": true,
+    "code": "pass",
+    "promptTokens": 76,
+    "completionTokens": 32,
+    "finishReason": "length",
+    "maxTokensSent": 32,
+    "honorsDeclaredCap": true,
+    "demonstratedLengthLimit": true,
+    "responseModel": "qwen/qwen3-235b-a22b-2507",
+    "provider": "Parasail"
+  },
+  "authorization": "redacted"
+}

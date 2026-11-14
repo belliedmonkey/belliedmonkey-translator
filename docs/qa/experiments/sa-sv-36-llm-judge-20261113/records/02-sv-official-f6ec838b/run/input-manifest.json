@@ -1,0 +1,259 @@
+{
+  "stage": "completed",
+  "synthetic": false,
+  "id": null,
+  "items": [
+    {
+      "id": "fleurs-public-candidates/en_us/1668",
+      "config": "en_us",
+      "audioRel": "en_us/12519810849995407480.wav",
+      "audioName": "12519810849995407480.wav",
+      "saLocale": "en-US"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1668",
+      "config": "cmn_hans_cn",
+      "audioRel": "cmn_hans_cn/14773716009564433047.wav",
+      "audioName": "14773716009564433047.wav",
+      "saLocale": "zh-CN"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1669",
+      "config": "en_us",
+      "audioRel": "en_us/15618717836108767541.wav",
+      "audioName": "15618717836108767541.wav",
+      "saLocale": "en-US"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1669",
+      "config": "cmn_hans_cn",
+      "audioRel": "cmn_hans_cn/13763174630354430252.wav",
+      "audioName": "13763174630354430252.wav",
+      "saLocale": "zh-CN"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1670",
+      "config": "en_us",
+      "audioRel": "en_us/2508559905589212221.wav",
+      "audioName": "2508559905589212221.wav",
+      "saLocale": "en-US"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1670",
+      "config": "cmn_hans_cn",
+      "audioRel": "cmn_hans_cn/1626393343718951419.wav",
+      "audioName": "1626393343718951419.wav",
+      "saLocale": "zh-CN"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1671",
+      "config": "en_us",
+      "audioRel": "en_us/12784232275162817860.wav",
+      "audioName": "12784232275162817860.wav",
+      "saLocale": "en-US"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "config": "cmn_hans_cn",
+      "audioRel": "cmn_hans_cn/17865784740247963652.wav",
+      "audioName": "17865784740247963652.wav",
+      "saLocale": "zh-CN"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1672",
+      "config": "en_us",
+      "audioRel": "en_us/3337787499768294195.wav",
+      "audioName": "3337787499768294195.wav",
+      "saLocale": "en-US"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1672",
+      "config": "cmn_hans_cn",
+      "audioRel": "cmn_hans_cn/12601036378860326355.wav",
+      "audioName": "12601036378860326355.wav",
+      "saLocale": "zh-CN"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1673",
+      "config": "en_us",
+      "audioRel": "en_us/2637301866626572038.wav",
+      "audioName": "2637301866626572038.wav",
+      "saLocale": "en-US"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1673",
+      "config": "cmn_hans_cn",
+      "audioRel": "cmn_hans_cn/6897063611136666657.wav",
+      "audioName": "6897063611136666657.wav",
+      "saLocale": "zh-CN"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1674",
+      "config": "en_us",
+      "audioRel": "en_us/10492135991603561867.wav",
+      "audioName": "10492135991603561867.wav",
+      "saLocale": "en-US"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1674",
+      "config": "cmn_hans_cn",
+      "audioRel": "cmn_hans_cn/15619666715819820695.wav",
+      "audioName": "15619666715819820695.wav",
+      "saLocale": "zh-CN"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1675",
+      "config": "en_us",
+      "audioRel": "en_us/10052240106321793346.wav",
+      "audioName": "10052240106321793346.wav",
+      "saLocale": "en-US"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1675",
+      "config": "cmn_hans_cn",
+      "audioRel": "cmn_hans_cn/13333464656670504120.wav",
+      "audioName": "13333464656670504120.wav",
+      "saLocale": "zh-CN"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1676",
+      "config": "en_us",
+      "audioRel": "en_us/3236057319333367673.wav",
+      "audioName": "3236057319333367673.wav",
+      "saLocale": "en-US"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1676",
+      "config": "cmn_hans_cn",
+      "audioRel": "cmn_hans_cn/1153780427490892865.wav",
+      "audioName": "1153780427490892865.wav",
+      "saLocale": "zh-CN"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1677",
+      "config": "en_us",
+      "audioRel": "en_us/1731561740051730459.wav",
+      "audioName": "1731561740051730459.wav",
+      "saLocale": "en-US"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1677",
+      "config": "cmn_hans_cn",
+      "audioRel": "cmn_hans_cn/16772375859841179841.wav",
+      "audioName": "16772375859841179841.wav",
+      "saLocale": "zh-CN"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1678",
+      "config": "en_us",
+      "audioRel": "en_us/1111475259790805601.wav",
+      "audioName": "1111475259790805601.wav",
+      "saLocale": "en-US"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1678",
+      "config": "cmn_hans_cn",
+      "audioRel": "cmn_hans_cn/13618157833815227507.wav",
+      "audioName": "13618157833815227507.wav",
+      "saLocale": "zh-CN"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1679",
+      "config": "en_us",
+      "audioRel": "en_us/1830239880893513318.wav",
+      "audioName": "1830239880893513318.wav",
+      "saLocale": "en-US"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1679",
+      "config": "cmn_hans_cn",
+      "audioRel": "cmn_hans_cn/15514325222679879585.wav",
+      "audioName": "15514325222679879585.wav",
+      "saLocale": "zh-CN"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1680",
+      "config": "en_us",
+      "audioRel": "en_us/10894616243452123700.wav",
+      "audioName": "10894616243452123700.wav",
+      "saLocale": "en-US"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "config": "cmn_hans_cn",
+      "audioRel": "cmn_hans_cn/13300750670399228150.wav",
+      "audioName": "13300750670399228150.wav",
+      "saLocale": "zh-CN"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1681",
+      "config": "en_us",
+      "audioRel": "en_us/4822858934027125258.wav",
+      "audioName": "4822858934027125258.wav",
+      "saLocale": "en-US"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1681",
+      "config": "cmn_hans_cn",
+      "audioRel": "cmn_hans_cn/14066003160545361452.wav",
+      "audioName": "14066003160545361452.wav",
+      "saLocale": "zh-CN"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1682",
+      "config": "en_us",
+      "audioRel": "en_us/9924305423057523453.wav",
+      "audioName": "9924305423057523453.wav",
+      "saLocale": "en-US"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1682",
+      "config": "cmn_hans_cn",
+      "audioRel": "cmn_hans_cn/11229861275679868227.wav",
+      "audioName": "11229861275679868227.wav",
+      "saLocale": "zh-CN"
+    },
+    {
+      "id": "ascend/00004",
+      "config": "ascend",
+      "audioRel": "00004.wav",
+      "audioName": "00004.wav",
+      "saLocale": "zh-CN"
+    },
+    {
+      "id": "ascend/00009",
+      "config": "ascend",
+      "audioRel": "00009.wav",
+      "audioName": "00009.wav",
+      "saLocale": "zh-CN"
+    },
+    {
+      "id": "ascend/00028",
+      "config": "ascend",
+      "audioRel": "00028.wav",
+      "audioName": "00028.wav",
+      "saLocale": "zh-CN"
+    },
+    {
+      "id": "ascend/00055",
+      "config": "ascend",
+      "audioRel": "00055.wav",
+      "audioName": "00055.wav",
+      "saLocale": "zh-CN"
+    },
+    {
+      "id": "ascend/00066",
+      "config": "ascend",
+      "audioRel": "00066.wav",
+      "audioName": "00066.wav",
+      "saLocale": "zh-CN"
+    },
+    {
+      "id": "ascend/00068",
+      "config": "ascend",
+      "audioRel": "00068.wav",
+      "audioName": "00068.wav",
+      "saLocale": "zh-CN"
+    }
+  ]
+}

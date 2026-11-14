@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 5687,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1672\",\n  \"slots\": {\n    \"slot-1\": {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate adds 'All right,' at the beginning, which is an addition not present in the reference.\",\n      \"findings\": [\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"Be careful not to allow fabric to become too hot (which can cause shrinkage, or in extreme cases, scorch).\",\n          \"hypQuote\": \"All right, be careful not to allow fabric to become too hot, which can cause shrinkage, or in extreme cases, scorch.\",\n          \"reason\": \"The phrase 'All right,' is added at the start of the candidate and is not in the reference.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"(which can cause shrinkage, or in extreme cases, scorch)\",\n          \"hypQuote\": \"which can cause shrinkage, or in extreme cases, scorch\",\n          \"reason\": \"Parentheses are omitted in the candidate but the content is preserved.\"\n        }\n      ]\n    },\n    \"slot-2\": {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 1,\n      \"note\": \"Candidate omits parentheses but otherwise matches the reference closely with no additions or omissions.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"(which can cause shrinkage, or in extreme cases, scorch)\",\n          \"hypQuote\": \"which can cause shrinkage or in extreme cases, scorch\",\n          \"reason\": \"Parentheses are omitted and the comma after 'shrinkage' is omitted, but the meaning is preserved.\"\n        }\n      ]\n    }\n  }\n}",
+  "providerUsd": 0.0008676,
+  "usage": {
+    "inputTokens": 489,
+    "outputTokens": 420,
+    "providerUsd": 0.0008676,
+    "complete": true
+  },
+  "settledUsd": 0.00095436
+}

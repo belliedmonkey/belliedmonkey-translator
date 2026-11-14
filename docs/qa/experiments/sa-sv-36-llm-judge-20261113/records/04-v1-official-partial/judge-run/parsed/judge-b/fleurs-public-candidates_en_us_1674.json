@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fleurs-public-candidates/en_us/1674",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "Candidate contains a grammatical error affecting semantic clarity.",
+        "findings": [
+          {
+            "kind": "semantic",
+            "refQuote": "in others several minutes are needed",
+            "hypQuote": "and other several minutes are needed",
+            "reason": "The reference uses 'in others' to refer to different areas, while the candidate uses 'and other', which is grammatically incorrect and alters the intended meaning by failing to properly connect the contrast between areas."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "Candidate contains a grammatical error affecting semantic clarity and lacks necessary punctuation.",
+        "findings": [
+          {
+            "kind": "semantic",
+            "refQuote": "in others several minutes are needed",
+            "hypQuote": "and other several minutes are needed",
+            "reason": "The reference uses 'in others' to refer to different areas, while the candidate uses 'and other', which is grammatically incorrect and alters the intended meaning by failing to properly connect the contrast between areas."
+          },
+          {
+            "kind": "omission",
+            "refQuote": ", ",
+            "hypQuote": "",
+            "reason": "The candidate omits the comma after 'In some areas', which is present in the reference and contributes to proper sentence structure and clarity."
+          }
+        ]
+      }
+    ]
+  }
+}

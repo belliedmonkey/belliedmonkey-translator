@@ -1,0 +1,62 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "ascend/00068",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.3,
+        "note": "The candidate does not meaningfully align with the reference. There is a partial match on 'computer', but the rest of the content diverges significantly.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "computer languages是",
+            "hypQuote": "",
+            "reason": "The candidate 'computer人规。' omits the word 'languages' and the character '是' from the reference."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": "人规。",
+            "reason": "The candidate adds '人规。' which does not appear in the reference and does not correspond to 'languages是'."
+          },
+          {
+            "kind": "semantic",
+            "refQuote": "languages是",
+            "hypQuote": "人规。",
+            "reason": "The phrase 'languages是' in the reference, meaning 'languages are', is replaced with '人规。' in the candidate, which appears to mean 'human rules.' This is a significant semantic deviation."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.2,
+        "note": "The candidate shows minimal alignment with the reference, possibly capturing a fragment of 'languages' as 'anguage', but the rest is unrelated.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "computer languages是",
+            "hypQuote": "",
+            "reason": "The candidate '可能平时都 anguage' omits 'computer', 'languages', and '是' except for a partial match on 'anguage'."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": "可能平时都",
+            "reason": "The candidate adds '可能平时都', which does not appear in the reference and introduces unrelated content."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "languages",
+            "hypQuote": "anguage",
+            "reason": "The substring 'anguage' in the candidate appears to be a partial, possibly misheard or corrupted version of 'languages' from the reference, missing the initial 'l'."
+          }
+        ]
+      }
+    ]
+  }
+}

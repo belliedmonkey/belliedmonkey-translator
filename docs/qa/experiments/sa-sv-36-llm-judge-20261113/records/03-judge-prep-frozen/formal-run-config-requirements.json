@@ -1,0 +1,29 @@
+{
+  "providerSelected": false,
+  "realLlmCalled": false,
+  "doNotRegisterOrSubscribe": true,
+  "minimalConfigFields": {
+    "schema": "belliedmonkey.llm-judge.config.v1",
+    "seed": "integer (this dry-run used 20261113)",
+    "temperature": "finite number in [0, 2] (proposed 0)",
+    "sampleCount": "integer 0-36 (proposed 6 agreed-consistent samples)",
+    "maxItems": "integer 1-200; must be >= 36 or the official set is item-cap incomplete",
+    "timeoutMs": "integer 1-120000 (proposed 20000)",
+    "maxRetries": "integer 0-2; retries only on timeout/network/429/5xx",
+    "budgetUsd": "null, or a finite number > 0",
+    "judges": "exactly two objects",
+    "judges[].id": "distinct keys matching ^[a-z][a-z0-9-]{2,31}$",
+    "judges[].model": "explicit vendor model id strings; the two must differ after trim; not placeholders at official run",
+    "judges[].endpointEnv": "ENV NAME only, ^[A-Z][A-Z0-9_]{2,40}$, different from that judge's keyEnv",
+    "judges[].keyEnv": "ENV NAME only, same pattern"
+  },
+  "operatorMustSupplyBeforeRun": [
+    "Two explicit, different model ids (no REPLACE_ placeholders).",
+    "Whether the two endpoints are different URLs or one gateway with two models; env names are recorded, values are not written to evidence.",
+    "Estimated price information sufficient to set budgetUsd, or an explicit decision to set budgetUsd null.",
+    "Confirmation that the chosen HTTP API will put a finite usage.usd (or top-level usd copied onto usage) in the JSON body. This package does not convert token counts to USD. If budgetUsd is set and usd is missing, the run stops after the first successful call with code budget-unknown.",
+    "If the vendor only returns token counts, either wrap transport to compute usd from a recorded price table, or set budgetUsd to null and accept un-capped call spend accounting as costUnknown.",
+    "Env vars named in endpointEnv/keyEnv must exist only at --run time; this verification stream did not read them and must not be asked to --run."
+  ],
+  "placeholderConfigIsNotAnOfficialRun": true
+}

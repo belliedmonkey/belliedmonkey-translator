@@ -1,0 +1,11 @@
+{
+  "status": 0,
+  "signal": null,
+  "stderr": "",
+  "called": false,
+  "code": "dry-run",
+  "synthetic": false,
+  "itemCount": 36,
+  "invokedRunFlag": false,
+  "realLlmCalled": false
+}

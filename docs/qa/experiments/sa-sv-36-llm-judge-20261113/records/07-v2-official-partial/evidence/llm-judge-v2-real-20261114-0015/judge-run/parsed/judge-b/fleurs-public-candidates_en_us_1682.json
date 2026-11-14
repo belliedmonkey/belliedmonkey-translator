@@ -1,0 +1,80 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/en_us/1682",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.75,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "certain who wrote it",
+            "hypQuote": "Serenhu Roi",
+            "reason": "The phrase 'Serenhu Roi' replaces 'certain who wrote it', which distorts the original meaning and refers to a non-existent entity."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "29¾ inches",
+            "hypQuote": "29, 3/4 inches",
+            "reason": "The measurement '29¾ inches' is expressed differently as '29, 3/4 inches', but represents the same value."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "24½ inches",
+            "hypQuote": "24 and half inches",
+            "reason": "The measurement '24½ inches' is expressed as '24 and half inches', which is a verbal equivalent."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "the large parchment document (it measures",
+            "hypQuote": "the large parchment document, in Messrs.",
+            "reason": "The phrase 'it measures' is omitted and replaced with the unclear 'in Messrs.', which does not convey the same meaning."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.65,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "certain who wrote it",
+            "hypQuote": "Cin who wrote it",
+            "reason": "'Cin' appears to be a misrecognition or corruption of 'certain', altering the intended entity."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "parchment",
+            "hypQuote": "par",
+            "reason": "The word 'parchment' is shortened to 'par', omitting critical information."
+          },
+          {
+            "kind": "number",
+            "refQuote": "29¾ inches",
+            "hypQuote": "29 free4 inches",
+            "reason": "'29 free4 inches' is a misinterpretation of '29¾ inches', resulting in an incorrect numerical expression."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "24½ inches",
+            "hypQuote": "24 and half inches",
+            "reason": "'24½ inches' is rendered as '24 and half inches', which is a valid verbal format."
+          },
+          {
+            "kind": "semantic",
+            "refQuote": "was rolled up",
+            "hypQuote": "was roll up",
+            "reason": "'was roll up' is grammatically incorrect and changes the meaning from past passive tense to an incomplete construction."
+          }
+        ]
+      }
+    ]
+  }
+}

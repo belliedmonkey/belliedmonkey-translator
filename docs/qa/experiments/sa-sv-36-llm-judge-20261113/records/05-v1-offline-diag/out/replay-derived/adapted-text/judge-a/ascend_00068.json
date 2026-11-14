@@ -1,0 +1,60 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "ascend/00068",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "ascend/00068",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate 1 has an omission and a semantic error.",
+          "findings": [
+            {
+              "kind": "omission",
+              "refQuote": "languages是",
+              "hypQuote": "",
+              "reason": "Candidate 1 omits 'languages是' entirely."
+            },
+            {
+              "kind": "semantic",
+              "refQuote": "computer languages是",
+              "hypQuote": "computer人规。",
+              "reason": "Candidate 1 replaces 'languages是' with '人规。', changing the meaning."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate 2 has an omission and a semantic error.",
+          "findings": [
+            {
+              "kind": "omission",
+              "refQuote": "computer languages是",
+              "hypQuote": "",
+              "reason": "Candidate 2 omits 'computer' and 'languages是' entirely."
+            },
+            {
+              "kind": "semantic",
+              "refQuote": "computer languages是",
+              "hypQuote": "可能平时都 anguage",
+              "reason": "Candidate 2's text '可能平时都 anguage' does not correspond to the reference and changes the meaning."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

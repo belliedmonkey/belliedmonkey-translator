@@ -1,0 +1,45 @@
+{
+  "schema": "belliedmonkey.llm-judge.config.v1",
+  "seed": 7,
+  "temperature": 0,
+  "sampleCount": 1,
+  "maxItems": 36,
+  "timeoutMs": 20000,
+  "maxRetries": 0,
+  "budgetUsd": 1,
+  "judges": [
+    {
+      "id": "judge-a",
+      "model": "MODEL_X",
+      "endpointEnv": "JUDGE_A_URL",
+      "keyEnv": "JUDGE_A_KEY"
+    },
+    {
+      "id": "judge-b",
+      "model": "MODEL_Y",
+      "endpointEnv": "JUDGE_B_URL",
+      "keyEnv": "JUDGE_B_KEY"
+    }
+  ],
+  "prices": {
+    "schema": "belliedmonkey.llm-judge.prices.v1",
+    "source": "FIXTURE_SOURCE_NOT_A_QUOTE",
+    "sourceVersion": "fixture-0",
+    "maxInputTokens": 4000,
+    "maxOutputTokens": 800,
+    "maxTotalTokens": 200000,
+    "maxRequests": 72,
+    "models": {
+      "MODEL_X": {
+        "inputUsdPerToken": 0.000001,
+        "outputUsdPerToken": 0.000002,
+        "pricedZero": false
+      },
+      "MODEL_Y": {
+        "inputUsdPerToken": 0.000001,
+        "outputUsdPerToken": 0.000002,
+        "pricedZero": false
+      }
+    }
+  }
+}

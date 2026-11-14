@@ -1,0 +1,56 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "The candidate contains an error in the quoted term and a possible formatting issue.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "“Sie”",
+            "hypQuote": "零的C",
+            "reason": "The reference specifies the pronoun 'Sie' in quotation marks, but the candidate incorrectly replaces it with '零的C', which is neither a correct translation nor representation of the German pronoun 'Sie'."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "大写字母",
+            "hypQuote": "大写字母",
+            "reason": "Both the reference and candidate use the same term '大写字母', but the candidate's surrounding phrasing slightly differs in structure without altering meaning."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "The candidate contains a spelling error and a formatting discrepancy.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "“Sie”",
+            "hypQuote": "",
+            "reason": "The candidate omits the quotation marks and the specific term 'Sie' entirely, replacing it only with 'C', which fails to preserve the original reference's emphasis and form."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "大写字母",
+            "hypQuote": "大写字幕",
+            "reason": "The candidate uses '大写字幕' instead of '大写字母'. '字幕' typically means 'subtitle', which is a clear error; this appears to be a typographical or lexical mistake rather than a formatting variant."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": " ，",
+            "reason": "The candidate adds a full-width space before the comma, which is not present in the reference and introduces an extra spacing artifact."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "ok": false,
+  "code": "partial",
+  "called": true,
+  "doubleBlindComplete": false,
+  "probePassed": true,
+  "judgeRunStarted": true,
+  "reservedProbesUsd": 0.00589824,
+  "judgeHeldUsd": 0.04980548,
+  "planConsumedUsd": 0.05570372,
+  "planRemainingUsd": 0.19429628,
+  "costUnknown": false,
+  "secretScanClean": true,
+  "elapsedMs": 596450,
+  "providersProbe": {
+    "openai/gpt-4.1-mini": "OpenAI",
+    "qwen/qwen3-235b-a22b-2507": "Parasail"
+  }
+}

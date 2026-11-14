@@ -1,0 +1,17 @@
+{
+  "present": {
+    "base_chat_custom_chat": true,
+    "key_chat_custom_chat": true
+  },
+  "endpoint": {
+    "scheme": "https",
+    "host": "openrouter.ai",
+    "path": "/api/v1/chat/completions",
+    "queryPresent": false,
+    "userinfoPresent": false
+  },
+  "endpointOk": true,
+  "keysFile": "/Users/belliedmonkey/mobiletranslator/.local/keys.md",
+  "parsedInMemory": true,
+  "valuesWritten": false
+}

@@ -1,0 +1,37 @@
+id	lang	metric	errors	length	S	D	I	C	rate	error_classes
+fleurs-public-candidates/en_us/1668	en	wer	0	31	0	0	0	31	0	
+fleurs-public-candidates/cmn_hans_cn/1668	zh	cer	9	45	0	8	1	37	0.2	deletion:8|insertion:1
+fleurs-public-candidates/en_us/1669	en	wer	2	14	2	0	0	12	0.14285714285714285	substitution:2
+fleurs-public-candidates/cmn_hans_cn/1669	zh	cer	0	25	0	0	0	25	0	
+fleurs-public-candidates/en_us/1670	en	wer	6	52	4	2	0	46	0.11538461538461539	substitution:4|deletion:2
+fleurs-public-candidates/cmn_hans_cn/1670	zh	cer	7	92	7	0	0	85	0.07608695652173914	substitution:7
+fleurs-public-candidates/en_us/1671	en	wer	0	21	0	0	0	21	0	
+fleurs-public-candidates/cmn_hans_cn/1671	zh	cer	6	46	2	3	1	41	0.13043478260869565	insertion:1|substitution:2|deletion:3
+fleurs-public-candidates/en_us/1672	en	wer	2	19	0	0	2	19	0.10526315789473684	insertion:2
+fleurs-public-candidates/cmn_hans_cn/1672	zh	cer	0	33	0	0	0	33	0	
+fleurs-public-candidates/en_us/1673	en	wer	1	25	1	0	0	24	0.04	number-itn-equivalent:1
+fleurs-public-candidates/cmn_hans_cn/1673	zh	cer	4	40	2	2	0	36	0.1	number-form:1|number-itn-equivalent:1|deletion:2
+fleurs-public-candidates/en_us/1674	en	wer	2	16	2	0	0	14	0.125	substitution:2
+fleurs-public-candidates/cmn_hans_cn/1674	zh	cer	1	28	1	0	0	27	0.03571428571428571	number-itn-equivalent:1
+fleurs-public-candidates/en_us/1675	en	wer	2	21	2	0	0	19	0.09523809523809523	substitution:2
+fleurs-public-candidates/cmn_hans_cn/1675	zh	cer	5	36	3	2	0	31	0.1388888888888889	deletion:2|substitution:3
+fleurs-public-candidates/en_us/1676	en	wer	0	17	0	0	0	17	0	
+fleurs-public-candidates/cmn_hans_cn/1676	zh	cer	0	26	0	0	0	26	0	
+fleurs-public-candidates/en_us/1677	en	wer	4	15	4	0	0	11	0.26666666666666666	substitution:4
+fleurs-public-candidates/cmn_hans_cn/1677	zh	cer	2	21	2	0	0	19	0.09523809523809523	substitution:2
+fleurs-public-candidates/en_us/1678	en	wer	2	29	2	0	0	27	0.06896551724137931	substitution:2
+fleurs-public-candidates/cmn_hans_cn/1678	zh	cer	8	63	5	3	0	55	0.12698412698412698	substitution:5|deletion:3
+fleurs-public-candidates/en_us/1679	en	wer	2	9	2	0	0	7	0.2222222222222222	substitution:2
+fleurs-public-candidates/cmn_hans_cn/1679	zh	cer	0	23	0	0	0	23	0	
+fleurs-public-candidates/en_us/1680	en	wer	2	26	2	0	0	24	0.07692307692307693	substitution:1|number-itn-equivalent:1
+fleurs-public-candidates/cmn_hans_cn/1680	zh	cer	3	39	3	0	0	36	0.07692307692307693	substitution:3
+fleurs-public-candidates/en_us/1681	en	wer	0	33	0	0	0	33	0	
+fleurs-public-candidates/cmn_hans_cn/1681	zh	cer	2	52	1	0	1	51	0.038461538461538464	substitution:1|insertion:1
+fleurs-public-candidates/en_us/1682	en	wer	11	35	7	2	2	26	0.3142857142857143	deletion:2|substitution:6|insertion:1|number-form:1|number-insertion:1
+fleurs-public-candidates/cmn_hans_cn/1682	zh	cer	10	55	4	0	6	51	0.18181818181818182	insertion:4|number-insertion:2|substitution:2|number-form:2
+ascend/00004	mixed	mer	5	5	2	3	0	0	1	deletion:3|substitution:2
+ascend/00009	mixed	mer	9	13	6	3	0	4	0.6923076923076923	substitution:6|deletion:3
+ascend/00028	mixed	mer	2	3	2	0	0	1	0.6666666666666666	substitution:2
+ascend/00055	mixed	mer	1	14	1	0	0	13	0.07142857142857142	substitution:1
+ascend/00066	mixed	mer	1	4	1	0	0	3	0.25	substitution:1
+ascend/00068	mixed	mer	6	3	3	0	3	0	2	insertion:3|substitution:3

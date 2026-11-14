@@ -1,0 +1,60 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/en_us/1673",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/en_us/1673",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate 1 differs from the reference in number formatting and punctuation.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "thirteen states",
+              "hypQuote": "13 states",
+              "reason": "Number is represented as digits instead of words."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "a weak central government—with the Congress being its only component—under",
+              "hypQuote": "a weak central government, with the Congress being its only component under",
+              "reason": "Em dash replaced by a comma, changing punctuation format."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.85,
+          "note": "Candidate 2 differs from the reference in number formatting and omission of a comma.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "thirteen states",
+              "hypQuote": "13 states",
+              "reason": "Number is represented as digits instead of words."
+            },
+            {
+              "kind": "omission",
+              "refQuote": "a weak central government—with the Congress being its only component—under",
+              "hypQuote": "a weak central government with the Congress being its only component under",
+              "reason": "The em dashes around the phrase are omitted, and the comma after 'government' is missing."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

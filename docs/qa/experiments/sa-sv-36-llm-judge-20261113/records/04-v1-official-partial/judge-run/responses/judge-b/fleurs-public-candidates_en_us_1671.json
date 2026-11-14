@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 2840,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1671\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 1.0,\n      \"note\": \"The candidate matches the reference exactly.\",\n      \"findings\": []\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 1.0,\n      \"note\": \"The candidate matches the reference exactly.\",\n      \"findings\": []\n    }\n  ]\n}",
+  "providerUsd": 0.00014866,
+  "usage": {
+    "inputTokens": 503,
+    "outputTokens": 141,
+    "providerUsd": 0.00014866,
+    "complete": true
+  },
+  "settledUsd": 0.0002134
+}

@@ -1,0 +1,136 @@
+{
+  "schema": "belliedmonkey.qa.v2-semantic-human-review-form.v1",
+  "list": "sample",
+  "itemId": "fleurs-public-candidates/en_us/1669",
+  "initialInventoryOnly": true,
+  "mustRefreshAfterBackfill": true,
+  "semanticHumanReviewed": false,
+  "earReviewUsedAsSemanticReview": false,
+  "doNotPreFillJudgment": true,
+  "officialAgentReviewIsNotHumanReview": true,
+  "reference": "Police superintendent Chandra Shekhar Solanki said the accused appeared in court with covered faces.",
+  "slots": {
+    "slot-1": {
+      "text": "Police superintendent Chandra Shikar Solanki said that accused appeared in court with covered faces."
+    },
+    "slot-2": {
+      "text": "Police superintendent Chandra Shiar Slanki said the accused appeared in court with covered faces."
+    }
+  },
+  "officialKindLists": {
+    "judge-a": {
+      "slot-1": [
+        "entity",
+        "omission"
+      ],
+      "slot-2": [
+        "entity"
+      ]
+    },
+    "judge-b": {
+      "slot-1": [
+        "entity",
+        "omission"
+      ],
+      "slot-2": [
+        "entity"
+      ]
+    }
+  },
+  "officialVerdicts": {
+    "judge-a": {
+      "model": "openai/gpt-4.1-mini",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "Minor spelling errors in the name and omission of 'the' before 'accused'.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Chandra Shekhar Solanki",
+            "hypQuote": "Chandra Shikar Solanki",
+            "reason": "The candidate misspells 'Shekhar' as 'Shikar'."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "the accused",
+            "hypQuote": "accused",
+            "reason": "The candidate omits the article 'the' before 'accused'."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.7,
+        "note": "Multiple spelling errors in the name but otherwise matches the reference well.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Chandra Shekhar Solanki",
+            "hypQuote": "Chandra Shiar Slanki",
+            "reason": "The candidate misspells 'Shekhar' as 'Shiar' and 'Solanki' as 'Slanki'."
+          }
+        ]
+      }
+    },
+    "judge-b": {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Chandra Shekhar Solanki",
+            "hypQuote": "Chandra Shikar Solanki",
+            "reason": "The name 'Chandra Shekhar Solanki' is incorrectly transcribed as 'Chandra Shikar Solanki', which is a mismatch in the person's name."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "the",
+            "hypQuote": "",
+            "reason": "The word 'the' before 'accused' is missing in the candidate transcript."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.85,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Chandra Shekhar Solanki",
+            "hypQuote": "Chandra Shiar Slanki",
+            "reason": "The name 'Chandra Shekhar Solanki' is incorrectly transcribed as 'Chandra Shiar Slanki', which is a significant error in the person's name."
+          }
+        ]
+      }
+    }
+  },
+  "humanAnnotation": {
+    "reviewerId": "",
+    "reviewedAtAsiaShanghai": "",
+    "slots": {
+      "slot-1": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      },
+      "slot-2": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      }
+    },
+    "overallComment": "",
+    "marksCompleteOnlyAfterUserReview": true
+  }
+}

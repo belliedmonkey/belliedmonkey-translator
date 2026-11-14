@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 5569,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"fleurs-public-candidates/en_us/1668\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":1,\"note\":\"Differences are only in capitalization of 'Wild Card' and 'National Parks', which are format-only variations.\",\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"Wild Card\",\"hypQuote\":\"wild card\",\"reason\":\"Capitalization difference only.\"},{\"kind\":\"format-only\",\"refQuote\":\"South African National Parks\",\"hypQuote\":\"South African national parks\",\"reason\":\"Capitalization difference only.\"}]},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":1,\"note\":\"Differences are only in capitalization of 'Wild Card' and 'National Parks', which are format-only variations.\",\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"Wild Card\",\"hypQuote\":\"wild card\",\"reason\":\"Capitalization difference only.\"},{\"kind\":\"format-only\",\"refQuote\":\"South African National Parks\",\"hypQuote\":\"South African national parks\",\"reason\":\"Capitalization difference only.\"}]}]}",
+  "providerUsd": 0.0006744,
+  "usage": {
+    "inputTokens": 754,
+    "outputTokens": 233,
+    "providerUsd": 0.0006744,
+    "complete": true
+  },
+  "settledUsd": 0.00074184
+}

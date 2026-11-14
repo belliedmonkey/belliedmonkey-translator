@@ -1,0 +1,50 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1668",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "Candidate matches reference except for minor punctuation and omission of parenthetical Latin.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "（Wild Card）",
+            "hypQuote": "",
+            "reason": "The candidate omits the parenthetical Latin text '（Wild Card）' present in the reference."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "。",
+            "hypQuote": "。",
+            "reason": "The reference uses a full-width period; the candidate uses the same, so no difference in this case. Note: spacing and punctuation around '或者' are consistent in meaning."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "Candidate matches reference except for omission of parenthetical Latin and extra space.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "（Wild Card）",
+            "hypQuote": "",
+            "reason": "The candidate omits the parenthetical Latin text '（Wild Card）' present in the reference."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": " ",
+            "reason": "The candidate contains an extra full-width space after '好处' before the comma, which is not present in the reference."
+          }
+        ]
+      }
+    ]
+  }
+}

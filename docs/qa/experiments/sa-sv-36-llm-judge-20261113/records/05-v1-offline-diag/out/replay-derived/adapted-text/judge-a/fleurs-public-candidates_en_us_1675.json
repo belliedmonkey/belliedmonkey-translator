@@ -1,0 +1,54 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/en_us/1675",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/en_us/1675",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate has multiple errors including word substitutions and one omission.",
+          "findings": [
+            {
+              "kind": "entity",
+              "refQuote": "the word Sie for you",
+              "hypQuote": "the world safe for you",
+              "reason": "The phrase 'the word Sie for you' is incorrectly transcribed as 'the world safe for you', changing both words and meaning."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate has multiple errors including word substitutions and punctuation error.",
+          "findings": [
+            {
+              "kind": "entity",
+              "refQuote": "the word Sie for you",
+              "hypQuote": "the world say for you",
+              "reason": "The phrase 'the word Sie for you' is incorrectly transcribed as 'the world say for you', changing words and meaning."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "always begin with a capital letter, even in the middle of a sentence.",
+              "hypQuote": "always begin with a capital letter, even in the middle of a sentence.",
+              "reason": "The candidate incorrectly uses a period instead of a comma after 'you', splitting the sentence."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

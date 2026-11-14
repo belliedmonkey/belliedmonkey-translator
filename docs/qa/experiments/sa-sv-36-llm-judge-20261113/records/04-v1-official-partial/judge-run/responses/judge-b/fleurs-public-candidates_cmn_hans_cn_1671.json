@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 14306,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/cmn_hans_cn/1671\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"Candidate contains minor errors in number formatting and a clear typo in '太员' instead of '探员'.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"2005 财年\",\n          \"hypQuote\": \"2005年才年\",\n          \"reason\": \"The reference uses '2005 财年' while the candidate says '2005年才年', which appears to be a typographical error for '财年'.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"10 名探员\",\n          \"hypQuote\": \"10名太员\",\n          \"reason\": \"The number '10' is correctly used, but '探员' is misspelled as '太员'.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.85,\n      \"note\": \"Candidate has significant semantic and numerical deviations affecting meaning.\",\n      \"findings\": [\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"国会从 2005 财年开始资助该扫黄倡议\",\n          \"hypQuote\": \"国会从2005年财年开始资助该小扫黄倡议\",\n          \"reason\": \"The word '小' is added before '扫黄倡议', altering the meaning and not present in the reference.\"\n        },\n        {\n          \"kind\": \"number\",\n          \"refQuote\": \"10 名探员\",\n          \"hypQuote\": \"1名太员\",\n          \"reason\": \"The number of agents is incorrectly stated as '1' instead of '10'.\"\n        },\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"探员\",\n          \"hypQuote\": \"太员\",\n          \"reason\": \"The term '探员' (agent) is misspelled as '太员', which is not a valid term in this context.\"\n        },\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"打击成人色情\",\n          \"hypQuote\": \"打击成员色情\",\n          \"reason\": \"'成人色情' (adult pornography) is changed to '成员色情', which is nonsensical and alters the meaning.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.00050722,
+  "usage": {
+    "inputTokens": 527,
+    "outputTokens": 585,
+    "providerUsd": 0.00050722,
+    "complete": true
+  },
+  "settledUsd": 0.0005734
+}

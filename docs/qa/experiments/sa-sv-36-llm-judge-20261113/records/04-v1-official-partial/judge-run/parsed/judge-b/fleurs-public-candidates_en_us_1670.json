@@ -1,0 +1,92 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fleurs-public-candidates/en_us/1670",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.75,
+        "note": "Multiple errors detected in entity, semantic, and format.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Their thermal behavior",
+            "hypQuote": "Their formal behavior",
+            "reason": "The word 'thermal' is incorrectly transcribed as 'formal', changing the scientific meaning of the sentence."
+          },
+          {
+            "kind": "entity",
+            "refQuote": "large caves on Earth",
+            "hypQuote": "large cave on earth",
+            "reason": "Plural 'caves' changed to singular 'cave' and 'Earth' changed to lowercase 'earth', altering proper noun and number agreement."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "but it is consistent",
+            "hypQuote": "but is consistent",
+            "reason": "The pronoun 'it' is missing in the candidate, resulting in an incomplete clause."
+          },
+          {
+            "kind": "entity",
+            "refQuote": "Glen Cushing",
+            "hypQuote": "Glen Kshing",
+            "reason": "Proper name 'Glen Cushing' is misheard as 'Glen Kshing', a clear entity error."
+          },
+          {
+            "kind": "entity",
+            "refQuote": "United States Geological Survey (USGS) Astrogeology Team",
+            "hypQuote": "United States Geological Sury, Astrogeology team",
+            "reason": "'Survey' is transcribed as 'Sury' and 'Team' is omitted; 'Astrogeology team' is lowercase, indicating entity and formatting issues."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "Northern Arizona University located in Flagstaff, Arizona",
+            "hypQuote": "northern Arizona University located in Flagstaff Arizona",
+            "reason": "Capitalization of 'Northern' and comma after 'Flagstaff' are missing, but the content is otherwise preserved."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "Errors in entity, punctuation, and name transcription.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Glen Cushing",
+            "hypQuote": "set Glenn Cushing",
+            "reason": "The name 'Glen Cushing' is preceded by 'set' instead of 'said', and 'Glen' is misspelled as 'Glenn', introducing both a semantic and entity error."
+          },
+          {
+            "kind": "semantic",
+            "refQuote": "said",
+            "hypQuote": "set",
+            "reason": "The verb 'said' is incorrectly transcribed as 'set', which changes the meaning and renders the sentence syntactically incorrect."
+          },
+          {
+            "kind": "entity",
+            "refQuote": "United States Geological Survey (USGS) Astrogeology Team",
+            "hypQuote": "a United States geological survey, astrogeology team",
+            "reason": "The proper noun is lowercased and 'Team' is changed to lowercase 'team'; 'a' is added incorrectly, altering the entity reference."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "Northern Arizona University located in Flagstaff, Arizona",
+            "hypQuote": "Northern Arizona University, located in Flagstaff, Arizona",
+            "reason": "Comma placement differs but does not change meaning; otherwise, capitalization and entity are preserved."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "but it is consistent",
+            "hypQuote": "But it's consistent",
+            "reason": "Contraction 'it's' and capitalization of 'But' represent stylistic differences without semantic change."
+          }
+        ]
+      }
+    ]
+  }
+}

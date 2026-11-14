@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 8318,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v2\",\n  \"itemId\": \"fleurs-public-candidates/cmn_hans_cn/1678\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.85,\n      \"note\": \"\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"奥利弗·萨克斯 (Oliver Sacks)\",\n          \"hypQuote\": \"奥里弗萨克斯奥live萨克斯\",\n          \"reason\": \"姓名呈现方式不同，参考使用标准中文译名加英文原名括号标注，候选将其混杂且未正确分隔。\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"，\",\n          \"hypQuote\": \"\",\n          \"reason\": \"候选缺少逗号，导致句子结构不清晰。\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"奥利弗·萨克斯 (Oliver Sacks)\",\n          \"hypQuote\": \"奥利弗萨克斯奥萨克\",\n          \"reason\": \"姓名表达不一致，参考使用标准译名和英文原名，候选将名字部分错误拼接且未正确呈现英文名。\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.00032424,
+  "usage": {
+    "inputTokens": 780,
+    "outputTokens": 339,
+    "providerUsd": 0.00032424,
+    "complete": true
+  },
+  "settledUsd": 0.0004272
+}

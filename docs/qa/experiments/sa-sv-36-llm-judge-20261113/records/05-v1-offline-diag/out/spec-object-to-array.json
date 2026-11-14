@@ -1,0 +1,27 @@
+{
+  "name": "belliedmonkey.llm-judge.slots-object-to-array.candidate.v1-diag",
+  "protocolStatus": "post-hoc-format-adaptation-candidate; not frozen original protocol; not a formal pass",
+  "doesNotBackfillOriginalRun": true,
+  "doesNotChangeScoringContent": true,
+  "applicability": [
+    "Input text is valid JSON and the root is a plain object.",
+    "Root keys are a subset of {schema, itemId, slots}; extra root keys are not stripped (official parse may then fail score-field).",
+    "slots is a plain object (not an array, not null).",
+    "slots has exactly the keys slot-1 and slot-2 (both present, no other keys).",
+    "Each value is a plain object (not an array, not null).",
+    "Slot identity is unique and complete: if an inner object has a slot field, it must equal the object key; if it lacks a slot field, the adapter may insert slot equal to the object key only (identity, not scoring content). This official run already has matching inner slot fields on every adaptable object, so no insertion is required.",
+    "The transform is slotsArray = [slots[\"slot-1\"], slots[\"slot-2\"]]. No other field is added, deleted, truncated, remapped, or rewritten (notes, findings, quotes, kinds, reasons, confidence, abstain stay byte-for-byte as parsed JSON values).",
+    "The mapping is one-to-one reversible: objectFrom(array) keyed by inner slot equals the (identity-completed) original slots object.",
+    "After the shape change, the official parseVerdict is applied unchanged. Quote, note, kind, reason, leak, item-id, and remaining checks are not relaxed. A later parse failure stays null."
+  ],
+  "rejection": [
+    "Invalid JSON (including mixed object/array punctuation). Do not delete or insert brackets, do not unescape, do not guess a repaired document.",
+    "slots is already an array, is missing, or is not a plain object.",
+    "Object keys are not exactly {slot-1, slot-2} (missing, extra, or renamed keys). Do not drop extra keys; that would delete content.",
+    "A value is not a plain object.",
+    "Object key conflicts with the inner slot field (e.g. key slot-1 but inner slot is slot-2 or any other string).",
+    "Duplicate slot identity after conversion.",
+    "Any rewrite of quotes (including whitespace/punctuation near-misses), truncation of note or reason to meet the 400 cap, remapping of finding-kind (including punctuation -> format-only), or adding/removing findings.",
+    "Using the adapter to backfill official summary/human-review or to claim doubleBlindComplete under the frozen v1 protocol."
+  ]
+}

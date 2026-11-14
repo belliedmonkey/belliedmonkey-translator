@@ -1,0 +1,48 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "ascend/00055",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "ascend/00055",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 1,
+          "note": "Candidate matches the reference except for a minor punctuation difference and an added space after '嗯'.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "um运动啊男生一般不都喜欢运动",
+              "hypQuote": "嗯 ，运动啊 ，男生一般不都喜欢运动",
+              "reason": "The candidate uses '嗯' instead of 'um' and includes spaces and commas not present in the reference, which are format differences."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 1,
+          "note": "Candidate matches the reference except for 'um' replaced by '嗯' and a final period added.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "um运动啊男生一般不都喜欢运动",
+              "hypQuote": "嗯，运动啊男生一般不都喜欢运动。",
+              "reason": "The candidate uses '嗯' instead of 'um' and adds a final period, which are format differences."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

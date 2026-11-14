@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 9232,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/cmn_hans_cn/1680\",\n  \"slots\": {\n    \"slot-1\": {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate 1 mostly matches the reference but has minor format and semantic differences.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"攀爬（虽然攀爬能力不是很强）\",\n          \"hypQuote\": \"攀爬，虽然攀爬能力不是很强\",\n          \"reason\": \"Parentheses in reference replaced by commas in candidate.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"，\",\n          \"hypQuote\": \"\",\n          \"reason\": \"Missing comma between '游泳' and '跳远' in candidate.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"拉力能达到人类大力士的五倍\",\n          \"hypQuote\": \"拉力能拿到人类大力石的5倍\",\n          \"reason\": \"Candidate uses '拿到' instead of '达到', '大力石' instead of '大力士', and digit '5' instead of '五'.\"\n        }\n      ]\n    },\n    \"slot-2\": {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.85,\n      \"note\": \"Candidate 2 has similar issues as candidate 1 plus a pronoun difference.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"攀爬（虽然攀爬能力不是很强）\",\n          \"hypQuote\": \"攀爬 ，虽然攀爬能力不是很强\",\n          \"reason\": \"Parentheses replaced by commas with extra spaces.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"，\",\n          \"hypQuote\": \"\",\n          \"reason\": \"Missing comma between '游泳' and '跳远'.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"拉力能达到人类大力士的五倍\",\n          \"hypQuote\": \"拉力能拿到人类大力石的五倍\",\n          \"reason\": \"Candidate uses '拿到' instead of '达到', '大力石' instead of '大力士'.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"它\",\n          \"hypQuote\": \"他\",\n          \"reason\": \"Pronoun changed from '它' (it) to '他' (he).\"\n        }\n      ]\n    }\n  }\n}",
+  "providerUsd": 0.0012184,
+  "usage": {
+    "inputTokens": 546,
+    "outputTokens": 625,
+    "providerUsd": 0.0012184,
+    "complete": true
+  },
+  "settledUsd": 0.00134024
+}

@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 13495,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/cmn_hans_cn/1673\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"Candidate contains an error in the number of states and omits punctuation and parentheses present in the reference.\",\n      \"findings\": [\n        {\n          \"kind\": \"number\",\n          \"refQuote\": \"十三个州\",\n          \"hypQuote\": \"1三个州\",\n          \"reason\": \"The reference correctly states '十三个州' (thirteen states), while the candidate writes '1三个州', which is malformed and incorrect.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"（国会是其唯一的组成部分）\",\n          \"hypQuote\": \"国会是其唯一的组成部分\",\n          \"reason\": \"The candidate omits the parentheses around the clause '国会是其唯一的组成部分', which are present in the reference and serve a clarifying punctuational function.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate correctly renders the number of states but omits parentheses and has a spacing issue.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"十三个州\",\n          \"hypQuote\": \"13个州\",\n          \"reason\": \"The reference uses Chinese characters '十三个州' while the candidate uses Arabic numerals '13个州'; this is a surface-level format difference with no semantic change.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"（国会是其唯一的组成部分）\",\n          \"hypQuote\": \"国会是其唯一的组成部分\",\n          \"reason\": \"The parentheses around '国会是其唯一的组成部分' are missing in the candidate, altering the syntactic structure compared to the reference.\"\n        },\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"在独立战争期间\",\n          \"hypQuote\": \"在独立战争期间 ，\",\n          \"reason\": \"The candidate adds an extra full-width space after '期间', which is not present in the reference.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.00044622,
+  "usage": {
+    "inputTokens": 497,
+    "outputTokens": 514,
+    "providerUsd": 0.00044622,
+    "complete": true
+  },
+  "settledUsd": 0.0005106
+}

@@ -1,0 +1,30 @@
+{
+  "schema": "belliedmonkey.qa.verify-75266d0a-observe.v1",
+  "passed": false,
+  "paidRunAuthorizedByThisVerify": false,
+  "createdAtAsiaShanghai": "2026-11-14 10:37:03 Asia/Shanghai (CST)",
+  "packId": "01M7BYBRDRFCHNC7FXJJV8A3GE",
+  "packSha256": "89a6a263dfff22fb0415f30de43e5e26dfc51f92a6e1be4896aa799678179ee4",
+  "packBytes": 21194,
+  "promptTemplateSha256": "a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923",
+  "selectionSha256Canonical": "c151018bfda2953d2375f8cfce25580787745f162824b66f2d7eccec641979a4",
+  "selectionFileSha256": "55978cec4c045e7e606559af713a68260ea41aae1c686f2934d3a807876e1135",
+  "configFileSha256": "f94c3958e936fa6af0659f3202804f7d2292d348da77a0001cc4d35bc12ec46d",
+  "reserve15": "0.03251712",
+  "budgetUsdDraft": 0.17905768,
+  "cumulativeConsumedUsd": "0.10094232",
+  "cumulativePlanUsd": "0.28",
+  "criticalFails": [
+    "reject-successful-origin-pair",
+    "reject-select-run-without-origin",
+    "reject-wrong-origin-hash",
+    "reject-seed-change-vs-frozen-assignment",
+    "reject-out-equals-origin-overwrite",
+    "reject-existing-out-overwrite"
+  ],
+  "checks": {
+    "total": 49,
+    "passed": 43,
+    "failed": 6
+  }
+}

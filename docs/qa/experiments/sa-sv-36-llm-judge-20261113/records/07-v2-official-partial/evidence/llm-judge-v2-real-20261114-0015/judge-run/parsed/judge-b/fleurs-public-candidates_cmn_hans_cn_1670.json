@@ -1,0 +1,80 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.85,
+        "note": "",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "美国地质调查局 (USGS)",
+            "hypQuote": "美国地质调查局 USGS",
+            "reason": "括号缺失，影响格式一致性"
+          },
+          {
+            "kind": "entity",
+            "refQuote": "亚利桑那州旗杆镇",
+            "hypQuote": "亚历桑那州旗甘镇",
+            "reason": "地名翻译错误，'旗杆镇'被误作'旗甘镇'"
+          },
+          {
+            "kind": "entity",
+            "refQuote": "格伦·库欣",
+            "hypQuote": "格伦库星",
+            "reason": "人名错误，'格伦·库欣'被误作'格伦库星'"
+          },
+          {
+            "kind": "semantic",
+            "refQuote": "地下深穴",
+            "hypQuote": "地下升雪",
+            "reason": "'深穴'与'升雪'语义完全不同，属严重语义错误"
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "美国地质调查局 (USGS)",
+            "hypQuote": "美国地质调查局USGS",
+            "reason": "括号缺失，影响格式一致性"
+          },
+          {
+            "kind": "entity",
+            "refQuote": "亚利桑那州旗杆镇",
+            "hypQuote": "亚利桑那州旗干镇",
+            "reason": "地名错误，'旗杆镇'被误作'旗干镇'"
+          },
+          {
+            "kind": "entity",
+            "refQuote": "格伦·库欣",
+            "hypQuote": "格伦库辛",
+            "reason": "人名错误，'格伦·库欣'被误作'格伦库辛'"
+          },
+          {
+            "kind": "semantic",
+            "refQuote": "地下深穴",
+            "hypQuote": "地下升雪",
+            "reason": "'深穴'与'升雪'语义完全不同，属严重语义错误"
+          },
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": "，。",
+            "reason": "句末多出标点符号'，。'"
+          }
+        ]
+      }
+    ]
+  }
+}

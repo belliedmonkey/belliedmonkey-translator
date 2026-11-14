@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 4367,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"fleurs-public-candidates/cmn_hans_cn/1668\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.9,\"note\":\"Candidate 1 omits the parenthetical '（Wild Card）' after '万能卡', and uses '或者' instead of '或', which is a minor format difference. Otherwise, the meaning is preserved.\",\"findings\":[{\"kind\":\"omission\",\"refQuote\":\"万能卡（Wild Card）\",\"hypQuote\":\"万能卡\",\"reason\":\"Candidate 1 omits the parenthetical '（Wild Card）' present in the reference.\"},{\"kind\":\"format-only\",\"refQuote\":\"或\",\"hypQuote\":\"或者\",\"reason\":\"Candidate 1 uses '或者' instead of '或', a format difference without semantic change.\"}]},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.9,\"note\":\"Candidate 2 omits the parenthetical '（Wild Card）' after '万能卡', and uses '或者' instead of '或', which is a minor format difference. Otherwise, the meaning is preserved.\",\"findings\":[{\"kind\":\"omission\",\"refQuote\":\"万能卡（Wild Card）\",\"hypQuote\":\"万能卡\",\"reason\":\"Candidate 2 omits the parenthetical '（Wild Card）' present in the reference.\"},{\"kind\":\"format-only\",\"refQuote\":\"或\",\"hypQuote\":\"或者\",\"reason\":\"Candidate 2 uses '或者' instead of '或', a format difference without semantic change.\"}]}]}",
+  "providerUsd": 0.000838,
+  "usage": {
+    "inputTokens": 759,
+    "outputTokens": 334,
+    "providerUsd": 0.000838,
+    "complete": true
+  },
+  "settledUsd": 0.0009218
+}

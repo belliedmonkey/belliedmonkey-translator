@@ -1,0 +1,108 @@
+{
+  "schema": "belliedmonkey.qa.v2-semantic-human-review-form.v1",
+  "list": "disagreement",
+  "itemId": "fleurs-public-candidates/en_us/1676",
+  "initialInventoryOnly": true,
+  "mustRefreshAfterBackfill": true,
+  "semanticHumanReviewed": false,
+  "earReviewUsedAsSemanticReview": false,
+  "doNotPreFillJudgment": true,
+  "officialAgentReviewIsNotHumanReview": true,
+  "reference": "As with all South African National Parks, there are daily conservation and entry fees for the park.",
+  "slots": {
+    "slot-1": {
+      "text": "As with all South African national parks, there are daily conservation and entry fees for the park."
+    },
+    "slot-2": {
+      "text": "As with all South African national parks, there are daily conservation and entry fees for the park."
+    }
+  },
+  "officialKindLists": {
+    "judge-a": {
+      "slot-1": [
+        "format-only"
+      ],
+      "slot-2": [
+        "format-only"
+      ]
+    },
+    "judge-b": {
+      "slot-1": [
+        "abstain"
+      ],
+      "slot-2": [
+        "abstain"
+      ]
+    }
+  },
+  "officialVerdicts": {
+    "judge-a": {
+      "model": "openai/gpt-4.1-mini",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 1,
+        "note": "Only difference is capitalization of 'National Parks' vs 'national parks', which is format-only.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "South African National Parks",
+            "hypQuote": "South African national parks",
+            "reason": "Capitalization difference only."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 1,
+        "note": "Only difference is capitalization of 'National Parks' vs 'national parks', which is format-only.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "South African National Parks",
+            "hypQuote": "South African national parks",
+            "reason": "Capitalization difference only."
+          }
+        ]
+      }
+    },
+    "judge-b": {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": true,
+        "confidence": 0,
+        "note": "Both candidates are identical to each other and differ from the reference only in capitalization of 'national parks', which is a minor formatting difference and does not affect meaning.",
+        "findings": []
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": true,
+        "confidence": 0,
+        "note": "Both candidates are identical to each other and differ from the reference only in capitalization of 'national parks', which is a minor formatting difference and does not affect meaning.",
+        "findings": []
+      }
+    }
+  },
+  "humanAnnotation": {
+    "reviewerId": "",
+    "reviewedAtAsiaShanghai": "",
+    "slots": {
+      "slot-1": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      },
+      "slot-2": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      }
+    },
+    "overallComment": "",
+    "marksCompleteOnlyAfterUserReview": true
+  }
+}

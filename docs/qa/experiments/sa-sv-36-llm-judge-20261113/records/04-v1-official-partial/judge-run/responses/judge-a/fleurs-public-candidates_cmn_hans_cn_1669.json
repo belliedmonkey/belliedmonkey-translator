@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 5139,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/cmn_hans_cn/1669\",\n  \"slots\": {\n    \"slot-1\": {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate omits punctuation marks present in the reference, which affects readability but not semantic content.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"钱德拉·谢卡尔·索兰基说，被告人出庭时都蒙住了脸。\",\n          \"hypQuote\": \"钱德拉谢卡尔索兰基说被告人出庭时都蒙住了脸。\",\n          \"reason\": \"Candidate omits the middle dots and commas present in the reference.\"\n        }\n      ]\n    },\n    \"slot-2\": {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 1.0,\n      \"note\": \"Candidate matches the reference exactly except for omission of middle dots in the name, which is a format-only difference.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"钱德拉·谢卡尔·索兰基说，被告人出庭时都蒙住了脸。\",\n          \"hypQuote\": \"钱德拉谢卡尔索兰基说，被告人出庭时都蒙住了脸。\",\n          \"reason\": \"Candidate omits the middle dots in the name but retains the comma and sentence structure.\"\n        }\n      ]\n    }\n  }\n}",
+  "providerUsd": 0.0007816,
+  "usage": {
+    "inputTokens": 498,
+    "outputTokens": 364,
+    "providerUsd": 0.0007816,
+    "complete": true
+  },
+  "settledUsd": 0.00085976
+}

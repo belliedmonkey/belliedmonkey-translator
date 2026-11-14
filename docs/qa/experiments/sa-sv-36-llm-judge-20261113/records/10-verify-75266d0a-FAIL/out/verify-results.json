@@ -1,0 +1,555 @@
+{
+  "ok": false,
+  "passed": false,
+  "createdAt": "2026-11-14 10:37:03 Asia/Shanghai (CST)",
+  "pack": {
+    "sha256": "89a6a263dfff22fb0415f30de43e5e26dfc51f92a6e1be4896aa799678179ee4",
+    "bytes": 21194,
+    "id": "01M7BYBRDRFCHNC7FXJJV8A3GE"
+  },
+  "promptTemplateSha256": "a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923",
+  "selectionSha256Canonical": "c151018bfda2953d2375f8cfce25580787745f162824b66f2d7eccec641979a4",
+  "reserve15": "0.03251712",
+  "budgetUsd": 0.17905768,
+  "criticalFails": [
+    "reject-successful-origin-pair",
+    "reject-select-run-without-origin",
+    "reject-wrong-origin-hash",
+    "reject-seed-change-vs-frozen-assignment",
+    "reject-out-equals-origin-overwrite",
+    "reject-existing-out-overwrite"
+  ],
+  "otherFails": [],
+  "checks": [
+    {
+      "id": "pack-sha-size",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "sha256": "89a6a263dfff22fb0415f30de43e5e26dfc51f92a6e1be4896aa799678179ee4",
+        "bytes": 21194
+      }
+    },
+    {
+      "id": "prompt-sha",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "promptTemplateSha256": "a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923",
+        "rubricText": "a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923",
+        "asr": "belliedmonkey.llm-judge.asr.v2"
+      }
+    },
+    {
+      "id": "v2-同源-prompt-contract-parser-scoring-assign-schema",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "assign.js": {
+          "sha256": "8b02d4284d0ac8bcf289dad76838389540e190632e0ce69ad5061bac0802439c",
+          "same": true
+        },
+        "input-bound.js": {
+          "sha256": "1df932fa01bd20eab69a908fc7735257d4e61b6e48c2f8367b89e717efe487a3",
+          "same": true
+        },
+        "parse.js": {
+          "sha256": "b636aa1f73a056dd202be5d9bb1655fc6001ffd68101ec9c172173086268cfed",
+          "same": true
+        },
+        "prompt.js": {
+          "sha256": "df3fff4c5163af76a15a2fa1cea90c7acd4db2d8620fe9b0e0ac2473fabed0a5",
+          "same": true
+        },
+        "rubric.js": {
+          "sha256": "999d8cc2aaaca54fa008e817d55040d16d5952e0be9a54ca73d6f686ba7ef3b4",
+          "same": true
+        },
+        "schema.js": {
+          "sha256": "2a98c2d3721802935370726ff26577ae898903adda280b7204d978c03fbefc0e",
+          "same": true
+        },
+        "slots-object-adapter.js": {
+          "sha256": "c59f98102b148be55126840131b707b64ce0e4612fa28023c76ff3ed55721c2d",
+          "same": true
+        },
+        "verdict-contract.js": {
+          "sha256": "27df3fecfddd4312fc4913295cd8fa12cdf56088c3db6b07fee57176d1ade454",
+          "same": true
+        },
+        "README.md": {
+          "sha256": "e1ff0380b30f5e8b762746018925a469375a09a4908cc4c00d301a14bddb35b9",
+          "same": true
+        }
+      }
+    },
+    {
+      "id": "run-judge-changed-only-plus-docs",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "runJudge": "d58e7e26dd8012b13c8ae6f02b4878d5855cb7f68c32945e30f45bb3937e9c6e",
+        "llm": "b4695b4b623b767e69908b24c97bc6effe021fb2ff6d1929c72431530b471ac8"
+      }
+    },
+    {
+      "id": "allowlist-15-counts",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "n": 15,
+        "gpt": 2,
+        "qwen": 13
+      }
+    },
+    {
+      "id": "selection-schema-only",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "selectionSha256Canonical": "c151018bfda2953d2375f8cfce25580787745f162824b66f2d7eccec641979a4",
+        "path": "/workspace/baseline-sa-sv-36-20261113/judge-prep/verify-75266d0a-observe/selection/selection-15.json"
+      }
+    },
+    {
+      "id": "config-validates",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "seed": 20261113,
+        "budgetUsd": 0.17905768,
+        "maxRequests": 15,
+        "maxTotalTokens": 48000
+      }
+    },
+    {
+      "id": "reserve-15-full-cap",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "packGpt": 0.0041113600000000005,
+        "packQwen": 0.0018687999999999999,
+        "reserve15": 0.03251712,
+        "expected": "0.03251712",
+        "asFixed": "0.03251712"
+      }
+    },
+    {
+      "id": "reserve-15-exact-8dp",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "reserve15": "0.03251712"
+      }
+    },
+    {
+      "id": "reserve-fits-remaining",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "remaining": "0.17905768",
+        "reserve15": "0.03251712",
+        "headroom": "0.14654056"
+      }
+    },
+    {
+      "id": "config-caps-not-72",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "maxRequests": 15,
+        "maxTotalTokens": 48000,
+        "officialMaxRequests": 72
+      }
+    },
+    {
+      "id": "config-prices-models-seed-unchanged",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "seed": 20261113,
+        "models": [
+          "openai/gpt-4.1-mini",
+          "qwen/qwen3-235b-a22b-2507"
+        ]
+      }
+    },
+    {
+      "id": "input-sha",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "sha": "1a44cca3bf05662c8701d943702a35e7fd1a303f9bcd931764775d9057c795a1"
+      }
+    },
+    {
+      "id": "assignment-sha",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "sha": "3c54b9c2571ce63b6203d004f3ab2e109da7e7ba39feeda438c88fc8a4e79470"
+      }
+    },
+    {
+      "id": "pack-prompts-match-official-v2-requests",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "mismatches": [],
+        "compared": 72
+      }
+    },
+    {
+      "id": "official-declared-tokens-still-under-1152",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "note": "this box has no tiktoken/tokenizers this turn; lookup uses official v2 plan counts only after prompt bytes match"
+      }
+    },
+    {
+      "id": "dry-run-code",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "dry-run",
+        "called": false,
+        "ok": true
+      }
+    },
+    {
+      "id": "dry-run-assignment-frozen",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "seed": 20261113,
+        "items": 36,
+        "equalOfficial": true
+      }
+    },
+    {
+      "id": "dry-run-selected-15",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "selected": 15,
+        "selectionSha256": "c151018bfda2953d2375f8cfce25580787745f162824b66f2d7eccec641979a4",
+        "expected": "c151018bfda2953d2375f8cfce25580787745f162824b66f2d7eccec641979a4"
+      }
+    },
+    {
+      "id": "dry-run-inputChecks-all-ok",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "n": 72,
+        "failed": []
+      }
+    },
+    {
+      "id": "dry-run-15-selected-input-checks-ok",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "selectedChecks": 15,
+        "allInputChecks": 72,
+        "note": "pack still input-bound-checks all 72; the 15 selected are all ok"
+      }
+    },
+    {
+      "id": "dry-run-prompt-still-v2",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "sha": "a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923"
+      }
+    },
+    {
+      "id": "dry-run-does-not-precompute-held-reserve",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "note": "dry-run returns before reserve loop; reserve 0.03251712 is computed from unit prices × selected 15, not from a pack dry-run field"
+      }
+    },
+    {
+      "id": "synthetic-run-sends-only-15",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "sent": 15,
+        "unexpected": [],
+        "missing": []
+      }
+    },
+    {
+      "id": "synthetic-run-does-not-send-successful-57",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "probedSuccessItem": "fleurs-public-candidates/en_us/1668",
+        "sent": false
+      }
+    },
+    {
+      "id": "supplement-code-not-singleRunComplete",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "supplement-partial",
+        "ok": false,
+        "singleRunComplete": false,
+        "doubleBlindComplete": false,
+        "supplementComplete": false
+      }
+    },
+    {
+      "id": "supplement-provenance",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "originSummarySha256": "4744aef13ff5ce3a30680be4fb42604db044073a3e317202c09339d24934365f",
+        "selectionSha256": "c151018bfda2953d2375f8cfce25580787745f162824b66f2d7eccec641979a4",
+        "official": false
+      }
+    },
+    {
+      "id": "derived-merge-present-and-not-official",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "note": "derived-merge is a provenance stub, not a merged official results table"
+      }
+    },
+    {
+      "id": "origin-summary-untouched-when-out-differs",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "sha": "4744aef13ff5ce3a30680be4fb42604db044073a3e317202c09339d24934365f"
+      }
+    },
+    {
+      "id": "fixture-stop-illegal-json-modelFormatFault",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "parseCode": "bad-json",
+        "modelFormatFault": true,
+        "generationOk": true
+      }
+    },
+    {
+      "id": "fixture-error-incomplete-not-modelFormatFault",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "parseCode": "bad-json",
+        "modelFormatFault": false,
+        "generationOk": false,
+        "providerError": true
+      }
+    },
+    {
+      "id": "fixture-length-not-modelFormatFault",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "parseCode": "bad-json",
+        "modelFormatFault": false,
+        "generationOk": true
+      }
+    },
+    {
+      "id": "fixture-missing-note-parseCode-not-formatFault",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "parseCode": "note",
+        "modelFormatFault": false
+      }
+    },
+    {
+      "id": "fixture-quote-parseCode-not-formatFault",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "parseCode": "quote",
+        "modelFormatFault": false
+      }
+    },
+    {
+      "id": "fixture-missing-usage-keeps-reserve-and-stops",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "budget-unknown",
+        "calls": [
+          {
+            "judgeId": "judge-a",
+            "itemId": "fleurs-public-candidates/cmn_hans_cn/1671"
+          }
+        ],
+        "spentUsd": 0.00411136,
+        "costUnknown": true,
+        "reserve": 0.0041113600000000005
+      }
+    },
+    {
+      "id": "fixture-0usd-not-free-envelope-settle",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "providerUsd": 0,
+        "settledUsd": 0.000484,
+        "expectedSettle": 0.000484,
+        "parseOk": true
+      }
+    },
+    {
+      "id": "reject-missing-item",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "selection",
+        "called": false,
+        "transportCalls": 0,
+        "expected": "selection"
+      }
+    },
+    {
+      "id": "reject-invalid-judge",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "selection",
+        "called": false,
+        "transportCalls": 0,
+        "expected": "selection"
+      }
+    },
+    {
+      "id": "reject-duplicate-pair",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "selection",
+        "called": false,
+        "transportCalls": 0,
+        "expected": "selection"
+      }
+    },
+    {
+      "id": "reject-wrong-schema",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "selection",
+        "called": false,
+        "transportCalls": 0,
+        "expected": "selection"
+      }
+    },
+    {
+      "id": "reject-empty-pairs",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "selection",
+        "called": false,
+        "transportCalls": 0,
+        "expected": "selection"
+      }
+    },
+    {
+      "id": "reject-origin-missing",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "code": "origin-missing",
+        "called": false,
+        "transportCalls": 0,
+        "expected": "origin-missing"
+      }
+    },
+    {
+      "id": "reject-successful-origin-pair",
+      "ok": false,
+      "severity": "critical",
+      "detail": {
+        "transportCalls": 1,
+        "code": "supplement-complete",
+        "called": true,
+        "note": "pack does not inspect origin verdicts; a successful pair is sent"
+      }
+    },
+    {
+      "id": "reject-select-run-without-origin",
+      "ok": false,
+      "severity": "critical",
+      "detail": {
+        "transportCalls": 15,
+        "code": "supplement-partial",
+        "called": true,
+        "hasDerived": false
+      }
+    },
+    {
+      "id": "reject-wrong-origin-hash",
+      "ok": false,
+      "severity": "critical",
+      "detail": {
+        "transportCalls": 1,
+        "code": "supplement-partial",
+        "decoyHash": "03133f4f859238acff71bc1159a982b55cc96e414aa65e7d65f676ed7a44fef5",
+        "originRecorded": "03133f4f859238acff71bc1159a982b55cc96e414aa65e7d65f676ed7a44fef5"
+      }
+    },
+    {
+      "id": "reject-seed-change-vs-frozen-assignment",
+      "ok": false,
+      "severity": "critical",
+      "detail": {
+        "transportCalls": 1,
+        "code": "supplement-partial",
+        "officialSlots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        },
+        "newSlots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        },
+        "slotsChanged": true
+      }
+    },
+    {
+      "id": "reject-out-equals-origin-overwrite",
+      "ok": false,
+      "severity": "critical",
+      "detail": {
+        "overwritten": true,
+        "afterCode": "supplement-partial",
+        "runCode": "supplement-partial",
+        "called": true
+      }
+    },
+    {
+      "id": "reject-existing-out-overwrite",
+      "ok": false,
+      "severity": "critical",
+      "detail": {
+        "code": "supplement-partial",
+        "called": true
+      }
+    },
+    {
+      "id": "official-evidence-unchanged",
+      "ok": true,
+      "severity": "info",
+      "detail": {
+        "summary": "4744aef13ff5ce3a30680be4fb42604db044073a3e317202c09339d24934365f"
+      }
+    }
+  ]
+}

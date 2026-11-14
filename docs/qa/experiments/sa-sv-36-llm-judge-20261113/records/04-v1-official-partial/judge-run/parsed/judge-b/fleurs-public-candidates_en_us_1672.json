@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fleurs-public-candidates/en_us/1672",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "The candidate adds 'All right,' at the beginning and includes a comma after 'hot', which is not in the reference. The parenthetical in the reference is rendered as a clause without parentheses. These are minor additions and punctuation differences that do not alter the core meaning.",
+        "findings": [
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": "All right,",
+            "reason": "The phrase 'All right,' is present in the candidate but not in the reference."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "(which can cause shrinkage, or in extreme cases, scorch)",
+            "hypQuote": "which can cause shrinkage, or in extreme cases, scorch.",
+            "reason": "The parentheses are removed and the clause is integrated into the sentence with a comma. The period at the end is part of sentence termination and matches the reference's meaning."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.98,
+        "note": "The candidate omits the parentheses around the clause and uses a comma after 'hot', but otherwise matches the reference closely. The meaning and content are preserved with only minor punctuation differences.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "(which can cause shrinkage, or in extreme cases, scorch)",
+            "hypQuote": "which can cause shrinkage or in extreme cases, scorch.",
+            "reason": "The parentheses are omitted and the clause is presented inline. The comma after 'shrinkage' is missing in the candidate, but this is a minor punctuation variation that does not affect meaning."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Candidate replaces '您的“Sie”' with '零的C', which changes the meaning significantly. Also uses '即便' instead of '即使', a minor semantic difference.",
+        "findings": [
+          {
+            "kind": "semantic",
+            "refQuote": "表示您的“Sie”",
+            "hypQuote": "表示零的C",
+            "reason": "The candidate changes the phrase indicating '您的“Sie”' to '零的C', altering the meaning."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "Candidate changes '您的“Sie”' to '您的 C' and '大写字母' to '大写字幕', which is a format and semantic error. Also uses '即便' instead of '即使'.",
+        "findings": [
+          {
+            "kind": "semantic",
+            "refQuote": "表示您的“Sie”",
+            "hypQuote": "您的 C",
+            "reason": "The candidate omits the quotation marks and the word 'Sie', changing the meaning."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "大写字母",
+            "hypQuote": "大写字幕",
+            "reason": "The candidate uses '字幕' (subtitle) instead of '字母' (letter), which is a format and semantic error."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+Formal run budget fields only.
+
+cumulativePlanUsd=0.28 (fee card t54s476)
+historicalConsumedUsd=0.05570372 (v1 official ledger, not refundable)
+thisRoundPoolUsd=0.22429628  <-- config.budgetUsd
+thisRound72FullReserveUsd=0.21528576
+thisRoundProbesUsd=0 (historical probes reused, not re-billed)
+No recharge. No independent 0.28 pool. Failures share this remaining pool.
+This file is not authorization text for a different amount.

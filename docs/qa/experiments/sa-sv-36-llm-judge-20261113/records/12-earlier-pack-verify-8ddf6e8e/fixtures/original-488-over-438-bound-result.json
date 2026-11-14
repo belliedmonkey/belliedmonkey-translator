@@ -1,0 +1,65 @@
+{
+  "nCalls": 0,
+  "code": "input-over-bound",
+  "called": false,
+  "results": null,
+  "reserveTokens": 1238,
+  "reserveUsd": [
+    {
+      "model": "MODEL_X",
+      "usd": 0.002038,
+      "pricedZero": false
+    },
+    {
+      "model": "MODEL_Y",
+      "usd": 0.002038,
+      "pricedZero": false
+    }
+  ],
+  "expectedReserveUsd": 0.002038,
+  "inputChecks": [
+    {
+      "id": "fixture-1",
+      "judgeId": "judge-a",
+      "ok": false,
+      "code": "input-over-bound",
+      "declaredTokens": 488,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fixture-1",
+      "judgeId": "judge-b",
+      "ok": false,
+      "code": "input-over-bound",
+      "declaredTokens": 488,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fixture-2",
+      "judgeId": "judge-a",
+      "ok": false,
+      "code": "input-over-bound",
+      "declaredTokens": 488,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fixture-2",
+      "judgeId": "judge-b",
+      "ok": false,
+      "code": "input-over-bound",
+      "declaredTokens": 488,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    }
+  ],
+  "planExists": true,
+  "requestDirExists": false,
+  "note": "SYNTHETIC counter returning 488. Not a real tokenizer. Previously chars/4=438 allowed this send."
+}

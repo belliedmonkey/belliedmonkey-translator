@@ -1,0 +1,143 @@
+{
+  "schema": "belliedmonkey.qa.v2-semantic-human-review-form.v1",
+  "list": "disagreement",
+  "itemId": "ascend/00068",
+  "initialInventoryOnly": true,
+  "mustRefreshAfterBackfill": true,
+  "semanticHumanReviewed": false,
+  "earReviewUsedAsSemanticReview": false,
+  "doNotPreFillJudgment": true,
+  "officialAgentReviewIsNotHumanReview": true,
+  "reference": "computer languages是",
+  "slots": {
+    "slot-1": {
+      "text": "computer人规。"
+    },
+    "slot-2": {
+      "text": "可能平时都 anguage"
+    }
+  },
+  "officialKindLists": {
+    "judge-a": {
+      "slot-1": [
+        "semantic"
+      ],
+      "slot-2": [
+        "addition",
+        "omission"
+      ]
+    },
+    "judge-b": {
+      "slot-1": [
+        "addition",
+        "omission"
+      ],
+      "slot-2": [
+        "addition",
+        "omission"
+      ]
+    }
+  },
+  "officialVerdicts": {
+    "judge-a": {
+      "model": "openai/gpt-4.1-mini",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Candidate 1 replaces 'languages是' with '人规' which is a semantic and entity difference and omits the 'languages是' part.",
+        "findings": [
+          {
+            "kind": "semantic",
+            "refQuote": "languages是",
+            "hypQuote": "人规",
+            "reason": "The candidate replaces 'languages是' with '人规', changing the meaning and entity."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "Candidate 2 omits 'computer' and 'languages是' and adds '可能平时都 anguage', which is an addition and omission with semantic impact.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "computer languages是",
+            "hypQuote": "",
+            "reason": "The candidate omits the entire phrase 'computer languages是'."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "computer languages是",
+            "hypQuote": "可能平时都 anguage",
+            "reason": "The candidate adds '可能平时都 anguage' which is not present in the reference and changes the meaning."
+          }
+        ]
+      }
+    },
+    "judge-b": {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.3,
+        "note": "Candidate contains unrelated content and does not match reference.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "computer languages是",
+            "hypQuote": "",
+            "reason": "The reference text 'computer languages是' is completely missing in the candidate."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": "computer人规。",
+            "reason": "The candidate contains 'computer人规。' which does not appear in the reference."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.2,
+        "note": "Candidate appears to be fragmented and does not align with reference.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "computer languages是",
+            "hypQuote": "",
+            "reason": "The reference text 'computer languages是' is completely missing in the candidate."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": "可能平时都 anguage",
+            "reason": "The candidate contains '可能平时都 anguage' which does not appear in the reference."
+          }
+        ]
+      }
+    }
+  },
+  "humanAnnotation": {
+    "reviewerId": "",
+    "reviewedAtAsiaShanghai": "",
+    "slots": {
+      "slot-1": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      },
+      "slot-2": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      }
+    },
+    "overallComment": "",
+    "marksCompleteOnlyAfterUserReview": true
+  }
+}

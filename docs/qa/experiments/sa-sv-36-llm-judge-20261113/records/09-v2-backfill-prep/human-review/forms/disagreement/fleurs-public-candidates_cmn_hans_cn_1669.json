@@ -1,0 +1,122 @@
+{
+  "schema": "belliedmonkey.qa.v2-semantic-human-review-form.v1",
+  "list": "disagreement",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1669",
+  "initialInventoryOnly": true,
+  "mustRefreshAfterBackfill": true,
+  "semanticHumanReviewed": false,
+  "earReviewUsedAsSemanticReview": false,
+  "doNotPreFillJudgment": true,
+  "officialAgentReviewIsNotHumanReview": true,
+  "reference": "警察局长钱德拉·谢卡尔·索兰基说，被告人出庭时都蒙住了脸。",
+  "slots": {
+    "slot-1": {
+      "text": "警察局长钱德拉谢卡尔索兰基说被告人出庭时都蒙住了脸。"
+    },
+    "slot-2": {
+      "text": "警察局长钱德拉谢卡尔索兰基说，被告人出庭时都蒙住了脸。"
+    }
+  },
+  "officialKindLists": {
+    "judge-a": {
+      "slot-1": [
+        "format-only"
+      ],
+      "slot-2": [
+        "format-only"
+      ]
+    },
+    "judge-b": {
+      "slot-1": [
+        "omission"
+      ],
+      "slot-2": [
+        "format-only"
+      ]
+    }
+  },
+  "officialVerdicts": {
+    "judge-a": {
+      "model": "openai/gpt-4.1-mini",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Missing commas after names reduces clarity but does not change meaning.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "钱德拉·谢卡尔·索兰基",
+            "hypQuote": "钱德拉谢卡尔索兰基",
+            "reason": "The candidate omits the middle dots used to separate the parts of the name, which is a formatting difference."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 1,
+        "note": "Matches reference exactly except for one missing middle dot in the name, a minor format difference.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "钱德拉·谢卡尔·索兰基",
+            "hypQuote": "钱德拉谢卡尔索兰基",
+            "reason": "The candidate omits the middle dots used to separate the parts of the name, which is a formatting difference."
+          }
+        ]
+      }
+    },
+    "judge-b": {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "钱德拉·谢卡尔·索兰基",
+            "hypQuote": "钱德拉谢卡尔索兰基",
+            "reason": "参考文本中的人名包含间隔号，而候选文本中缺少间隔号，导致人名格式不完整。"
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 1,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "钱德拉·谢卡尔·索兰基",
+            "hypQuote": "钱德拉谢卡尔索兰基",
+            "reason": "参考文本中的人名使用间隔号分隔，候选文本中人名连写，属于格式差异，未改变实际指代。"
+          }
+        ]
+      }
+    }
+  },
+  "humanAnnotation": {
+    "reviewerId": "",
+    "reviewedAtAsiaShanghai": "",
+    "slots": {
+      "slot-1": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      },
+      "slot-2": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      }
+    },
+    "overallComment": "",
+    "marksCompleteOnlyAfterUserReview": true
+  }
+}

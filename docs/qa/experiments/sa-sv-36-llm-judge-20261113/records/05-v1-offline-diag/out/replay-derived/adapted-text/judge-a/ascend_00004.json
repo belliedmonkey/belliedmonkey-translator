@@ -1,0 +1,60 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "ascend/00004",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "ascend/00004",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate 1 omits the entire reference content and adds unrelated content.",
+          "findings": [
+            {
+              "kind": "omission",
+              "refQuote": "呃what's the呃",
+              "hypQuote": "",
+              "reason": "Candidate 1 does not include any part of the reference transcript."
+            },
+            {
+              "kind": "addition",
+              "refQuote": "",
+              "hypQuote": "我so",
+              "reason": "Candidate 1 adds content not present in the reference."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate 2 partially matches the reference filler '呃' but adds unrelated content and omits the English phrase.",
+          "findings": [
+            {
+              "kind": "omission",
+              "refQuote": "what's the",
+              "hypQuote": "",
+              "reason": "Candidate 2 omits the English phrase 'what's the' from the reference."
+            },
+            {
+              "kind": "addition",
+              "refQuote": "",
+              "hypQuote": "我死的。",
+              "reason": "Candidate 2 adds content not present in the reference."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

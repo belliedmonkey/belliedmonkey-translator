@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 10468,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1679\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"The candidate uses 'had canceled' instead of 'have cancelled', which is a tense difference but preserves temporal meaning in context. The spelling 'canceled' (American) vs 'cancelled' (British) is a format variation. No semantic deviation or error in entity, number, or negation.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"have cancelled\",\n          \"hypQuote\": \"had canceled\",\n          \"reason\": \"Tense and spelling variation: 'have cancelled' (present perfect, British spelling) vs 'had canceled' (past perfect, American spelling). The difference is orthographic and grammatical but does not alter core meaning.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.98,\n      \"note\": \"The candidate misspells the band name 'Aerosmith' as 'Arissmith', which is an entity error. The rest of the sentence matches in meaning, though 'had canceled' again differs in tense and spelling.\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"Aerosmith\",\n          \"hypQuote\": \"Arissmith\",\n          \"reason\": \"Incorrect band name: 'Arissmith' is not the correct name; the reference 'Aerosmith' refers to the well-known rock band, which is misrepresented in the candidate.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"have cancelled\",\n          \"hypQuote\": \"had canceled\",\n          \"reason\": \"Tense and spelling variation: 'have cancelled' (present perfect, British) vs 'had canceled' (past perfect, American). This is a surface-level difference without semantic change.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.00039912,
+  "usage": {
+    "inputTokens": 452,
+    "outputTokens": 463,
+    "providerUsd": 0.00039912,
+    "complete": true
+  },
+  "settledUsd": 0.0004608
+}

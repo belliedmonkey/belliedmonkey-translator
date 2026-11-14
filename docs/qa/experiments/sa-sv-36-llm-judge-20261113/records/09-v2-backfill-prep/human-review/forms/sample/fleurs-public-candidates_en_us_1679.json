@@ -1,0 +1,136 @@
+{
+  "schema": "belliedmonkey.qa.v2-semantic-human-review-form.v1",
+  "list": "sample",
+  "itemId": "fleurs-public-candidates/en_us/1679",
+  "initialInventoryOnly": true,
+  "mustRefreshAfterBackfill": true,
+  "semanticHumanReviewed": false,
+  "earReviewUsedAsSemanticReview": false,
+  "doNotPreFillJudgment": true,
+  "officialAgentReviewIsNotHumanReview": true,
+  "reference": "Aerosmith have cancelled their remaining concerts on their tour.",
+  "slots": {
+    "slot-1": {
+      "text": "Aerosmith had canceled their remaining concerts on their tour."
+    },
+    "slot-2": {
+      "text": "Arissmith had canceled their remaining concerts on their tour."
+    }
+  },
+  "officialKindLists": {
+    "judge-a": {
+      "slot-1": [
+        "format-only"
+      ],
+      "slot-2": [
+        "entity",
+        "format-only"
+      ]
+    },
+    "judge-b": {
+      "slot-1": [
+        "format-only"
+      ],
+      "slot-2": [
+        "entity",
+        "format-only"
+      ]
+    }
+  },
+  "officialVerdicts": {
+    "judge-a": {
+      "model": "openai/gpt-4.1-mini",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "Candidate uses past perfect 'had canceled' instead of present perfect 'have cancelled', and American spelling 'canceled' instead of British 'cancelled'.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "have cancelled",
+            "hypQuote": "had canceled",
+            "reason": "The candidate uses past perfect tense and American spelling, differing from the reference's present perfect and British spelling."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Candidate misspells 'Aerosmith' as 'Arissmith' and uses past perfect 'had canceled' instead of present perfect 'have cancelled'.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Aerosmith",
+            "hypQuote": "Arissmith",
+            "reason": "The band name is misspelled in the candidate."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "have cancelled",
+            "hypQuote": "had canceled",
+            "reason": "The candidate uses past perfect tense and American spelling, differing from the reference's present perfect and British spelling."
+          }
+        ]
+      }
+    },
+    "judge-b": {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "have cancelled",
+            "hypQuote": "had canceled",
+            "reason": "The verb tense and spelling differ, but the meaning is preserved: 'have cancelled' vs. 'had canceled' (British vs. American spelling and present perfect vs. past perfect, but same event)."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Aerosmith",
+            "hypQuote": "Arissmith",
+            "reason": "The band name 'Aerosmith' is misrecognized as 'Arissmith', which is a different entity."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "have cancelled",
+            "hypQuote": "had canceled",
+            "reason": "The verb tense and spelling differ: 'have cancelled' vs. 'had canceled', with British vs. American spelling and tense variation, but the core meaning remains."
+          }
+        ]
+      }
+    }
+  },
+  "humanAnnotation": {
+    "reviewerId": "",
+    "reviewedAtAsiaShanghai": "",
+    "slots": {
+      "slot-1": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      },
+      "slot-2": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      }
+    },
+    "overallComment": "",
+    "marksCompleteOnlyAfterUserReview": true
+  }
+}

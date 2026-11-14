@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 7882,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"ascend/00068\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.3,\n      \"note\": \"The candidate does not meaningfully align with the reference. There is a partial match on 'computer', but the rest of the content diverges significantly.\",\n      \"findings\": [\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"computer languages是\",\n          \"hypQuote\": \"\",\n          \"reason\": \"The candidate 'computer人规。' omits the word 'languages' and the character '是' from the reference.\"\n        },\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"\",\n          \"hypQuote\": \"人规。\",\n          \"reason\": \"The candidate adds '人规。' which does not appear in the reference and does not correspond to 'languages是'.\"\n        },\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"languages是\",\n          \"hypQuote\": \"人规。\",\n          \"reason\": \"The phrase 'languages是' in the reference, meaning 'languages are', is replaced with '人规。' in the candidate, which appears to mean 'human rules.' This is a significant semantic deviation.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.2,\n      \"note\": \"The candidate shows minimal alignment with the reference, possibly capturing a fragment of 'languages' as 'anguage', but the rest is unrelated.\",\n      \"findings\": [\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"computer languages是\",\n          \"hypQuote\": \"\",\n          \"reason\": \"The candidate '可能平时都 anguage' omits 'computer', 'languages', and '是' except for a partial match on 'anguage'.\"\n        },\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"\",\n          \"hypQuote\": \"可能平时都\",\n          \"reason\": \"The candidate adds '可能平时都', which does not appear in the reference and introduces unrelated content.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"languages\",\n          \"hypQuote\": \"anguage\",\n          \"reason\": \"The substring 'anguage' in the candidate appears to be a partial, possibly misheard or corrupted version of 'languages' from the reference, missing the initial 'l'.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.0003666,
+  "usage": {
+    "inputTokens": 426,
+    "outputTokens": 561,
+    "providerUsd": 0.0003666,
+    "complete": true
+  },
+  "settledUsd": 0.000534
+}

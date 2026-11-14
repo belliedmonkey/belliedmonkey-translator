@@ -1,0 +1,29 @@
+{
+  "judgeA": {
+    "parsed": 34,
+    "failed": 2,
+    "codes": {
+      "parsed": 34,
+      "bad-json": 2
+    }
+  },
+  "judgeB": {
+    "parsed": 23,
+    "failed": 13,
+    "codes": {
+      "parsed": 23,
+      "bad-json": 7,
+      "quote": 3,
+      "note": 3
+    }
+  },
+  "bothOk": 22,
+  "codesMatchOfficial": true,
+  "official": {
+    "judgeAOk": 34,
+    "judgeAFail": 2,
+    "judgeBOk": 23,
+    "judgeBFail": 13,
+    "bothOk": 22
+  }
+}

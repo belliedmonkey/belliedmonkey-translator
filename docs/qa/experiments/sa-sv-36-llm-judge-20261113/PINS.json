@@ -1,0 +1,101 @@
+{
+  "schema": "belliedmonkey.qa.experiment-handoff-pins.v1",
+  "frozenInput": {
+    "inputAsr36Sha256": "1a44cca3bf05662c8701d943702a35e7fd1a303f9bcd931764775d9057c795a1",
+    "pairManifestSha256": "2e5d95d1b61e16f9e0b3506f3e949b94c9717d577e1cc8c41fe72e3b6e221bb7",
+    "armMappingSha256_notInPackage": "0267f1078c98a2a0cdfde35b9cefeb7699db281a9f2870123c453c72c97e841a",
+    "assignmentFileSha256": "3c54b9c2571ce63b6203d004f3ab2e109da7e7ba39feeda438c88fc8a4e79470",
+    "assignmentCanonicalSha256": "3cffd11608d4cf4f721ca410cbd93a2a183d1cc7f2f6659e581524e79fb5f52e",
+    "assignmentSeed": 20261113,
+    "doNotRerollAssignmentWhenSelecting15": true
+  },
+  "prompts": {
+    "v2PromptTemplateSha256": "a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923",
+    "v1PromptTemplateSha256_superseded": "a955cddc61e16ef988ee7c4290437218df4653f88ec9a8a45d6cb38adca5bdd6"
+  },
+  "asrOfficialScores": {
+    "saHypothesesSha256": "255454cfc218d05bc30a1d8c7b07fde057071313e7549a828d91b529507dfa57",
+    "saScoreSha256": "96009a49c36813d71d24f46f8a58f9f28727546fac8d3f4771eb929b14bd94bc",
+    "svHypothesesSha256": "c6780b64de3cdfe25cfd2b90c5706085df90a28f65813c10b28964c0c22e02d8",
+    "svScoreSha256": "4eac5f3568974a45c56757adcc17eaa7a13592b013cf3d1b79abb1ab423605b5",
+    "svIndependentScoreSha256": "a8e683a28dc1c5a9f8b5cf01d3a1d6e3011665709e376637a2bdebafb72bb994",
+    "doNotAlterOfficialEditRates": true,
+    "sa": {
+      "en": "36/363 WER",
+      "zh": "57/624 CER",
+      "codeswitch": "24/42 MER ranking=false"
+    },
+    "sv": {
+      "en": "29/363 WER",
+      "zh": "57/624 CER",
+      "codeswitch": "17/42 MER ranking=false"
+    },
+    "productMetric": false
+  },
+  "officialV1": {
+    "resultSha256": "e1496fd413d4057b09ee75346c96d7da7cd85402c2f1a270d2fc40bf6ba5e0b6",
+    "evidenceTarballSha256": "dfc9e572939f8064b14e628076ff627fbd9f6bf8b2347390caff18cfed8221e4",
+    "ok": false,
+    "code": "partial",
+    "packId": "01M7AJ65AKYJT2H26187ZDN7TW",
+    "packSha256": "74258e362de80cf39986717b32b65ef6ec9d3719bd60d21b91af54c1d441a9fe",
+    "packPathInSource": "/workspace/experiment-records-handoff-20261114/records/04-v1-official-partial/package/01M7AJ65AKYJT2H26187ZDN7TW.gz"
+  },
+  "officialV2": {
+    "packId": "01M7ASY5H5YT8XV1NH4Y291ZFP",
+    "packSha256": "a81afb949cc3e7ebc807e7ac90e88b6cd520220bd519641ec3051876d3ee3f92",
+    "claimedHead": "e998c2c03f13af0229229405bb1f7b06a3be967b",
+    "evidenceTarballSha256": "e9e088f1c479f24e69eaf017591638c6f0d121974c077b257874dae001a3f002",
+    "formalConfigSha256": "e101ef5e9055f14c397505046d5033c2d62242f7cf5d1a6068632e0c24683180",
+    "resultSha256": "580da9aaa0107c3ec54939f2e4782334de3da6ca96b0600441235a57896169bc",
+    "summarySha256": "4744aef13ff5ce3a30680be4fb42604db044073a3e317202c09339d24934365f",
+    "usageSha256": "2c72567b6f04191536f84fdb42dda3971082fcb6bb561c3b53ae184478126da1",
+    "humanReviewSha256": "b034c87c8fc841a32e99d20967a011bf7621165bba08cfbc0f2f2fe77889c453",
+    "ok": false,
+    "code": "partial",
+    "parse": {
+      "judge-a": "34/2",
+      "judge-b": "23/13",
+      "both-ok": 22
+    }
+  },
+  "selection15": {
+    "fileSha256": "55978cec4c045e7e606559af713a68260ea41aae1c686f2934d3a807876e1135",
+    "canonicalSha256": "c151018bfda2953d2375f8cfce25580787745f162824b66f2d7eccec641979a4",
+    "schema": "belliedmonkey.llm-judge.selection.v1",
+    "pairCount": 15,
+    "uniqueItems": 14,
+    "en_us_1673_both_failed": true,
+    "doNotRerunOriginal57": true
+  },
+  "originLockHonest": {
+    "fileSha256": "1abc0d51af3b5e7fc99ac52a93dfdd01c43b86a44921440e3da180fa720a325e",
+    "schema": "belliedmonkey.llm-judge.origin-lock.v1",
+    "succeededPairs": 57,
+    "failedPairs": 15,
+    "note": "诚实 lock 与 origin 一致，但 e5a17a1c 包不交叉核验 lock 列表与 origin summary/parsed。"
+  },
+  "laterPacksPermanentlyFailPaidEntry": {
+    "cloud55": {
+      "packId": "01M7BYBRDRFCHNC7FXJJV8A3GE",
+      "packSha256": "89a6a263dfff22fb0415f30de43e5e26dfc51f92a6e1be4896aa799678179ee4",
+      "claimedHead": "75266d0a",
+      "claimedTestsCI": "3402 green (tests not in pack; not re-run this archive step)",
+      "verifyReportSha256": "d9560fd9683df77261e93e639207153b52f4adff8a3446b9339c25a9ab0802b0",
+      "verdict": "FAIL"
+    },
+    "cloud56": {
+      "packId": "01M7BZMPXBWB0C6952HYQ3SNY3",
+      "packSha256": "a44cf59f13febe3232519c08314166d9570b753151d85860058cd8031121a4fb",
+      "claimedHead": "e5a17a1c046a4df370c95ba2731b20e2e14eaeea",
+      "claimedTestsCI": "3412 green (tests not in pack; not re-run this archive step)",
+      "runJudgeJsSha256": "9d884e732cdcfd0cbbbf57141e23e2e678fd70da904e8636f5eec4b7fca6f750",
+      "verifyReportSha256": "307aa989d55e3c8a5374a3ed8b04098e63722d07b3cc6eecaa38124ab38c44f4",
+      "verdict": "FAIL unique remaining: lock lists not checked vs origin"
+    }
+  },
+  "saResultsDir": "results/aef9aa8f",
+  "svResultsDir": "results/f6ec838b-sv",
+  "baselineSha256sumsSha256": "fd17a2c1062ae8d8ffd50c8bf0d820aebe26751c72f1aa1764c3d7006a1d5358",
+  "ciBoundary": "各 pack 自报 CI 绿测数量；测试不在 pack 内，本归档步骤未重跑测试或 LLM。"
+}

@@ -1,0 +1,63 @@
+{
+  "diagnosticOnly": true,
+  "notForBackfill": true,
+  "mustNotChangeOfficialPartial": true,
+  "judgeId": "judge-b",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1676",
+  "officialCode": "note",
+  "classification": "model-missing-required-note-field",
+  "sidecar": {
+    "finishReason": "stop",
+    "outputTokens": 150,
+    "maxTokensSent": 2048,
+    "inputTokens": 718,
+    "provider": "Parasail",
+    "httpStatus": 200,
+    "providerUsd": 0.00016436,
+    "ok": true
+  },
+  "contentCharLen": 391,
+  "contentUtf8Bytes": 549,
+  "contentSha256": "b77e3e6cffd4e85c447eaa23c7ac750f1288adbc6edd52f34acd3847625b0d3a",
+  "quoteNote": {
+    "missingNoteSlots": [
+      "slot-2"
+    ],
+    "oversizeNoteSlots": [],
+    "failingQuotes": [],
+    "slotNotes": [
+      {
+        "slot": "slot-1",
+        "keys": [
+          "slot",
+          "abstain",
+          "confidence",
+          "note",
+          "findings"
+        ],
+        "notePresent": true,
+        "noteCharLen": 0,
+        "noteUtf8Bytes": 0,
+        "noteExceeds400": false
+      },
+      {
+        "slot": "slot-2",
+        "keys": [
+          "slot",
+          "abstain",
+          "confidence",
+          "findings"
+        ],
+        "notePresent": false,
+        "noteCharLen": null,
+        "noteUtf8Bytes": null,
+        "noteExceeds400": null
+      }
+    ],
+    "referenceCharLen": 28,
+    "candidateCharLens": {
+      "slot-1": 28,
+      "slot-2": 29
+    }
+  }
+}

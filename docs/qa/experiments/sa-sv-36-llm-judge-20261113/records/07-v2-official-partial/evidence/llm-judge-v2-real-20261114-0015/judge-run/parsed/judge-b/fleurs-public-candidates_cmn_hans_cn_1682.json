@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1682",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "29¾ 英寸乘以 24½ 英寸",
+            "hypQuote": "29又4分之3英寸乘以24又2分之1英寸",
+            "reason": "数字表达方式不同，但数值相同，使用汉字分数与阿拉伯数字加分数符号的转换"
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "29¾ 英寸乘以 24½ 英寸",
+            "hypQuote": "29又四分之三英寸乘以 24有二分之一英寸",
+            "reason": "数字表达方式不同，但数值相同，使用汉字分数；其中‘有’应为‘又’，属常见同音替代，语义未变"
+          },
+          {
+            "kind": "omission",
+            "refQuote": "（尺寸为 29¾ 英寸乘以 24½ 英寸）",
+            "hypQuote": "尺寸为 29又四分之三英寸乘以 24有二分之一英寸",
+            "reason": "参考文本中尺寸信息被括号包围，候选文本中括号缺失，导致格式和可能的强调信息丢失"
+          }
+        ]
+      }
+    ]
+  }
+}

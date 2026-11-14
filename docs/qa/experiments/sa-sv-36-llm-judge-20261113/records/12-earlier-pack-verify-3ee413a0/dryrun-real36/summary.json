@@ -1,0 +1,407 @@
+{
+  "ok": true,
+  "code": "dry-run",
+  "called": false,
+  "synthetic": false,
+  "productMetric": false,
+  "endToEnd": false,
+  "leaderboard": false,
+  "ranking": false,
+  "editRates": null,
+  "results": null,
+  "doubleBlindComplete": false,
+  "semanticHumanReviewCount": 0,
+  "earReviewUsedAsSemanticReview": false,
+  "translationGold": false,
+  "promptTemplateSha256": "a955cddc61e16ef988ee7c4290437218df4653f88ec9a8a45d6cb38adca5bdd6",
+  "asrRubric": "belliedmonkey.llm-judge.asr.v1",
+  "plan": {
+    "schema": "belliedmonkey.llm-judge.plan.v1",
+    "called": false,
+    "synthetic": false,
+    "asrRubric": "belliedmonkey.llm-judge.asr.v1",
+    "promptTemplateSha256": "a955cddc61e16ef988ee7c4290437218df4653f88ec9a8a45d6cb38adca5bdd6",
+    "seed": 20261113,
+    "temperature": 0,
+    "maxItems": 36,
+    "timeoutMs": 20000,
+    "maxRetries": 0,
+    "budgetUsd": 1,
+    "prices": {
+      "source": "REPLACE_PRICE_SOURCE",
+      "sourceVersion": "REPLACE_PRICE_VERSION",
+      "maxInputTokens": 4000,
+      "maxOutputTokens": 800,
+      "maxTotalTokens": 345600,
+      "maxRequests": 72,
+      "reserveUsd": [
+        {
+          "model": "REPLACE_MODEL_A",
+          "usd": 0.0056,
+          "pricedZero": false
+        },
+        {
+          "model": "REPLACE_MODEL_B",
+          "usd": 0.0056,
+          "pricedZero": false
+        }
+      ]
+    },
+    "judges": [
+      {
+        "id": "judge-a",
+        "model": "REPLACE_MODEL_A",
+        "called": false
+      },
+      {
+        "id": "judge-b",
+        "model": "REPLACE_MODEL_B",
+        "called": false
+      }
+    ],
+    "itemIds": [
+      "fleurs-public-candidates/en_us/1668",
+      "fleurs-public-candidates/cmn_hans_cn/1668",
+      "fleurs-public-candidates/en_us/1669",
+      "fleurs-public-candidates/cmn_hans_cn/1669",
+      "fleurs-public-candidates/en_us/1670",
+      "fleurs-public-candidates/cmn_hans_cn/1670",
+      "fleurs-public-candidates/en_us/1671",
+      "fleurs-public-candidates/cmn_hans_cn/1671",
+      "fleurs-public-candidates/en_us/1672",
+      "fleurs-public-candidates/cmn_hans_cn/1672",
+      "fleurs-public-candidates/en_us/1673",
+      "fleurs-public-candidates/cmn_hans_cn/1673",
+      "fleurs-public-candidates/en_us/1674",
+      "fleurs-public-candidates/cmn_hans_cn/1674",
+      "fleurs-public-candidates/en_us/1675",
+      "fleurs-public-candidates/cmn_hans_cn/1675",
+      "fleurs-public-candidates/en_us/1676",
+      "fleurs-public-candidates/cmn_hans_cn/1676",
+      "fleurs-public-candidates/en_us/1677",
+      "fleurs-public-candidates/cmn_hans_cn/1677",
+      "fleurs-public-candidates/en_us/1678",
+      "fleurs-public-candidates/cmn_hans_cn/1678",
+      "fleurs-public-candidates/en_us/1679",
+      "fleurs-public-candidates/cmn_hans_cn/1679",
+      "fleurs-public-candidates/en_us/1680",
+      "fleurs-public-candidates/cmn_hans_cn/1680",
+      "fleurs-public-candidates/en_us/1681",
+      "fleurs-public-candidates/cmn_hans_cn/1681",
+      "fleurs-public-candidates/en_us/1682",
+      "fleurs-public-candidates/cmn_hans_cn/1682",
+      "ascend/00004",
+      "ascend/00009",
+      "ascend/00028",
+      "ascend/00055",
+      "ascend/00066",
+      "ascend/00068"
+    ],
+    "omittedIds": []
+  },
+  "assignment": {
+    "schema": "belliedmonkey.llm-judge.assignment.v1",
+    "seed": 20261113,
+    "items": [
+      {
+        "id": "fleurs-public-candidates/en_us/1668",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1668",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1669",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1669",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1670",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1670",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1671",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1671",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1672",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1672",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1673",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1673",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1674",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1674",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1675",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1675",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1676",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1676",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1677",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1677",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1678",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1678",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1679",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1679",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1680",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1680",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1681",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1681",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1682",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1682",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "ascend/00004",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "ascend/00009",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "ascend/00028",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "ascend/00055",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "ascend/00066",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "ascend/00068",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      }
+    ],
+    "note": "This mapping stays in the evidence directory. It is not part of the judge request."
+  },
+  "omittedIds": [],
+  "humanReview": {
+    "schema": "belliedmonkey.llm-judge.human-review.v1",
+    "semanticHumanReviewCount": 0,
+    "earReviewUsedAsSemanticReview": false,
+    "disagreement": [],
+    "sample": [],
+    "notAssessed": [
+      "fleurs-public-candidates/en_us/1668",
+      "fleurs-public-candidates/cmn_hans_cn/1668",
+      "fleurs-public-candidates/en_us/1669",
+      "fleurs-public-candidates/cmn_hans_cn/1669",
+      "fleurs-public-candidates/en_us/1670",
+      "fleurs-public-candidates/cmn_hans_cn/1670",
+      "fleurs-public-candidates/en_us/1671",
+      "fleurs-public-candidates/cmn_hans_cn/1671",
+      "fleurs-public-candidates/en_us/1672",
+      "fleurs-public-candidates/cmn_hans_cn/1672",
+      "fleurs-public-candidates/en_us/1673",
+      "fleurs-public-candidates/cmn_hans_cn/1673",
+      "fleurs-public-candidates/en_us/1674",
+      "fleurs-public-candidates/cmn_hans_cn/1674",
+      "fleurs-public-candidates/en_us/1675",
+      "fleurs-public-candidates/cmn_hans_cn/1675",
+      "fleurs-public-candidates/en_us/1676",
+      "fleurs-public-candidates/cmn_hans_cn/1676",
+      "fleurs-public-candidates/en_us/1677",
+      "fleurs-public-candidates/cmn_hans_cn/1677",
+      "fleurs-public-candidates/en_us/1678",
+      "fleurs-public-candidates/cmn_hans_cn/1678",
+      "fleurs-public-candidates/en_us/1679",
+      "fleurs-public-candidates/cmn_hans_cn/1679",
+      "fleurs-public-candidates/en_us/1680",
+      "fleurs-public-candidates/cmn_hans_cn/1680",
+      "fleurs-public-candidates/en_us/1681",
+      "fleurs-public-candidates/cmn_hans_cn/1681",
+      "fleurs-public-candidates/en_us/1682",
+      "fleurs-public-candidates/cmn_hans_cn/1682",
+      "ascend/00004",
+      "ascend/00009",
+      "ascend/00028",
+      "ascend/00055",
+      "ascend/00066",
+      "ascend/00068"
+    ]
+  }
+}

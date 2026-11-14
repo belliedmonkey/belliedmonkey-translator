@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "蜉蝣",
+            "hypQuote": "浮游",
+            "reason": "‘蜉蝣’和‘浮游’是不同的生物，前者是一种昆虫，后者通常指海洋中的浮游生物，语义不同。"
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.85,
+        "note": "",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "，",
+            "hypQuote": "",
+            "reason": "参考文本中的逗号在候选文本中被省略，属于标点符号的遗漏。"
+          },
+          {
+            "kind": "entity",
+            "refQuote": "蜉蝣",
+            "hypQuote": "浮游",
+            "reason": "‘蜉蝣’被误写为‘浮游’，属于实体错误，两者指代不同生物。"
+          }
+        ]
+      }
+    ]
+  }
+}

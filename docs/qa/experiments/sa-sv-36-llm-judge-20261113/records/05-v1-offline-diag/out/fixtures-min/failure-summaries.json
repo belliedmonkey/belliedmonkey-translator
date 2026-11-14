@@ -1,0 +1,174 @@
+{
+  "note": "Minimal real-failure summaries for a later cloud patch. Not official verdicts. Do not use as a repaired run.",
+  "promptAmbiguity": {
+    "sentence": "slots has one object for slot-1 and one for slot-2.",
+    "noArrayExample": true,
+    "noExplicitSlotsIsArray": true
+  },
+  "gptObjectSlots": {
+    "count": 35,
+    "shape": "root.slots is a plain object with exactly keys slot-1, slot-2; each value is an object with slot, abstain, confidence, note, findings; inner slot matches the key",
+    "officialCode": "slots"
+  },
+  "ascend_00066": {
+    "id": "ascend/00066",
+    "judge": "judge-a",
+    "officialCode": "bad-json",
+    "slotsPrefix": "\"slots\":{\"slot-1\":{\"slot",
+    "extraClosers": [
+      {
+        "pos": 513,
+        "kind": "]",
+        "brace": 2,
+        "bracket": -1
+      },
+      {
+        "pos": 973,
+        "kind": "]",
+        "brace": 3,
+        "bracket": -1
+      }
+    ],
+    "invalidEscapes": [],
+    "firstExtraCloserWindow": "tion differences\"}]}],\"slot-2\":{\"slot\":\"",
+    "observation": "slots starts as an object (\"slots\":{\"slot-1\":{...}}); at the first extra closer, the raw text is ...}]}],\"slot-2\" — an extra ] after the slot-1 object, mixing object and array punctuation. End depths return to near-balanced only because of that extra bracket. No JSON escape errors. Do not delete the ] to invent a verdict."
+  },
+  "qwenFailures": [
+    {
+      "id": "fleurs-public-candidates/en_us/1675",
+      "officialCode": "finding-kind",
+      "failDetail": {
+        "officialCode": "finding-kind",
+        "diagnosticCode": "finding-kind",
+        "slots": [
+          {
+            "slot": "slot-1",
+            "noteLen": 94,
+            "noteOver400": false,
+            "findings": []
+          },
+          {
+            "slot": "slot-2",
+            "noteLen": 93,
+            "noteOver400": false,
+            "findings": [
+              {
+                "index": 1,
+                "kind": "punctuation",
+                "kindAllowed": false,
+                "refOk": true,
+                "hypOk": true,
+                "refQuote": ".",
+                "hypQuote": ".",
+                "nearRef": [],
+                "nearHyp": []
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "officialCode": "quote",
+      "failDetail": {
+        "officialCode": "quote",
+        "diagnosticCode": "quote",
+        "slots": [
+          {
+            "slot": "slot-1",
+            "noteLen": 68,
+            "noteOver400": false,
+            "findings": []
+          },
+          {
+            "slot": "slot-2",
+            "noteLen": 77,
+            "noteOver400": false,
+            "findings": [
+              {
+                "index": 1,
+                "kind": "format-only",
+                "kindAllowed": true,
+                "refOk": true,
+                "hypOk": false,
+                "refQuote": "五倍",
+                "hypQuote": "5倍",
+                "nearRef": [],
+                "nearHyp": [],
+                "otherSlotHasHypQuote": {
+                  "slot-2": false,
+                  "slot-1": true
+                },
+                "otherSlotHasRefQuoteInRef": true,
+                "refHasExactRefQuote": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ascend/00028",
+      "officialCode": "note",
+      "failDetail": {
+        "officialCode": "note",
+        "diagnosticCode": "note",
+        "slots": [
+          {
+            "slot": "slot-1",
+            "noteLen": 429,
+            "noteOver400": true,
+            "findings": []
+          },
+          {
+            "slot": "slot-2",
+            "noteLen": 284,
+            "noteOver400": false,
+            "findings": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "ascend/00055",
+      "officialCode": "quote",
+      "failDetail": {
+        "officialCode": "quote",
+        "diagnosticCode": "quote",
+        "slots": [
+          {
+            "slot": "slot-1",
+            "noteLen": 119,
+            "noteOver400": false,
+            "findings": []
+          },
+          {
+            "slot": "slot-2",
+            "noteLen": 108,
+            "noteOver400": false,
+            "findings": [
+              {
+                "index": 0,
+                "kind": "format-only",
+                "kindAllowed": true,
+                "refOk": false,
+                "hypOk": true,
+                "refQuote": "运动。",
+                "hypQuote": "运动。",
+                "nearRef": [],
+                "nearHyp": [],
+                "otherSlotHasHypQuote": {
+                  "slot-1": false,
+                  "slot-2": true
+                },
+                "otherSlotHasRefQuoteInRef": false,
+                "refHasExactRefQuote": false
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

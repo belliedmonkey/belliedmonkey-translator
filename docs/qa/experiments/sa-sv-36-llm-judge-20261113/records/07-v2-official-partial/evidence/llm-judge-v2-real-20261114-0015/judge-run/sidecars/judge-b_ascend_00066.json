@@ -1,0 +1,41 @@
+{
+  "httpStatus": 200,
+  "ok": true,
+  "elapsedMs": 18188,
+  "itemId": "ascend/00066",
+  "judgeId": "judge-b",
+  "responseModel": "qwen/qwen3-235b-a22b-2507",
+  "modelSent": "qwen/qwen3-235b-a22b-2507",
+  "modelMatchesConfig": true,
+  "provider": "Parasail",
+  "providerHeader": null,
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 674,
+    "completion_tokens": 285,
+    "total_tokens": 959,
+    "cost": 0.00026764,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 608,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00026764,
+      "upstream_inference_prompt_cost": 0.00003964,
+      "upstream_inference_completions_cost": 0.000228
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    },
+    "usd": 0.00026764
+  },
+  "maxTokensSent": 2048,
+  "inputTokens": 674,
+  "outputTokens": 285,
+  "providerUsd": 0.00026764
+}

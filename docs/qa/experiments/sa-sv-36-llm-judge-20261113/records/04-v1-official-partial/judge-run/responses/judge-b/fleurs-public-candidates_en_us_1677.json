@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 6948,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1677\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"The candidate differs from the reference in the spelling of 'dragon flies' versus 'dragonflies'. The reference writes it as two words, while the candidate uses the closed compound form. This is a format-only difference in orthography without a change in meaning.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"dragon flies\",\n          \"hypQuote\": \"dragonflies\",\n          \"reason\": \"The reference uses the two-word form 'dragon flies', while the candidate uses the closed compound 'dragonflies'. This is a difference in spelling/format, not in meaning or content.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"The candidate splits 'mayflies' into two words as 'may flies', which differs from the reference's closed compound. This is a format-only orthographic difference.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"mayflies\",\n          \"hypQuote\": \"may flies\",\n          \"reason\": \"The reference uses the closed compound 'mayflies', while the candidate writes it as two words 'may flies'. This is a difference in spelling/format, not in meaning.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.00031684,
+  "usage": {
+    "inputTokens": 470,
+    "outputTokens": 357,
+    "providerUsd": 0.00031684,
+    "complete": true
+  },
+  "settledUsd": 0.0003796
+}

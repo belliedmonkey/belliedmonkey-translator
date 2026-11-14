@@ -1,0 +1,23 @@
+{
+  "stage": "finished",
+  "transportOk": true,
+  "generationOk": true,
+  "finishReason": "stop",
+  "providerError": false,
+  "usageComplete": true,
+  "parseCode": "note",
+  "modelFormatFault": false,
+  "code": null,
+  "status": null,
+  "elapsedMs": 0,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"fleurs-public-candidates/en_us/1670\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.7,\"note\":\"\",\"findings\":[{\"kind\":\"omission\",\"refQuote\":\"Their thermal behavior\",\"hypQuote\":\"Their formal behavior\",\"reason\":\"The word 'thermal' is incorrectly transcribed as 'formal', and 'behavior' is correct, but the correct phrase 'thermal behavior' is altered in meaning.\"},{\"kind\":\"omission\",\"refQuote\":\"large caves on Earth\",\"hypQuote\":\"large cave on earth\",\"reason\":\"'caves' is missing plural 's', and 'Earth' is lowercased to 'earth', reducing accuracy.\"},{\"kind\":\"omission\",\"refQuote\":\"but it is consistent\",\"hypQuote\":\"but is consistent\",\"reason\":\"The pronoun 'it' is omitted, altering grammatical structure and clarity.\"},{\"kind\":\"entity\",\"refQuote\":\"Glen Cushing\",\"hypQuote\":\"Glen Kshing\",\"reason\":\"The name 'Glen Cushing' is misheard as 'Glen Kshing', a clear entity error.\"},{\"kind\":\"entity\",\"refQuote\":\"United States Geological Survey (USGS) Astrogeology Team\",\"hypQuote\":\"United States Geological Sury, Astrogeology team\",\"reason\":\"'Survey' is transcribed as 'Sury', and 'Team' is omitted; acronym (USGS) is also missing, indicating entity degradation.\"}]},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.8,\"findings\":[{\"kind\":\"addition\",\"refQuote\":\"but it is consistent\",\"hypQuote\":\"But it's consistent\",\"reason\":\"The contraction 'it's' adds a possessive or contracted form not in the original, slightly altering tone and form.\"},{\"kind\":\"entity\",\"refQuote\":\"said Glen Cushing\",\"hypQuote\":\"set Glenn Cushing\",\"reason\":\"'said' is incorrectly transcribed as 'set', a verb error, and 'Glen' is misspelled as 'Glenn', a minor entity variation.\"},{\"kind\":\"entity\",\"refQuote\":\"United States Geological Survey (USGS) Astrogeology Team\",\"hypQuote\":\"a United States geological survey, astrogeology team\",\"reason\":\"The proper noun is downgraded to lowercase, 'Team' is missing, and the acronym (USGS) is omitted, reducing entity precision.\"},{\"kind\":\"format-only\",\"refQuote\":\"Northern Arizona University located in Flagstaff, Arizona\",\"hypQuote\":\"Northern Arizona University, located in Flagstaff, Arizona\",\"reason\":\"Comma added for clarity; no semantic change, format-only adjustment.\"}]}]}",
+  "providerUsd": 0.001,
+  "usage": {
+    "inputTokens": 700,
+    "outputTokens": 120,
+    "providerUsd": 0.001,
+    "complete": true
+  },
+  "settledUsd": 0.000236
+}

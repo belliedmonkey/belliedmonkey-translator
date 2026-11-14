@@ -1,0 +1,20 @@
+{
+  "kind": "sensevoice",
+  "source": "app/device-models.config.js",
+  "dir": "sherpa-onnx-sense-voice",
+  "model": "model.int8.onnx",
+  "tokens": "tokens.txt",
+  "quantization": "int8",
+  "runtime": "sherpa-onnx",
+  "device": "cpu",
+  "threads": 2,
+  "language": "zh",
+  "useInverseTextNormalization": true,
+  "modelType": "sense_voice",
+  "vadArm": "sil0.5_thr0.3_max8",
+  "fileName": "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.zip",
+  "bytes": 160304482,
+  "sha256": "286a4b89c62be15c78f195b908bf746c80a655f07588346ee0383a8f20f21e04",
+  "obtained": false,
+  "relayInvoked": false
+}

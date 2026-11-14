@@ -1,0 +1,92 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.85,
+        "note": "Multiple discrepancies found between reference and candidate, including entity and word errors.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "它们",
+            "hypQuote": "他们",
+            "reason": "Pronoun mismatch: '它们' (they, neuter) vs '他们' (they, animate/human), altering the referent's nature."
+          },
+          {
+            "kind": "entity",
+            "refQuote": "地下深穴",
+            "hypQuote": "地下升雪",
+            "reason": "Critical entity error: '地下深穴' (deep underground caves) misrendered as '地下升雪' (rising snow underground), which is nonsensical and semantically unrelated."
+          },
+          {
+            "kind": "entity",
+            "refQuote": "旗杆镇",
+            "hypQuote": "旗甘镇",
+            "reason": "Proper noun error: '旗杆镇' (Flagstaff) incorrectly transcribed as '旗甘镇', a non-existent place name."
+          },
+          {
+            "kind": "entity",
+            "refQuote": "格伦·库欣",
+            "hypQuote": "格伦库星",
+            "reason": "Name error: '格伦·库欣' (Glen Cushing) incorrectly rendered as '格伦库星', altering both spacing and surname."
+          },
+          {
+            "kind": "omission",
+            "refQuote": " (USGS) ",
+            "hypQuote": "",
+            "reason": "Omission of parentheses around 'USGS', affecting formatting and clarity of the acronym."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "Several errors in entities and punctuation; one duplicated period at end.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "它们",
+            "hypQuote": "他们",
+            "reason": "Pronoun mismatch: '它们' (non-human they) vs '他们' (human they), changing the interpretation of the subject."
+          },
+          {
+            "kind": "entity",
+            "refQuote": "地下深穴",
+            "hypQuote": "地下升雪",
+            "reason": "Severe entity distortion: '地下深穴' (deep underground cavities) becomes '地下升雪' (rising snow underground), which is semantically invalid."
+          },
+          {
+            "kind": "entity",
+            "refQuote": "旗杆镇",
+            "hypQuote": "旗干镇",
+            "reason": "Incorrect place name: '旗杆镇' (Flagstaff) misrendered as '旗干镇', a non-standard variant."
+          },
+          {
+            "kind": "entity",
+            "refQuote": "格伦·库欣",
+            "hypQuote": "格伦库辛",
+            "reason": "Name error: '格伦·库欣' (Glen Cushing) written as '格伦库辛', with incorrect spacing and altered surname pronunciation."
+          },
+          {
+            "kind": "omission",
+            "refQuote": " (USGS) ",
+            "hypQuote": "USGS",
+            "reason": "Missing parentheses around 'USGS', reducing clarity about the acronym's status."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": "，。",
+            "reason": "Extra punctuation at end: full-width comma followed by period, not present in reference."
+          }
+        ]
+      }
+    ]
+  }
+}

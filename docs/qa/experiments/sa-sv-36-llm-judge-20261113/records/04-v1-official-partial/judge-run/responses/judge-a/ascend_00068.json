@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 4759,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"ascend/00068\",\n  \"slots\": {\n    \"slot-1\": {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate 1 has an omission and a semantic error.\",\n      \"findings\": [\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"languages是\",\n          \"hypQuote\": \"\",\n          \"reason\": \"Candidate 1 omits 'languages是' entirely.\"\n        },\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"computer languages是\",\n          \"hypQuote\": \"computer人规。\",\n          \"reason\": \"Candidate 1 replaces 'languages是' with '人规。', changing the meaning.\"\n        }\n      ]\n    },\n    \"slot-2\": {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate 2 has an omission and a semantic error.\",\n      \"findings\": [\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"computer languages是\",\n          \"hypQuote\": \"\",\n          \"reason\": \"Candidate 2 omits 'computer' and 'languages是' entirely.\"\n        },\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"computer languages是\",\n          \"hypQuote\": \"可能平时都 anguage\",\n          \"reason\": \"Candidate 2's text '可能平时都 anguage' does not correspond to the reference and changes the meaning.\"\n        }\n      ]\n    }\n  }\n}",
+  "providerUsd": 0.0007548,
+  "usage": {
+    "inputTokens": 423,
+    "outputTokens": 366,
+    "providerUsd": 0.0007548,
+    "complete": true
+  },
+  "settledUsd": 0.00083028
+}

@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 3351,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v1\",\"itemId\":\"ascend/00066\",\"slots\":{\"slot-1\":{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.8,\"note\":\"Candidate 1 has a spelling difference and an added space, but the meaning is preserved.\",\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"technical\",\"hypQuote\":\"technicle\",\"reason\":\"Spelling difference in 'technical' versus 'technicle'\"},{\"kind\":\"format-only\",\"refQuote\":\"哦这么technical\",\"hypQuote\":\"哦 ，这么 technicle\",\"reason\":\"Added spaces and punctuation differences\"}]}],\"slot-2\":{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.9,\"note\":\"Candidate 2 adds a final particle '的' which is an addition not present in the reference but does not change the core meaning.\",\"findings\":[{\"kind\":\"addition\",\"refQuote\":\"哦这么technical\",\"hypQuote\":\"哦，这么technical的。\",\"reason\":\"Added final particle '的' and punctuation not in reference\"},{\"kind\":\"format-only\",\"refQuote\":\"哦这么technical\",\"hypQuote\":\"哦，这么technical\",\"reason\":\"Added comma after '哦'\"}]}}}",
+  "providerUsd": 0.0005824,
+  "usage": {
+    "inputTokens": 424,
+    "outputTokens": 258,
+    "providerUsd": 0.0005824,
+    "complete": true
+  },
+  "settledUsd": 0.00064064
+}

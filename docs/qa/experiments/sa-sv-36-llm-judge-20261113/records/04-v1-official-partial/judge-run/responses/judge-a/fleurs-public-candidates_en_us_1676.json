@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 3924,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1676\",\n  \"slots\": {\n    \"slot-1\": {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 1,\n      \"note\": \"Candidate matches the reference except for capitalization differences.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"South African National Parks\",\n          \"hypQuote\": \"South African national parks\",\n          \"reason\": \"Capitalization difference in 'National Parks' vs 'national parks'.\"\n        }\n      ]\n    },\n    \"slot-2\": {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 1,\n      \"note\": \"Candidate matches the reference except for capitalization differences.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"South African National Parks\",\n          \"hypQuote\": \"South African national parks\",\n          \"reason\": \"Capitalization difference in 'National Parks' vs 'national parks'.\"\n        }\n      ]\n    }\n  }\n}",
+  "providerUsd": 0.000606,
+  "usage": {
+    "inputTokens": 471,
+    "outputTokens": 261,
+    "providerUsd": 0.000606,
+    "complete": true
+  },
+  "settledUsd": 0.0006666
+}

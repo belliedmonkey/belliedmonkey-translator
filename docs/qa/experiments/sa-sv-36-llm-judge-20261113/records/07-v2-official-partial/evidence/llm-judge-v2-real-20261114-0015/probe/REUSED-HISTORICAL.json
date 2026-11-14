@@ -1,0 +1,24 @@
+{
+  "reused": true,
+  "newProbeThisRound": false,
+  "reason": "No additional paid probe was required. The v2 run uses the same OpenRouter Chat Completions endpoint, the same two model ids, and the same request field max_tokens (value 2048). Historical probes already observed length limiting on that field.",
+  "historicalEvidence": {
+    "run": "llm-judge-real-20261113-2253",
+    "ledgerResult": "/workspace/baseline-sa-sv-36-20261113/judge-prep/real-run-20261113-2253/ledger/RESULT.json",
+    "probePassed": true,
+    "maxTokensTested": 32,
+    "finishReason": "length",
+    "completionTokens": 32,
+    "providersAtProbe": {
+      "openai/gpt-4.1-mini": "OpenAI",
+      "qwen/qwen3-235b-a22b-2507": "Parasail"
+    },
+    "reservedProbesUsdAlreadyInHistoricalLedger": 0.00589824
+  },
+  "risksNotAHardGuarantee": [
+    "Probes used max_tokens=32, not the full-run cap 2048. Same field, different value.",
+    "OpenRouter does not pin a provider. Historical probe providers may differ from this run (v1 last Qwen sidecar was Nebius; gpt-4.1-mini may route to Azure). A passing 32-token probe is not a hard guarantee of the 2048 path.",
+    "This round does not reserve or spend a new probe from the 0.22429628 pool."
+  ],
+  "thisRoundProbeReserveUsd": 0
+}

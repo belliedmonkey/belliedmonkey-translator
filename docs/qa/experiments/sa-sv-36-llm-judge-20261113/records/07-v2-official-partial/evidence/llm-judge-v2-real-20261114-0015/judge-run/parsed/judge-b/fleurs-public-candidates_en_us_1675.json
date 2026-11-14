@@ -1,0 +1,56 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/en_us/1675",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "the word Sie",
+            "hypQuote": "the world safe",
+            "reason": "The phrase \"the word Sie\" is incorrectly transcribed as \"the world safe\", introducing a different entity and altering the meaning."
+          },
+          {
+            "kind": "omission",
+            "refQuote": ",",
+            "hypQuote": "",
+            "reason": "The comma after \"nouns\" in the reference is missing in the candidate, affecting punctuation accuracy."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "the word Sie",
+            "hypQuote": "the world say",
+            "reason": "The phrase \"the word Sie\" is incorrectly transcribed as \"the world say\", introducing a different entity and altering the meaning."
+          },
+          {
+            "kind": "omission",
+            "refQuote": ",",
+            "hypQuote": "",
+            "reason": "The comma after \"nouns\" in the reference is missing in the candidate, affecting punctuation accuracy."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": ".",
+            "reason": "An extra period appears after \"you\", creating a sentence break not present in the reference."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,812 @@
+{
+  "schema": "belliedmonkey.llm-judge.plan.v1",
+  "called": false,
+  "synthetic": false,
+  "asrRubric": "belliedmonkey.llm-judge.asr.v1",
+  "promptTemplateSha256": "a955cddc61e16ef988ee7c4290437218df4653f88ec9a8a45d6cb38adca5bdd6",
+  "seed": 20261113,
+  "temperature": 0,
+  "maxItems": 36,
+  "timeoutMs": 120000,
+  "maxRetries": 0,
+  "budgetUsd": 0.24410176,
+  "prices": {
+    "source": "https://openrouter.ai/api/v1/models and https://openrouter.ai/api/v1/models/{id}/endpoints",
+    "sourceVersion": "2026-11-13T22:42:19+08:00;catalog_sha256=fab1f1c39a93322b8180e41770c12403986460d9e052874c37cd95b971e0ff1c;gpt-4.1-mini_record_sha256=ef472b851fa2d50167e6d0f9add0f7f9404f4e55d8e7cca75e70b66e86718c93;qwen3-235b-a22b-2507_record_sha256=fa13fb0cd1b89157a5fd9b7d2432e184a97526ed3fc494b7e06e9823e9cd2723;endpoints_gpt_sha256=c55d140b0532c149e47af5263e1aa44e2c708a1866e1b0dc01fef7397ae532d8;endpoints_qwen_sha256=a1437fd63b5fb0182977abad83b74312eea19c9654cf616e3260263fb8599234;rate_basis=conservative_max_listed_provider_envelope",
+    "maxInputTokens": 1024,
+    "maxOutputTokens": 2048,
+    "maxTotalTokens": 221184,
+    "maxRequests": 72,
+    "reserveUsd": [
+      {
+        "model": "openai/gpt-4.1-mini",
+        "usd": 0.00405504,
+        "pricedZero": false
+      },
+      {
+        "model": "qwen/qwen3-235b-a22b-2507",
+        "usd": 0.0018432,
+        "pricedZero": false
+      }
+    ]
+  },
+  "judges": [
+    {
+      "id": "judge-a",
+      "model": "openai/gpt-4.1-mini",
+      "called": false
+    },
+    {
+      "id": "judge-b",
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "called": false
+    }
+  ],
+  "itemIds": [
+    "fleurs-public-candidates/en_us/1668",
+    "fleurs-public-candidates/cmn_hans_cn/1668",
+    "fleurs-public-candidates/en_us/1669",
+    "fleurs-public-candidates/cmn_hans_cn/1669",
+    "fleurs-public-candidates/en_us/1670",
+    "fleurs-public-candidates/cmn_hans_cn/1670",
+    "fleurs-public-candidates/en_us/1671",
+    "fleurs-public-candidates/cmn_hans_cn/1671",
+    "fleurs-public-candidates/en_us/1672",
+    "fleurs-public-candidates/cmn_hans_cn/1672",
+    "fleurs-public-candidates/en_us/1673",
+    "fleurs-public-candidates/cmn_hans_cn/1673",
+    "fleurs-public-candidates/en_us/1674",
+    "fleurs-public-candidates/cmn_hans_cn/1674",
+    "fleurs-public-candidates/en_us/1675",
+    "fleurs-public-candidates/cmn_hans_cn/1675",
+    "fleurs-public-candidates/en_us/1676",
+    "fleurs-public-candidates/cmn_hans_cn/1676",
+    "fleurs-public-candidates/en_us/1677",
+    "fleurs-public-candidates/cmn_hans_cn/1677",
+    "fleurs-public-candidates/en_us/1678",
+    "fleurs-public-candidates/cmn_hans_cn/1678",
+    "fleurs-public-candidates/en_us/1679",
+    "fleurs-public-candidates/cmn_hans_cn/1679",
+    "fleurs-public-candidates/en_us/1680",
+    "fleurs-public-candidates/cmn_hans_cn/1680",
+    "fleurs-public-candidates/en_us/1681",
+    "fleurs-public-candidates/cmn_hans_cn/1681",
+    "fleurs-public-candidates/en_us/1682",
+    "fleurs-public-candidates/cmn_hans_cn/1682",
+    "ascend/00004",
+    "ascend/00009",
+    "ascend/00028",
+    "ascend/00055",
+    "ascend/00066",
+    "ascend/00068"
+  ],
+  "omittedIds": [],
+  "maxTokensFieldProviderVerified": false,
+  "inputBound": {
+    "kind": "counter",
+    "exact": false
+  },
+  "reserveTokens": 3072,
+  "inputChecks": [
+    {
+      "id": "fleurs-public-candidates/en_us/1668",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 513,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1668",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 515,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1668",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 518,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1668",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 495,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1669",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 469,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1669",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 475,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1669",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 498,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1669",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 481,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1670",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 599,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1670",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 602,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1670",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 648,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1670",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 626,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1671",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 492,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1671",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 503,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 535,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 527,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1672",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 489,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1672",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 494,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1672",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 511,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1672",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 488,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1673",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 502,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1673",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 506,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1673",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 510,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1673",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 497,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1674",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 469,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1674",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 471,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1674",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 489,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1674",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 476,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1675",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 487,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1675",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 489,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1675",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 511,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1675",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 492,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1676",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 471,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1676",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 473,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1676",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 488,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1676",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 471,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1677",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 468,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1677",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 470,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1677",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 494,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1677",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 470,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1678",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 512,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1678",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 517,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1678",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 553,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1678",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 533,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1679",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 450,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1679",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 452,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1679",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 484,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1679",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 465,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1680",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 509,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1680",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 511,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 546,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 513,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1681",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 525,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1681",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 529,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1681",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 521,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1681",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 502,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1682",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 546,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1682",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 556,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1682",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 563,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1682",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 564,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "ascend/00004",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 425,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "ascend/00004",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 425,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "ascend/00009",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 448,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "ascend/00009",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 450,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "ascend/00028",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 419,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "ascend/00028",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 422,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "ascend/00055",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 444,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "ascend/00055",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 441,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "ascend/00066",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 424,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "ascend/00066",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 427,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "ascend/00068",
+      "judgeId": "judge-a",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 423,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    },
+    {
+      "id": "ascend/00068",
+      "judgeId": "judge-b",
+      "ok": true,
+      "code": "counted",
+      "declaredTokens": 426,
+      "utf8Bytes": null,
+      "method": "counter",
+      "exact": false
+    }
+  ]
+}

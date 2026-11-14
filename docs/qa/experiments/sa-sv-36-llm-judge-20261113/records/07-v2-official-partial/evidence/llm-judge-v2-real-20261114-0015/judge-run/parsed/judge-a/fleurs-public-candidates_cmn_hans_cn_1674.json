@@ -1,0 +1,31 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1674",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 1,
+        "note": "Exact match with the reference.",
+        "findings": []
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Uses digit '1' instead of the word '一分钟', a format-only difference.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "一分钟",
+            "hypQuote": "1分钟",
+            "reason": "The candidate uses the digit '1' instead of the word '一' for the number of minutes, which is a format-only difference."
+          }
+        ]
+      }
+    ]
+  }
+}

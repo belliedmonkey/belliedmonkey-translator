@@ -1,0 +1,50 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/en_us/1681",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": ", and",
+            "hypQuote": "",
+            "reason": "The reference contains ', and' before 'asking questions', but this conjunction is missing in the candidate, causing a run-on structure."
+          },
+          {
+            "kind": "omission",
+            "refQuote": ", ",
+            "hypQuote": "",
+            "reason": "The candidate omits the comma after 'hypotheses', which is present in the reference and separates coordinated clauses."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "",
+        "findings": [
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": ".",
+            "reason": "The candidate inserts a period after 'experimentation', splitting the sentence, which disrupts the flow and adds punctuation not present in the reference."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": "And",
+            "reason": "The candidate capitalizes 'And' as a new sentence, which is not in the reference and introduces an addition in structure."
+          }
+        ]
+      }
+    ]
+  }
+}

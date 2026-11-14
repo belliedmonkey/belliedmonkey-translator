@@ -1,0 +1,14 @@
+{
+  "newProbeThisRound": false,
+  "reusedHistorical": true,
+  "thisRoundProbeReserveUsd": 0,
+  "poolAfterSkippingProbeUsd": 0.22429628,
+  "judge72ReserveUsd": 0.21528576,
+  "stillEnoughFor72": true,
+  "risks": [
+    "Probes used max_tokens=32, not the full-run cap 2048. Same field, different value.",
+    "OpenRouter does not pin a provider. Historical probe providers may differ from this run (v1 last Qwen sidecar was Nebius; gpt-4.1-mini may route to Azure). A passing 32-token probe is not a hard guarantee of the 2048 path.",
+    "This round does not reserve or spend a new probe from the 0.22429628 pool."
+  ],
+  "note": "Historical max_tokens=32 / old provider path is not a hard guarantee for this 2048-token unpinned-provider run."
+}

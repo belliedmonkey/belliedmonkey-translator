@@ -1,0 +1,1 @@
+{"lang": "<|zh|>", "emotion": "<|NEUTRAL|>", "event": "<|Speech|>", "text": "我死的。", "timestamps": [0.66, 0.78, 0.96, 1.26], "durations": [], "tokens":["我", "死", "的", "。"], "ys_log_probs": [], "words": []}

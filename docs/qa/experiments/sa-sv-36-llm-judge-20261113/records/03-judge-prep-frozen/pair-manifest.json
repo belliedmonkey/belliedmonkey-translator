@@ -1,0 +1,1189 @@
+{
+  "schema": "belliedmonkey.llm-judge.pair-manifest.v1",
+  "builtAt": "2026-11-13 17:19:33 +0800 (CST)",
+  "timezoneLabel": "Asia/Shanghai (UTC+8)",
+  "status": "paired",
+  "blockedOnSecondArm": false,
+  "blockedOnSecondArmResolvedAt": "2026-11-13 17:19:33 +0800 (CST)",
+  "realLlmCalled": false,
+  "itemCount": 36,
+  "alignment": {
+    "fleursEn": 15,
+    "fleursZh": 15,
+    "ascendMixed": 6,
+    "idsEqualAcrossPackSaSv": true,
+    "idOrderMatchesSaAndSvHypotheses": true,
+    "officialLengthsEqualAcrossArms": true,
+    "emptyHypotheses": 0,
+    "hypothesesTextEqualCount": 4,
+    "svCopiedFromSa": false,
+    "svEmptyStringUsed": false
+  },
+  "judgeReference": {
+    "field": "PACK-MANIFEST.items[].raw",
+    "reason": "Human-audited publisher text (punctuation and parenthetical Latin preserved). Official v1 edit rates remain in SA/SV score.json and were computed from the scorer gold field, not re-derived here."
+  },
+  "scorerGold": {
+    "field": "PACK-MANIFEST.items[].reference",
+    "saOfficialV1": {
+      "en": {
+        "metric": "wer",
+        "n": 15,
+        "errors": 36,
+        "length": 363,
+        "rate": 0.09917355371900827
+      },
+      "zh": {
+        "metric": "cer",
+        "n": 15,
+        "errors": 57,
+        "length": 624,
+        "rate": 0.09134615384615384
+      },
+      "codeswitch": {
+        "metric": "mer",
+        "n": 6,
+        "errors": 24,
+        "length": 42,
+        "rate": 0.5714285714285714,
+        "ranking": false
+      }
+    },
+    "svOfficialV1": {
+      "en": {
+        "metric": "wer",
+        "n": 15,
+        "errors": 29,
+        "length": 363,
+        "rate": 0.07988980716253444
+      },
+      "zh": {
+        "metric": "cer",
+        "n": 15,
+        "errors": 57,
+        "length": 624,
+        "rate": 0.09134615384615384
+      },
+      "codeswitch": {
+        "metric": "mer",
+        "n": 6,
+        "errors": 17,
+        "length": 42,
+        "rate": 0.40476190476190477,
+        "ranking": false
+      }
+    },
+    "svIndependentRescoreMatchesOfficial": true,
+    "denominators": {
+      "en": "29 or 36 / 363",
+      "zh": "57/624",
+      "ascend": "SA 24/42, SV 17/42"
+    }
+  },
+  "svOfficial": {
+    "processExit": 0,
+    "ok": true,
+    "code": "ok",
+    "senseVoiceResult": true,
+    "denominator": 36,
+    "synthetic": false,
+    "nonemptyHypotheses": 36
+  },
+  "saOfficial": {
+    "processExit": 0,
+    "ok": true,
+    "code": "ok",
+    "appleResult": true,
+    "denominator": 36,
+    "synthetic": false,
+    "nonemptyHypotheses": 36
+  },
+  "sourcePins": {
+    "builtAt": "2026-11-13 17:19:33 +0800 (CST)",
+    "timezone": "Asia/Shanghai",
+    "judgePackageGz": {
+      "path": "/cursor/stores/user/grok-bot/agents/e8195c0f-e3a2-46a7-bda6-acf61585317c/assets/01M7A2YMDT938TGQV83BY7T8KT.gz",
+      "bytes": 12101,
+      "sha256": "f4a58b85f79c7e8da13d2049f987802bcd0fbebbdb70320c85b0aaf422302d55",
+      "expectedSha256": "f4a58b85f79c7e8da13d2049f987802bcd0fbebbdb70320c85b0aaf422302d55"
+    },
+    "packManifest": {
+      "path": "PACK-MANIFEST.json",
+      "sha256": "b7bd13f2796565d75d1b51303f47338128a621a76ca7c2601e1682c84a8bbed2"
+    },
+    "saHypotheses": {
+      "path": "results/aef9aa8f/sa-smoke-aef9aa8f-r1/hypotheses.json",
+      "sha256": "255454cfc218d05bc30a1d8c7b07fde057071313e7549a828d91b529507dfa57"
+    },
+    "saScore": {
+      "path": "results/aef9aa8f/sa-smoke-aef9aa8f-r1/score.json",
+      "sha256": "96009a49c36813d71d24f46f8a58f9f28727546fac8d3f4771eb929b14bd94bc"
+    },
+    "svHypotheses": {
+      "path": "results/f6ec838b-sv/run/hypotheses.json",
+      "sha256": "c6780b64de3cdfe25cfd2b90c5706085df90a28f65813c10b28964c0c22e02d8"
+    },
+    "svScore": {
+      "path": "results/f6ec838b-sv/run/score.json",
+      "sha256": "4eac5f3568974a45c56757adcc17eaa7a13592b013cf3d1b79abb1ab423605b5"
+    },
+    "svRunSummary": {
+      "path": "results/f6ec838b-sv/run/run-summary.json",
+      "sha256": "da4c9d8190b972db383ca8ec046f4e1ec25734a1291cca9841cec8885a2c4f52"
+    },
+    "checksumsVerified": {
+      "packSHA256SUMS": true,
+      "saResultsSHA256SUMS": true,
+      "svResultsSHA256SUMS": true
+    }
+  },
+  "armMappingFile": "arm-mapping.json",
+  "judgeInputFile": "input-asr-36.json",
+  "configPlaceholderFile": "config.placeholders.json",
+  "items": [
+    {
+      "id": "fleurs-public-candidates/en_us/1668",
+      "stratum": "fleurs-en",
+      "lang": "en",
+      "set": "fleurs",
+      "sentenceId": "1668",
+      "config": "en_us",
+      "packId": "en_us/1668/12519810849995407480.wav",
+      "audioSha256": "d6ab97bb7e3232b60b61910d3ac7e1cf37acbcbfd062773b453c76217682f49e",
+      "packRawSha256": "a4323a4d417c1169268dd32b23c41e458762b093ad11a1a04f2bfffe772af3f1",
+      "packReferenceSha256": "36b40e43757ac5ff5ad748998974b26989ca725ee64f791de1ac7bc109bac5c6",
+      "saHypothesisSha256": "6b82313d86434c550689b98347d8607d60155509925031e97040630c3ae0f842",
+      "svHypothesisSha256": "6b82313d86434c550689b98347d8607d60155509925031e97040630c3ae0f842",
+      "hypothesesTextEqual": true,
+      "svCopiedFromSa": false,
+      "officialLength": 31,
+      "saV1": {
+        "metric": "wer",
+        "errors": 0,
+        "length": 31,
+        "rate": 0
+      },
+      "svV1": {
+        "metric": "wer",
+        "errors": 0,
+        "length": 31,
+        "rate": 0
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1668",
+      "stratum": "fleurs-zh",
+      "lang": "zh",
+      "set": "fleurs",
+      "sentenceId": "1668",
+      "config": "cmn_hans_cn",
+      "packId": "cmn_hans_cn/1668/14773716009564433047.wav",
+      "audioSha256": "7b95a45446dc31d99d50232a7a6dbda26cc9c87eb26aec1263f73e7f9dd6405f",
+      "packRawSha256": "e2048884cfa6bc36b2bc9a61bcedc825fa2ac1cfbd013dc13458343e7fe82df1",
+      "packReferenceSha256": "f9700da3b1ccdd02443307dfa255928b6fb720dc648fe74dc7a7ab842fa70100",
+      "saHypothesisSha256": "dd7d8a05ef3d79e45c5e01144ba4052dc93cd993cafef427c371fe2ad51f9d83",
+      "svHypothesisSha256": "a8e8cedde46d025200b9424af8bbfff278d6d03f2e39a67ef83a0f141ce43630",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 45,
+      "saV1": {
+        "metric": "cer",
+        "errors": 9,
+        "length": 45,
+        "rate": 0.2
+      },
+      "svV1": {
+        "metric": "cer",
+        "errors": 9,
+        "length": 45,
+        "rate": 0.2
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1669",
+      "stratum": "fleurs-en",
+      "lang": "en",
+      "set": "fleurs",
+      "sentenceId": "1669",
+      "config": "en_us",
+      "packId": "en_us/1669/15618717836108767541.wav",
+      "audioSha256": "40d7e92df0355f4836e2b8fa2a88d7c7e047d0472f0845ca08f0c21257785390",
+      "packRawSha256": "889febee2b3eed379bcbde631bdfc92ebca7582681e3354860c32163b7209d61",
+      "packReferenceSha256": "efef2ce6da6263b24930bd8b3fe96ca3224b686a9423f8ffa8a7e239924791ad",
+      "saHypothesisSha256": "d7e1ca6017be4f68e91254213d7e6ffa2cee1535c95397c6425d646df34eb6b8",
+      "svHypothesisSha256": "7fc30cd6d0c90b01010b0f05662b0337668290191a06cf27aa5984a707b936a2",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 14,
+      "saV1": {
+        "metric": "wer",
+        "errors": 2,
+        "length": 14,
+        "rate": 0.14285714285714285
+      },
+      "svV1": {
+        "metric": "wer",
+        "errors": 2,
+        "length": 14,
+        "rate": 0.14285714285714285
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1669",
+      "stratum": "fleurs-zh",
+      "lang": "zh",
+      "set": "fleurs",
+      "sentenceId": "1669",
+      "config": "cmn_hans_cn",
+      "packId": "cmn_hans_cn/1669/13763174630354430252.wav",
+      "audioSha256": "de149c29bdb3dd88f3befb247a99b2866aaa9c196f08818d8f2bba06c1ce0c53",
+      "packRawSha256": "63355cd9cf2311ae2febc8ca72dc43fc914d70e0d91dd9bfef6a124c9c73bd87",
+      "packReferenceSha256": "7fcb39f439168284db321875249a7bfcb66dde9f39675d6fc1c53af54388bc43",
+      "saHypothesisSha256": "2f0517d293eee7079506f9b3d52d584d8ea96be6f40cb5826d9bafb3a56fab71",
+      "svHypothesisSha256": "f33668a0c94cc2887a367152fe1091ae0103573d22e8dfde01eb7ba5a1d4d4f5",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 25,
+      "saV1": {
+        "metric": "cer",
+        "errors": 0,
+        "length": 25,
+        "rate": 0
+      },
+      "svV1": {
+        "metric": "cer",
+        "errors": 0,
+        "length": 25,
+        "rate": 0
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1670",
+      "stratum": "fleurs-en",
+      "lang": "en",
+      "set": "fleurs",
+      "sentenceId": "1670",
+      "config": "en_us",
+      "packId": "en_us/1670/2508559905589212221.wav",
+      "audioSha256": "6dc676eae80109d088233f838226d4164f76befd8aafc772e1a6cb9eaa0d31df",
+      "packRawSha256": "2493355ce14b68b8fec5ee7390070bd06f628e4b55f3bf85c46a3e5c3afaa251",
+      "packReferenceSha256": "d7896cc085b3fb3e2071b7853b14a33a8f70c1da1b229279c8b10445c35d7fcf",
+      "saHypothesisSha256": "a91a4fd0a8e37c647d5ab92ffcf5494f012c7def4626b789be5b8a93468efe99",
+      "svHypothesisSha256": "626bac5ea7fdf488d3d7c1df9cecad96fd6508a525088717584a2d5379434f33",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 52,
+      "saV1": {
+        "metric": "wer",
+        "errors": 6,
+        "length": 52,
+        "rate": 0.11538461538461539
+      },
+      "svV1": {
+        "metric": "wer",
+        "errors": 8,
+        "length": 52,
+        "rate": 0.15384615384615385
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1670",
+      "stratum": "fleurs-zh",
+      "lang": "zh",
+      "set": "fleurs",
+      "sentenceId": "1670",
+      "config": "cmn_hans_cn",
+      "packId": "cmn_hans_cn/1670/1626393343718951419.wav",
+      "audioSha256": "ba4d6b659f00765bd39fe3952b1da421733923ee0c9774c4a18d871f4fc4f73c",
+      "packRawSha256": "235bcec12d33396f22b30a1c357c3477d6132baff0275f615a41f178311ba8f3",
+      "packReferenceSha256": "d01b64c5458e30b0bab56e1fdd1bccec5a93b67a2577ce8f21b75a45c4ba3558",
+      "saHypothesisSha256": "aae5f213d5e211dd8e13a34116bc9fdfa0d74923d106947fb78a2ba7570a56ac",
+      "svHypothesisSha256": "6114b2d7b0e3aede66f74447f68246b6c2a3ffaa74f2a2a1e9399e4c221f911c",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 92,
+      "saV1": {
+        "metric": "cer",
+        "errors": 7,
+        "length": 92,
+        "rate": 0.07608695652173914
+      },
+      "svV1": {
+        "metric": "cer",
+        "errors": 6,
+        "length": 92,
+        "rate": 0.06521739130434782
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1671",
+      "stratum": "fleurs-en",
+      "lang": "en",
+      "set": "fleurs",
+      "sentenceId": "1671",
+      "config": "en_us",
+      "packId": "en_us/1671/12784232275162817860.wav",
+      "audioSha256": "d60875a908926028d9f6f6821af974effbf091116400f6d52dc86e2cae96cd25",
+      "packRawSha256": "1dbef675126ffc91d4daadbb668e5859e5944a8f686114d0817dec1f7910894d",
+      "packReferenceSha256": "31837ed3de26fe0722cbf575f4e2766f8fd057acb6ef38d7e640be03004fde6a",
+      "saHypothesisSha256": "1dbef675126ffc91d4daadbb668e5859e5944a8f686114d0817dec1f7910894d",
+      "svHypothesisSha256": "1dbef675126ffc91d4daadbb668e5859e5944a8f686114d0817dec1f7910894d",
+      "hypothesesTextEqual": true,
+      "svCopiedFromSa": false,
+      "officialLength": 21,
+      "saV1": {
+        "metric": "wer",
+        "errors": 0,
+        "length": 21,
+        "rate": 0
+      },
+      "svV1": {
+        "metric": "wer",
+        "errors": 0,
+        "length": 21,
+        "rate": 0
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "stratum": "fleurs-zh",
+      "lang": "zh",
+      "set": "fleurs",
+      "sentenceId": "1671",
+      "config": "cmn_hans_cn",
+      "packId": "cmn_hans_cn/1671/17865784740247963652.wav",
+      "audioSha256": "c7719ea621b9262f207178fe430a8625b220127fc19a9d3f5be8577cbfba8caf",
+      "packRawSha256": "59b748711a0698d2534f52495b2bd4a991e4f8210ff7f6fb5b8c45d89bffc7f8",
+      "packReferenceSha256": "1aa0771b44a9786ec35e383484a23d4519d4bae7294dd6eb52ecd3ec0aaad988",
+      "saHypothesisSha256": "f0b1188b6dd2e303ecf3b7d428b55f9575654110a152c6eee09414d081fc7ba5",
+      "svHypothesisSha256": "feb251b5eb9416181aa47c008377064cb0c58b8980c1f5fd8be75ccdacf0c069",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 46,
+      "saV1": {
+        "metric": "cer",
+        "errors": 6,
+        "length": 46,
+        "rate": 0.13043478260869565
+      },
+      "svV1": {
+        "metric": "cer",
+        "errors": 8,
+        "length": 46,
+        "rate": 0.17391304347826086
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1672",
+      "stratum": "fleurs-en",
+      "lang": "en",
+      "set": "fleurs",
+      "sentenceId": "1672",
+      "config": "en_us",
+      "packId": "en_us/1672/3337787499768294195.wav",
+      "audioSha256": "cd58bbf4d2aff767cdfb29bc175a4c7ece18c7769248af337f68e6cb645ddc93",
+      "packRawSha256": "01d54e9527eceff98429a94e7399e1769d687e3679ab9cb2e95c794b8d569868",
+      "packReferenceSha256": "1001096c99125e877f8334d41c2c1200810cb4c82355575890e1de1787e9594e",
+      "saHypothesisSha256": "651a572ccb23b760ab19cac691d04adfe2f6e0b2d08a3785afb2d940faa1c892",
+      "svHypothesisSha256": "1bd375795c391a692a18bbf1e0158c1242dceada947c1e9fa458dbbb97674610",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 19,
+      "saV1": {
+        "metric": "wer",
+        "errors": 2,
+        "length": 19,
+        "rate": 0.10526315789473684
+      },
+      "svV1": {
+        "metric": "wer",
+        "errors": 0,
+        "length": 19,
+        "rate": 0
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1672",
+      "stratum": "fleurs-zh",
+      "lang": "zh",
+      "set": "fleurs",
+      "sentenceId": "1672",
+      "config": "cmn_hans_cn",
+      "packId": "cmn_hans_cn/1672/12601036378860326355.wav",
+      "audioSha256": "420a62e5d34c0dde3a8e438bc4ee1249612b5119cbf7758280bf184405e01883",
+      "packRawSha256": "805e913126dab7602c59b36717860c6b9d3d5fae3a325c1f0eb21c3f066ba7b7",
+      "packReferenceSha256": "cd40b2262d562a85838b8768c1cc2c6cf5af3ede9c2fae9305c3990643fb024d",
+      "saHypothesisSha256": "93ef7b6c1f8fd85b1f6b0ac4df9d55380db0aa2b9fb85e04fb8ad9eefa713f44",
+      "svHypothesisSha256": "6b669a980346c63203b9c6b9d40935eb789c11652b734f9c15d802ef0501619b",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 33,
+      "saV1": {
+        "metric": "cer",
+        "errors": 0,
+        "length": 33,
+        "rate": 0
+      },
+      "svV1": {
+        "metric": "cer",
+        "errors": 0,
+        "length": 33,
+        "rate": 0
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1673",
+      "stratum": "fleurs-en",
+      "lang": "en",
+      "set": "fleurs",
+      "sentenceId": "1673",
+      "config": "en_us",
+      "packId": "en_us/1673/2637301866626572038.wav",
+      "audioSha256": "1518970aa8eb571854f94481fb8bc1056b112ed4724021402ed608e3794a4de3",
+      "packRawSha256": "31cf70d353861b70fb89e382109810ac2c9ada6b8cfcc1ad5f833dbd37875e5c",
+      "packReferenceSha256": "9783b79aeae695f628e71e0e11904c8deb9e436104bd3c86549f93eadc01eacf",
+      "saHypothesisSha256": "b545aa12e499626d7355eb20bd3a89d415328fa7f1a69f73a7847b3c0f0215af",
+      "svHypothesisSha256": "a0f772845e354fe423f43a8640fd4988cb6a47c34e42e5e832c24336bec4ba8d",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 25,
+      "saV1": {
+        "metric": "wer",
+        "errors": 1,
+        "length": 25,
+        "rate": 0.04
+      },
+      "svV1": {
+        "metric": "wer",
+        "errors": 1,
+        "length": 25,
+        "rate": 0.04
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1673",
+      "stratum": "fleurs-zh",
+      "lang": "zh",
+      "set": "fleurs",
+      "sentenceId": "1673",
+      "config": "cmn_hans_cn",
+      "packId": "cmn_hans_cn/1673/6897063611136666657.wav",
+      "audioSha256": "0513421059b64bafbb0587fdfa72ac706e4f1e303a79b6d226b2dd9db43b2c41",
+      "packRawSha256": "35bc5c97a6ea93beebc00a64c202a5f1693e2cc525c40c12aa66e3056f9e101f",
+      "packReferenceSha256": "1a5e2de7152e9202c1e2609da355929709a08687d0151460adaa3c3fa0997821",
+      "saHypothesisSha256": "054da5bdb437695b037c0a57f3710e9f8da9aa44fa46b9c69ec8b4b368e6ff67",
+      "svHypothesisSha256": "5a5b1c8598e051ecf1f446286c6da5b472a7d8b5a5043f215aad3bdeffef4e26",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 40,
+      "saV1": {
+        "metric": "cer",
+        "errors": 4,
+        "length": 40,
+        "rate": 0.1
+      },
+      "svV1": {
+        "metric": "cer",
+        "errors": 3,
+        "length": 40,
+        "rate": 0.075
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1674",
+      "stratum": "fleurs-en",
+      "lang": "en",
+      "set": "fleurs",
+      "sentenceId": "1674",
+      "config": "en_us",
+      "packId": "en_us/1674/10492135991603561867.wav",
+      "audioSha256": "ed78d88661c8f76d7b8951665a3c2e9adea23828fe3e70fd9df95465cb8f8ede",
+      "packRawSha256": "5860a3b0c690df5284c8a1a54a18ff64d52633c4ed464de668b600e3b620a98a",
+      "packReferenceSha256": "abaea03ff268dfc909809013a5175270074d0851c1820f07d9687e86309a2073",
+      "saHypothesisSha256": "55497f5a4c493e17cbd29c5fbb7c2ff3f30b62baff207a679a2ba0e87e046709",
+      "svHypothesisSha256": "9be6ef29041238f685f53f9d0249347704f2a15cd929fbdbd84ec9b47f4507ba",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 16,
+      "saV1": {
+        "metric": "wer",
+        "errors": 2,
+        "length": 16,
+        "rate": 0.125
+      },
+      "svV1": {
+        "metric": "wer",
+        "errors": 2,
+        "length": 16,
+        "rate": 0.125
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1674",
+      "stratum": "fleurs-zh",
+      "lang": "zh",
+      "set": "fleurs",
+      "sentenceId": "1674",
+      "config": "cmn_hans_cn",
+      "packId": "cmn_hans_cn/1674/15619666715819820695.wav",
+      "audioSha256": "75ab88f7bfc76e18bb8355139d72f02f4ba87ec3b08d1b14d581822c1576925e",
+      "packRawSha256": "c1e87af53b65ee01a6716d8a1b2b9ff3bb0270e500e759eb4eb7032964cab5e0",
+      "packReferenceSha256": "682616e012aa95f23d220aa138baae7d4dcb71b3b5fea591b82e5a2c0c728e90",
+      "saHypothesisSha256": "7068e76094185fb19922e76f360dc0f8008fd473fcf999881f3d7fb692e19a6f",
+      "svHypothesisSha256": "c1e87af53b65ee01a6716d8a1b2b9ff3bb0270e500e759eb4eb7032964cab5e0",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 28,
+      "saV1": {
+        "metric": "cer",
+        "errors": 1,
+        "length": 28,
+        "rate": 0.03571428571428571
+      },
+      "svV1": {
+        "metric": "cer",
+        "errors": 0,
+        "length": 28,
+        "rate": 0
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1675",
+      "stratum": "fleurs-en",
+      "lang": "en",
+      "set": "fleurs",
+      "sentenceId": "1675",
+      "config": "en_us",
+      "packId": "en_us/1675/10052240106321793346.wav",
+      "audioSha256": "7603cae3294309ef70d234180cefccc3b13865ee525262228a636069b9b62841",
+      "packRawSha256": "63d31e54c66a437f7f103d1ea1438dbb719573f49df77c53ed2c250698821520",
+      "packReferenceSha256": "78c17c59439ff7b484261f19ff7d1d49f854910035fe3b0b922297037ae285ee",
+      "saHypothesisSha256": "cacce114bf0f91cae69423e062bad54cb7c9d8747469c55f841fe64bb4ad5e78",
+      "svHypothesisSha256": "22782f9fba9f3d004574701f0096994791042d5b2fef1fc8096aa7df98e25ecc",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 21,
+      "saV1": {
+        "metric": "wer",
+        "errors": 2,
+        "length": 21,
+        "rate": 0.09523809523809523
+      },
+      "svV1": {
+        "metric": "wer",
+        "errors": 2,
+        "length": 21,
+        "rate": 0.09523809523809523
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1675",
+      "stratum": "fleurs-zh",
+      "lang": "zh",
+      "set": "fleurs",
+      "sentenceId": "1675",
+      "config": "cmn_hans_cn",
+      "packId": "cmn_hans_cn/1675/13333464656670504120.wav",
+      "audioSha256": "b7caf9b78e8e09ec6732a061c3615c61634b6ffbf78a5dcea717510185cb1046",
+      "packRawSha256": "8afb9bad72193b1eea2bf253fa2a800318e3b68156796ae4cefb6589ccfe2c2c",
+      "packReferenceSha256": "f0d3827324ef421a99316366549c49b3a895298eb28bf0729c2a2c904389c2ea",
+      "saHypothesisSha256": "cc196137caa07e54d97287cb5ea46bfe7d29cf1132229ab4cb62e7e8f73e2201",
+      "svHypothesisSha256": "6bed06b3d4d16bf34a2c69dd7247b6b76b8efc157a414f4e0e3d13b048036f00",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 36,
+      "saV1": {
+        "metric": "cer",
+        "errors": 5,
+        "length": 36,
+        "rate": 0.1388888888888889
+      },
+      "svV1": {
+        "metric": "cer",
+        "errors": 5,
+        "length": 36,
+        "rate": 0.1388888888888889
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1676",
+      "stratum": "fleurs-en",
+      "lang": "en",
+      "set": "fleurs",
+      "sentenceId": "1676",
+      "config": "en_us",
+      "packId": "en_us/1676/3236057319333367673.wav",
+      "audioSha256": "82dffe62952ceca62fb92118b8c1226d3a45eaba7b95ccdb466b6656efec91f6",
+      "packRawSha256": "2443b0eb3e5cf3384aba601bd83eeaae0429a174f5c32b778f6bc1d329e4dc64",
+      "packReferenceSha256": "b34cf9aa5cc7dfc42ca4a003e5c8f59e0507341d4caeb36bbe4d5e35067f2e2b",
+      "saHypothesisSha256": "bdeab86eeae106b54a0dee95e8dc5c7f570beb2fb75ee6f4501bfe287ea389dd",
+      "svHypothesisSha256": "bdeab86eeae106b54a0dee95e8dc5c7f570beb2fb75ee6f4501bfe287ea389dd",
+      "hypothesesTextEqual": true,
+      "svCopiedFromSa": false,
+      "officialLength": 17,
+      "saV1": {
+        "metric": "wer",
+        "errors": 0,
+        "length": 17,
+        "rate": 0
+      },
+      "svV1": {
+        "metric": "wer",
+        "errors": 0,
+        "length": 17,
+        "rate": 0
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1676",
+      "stratum": "fleurs-zh",
+      "lang": "zh",
+      "set": "fleurs",
+      "sentenceId": "1676",
+      "config": "cmn_hans_cn",
+      "packId": "cmn_hans_cn/1676/1153780427490892865.wav",
+      "audioSha256": "b28ffcf7fbb8978db09ad0007aca48f93506084f379db7a1081f618a96494605",
+      "packRawSha256": "bfaa7d99cb2a80f7f74cb0fbda330e92ee27e160621e4de4ad1b68c7583c3ba3",
+      "packReferenceSha256": "9be83eaf995916bcb3db592942a57a0fd19a31bb5edf62b631d3cec3aa890b87",
+      "saHypothesisSha256": "d7aaf5b7146fb9817b0618d35330030d45cb14755fb25331104fb1152ac94725",
+      "svHypothesisSha256": "bfaa7d99cb2a80f7f74cb0fbda330e92ee27e160621e4de4ad1b68c7583c3ba3",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 26,
+      "saV1": {
+        "metric": "cer",
+        "errors": 0,
+        "length": 26,
+        "rate": 0
+      },
+      "svV1": {
+        "metric": "cer",
+        "errors": 0,
+        "length": 26,
+        "rate": 0
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1677",
+      "stratum": "fleurs-en",
+      "lang": "en",
+      "set": "fleurs",
+      "sentenceId": "1677",
+      "config": "en_us",
+      "packId": "en_us/1677/1731561740051730459.wav",
+      "audioSha256": "5a5a12d06c0a6acaf0a0d737d7c980bce91ec3f652cfa537b3cbaf8e10845dbc",
+      "packRawSha256": "f82b6177cdc6fec2b9294eb3e8c90aacc673f34916962fd759be622aaca52102",
+      "packReferenceSha256": "fd130f92556d14ef953d563815bc9ac309013be295a7dfd8542bb064a3f0c4e4",
+      "saHypothesisSha256": "c9449d9a2e615ea75a58095ed3010b0f312559309ed5cadfc42ef1ebc9134acc",
+      "svHypothesisSha256": "ba5a10a0a4af643971d9fd605761feff77e2ea8b58fedc0e31870de0a06adb98",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 15,
+      "saV1": {
+        "metric": "wer",
+        "errors": 4,
+        "length": 15,
+        "rate": 0.26666666666666666
+      },
+      "svV1": {
+        "metric": "wer",
+        "errors": 2,
+        "length": 15,
+        "rate": 0.13333333333333333
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1677",
+      "stratum": "fleurs-zh",
+      "lang": "zh",
+      "set": "fleurs",
+      "sentenceId": "1677",
+      "config": "cmn_hans_cn",
+      "packId": "cmn_hans_cn/1677/16772375859841179841.wav",
+      "audioSha256": "04940c7dca3b3189eb51f410f514673259dd9b35243a9a7e3d3472de1c5f0c81",
+      "packRawSha256": "085341c2b1da7bb64b7e93d4327b5dd6f8f7f60c956a43bc97bebef336b20fc3",
+      "packReferenceSha256": "f432c21ebfb0ae179a2975a9c5f24c01e27968d093fdc68a5b13aa30667559bf",
+      "saHypothesisSha256": "907b6b81f0f186beb8230b5b9acc801ef2dcd46261463ed69cfa3f8b5a32027d",
+      "svHypothesisSha256": "7e34da64858dcc7fe83d77f60d19586feeeb1e1f8b538958d12173999eeed3bb",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 21,
+      "saV1": {
+        "metric": "cer",
+        "errors": 2,
+        "length": 21,
+        "rate": 0.09523809523809523
+      },
+      "svV1": {
+        "metric": "cer",
+        "errors": 2,
+        "length": 21,
+        "rate": 0.09523809523809523
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1678",
+      "stratum": "fleurs-en",
+      "lang": "en",
+      "set": "fleurs",
+      "sentenceId": "1678",
+      "config": "en_us",
+      "packId": "en_us/1678/1111475259790805601.wav",
+      "audioSha256": "2ec0ade3595e05c1e91a751fc73811f69606b9682a23b2eeb48c6840e959bee9",
+      "packRawSha256": "5c51f6eebdf5d0377a2e52a201135f72cb31dbbed2de00e1621400c806fb937f",
+      "packReferenceSha256": "35938893a3d2a59b6aed0b6429daf70f376f1821e8bf1227cbb5610c99253e50",
+      "saHypothesisSha256": "a2b2a0946118640c5cb141dab08f7011775a002fe8b3536bc684f331ef15bf3f",
+      "svHypothesisSha256": "928489a000bc0d472b018c6fda1c6b44ccd59cf1ca3457d649659e469646d350",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 29,
+      "saV1": {
+        "metric": "wer",
+        "errors": 2,
+        "length": 29,
+        "rate": 0.06896551724137931
+      },
+      "svV1": {
+        "metric": "wer",
+        "errors": 1,
+        "length": 29,
+        "rate": 0.034482758620689655
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1678",
+      "stratum": "fleurs-zh",
+      "lang": "zh",
+      "set": "fleurs",
+      "sentenceId": "1678",
+      "config": "cmn_hans_cn",
+      "packId": "cmn_hans_cn/1678/13618157833815227507.wav",
+      "audioSha256": "07ffccbe5c1fa2e1ee942770abfdb23ad8e3d450b0a1a9eed5d9e039233082e4",
+      "packRawSha256": "49abf315e74cbb789facab295a64a528e33baf277ec68090e273bf5b8a23a0b7",
+      "packReferenceSha256": "d117b8ced698a948dc9f31574896e526fd10305b0a3597e44c84380c3d044ef6",
+      "saHypothesisSha256": "50e82a29b73f9d02c9cb8912597409b1c27d00b8a5de7e7f9c0c92905ec16977",
+      "svHypothesisSha256": "2024f49e481f26d1b6710390e9d8e1872d769554a7cccdfc1b86d722bd7d451e",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 63,
+      "saV1": {
+        "metric": "cer",
+        "errors": 8,
+        "length": 63,
+        "rate": 0.12698412698412698
+      },
+      "svV1": {
+        "metric": "cer",
+        "errors": 11,
+        "length": 63,
+        "rate": 0.1746031746031746
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1679",
+      "stratum": "fleurs-en",
+      "lang": "en",
+      "set": "fleurs",
+      "sentenceId": "1679",
+      "config": "en_us",
+      "packId": "en_us/1679/1830239880893513318.wav",
+      "audioSha256": "0f72a68d17c6b3a08bba8591d71aef50d1e72ff6d1634269c095985868f7a09c",
+      "packRawSha256": "776e89b2b222bc2ea3a0cc0294ad3a082774ba76a599eb79467353dc0c08005b",
+      "packReferenceSha256": "fec0f9c1a45f65286709863193f892c3484101717f3e05aa9b5aa0a36beeffea",
+      "saHypothesisSha256": "0abece2f6f4ed0760e9529bdba3318adeb77efdacc8e3fe7e09655dd9b6de691",
+      "svHypothesisSha256": "b858aa396eb877109aa0eb21ad7c647f4aa7771d0d9a27dcfcb7704fa165927d",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 9,
+      "saV1": {
+        "metric": "wer",
+        "errors": 2,
+        "length": 9,
+        "rate": 0.2222222222222222
+      },
+      "svV1": {
+        "metric": "wer",
+        "errors": 3,
+        "length": 9,
+        "rate": 0.3333333333333333
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1679",
+      "stratum": "fleurs-zh",
+      "lang": "zh",
+      "set": "fleurs",
+      "sentenceId": "1679",
+      "config": "cmn_hans_cn",
+      "packId": "cmn_hans_cn/1679/15514325222679879585.wav",
+      "audioSha256": "49d3217d97b9aca836c9d69cdffa68830f987d126669c0fe69bb22507b20cd51",
+      "packRawSha256": "b0ef840808a334b982d9abb4f49ad787369398905638ec85c4903032c82e6ad4",
+      "packReferenceSha256": "0390e395e96a4917a25ea82265086ee7696f3cf5eeadb5897a3a5c07ec5d176b",
+      "saHypothesisSha256": "b0ef840808a334b982d9abb4f49ad787369398905638ec85c4903032c82e6ad4",
+      "svHypothesisSha256": "b0ef840808a334b982d9abb4f49ad787369398905638ec85c4903032c82e6ad4",
+      "hypothesesTextEqual": true,
+      "svCopiedFromSa": false,
+      "officialLength": 23,
+      "saV1": {
+        "metric": "cer",
+        "errors": 0,
+        "length": 23,
+        "rate": 0
+      },
+      "svV1": {
+        "metric": "cer",
+        "errors": 0,
+        "length": 23,
+        "rate": 0
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1680",
+      "stratum": "fleurs-en",
+      "lang": "en",
+      "set": "fleurs",
+      "sentenceId": "1680",
+      "config": "en_us",
+      "packId": "en_us/1680/10894616243452123700.wav",
+      "audioSha256": "7df2a964d8ce3931be897abeac59dd02669c709163fe23e928d917d31cf27601",
+      "packRawSha256": "af6d7f1acd4da04299ac19e6727705241e7c7e6fee0acd6f44524cda8c03bc30",
+      "packReferenceSha256": "41fba7bc52703ea868efccc6663983e5149fde843c8b5041454db9bef248add3",
+      "saHypothesisSha256": "37ddd9cd48515ec042485dcf3744637f737d016f04a6159ff9e4a5f6f9c6fcc3",
+      "svHypothesisSha256": "6422ea6d8c102d3af5e96e1aeb61525df496f4dd86537a3a35b5a55f6079d804",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 26,
+      "saV1": {
+        "metric": "wer",
+        "errors": 2,
+        "length": 26,
+        "rate": 0.07692307692307693
+      },
+      "svV1": {
+        "metric": "wer",
+        "errors": 0,
+        "length": 26,
+        "rate": 0
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "stratum": "fleurs-zh",
+      "lang": "zh",
+      "set": "fleurs",
+      "sentenceId": "1680",
+      "config": "cmn_hans_cn",
+      "packId": "cmn_hans_cn/1680/13300750670399228150.wav",
+      "audioSha256": "79721ab0386d30676690498bacee2f0032f97028c0bd63ae86e33862c8ad8879",
+      "packRawSha256": "8d40a2ba3206440c7232ee383d9ab44505db503d382b3a7436eb68853517d849",
+      "packReferenceSha256": "030353087dd5dbdcde697ad944885d4fd32c817723e1553aa083adf5e0dd0d39",
+      "saHypothesisSha256": "2aa02ccdb3e1f54c8eda642b57a6d77bd3ff9f2ac8ec7af2dac6f2656aad6ff4",
+      "svHypothesisSha256": "c893ed342b3b0f98d05cee80b234f39bba608b29a9e41508f3c973c7a7b4e675",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 39,
+      "saV1": {
+        "metric": "cer",
+        "errors": 3,
+        "length": 39,
+        "rate": 0.07692307692307693
+      },
+      "svV1": {
+        "metric": "cer",
+        "errors": 3,
+        "length": 39,
+        "rate": 0.07692307692307693
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1681",
+      "stratum": "fleurs-en",
+      "lang": "en",
+      "set": "fleurs",
+      "sentenceId": "1681",
+      "config": "en_us",
+      "packId": "en_us/1681/4822858934027125258.wav",
+      "audioSha256": "8752cda5cc51f24c718320f30ee0e4dcd86df3bb794c3bd122e391cca9516048",
+      "packRawSha256": "85062de6b4ca1f1ca39c9a2478ed25c2a202f7249e9fb184c2bfe78d67f8816e",
+      "packReferenceSha256": "791410a29cee77dd5988ab8b24c77defa244218c14dc3b9c2755f2bb12f77def",
+      "saHypothesisSha256": "b282c9c7fe6b4a7600c7affb48e0a17c109b38f8a7e5c5f7d1797b2100531c82",
+      "svHypothesisSha256": "7af20d04a38497717f0224c09dd64582e4802fc2160541093f8f93c1204482ed",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 33,
+      "saV1": {
+        "metric": "wer",
+        "errors": 0,
+        "length": 33,
+        "rate": 0
+      },
+      "svV1": {
+        "metric": "wer",
+        "errors": 0,
+        "length": 33,
+        "rate": 0
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1681",
+      "stratum": "fleurs-zh",
+      "lang": "zh",
+      "set": "fleurs",
+      "sentenceId": "1681",
+      "config": "cmn_hans_cn",
+      "packId": "cmn_hans_cn/1681/14066003160545361452.wav",
+      "audioSha256": "6cd9c8019accd4b3fad799c8faf41770341085f5cb7b75b3bf8123b3abf3779b",
+      "packRawSha256": "f957823a069c8f0878c1f86fa714ab8bf2b25b379fab6a20579cdaed07ac4404",
+      "packReferenceSha256": "dafd14d9a0098e423f5c1ee9c372a7a362b0580f4f88efa8d08e245d897c3e9a",
+      "saHypothesisSha256": "54b71679dacb935d920d8ee18fd40d2ccf3779fdf1db2aa796fc7b3374cac9a2",
+      "svHypothesisSha256": "f00610f014bb0dfd6e6f4c3d2126cc64552c4b84cf6d21d5ca4572c30d9ddb69",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 52,
+      "saV1": {
+        "metric": "cer",
+        "errors": 2,
+        "length": 52,
+        "rate": 0.038461538461538464
+      },
+      "svV1": {
+        "metric": "cer",
+        "errors": 2,
+        "length": 52,
+        "rate": 0.038461538461538464
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1682",
+      "stratum": "fleurs-en",
+      "lang": "en",
+      "set": "fleurs",
+      "sentenceId": "1682",
+      "config": "en_us",
+      "packId": "en_us/1682/9924305423057523453.wav",
+      "audioSha256": "7f8e2186df44065aba3331c5fc2f2af07402be60914d255747665be8075d0cb1",
+      "packRawSha256": "13e936a5941795329e58eb4f086a8c5e601d1fb077880e3f97ba569a8cf35676",
+      "packReferenceSha256": "2294d102d96f9c3e5a6ccf86cb60b9651be41a4a64a68b212e7336972dbe9570",
+      "saHypothesisSha256": "63203fd403b368533ab0b8cec3646f2fd6a0da5d9bcecc68bd2cd65c7d693e46",
+      "svHypothesisSha256": "c3179ddca39815b79f05e44d3d6954eda386a86cfb0aa56d7f174049b93cc508",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 35,
+      "saV1": {
+        "metric": "wer",
+        "errors": 11,
+        "length": 35,
+        "rate": 0.3142857142857143
+      },
+      "svV1": {
+        "metric": "wer",
+        "errors": 8,
+        "length": 35,
+        "rate": 0.22857142857142856
+      }
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1682",
+      "stratum": "fleurs-zh",
+      "lang": "zh",
+      "set": "fleurs",
+      "sentenceId": "1682",
+      "config": "cmn_hans_cn",
+      "packId": "cmn_hans_cn/1682/11229861275679868227.wav",
+      "audioSha256": "7cda7193eb573699c81b116c916c2ba869b8c1926a2db04fa0e8ae869854a080",
+      "packRawSha256": "bf6f17a7161b969c2436dc95010aae6e033c7d2ad9d5aa2e3aa8048f6598405b",
+      "packReferenceSha256": "9824f9287b32ea446274255e8ff3c2ab082916ae81ad3428f884f2caa6603ac4",
+      "saHypothesisSha256": "e3f643f72c59bddb565d976e2ee0a1190bc7b4c1ce63c2a7b231254cb9256537",
+      "svHypothesisSha256": "561fe722a7ed510fdc010c08b8dc1c8f4d104c1ea9b89e247434bd8262cb3af8",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 55,
+      "saV1": {
+        "metric": "cer",
+        "errors": 10,
+        "length": 55,
+        "rate": 0.18181818181818182
+      },
+      "svV1": {
+        "metric": "cer",
+        "errors": 8,
+        "length": 55,
+        "rate": 0.14545454545454545
+      }
+    },
+    {
+      "id": "ascend/00004",
+      "stratum": "ascend-mixed",
+      "lang": "mixed",
+      "set": "ascend",
+      "sentenceId": "00004",
+      "config": "ascend",
+      "packId": "00004",
+      "audioSha256": "b1d784c7c355c79febc73733f61a9faa2564c9f07cdf12caa3dd470f381c0149",
+      "packRawSha256": "e29533b086fe392d12b226490b8e89d0830ddbcd415e50975e40cf7c85df3b28",
+      "packReferenceSha256": "e29533b086fe392d12b226490b8e89d0830ddbcd415e50975e40cf7c85df3b28",
+      "saHypothesisSha256": "cad597ec452ef1d65c8e9d035bb13e8f6ef60b2b9d184ffc88579219aac04af9",
+      "svHypothesisSha256": "05f05f34c2930e38ff6cff6e0ff3ca3000e79cb5ed3a7c4030f805f7c85355de",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 5,
+      "saV1": {
+        "metric": "mer",
+        "errors": 5,
+        "length": 5,
+        "rate": 1
+      },
+      "svV1": {
+        "metric": "mer",
+        "errors": 4,
+        "length": 5,
+        "rate": 0.8
+      }
+    },
+    {
+      "id": "ascend/00009",
+      "stratum": "ascend-mixed",
+      "lang": "mixed",
+      "set": "ascend",
+      "sentenceId": "00009",
+      "config": "ascend",
+      "packId": "00009",
+      "audioSha256": "7317a4752e95039e6f6c345ef5b15fdd18fc7f48353cc893e6f99218a682c9a3",
+      "packRawSha256": "eb0214fb675edb634a7bb75a3d4b64385d99ce08c35ec180c2580b77c6c415bd",
+      "packReferenceSha256": "eb0214fb675edb634a7bb75a3d4b64385d99ce08c35ec180c2580b77c6c415bd",
+      "saHypothesisSha256": "0846a1e438bcc8b734a81937624359f1582c240c016cb8d32999375c6388c5ef",
+      "svHypothesisSha256": "07cacafef9f070d9874328a5dfee12fe6a16a7fd437cf12a1128be8a70d287d1",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 13,
+      "saV1": {
+        "metric": "mer",
+        "errors": 9,
+        "length": 13,
+        "rate": 0.6923076923076923
+      },
+      "svV1": {
+        "metric": "mer",
+        "errors": 6,
+        "length": 13,
+        "rate": 0.46153846153846156
+      }
+    },
+    {
+      "id": "ascend/00028",
+      "stratum": "ascend-mixed",
+      "lang": "mixed",
+      "set": "ascend",
+      "sentenceId": "00028",
+      "config": "ascend",
+      "packId": "00028",
+      "audioSha256": "f790b945050ccc625702f214dc7182c0c0e781a6fd5a82c7d1863c4683414842",
+      "packRawSha256": "0050c9ca9622ddef36d84a44097b880d07f128eab616b15519ed60965b7628a6",
+      "packReferenceSha256": "0050c9ca9622ddef36d84a44097b880d07f128eab616b15519ed60965b7628a6",
+      "saHypothesisSha256": "3082f0c9a93c58165464cea1d319b4cd94c1bf6a32f805a571cf66dd058e128e",
+      "svHypothesisSha256": "5be0b7f06933a8d12795361740234945881e4435e499c82905d5e53bd6780d2c",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 3,
+      "saV1": {
+        "metric": "mer",
+        "errors": 2,
+        "length": 3,
+        "rate": 0.6666666666666666
+      },
+      "svV1": {
+        "metric": "mer",
+        "errors": 3,
+        "length": 3,
+        "rate": 1
+      }
+    },
+    {
+      "id": "ascend/00055",
+      "stratum": "ascend-mixed",
+      "lang": "mixed",
+      "set": "ascend",
+      "sentenceId": "00055",
+      "config": "ascend",
+      "packId": "00055",
+      "audioSha256": "866d07fc22025c9450e6e8811cb6b374ab863370182922c054dfa1c1ea46a535",
+      "packRawSha256": "f6a2e7afcfbd2f8a875171cf4c9777b79a4cc42e543a3c1847c1df1b194b6147",
+      "packReferenceSha256": "f6a2e7afcfbd2f8a875171cf4c9777b79a4cc42e543a3c1847c1df1b194b6147",
+      "saHypothesisSha256": "782adefd023076343a26bd99a2ba38f56c3ea168bb265e958795308f77616eff",
+      "svHypothesisSha256": "b08eb3e5b61a47d8204547be2bd2045bb734803e5f820ac265314587a3016433",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 14,
+      "saV1": {
+        "metric": "mer",
+        "errors": 1,
+        "length": 14,
+        "rate": 0.07142857142857142
+      },
+      "svV1": {
+        "metric": "mer",
+        "errors": 1,
+        "length": 14,
+        "rate": 0.07142857142857142
+      }
+    },
+    {
+      "id": "ascend/00066",
+      "stratum": "ascend-mixed",
+      "lang": "mixed",
+      "set": "ascend",
+      "sentenceId": "00066",
+      "config": "ascend",
+      "packId": "00066",
+      "audioSha256": "a554fbe3692c170b6aed5a34f34095312fe4b822c1c205eaddf894ee90f21faf",
+      "packRawSha256": "0f7692e53442b0dbbdd575e5f9d0ed728cb8a75beb16d68f1c83d61310a00cbd",
+      "packReferenceSha256": "0f7692e53442b0dbbdd575e5f9d0ed728cb8a75beb16d68f1c83d61310a00cbd",
+      "saHypothesisSha256": "c1a5d56898f1c52ed24cbaf69291d50f8c709d1530511738681b03f7dd2aa78f",
+      "svHypothesisSha256": "8b4f422b9b5c28ea7691bdb835e9b4dc1d7b4572667cfb24c90c1da9adc3cdcd",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 4,
+      "saV1": {
+        "metric": "mer",
+        "errors": 1,
+        "length": 4,
+        "rate": 0.25
+      },
+      "svV1": {
+        "metric": "mer",
+        "errors": 1,
+        "length": 4,
+        "rate": 0.25
+      }
+    },
+    {
+      "id": "ascend/00068",
+      "stratum": "ascend-mixed",
+      "lang": "mixed",
+      "set": "ascend",
+      "sentenceId": "00068",
+      "config": "ascend",
+      "packId": "00068",
+      "audioSha256": "ddf1d1241915e223a8f46e6e00e9f5c0b6574add6d6c984fab26ee5508897958",
+      "packRawSha256": "45d2d917106711f0d403aaac541d19c2901133d660cf689a3e2999105e1a415d",
+      "packReferenceSha256": "45d2d917106711f0d403aaac541d19c2901133d660cf689a3e2999105e1a415d",
+      "saHypothesisSha256": "7918509a12137db76e13cb5b72a47d2d98ea7d8d0f9fd833ec30a3073445eff5",
+      "svHypothesisSha256": "e23e476bfb34f587837f842f58d9eef7cfc3ea639613cbf932c54494c85958e8",
+      "hypothesesTextEqual": false,
+      "svCopiedFromSa": false,
+      "officialLength": 3,
+      "saV1": {
+        "metric": "mer",
+        "errors": 6,
+        "length": 3,
+        "rate": 2
+      },
+      "svV1": {
+        "metric": "mer",
+        "errors": 2,
+        "length": 3,
+        "rate": 0.6666666666666666
+      }
+    }
+  ]
+}

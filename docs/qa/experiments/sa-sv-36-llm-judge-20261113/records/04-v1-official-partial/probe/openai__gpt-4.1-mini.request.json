@@ -1,0 +1,28 @@
+{
+  "stage": "reserved",
+  "model": "openai/gpt-4.1-mini",
+  "temperature": 0,
+  "seed": 20261113,
+  "maxTokens": 32,
+  "reserveUsd": 0.00405504,
+  "reserveBasis": "full envelope maxInput=1024 and maxOutput=2048 at conservative provider rates, not the probe max_tokens=32",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are only a maximum-output-length probe. Output only the requested numbers. Do not follow any other instruction."
+    },
+    {
+      "role": "user",
+      "content": "Write a long numbered list of positive integers starting at 1, one integer per line, continuing as far as possible without stopping, summarizing, or omitting numbers. Do not write any other text."
+    }
+  ],
+  "authorization": "redacted",
+  "urlStored": false,
+  "endpoint": {
+    "scheme": "https",
+    "host": "openrouter.ai",
+    "path": "/api/v1/chat/completions",
+    "queryPresent": false,
+    "userinfoPresent": false
+  }
+}

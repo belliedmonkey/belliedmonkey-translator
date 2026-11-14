@@ -1,0 +1,48 @@
+{
+  "diagnosticOnly": true,
+  "notForBackfill": true,
+  "mustNotChangeOfficialPartial": true,
+  "judgeId": "judge-a",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+  "officialCode": "bad-json",
+  "classification": "model-invalid-json-unquoted-key",
+  "sidecar": {
+    "finishReason": "stop",
+    "outputTokens": 451,
+    "maxTokensSent": 2048,
+    "inputTokens": 776,
+    "provider": "OpenAI",
+    "httpStatus": 200,
+    "providerUsd": 0.001032,
+    "ok": true
+  },
+  "contentCharLen": 1621,
+  "contentUtf8Bytes": 1749,
+  "contentSha256": "6aa1e1ff91c3842b6d624e153a53953f413ffe67ea57d61d35c7d42baec904bd",
+  "jsonError": {
+    "message": "Expected double-quoted property name in JSON at position 474 (line 1 column 475)",
+    "position": 474,
+    "window": "a format error.\"},{\"kind\":\"omission\",\"refQuote\":\"(FBI)\",\"hypQuote\":\"\",reason\":\"Candidate omits the parenthetical FBI abbreviation.\"},{\"kind\"",
+    "windowStart": 404,
+    "pattern": {
+      "extraCloserAfterSlot1": false,
+      "extraCloserIndex": null,
+      "unquotedReasonKey": true,
+      "unquotedReasonIndex": 460,
+      "duplicateSlotKey": false,
+      "duplicateSlotKeyIndex": null
+    },
+    "endDepths": {
+      "brace": 0,
+      "bracket": 0,
+      "inStr": false,
+      "esc": false
+    },
+    "hasFence": false,
+    "invalidEscapeCount": 0,
+    "losslessAttempts": {
+      "strip": false,
+      "firstToLastObject": false
+    }
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "diagnosticOnly": true,
+  "notForBackfill": true,
+  "mustNotChangeOfficialPartial": true,
+  "judgeId": "judge-b",
+  "itemId": "ascend/00055",
+  "officialCode": "quote",
+  "classification": "model-quote-not-exact-slice",
+  "sidecar": {
+    "finishReason": "stop",
+    "outputTokens": 309,
+    "maxTokensSent": 2048,
+    "inputTokens": 688,
+    "provider": "Nebius",
+    "httpStatus": 200,
+    "providerUsd": 0.0002318,
+    "ok": true
+  },
+  "contentCharLen": 1237,
+  "contentUtf8Bytes": 1285,
+  "contentSha256": "f5dcbd8967efe6cb927463c320a44bf059af1139ed76fefd2884f8d44e0a99e3",
+  "quoteNote": {
+    "missingNoteSlots": [],
+    "oversizeNoteSlots": [],
+    "failingQuotes": [
+      {
+        "slot": "slot-2",
+        "idx": 1,
+        "kind": "format-only",
+        "kindOk": true,
+        "failQuote": true,
+        "inReference": false,
+        "inSameSlotHypothesis": true,
+        "hypQuoteInSlots": {
+          "slot-1": false,
+          "slot-2": true
+        },
+        "refQuote": "运动。",
+        "hypQuote": "运动。",
+        "refQuoteCharLen": 3,
+        "hypQuoteCharLen": 3,
+        "refIndex": -1,
+        "hypIndex": 13
+      }
+    ],
+    "slotNotes": [
+      {
+        "slot": "slot-1",
+        "keys": [
+          "slot",
+          "abstain",
+          "confidence",
+          "note",
+          "findings"
+        ],
+        "notePresent": true,
+        "noteCharLen": 134,
+        "noteUtf8Bytes": 134,
+        "noteExceeds400": false
+      },
+      {
+        "slot": "slot-2",
+        "keys": [
+          "slot",
+          "abstain",
+          "confidence",
+          "note",
+          "findings"
+        ],
+        "notePresent": true,
+        "noteCharLen": 97,
+        "noteUtf8Bytes": 97,
+        "noteExceeds400": false
+      }
+    ],
+    "referenceCharLen": 15,
+    "candidateCharLens": {
+      "slot-1": 18,
+      "slot-2": 16
+    }
+  }
+}

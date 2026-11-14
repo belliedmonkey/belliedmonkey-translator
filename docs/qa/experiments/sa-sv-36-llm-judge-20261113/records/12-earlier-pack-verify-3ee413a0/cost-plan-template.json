@@ -1,0 +1,50 @@
+{
+  "schema": "belliedmonkey.llm-judge.cost-plan.template.v1",
+  "notAQuote": true,
+  "pricesNotSelected": true,
+  "modelsNotSelected": true,
+  "realLlmNotCalled": true,
+  "frozenInputSha256": "1a44cca3bf05662c8701d943702a35e7fd1a303f9bcd931764775d9057c795a1",
+  "frozenPairSha256": "2e5d95d1b61e16f9e0b3506f3e949b94c9717d577e1cc8c41fe72e3b6e221bb7",
+  "formula": {
+    "reserveUsd": "maxInputTokens * inputUsdPerToken + maxOutputTokens * outputUsdPerToken, per model",
+    "minBudgetUsdToFinish36x2": "36 * reserve(model A) + 36 * reserve(model B)",
+    "requestCap": "maxRequests must be >= 72 because this package does not retry, and 36 items x 2 judges = 72 calls",
+    "settle": "after success, held is reduced from reserve to inputTokens*inputRate + outputTokens*outputRate; provider usd is ignored"
+  },
+  "operatorMustFill": {
+    "modelA": null,
+    "modelB": null,
+    "priceSource": null,
+    "priceSourceVersion": null,
+    "inputUsdPerTokenA": null,
+    "outputUsdPerTokenA": null,
+    "pricedZeroA": null,
+    "inputUsdPerTokenB": null,
+    "outputUsdPerTokenB": null,
+    "pricedZeroB": null,
+    "budgetUsd": null,
+    "endpointEnvNames": [
+      "JUDGE_A_URL",
+      "JUDGE_B_URL"
+    ],
+    "keyEnvNames": [
+      "JUDGE_A_KEY",
+      "JUDGE_B_KEY"
+    ],
+    "gatewayHonorsMaxTokensField": null
+  },
+  "corpusSizingFromFrozenInput": {
+    "items": 36,
+    "judges": 2,
+    "plannedCalls": 72,
+    "rubricChars": 1593,
+    "maxPromptChars": 2697,
+    "maxCeilCharsDiv4": 675,
+    "recommendedMaxInputTokensAtLeast": 2697,
+    "recommendedMaxInputTokensReason": "run-judge.js estimates input as ceil(chars/4), which can under-count CJK. Until a tokenizer or a tighter bound is in the package, set maxInputTokens to at least the maximum prompt character count of this frozen input, and set budgetUsd to cover 72 reserves at that cap.",
+    "recommendedMaxOutputTokens": "operator/model JSON verdict size; package will send this value as max_tokens. Not filled here.",
+    "recommendedMaxRequests": 72
+  },
+  "doNotInventPrices": true
+}

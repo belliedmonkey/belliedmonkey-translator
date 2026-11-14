@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 4253,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1679\",\n  \"slots\": {\n    \"slot-1\": {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate 1 mostly matches the reference except for tense difference and spelling of 'canceled'.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"have cancelled\",\n          \"hypQuote\": \"had canceled\",\n          \"reason\": \"Tense difference ('have' vs 'had') and spelling difference ('cancelled' vs 'canceled') but same meaning.\"\n        }\n      ]\n    },\n    \"slot-2\": {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"Candidate 2 has a clear entity error in the band name and tense/spelling difference in 'canceled'.\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"Aerosmith\",\n          \"hypQuote\": \"Arissmith\",\n          \"reason\": \"Band name is misspelled, changing the entity.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"have cancelled\",\n          \"hypQuote\": \"had canceled\",\n          \"reason\": \"Tense difference ('have' vs 'had') and spelling difference ('cancelled' vs 'canceled') but same meaning.\"\n        }\n      ]\n    }\n  }\n}",
+  "providerUsd": 0.0007432,
+  "usage": {
+    "inputTokens": 450,
+    "outputTokens": 352,
+    "providerUsd": 0.0007432,
+    "complete": true
+  },
+  "settledUsd": 0.00081752
+}

@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 25566,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"fleurs-public-candidates/en_us/1680\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.9,\"note\":\"\",\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"well rounded\",\"hypQuote\":\"well-rounded\",\"reason\":\"Difference in hyphenation; same meaning.\"},{\"kind\":\"addition\",\"refQuote\":\"\",\"hypQuote\":\",\",\"reason\":\"Extra comma after 'climb' not present in reference.\"},{\"kind\":\"format-only\",\"refQuote\":\"five\",\"hypQuote\":\"5\",\"reason\":\"Number written as word versus digit; same value.\"},{\"kind\":\"entity\",\"refQuote\":\"leap great distances\",\"hypQuote\":\"leave great distances\",\"reason\":\"'leave' is incorrect and changes the meaning from the reference 'leap'.\"}]}},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.95,\"note\":\"\",\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"well rounded\",\"hypQuote\":\"well rounded\",\"reason\":\"Same spelling and spacing as reference.\"},{\"kind\":\"format-only\",\"refQuote\":\"five\",\"hypQuote\":\"five\",\"reason\":\"Number written as word matches reference.\"},{\"kind\":\"omission\",\"refQuote\":\"(though not well)\",\"hypQuote\":\"though not well\",\"reason\":\"Parentheses missing in candidate; structural difference may affect parsing.\"}]}]}",
+  "providerUsd": 0.00033495,
+  "usage": {
+    "inputTokens": 758,
+    "outputTokens": 295,
+    "providerUsd": 0.00033495,
+    "complete": true
+  },
+  "settledUsd": 0.0003876
+}

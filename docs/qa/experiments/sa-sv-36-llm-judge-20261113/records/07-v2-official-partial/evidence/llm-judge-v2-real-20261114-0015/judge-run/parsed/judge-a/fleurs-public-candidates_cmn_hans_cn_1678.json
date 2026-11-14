@@ -1,0 +1,56 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1678",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.7,
+        "note": "Candidate omits parentheses and English name, and misses punctuation; otherwise mostly accurate.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "(Oliver Sacks)",
+            "hypQuote": "",
+            "reason": "Candidate omits the parentheses and the English name 'Oliver Sacks' present in the reference."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "奥利弗·萨克斯",
+            "hypQuote": "奥里弗萨克斯奥live萨克斯",
+            "reason": "Candidate shows a mix of Chinese and English letters without proper spacing or punctuation, differing in format from the reference."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "，",
+            "hypQuote": "",
+            "reason": "Candidate omits the comma after '总统的演讲' present in the reference."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Candidate is very close to the reference with minor format differences and a slight name variation.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "奥利弗·萨克斯",
+            "hypQuote": "奥利弗萨克斯奥萨克",
+            "reason": "Candidate merges the name and adds an extra '奥萨克' without punctuation, differing from the reference."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "(Oliver Sacks)",
+            "hypQuote": "",
+            "reason": "Candidate omits the English name in parentheses present in the reference."
+          }
+        ]
+      }
+    ]
+  }
+}

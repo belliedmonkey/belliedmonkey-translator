@@ -258,9 +258,28 @@ Web Component 也覆盖了 —— 开放的 shadow root 会被遍历，所以把
 
 ---
 
-## 效果与业界水位（2026-10）
+## 实验记录
 
-大肚猴听译/字幕当前管线：**端上 SpeechAnalyzer → VAD/LID/切句 → 云端 qwen plus（修正+翻译）→ 本地 TTS**。更完整的说明见 [`docs/benchmark-waterlevel.md`](docs/benchmark-waterlevel.md)。
+这里不给产品质量、延迟或成本排名。两条索引：
+
+- 全链路阶段和各业务形态的计划：[`docs/baselines/README.md`](docs/baselines/README.md)。那里的端到端仍是待测。计划正文抄自仍开放的 [PR #663](https://github.com/belliedmonkey/belliedmonkey-translator/pull/663)，HEAD `e5a17a1c046a4df370c95ba2731b20e2e14eaeea`。该 PR 继续开放。本树没有它的 `eval/` 实现，把说明收进来也不是合并那个 PR。
+- 36 条 SpeechAnalyzer 与 SenseVoice 组件实验和 partial LLM 评委：[`docs/qa/experiments/sa-sv-36-llm-judge-20261113/INDEX.md`](docs/qa/experiments/sa-sv-36-llm-judge-20261113/INDEX.md)。下一步研究说明：[`OPENBOT-HANDOFF.zh.md`](docs/qa/experiments/sa-sv-36-llm-judge-20261113/OPENBOT-HANDOFF.zh.md)。封袋原文是 [`README.md`](docs/qa/experiments/sa-sv-36-llm-judge-20261113/README.md)。
+
+归档文件里能核对的组件事实（`ranking` 为 false，不是产品分，也不是排行榜）：
+
+- SpeechAnalyzer：英文 WER 36/363，中文 CER 57/624，混语 MER 24/42。
+- SenseVoice：英文 WER 29/363，中文 CER 57/624，混语 MER 17/42。中文合计相同，逐条不相同。
+- 官方 LLM 评委 v1 与 v2 都保持 `partial`。语义人审完成数是 0。耳听不是这次人审。
+- 计划上限 0.28 美元，信封已用 0.10094232，剩余 0.17905768。provider 实际花费 v1 为 0.04447240，v2 为 0.03845668。15 对补评已准备、未执行（预留 0.03251712，花费 0）。
+- 宣称 head 为 `75266d0a` 与 `e5a17a1c` 的付费入口包，独立离线复验都是 FAIL。后一个包剩下的阻塞是：origin-lock 的成败列表没有对照 origin 的 summary 和 parsed 判决。
+
+实验目录里的脚本只复现隔离证据，不是产品入口，也不能直接拿去付费。DeepSeek 只有一张未做实验的研究卡：[BEL-258](https://linear.app/belliedmonkey/issue/BEL-258/研究评估deepseek-全能力-api-能否成为一键配置新选择)。
+
+下面的 2026-10 水位是历史快照，没有按基线协议重测。
+
+## 效果与业界水位（2026-10，历史参考）
+
+快照里的管线句子，未再核实为当前唯一路线：**端上 SpeechAnalyzer → VAD/LID/切句 → 云端 qwen plus（修正+翻译）→ 本地 TTS**。更完整的说明见 [`docs/benchmark-waterlevel.md`](docs/benchmark-waterlevel.md)。后来的源码清点在 [`docs/baselines/inventory.md`](docs/baselines/inventory.md)，那是 PR #663 上的读数，不是一次新测量。
 
 | 维度 | 我们（有数） | 业界公开锚（第三方） | 差距一句话 |
 |---|---|---|---|
@@ -405,6 +424,8 @@ npm run test:layout   # 44 个排版 fixture，跑在真实无头 Chrome 上（N
 
 | 文档 | 它拥有什么 |
 |---|---|
+| [`docs/qa/experiments/sa-sv-36-llm-judge-20261113/INDEX.md`](docs/qa/experiments/sa-sv-36-llm-judge-20261113/INDEX.md) | 已归档的 36 条组件记录。评委 partial，人审 0，不是产品排名。 |
+| [`docs/baselines/README.md`](docs/baselines/README.md) | 从仍开放的 PR #663 抄来的分形态计划。端到端未测。该 PR 的 `eval/` 代码不在本树。 |
 | [`docs/domain-design.md`](docs/domain-design.md) | 领域模型：`source → Extractor → units → Engine → Renderer`、零站点选择器规则、provider 注册表。**改这里必须先过人工评审。** |
 | [`docs/verification-spec.md`](docs/verification-spec.md) | 一切如何被验证。全矩阵规则、各平台的坑、诚实性规则。 |
 | [`docs/interaction-spec.md`](docs/interaction-spec.md) | 面向用户的交互与排版约束。 |

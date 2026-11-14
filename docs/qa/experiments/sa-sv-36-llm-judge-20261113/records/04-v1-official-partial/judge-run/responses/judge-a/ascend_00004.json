@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 4568,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"ascend/00004\",\n  \"slots\": {\n    \"slot-1\": {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate 1 omits the entire reference content and adds unrelated content.\",\n      \"findings\": [\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"呃what's the呃\",\n          \"hypQuote\": \"\",\n          \"reason\": \"Candidate 1 does not include any part of the reference transcript.\"\n        },\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"\",\n          \"hypQuote\": \"我so\",\n          \"reason\": \"Candidate 1 adds content not present in the reference.\"\n        }\n      ]\n    },\n    \"slot-2\": {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate 2 partially matches the reference filler '呃' but adds unrelated content and omits the English phrase.\",\n      \"findings\": [\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"what's the\",\n          \"hypQuote\": \"\",\n          \"reason\": \"Candidate 2 omits the English phrase 'what's the' from the reference.\"\n        },\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"\",\n          \"hypQuote\": \"我死的。\",\n          \"reason\": \"Candidate 2 adds content not present in the reference.\"\n        }\n      ]\n    }\n  }\n}",
+  "providerUsd": 0.0007428,
+  "usage": {
+    "inputTokens": 425,
+    "outputTokens": 358,
+    "providerUsd": 0.0007428,
+    "complete": true
+  },
+  "settledUsd": 0.00081708
+}

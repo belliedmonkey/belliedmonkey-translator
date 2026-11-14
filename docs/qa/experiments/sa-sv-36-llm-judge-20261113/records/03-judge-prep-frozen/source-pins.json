@@ -1,0 +1,39 @@
+{
+  "builtAt": "2026-11-13 17:19:33 +0800 (CST)",
+  "timezone": "Asia/Shanghai",
+  "judgePackageGz": {
+    "path": "/cursor/stores/user/grok-bot/agents/e8195c0f-e3a2-46a7-bda6-acf61585317c/assets/01M7A2YMDT938TGQV83BY7T8KT.gz",
+    "bytes": 12101,
+    "sha256": "f4a58b85f79c7e8da13d2049f987802bcd0fbebbdb70320c85b0aaf422302d55",
+    "expectedSha256": "f4a58b85f79c7e8da13d2049f987802bcd0fbebbdb70320c85b0aaf422302d55"
+  },
+  "packManifest": {
+    "path": "PACK-MANIFEST.json",
+    "sha256": "b7bd13f2796565d75d1b51303f47338128a621a76ca7c2601e1682c84a8bbed2"
+  },
+  "saHypotheses": {
+    "path": "results/aef9aa8f/sa-smoke-aef9aa8f-r1/hypotheses.json",
+    "sha256": "255454cfc218d05bc30a1d8c7b07fde057071313e7549a828d91b529507dfa57"
+  },
+  "saScore": {
+    "path": "results/aef9aa8f/sa-smoke-aef9aa8f-r1/score.json",
+    "sha256": "96009a49c36813d71d24f46f8a58f9f28727546fac8d3f4771eb929b14bd94bc"
+  },
+  "svHypotheses": {
+    "path": "results/f6ec838b-sv/run/hypotheses.json",
+    "sha256": "c6780b64de3cdfe25cfd2b90c5706085df90a28f65813c10b28964c0c22e02d8"
+  },
+  "svScore": {
+    "path": "results/f6ec838b-sv/run/score.json",
+    "sha256": "4eac5f3568974a45c56757adcc17eaa7a13592b013cf3d1b79abb1ab423605b5"
+  },
+  "svRunSummary": {
+    "path": "results/f6ec838b-sv/run/run-summary.json",
+    "sha256": "da4c9d8190b972db383ca8ec046f4e1ec25734a1291cca9841cec8885a2c4f52"
+  },
+  "checksumsVerified": {
+    "packSHA256SUMS": true,
+    "saResultsSHA256SUMS": true,
+    "svResultsSHA256SUMS": true
+  }
+}

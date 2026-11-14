@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "productMetric": false,
+  "endToEnd": false,
+  "leaderboard": false,
+  "exploratory": true,
+  "ranking": false,
+  "approvedPlannedSetCount": 0,
+  "denominator": 36,
+  "excluded": [
+    "fleurs-frozen-16",
+    "cmn_hans_cn/1663"
+  ],
+  "rates": null,
+  "hypotheses": null,
+  "recognizeMs": null,
+  "recognizeStarted": false,
+  "appleResult": false,
+  "senseVoiceResult": false,
+  "code": "ok",
+  "id": null,
+  "stage": "preflight",
+  "processExit": 0,
+  "synthetic": false,
+  "phases": {
+    "preflightMs": 17.204,
+    "compileMs": null,
+    "assetInstallMs": null,
+    "modelLoadMs": null,
+    "recognizeMs": null
+  },
+  "itemCount": 36,
+  "caps": {
+    "itemCount": 36,
+    "itemCapMs": 45000,
+    "processCapMs": 1620000,
+    "legacy16ProcessCapMs": 180000,
+    "legacy16ItemCapMs": 45000,
+    "audioSeconds": 371.07,
+    "bound": "item-cap-times-count",
+    "notALatencyEstimate": true,
+    "modelLoadFromWall": false
+  }
+}

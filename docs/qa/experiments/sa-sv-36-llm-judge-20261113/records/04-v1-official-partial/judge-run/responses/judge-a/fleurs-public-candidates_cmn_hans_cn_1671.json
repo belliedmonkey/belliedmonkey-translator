@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 7107,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/cmn_hans_cn/1671\",\n  \"slots\": {\n    \"slot-1\": {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.8,\n      \"note\": \"Candidate mostly matches the reference but has minor errors in wording and a typo.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"2005 财年\",\n          \"hypQuote\": \"2005年才年\",\n          \"reason\": \"The candidate has an extra character '才' and repeats '年', which is a format issue.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"(FBI)\",\n          \"hypQuote\": \"联邦调查局\",\n          \"reason\": \"The abbreviation (FBI) is missing in the candidate.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"10 名探员\",\n          \"hypQuote\": \"10名太员\",\n          \"reason\": \"The candidate has a typo '太员' instead of '探员'.\"\n        }\n      ]\n    },\n    \"slot-2\": {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.6,\n      \"note\": \"Candidate has multiple errors including semantic and number differences.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"2005 财年\",\n          \"hypQuote\": \"2005年财年\",\n          \"reason\": \"The order of '年' and '财年' is reversed but meaning is preserved.\"\n        },\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"扫黄倡议\",\n          \"hypQuote\": \"小扫黄倡议\",\n          \"reason\": \"The candidate adds the character '小' which is not in the reference.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"(FBI)\",\n          \"hypQuote\": \"联邦调查局\",\n          \"reason\": \"The abbreviation (FBI) is missing in the candidate.\"\n        },\n        {\n          \"kind\": \"number\",\n          \"refQuote\": \"10 名探员\",\n          \"hypQuote\": \"1名太员\",\n          \"reason\": \"The candidate changes the number from 10 to 1 and has a typo '太员' instead of '探员'.\"\n        },\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"成人色情\",\n          \"hypQuote\": \"成员色情\",\n          \"reason\": \"The candidate changes '成人' (adult) to '成员' (member), altering the meaning.\"\n        }\n      ]\n    }\n  }\n}",
+  "providerUsd": 0.0011932,
+  "usage": {
+    "inputTokens": 535,
+    "outputTokens": 612,
+    "providerUsd": 0.0011932,
+    "complete": true
+  },
+  "settledUsd": 0.00131252
+}

@@ -1,0 +1,50 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/en_us/1668",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 1,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "Wild Card",
+            "hypQuote": "wild card",
+            "reason": "The capitalization differs between the reference and the candidate, but the words are otherwise identical."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "National Parks",
+            "hypQuote": "national parks",
+            "reason": "The capitalization differs between the reference and the candidate, but the words are otherwise identical."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 1,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "Wild Card",
+            "hypQuote": "wild card",
+            "reason": "The capitalization differs between the reference and the candidate, but the words are otherwise identical."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "National Parks",
+            "hypQuote": "national parks",
+            "reason": "The capitalization differs between the reference and the candidate, but the words are otherwise identical."
+          }
+        ]
+      }
+    ]
+  }
+}

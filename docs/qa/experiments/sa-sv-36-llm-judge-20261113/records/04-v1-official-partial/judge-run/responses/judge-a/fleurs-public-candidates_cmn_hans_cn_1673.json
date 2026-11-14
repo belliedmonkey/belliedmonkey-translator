@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 8438,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/cmn_hans_cn/1673\",\n  \"slots\": {\n    \"slot-1\": {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate has a number difference and omission of some reference content.\",\n      \"findings\": [\n        {\n          \"kind\": \"number\",\n          \"refQuote\": \"十三个州\",\n          \"hypQuote\": \"1三个州\",\n          \"reason\": \"The candidate misrecognizes the number '十三' as '1三', which changes the meaning.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"最初根据《联邦条例》\",\n          \"hypQuote\": \"根据联邦条例\",\n          \"reason\": \"The candidate omits '最初' and the quotation marks around '联邦条例'.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"（国会是其唯一的组成部分）\",\n          \"hypQuote\": \"国会是其唯一的组成部分。\",\n          \"reason\": \"The candidate omits the parentheses around '国会是其唯一的组成部分' and the punctuation differs.\"\n        }\n      ]\n    },\n    \"slot-2\": {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"Candidate mostly matches reference except for minor punctuation and omission of '最初'.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"十三个州\",\n          \"hypQuote\": \"13个州\",\n          \"reason\": \"The candidate uses digits '13' instead of Chinese numerals '十三', which is a format-only difference.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"最初根据《联邦条例》\",\n          \"hypQuote\": \"根据联邦条例\",\n          \"reason\": \"The candidate omits the word '最初'.\"\n        },\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"（国会是其唯一的组成部分）\",\n          \"hypQuote\": \"国会是其唯一的组成部分。\",\n          \"reason\": \"The candidate omits the parentheses around '国会是其唯一的组成部分' and changes punctuation.\"\n        }\n      ]\n    }\n  }\n}",
+  "providerUsd": 0.0010728,
+  "usage": {
+    "inputTokens": 510,
+    "outputTokens": 543,
+    "providerUsd": 0.0010728,
+    "complete": true
+  },
+  "settledUsd": 0.00118008
+}

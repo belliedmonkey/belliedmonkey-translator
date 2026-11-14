@@ -1,0 +1,136 @@
+{
+  "schema": "belliedmonkey.qa.v2-semantic-human-review-form.v1",
+  "list": "disagreement",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+  "initialInventoryOnly": true,
+  "mustRefreshAfterBackfill": true,
+  "semanticHumanReviewed": false,
+  "earReviewUsedAsSemanticReview": false,
+  "doNotPreFillJudgment": true,
+  "officialAgentReviewIsNotHumanReview": true,
+  "reference": "如今，唯一不能向后折叠翅膀的昆虫是蜻蜓和蜉蝣。",
+  "slots": {
+    "slot-1": {
+      "text": "如今，唯一不能向后折叠翅膀的昆虫是蜻蜓和浮游。"
+    },
+    "slot-2": {
+      "text": "如今唯一不能向后折叠翅膀的昆虫是蜻蜓和浮游。"
+    }
+  },
+  "officialKindLists": {
+    "judge-a": {
+      "slot-1": [
+        "entity"
+      ],
+      "slot-2": [
+        "entity",
+        "format-only"
+      ]
+    },
+    "judge-b": {
+      "slot-1": [
+        "entity"
+      ],
+      "slot-2": [
+        "entity",
+        "omission"
+      ]
+    }
+  },
+  "officialVerdicts": {
+    "judge-a": {
+      "model": "openai/gpt-4.1-mini",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Candidate replaces '蜉蝣' with '浮游', which is a different entity and changes the meaning.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "蜉蝣",
+            "hypQuote": "浮游",
+            "reason": "The candidate uses '浮游' instead of '蜉蝣', which are different insects and thus changes the meaning."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Candidate omits the comma after '如今' and replaces '蜉蝣' with '浮游', changing the entity and slightly altering the meaning.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "如今，",
+            "hypQuote": "如今",
+            "reason": "The candidate omits the comma after '如今', a minor format difference."
+          },
+          {
+            "kind": "entity",
+            "refQuote": "蜉蝣",
+            "hypQuote": "浮游",
+            "reason": "The candidate uses '浮游' instead of '蜉蝣', which are different insects and thus changes the meaning."
+          }
+        ]
+      }
+    },
+    "judge-b": {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "蜉蝣",
+            "hypQuote": "浮游",
+            "reason": "‘蜉蝣’和‘浮游’是不同的生物，前者是一种昆虫，后者通常指海洋中的浮游生物，语义不同。"
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.85,
+        "note": "",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "，",
+            "hypQuote": "",
+            "reason": "参考文本中的逗号在候选文本中被省略，属于标点符号的遗漏。"
+          },
+          {
+            "kind": "entity",
+            "refQuote": "蜉蝣",
+            "hypQuote": "浮游",
+            "reason": "‘蜉蝣’被误写为‘浮游’，属于实体错误，两者指代不同生物。"
+          }
+        ]
+      }
+    }
+  },
+  "humanAnnotation": {
+    "reviewerId": "",
+    "reviewedAtAsiaShanghai": "",
+    "slots": {
+      "slot-1": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      },
+      "slot-2": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      }
+    },
+    "overallComment": "",
+    "marksCompleteOnlyAfterUserReview": true
+  }
+}

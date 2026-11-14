@@ -1,0 +1,62 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1681",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "Candidate contains a format-only error and an omission.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "试验",
+            "hypQuote": "实验",
+            "reason": "The reference uses '试验' while the candidate uses '实验', which is a synonymous term in this context but differs in surface form."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "，",
+            "hypQuote": "",
+            "reason": "The candidate omits the comma after '方法' in '不过，实验并不是唯一的方法。' The reference has a comma, but the candidate does not, affecting clause separation."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Candidate contains a format-only error and multiple omissions of punctuation.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "试验",
+            "hypQuote": "实验",
+            "reason": "The reference uses '试验' while the candidate uses '实验', which is a synonymous term in this context but differs in surface form."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "，",
+            "hypQuote": "",
+            "reason": "The candidate omits the comma after '不过' in '不过，实验并不是唯一的方法。'"
+          },
+          {
+            "kind": "omission",
+            "refQuote": "。",
+            "hypQuote": "",
+            "reason": "The candidate omits the period after '方法' in '不过，实验并不是唯一的方法。', merging two sentences without proper punctuation."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "，",
+            "hypQuote": "",
+            "reason": "The candidate omits the comma after '观察' in '进行观察，也可以指导科学研究。'"
+          }
+        ]
+      }
+    ]
+  }
+}

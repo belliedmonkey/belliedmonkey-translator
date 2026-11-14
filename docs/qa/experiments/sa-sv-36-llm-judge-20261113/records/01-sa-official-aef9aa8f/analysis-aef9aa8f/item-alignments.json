@@ -1,0 +1,9529 @@
+{
+  "schema": "belliedmonkey.sa36-item-alignments.v1",
+  "officialRatesMatchRecomputed": true,
+  "items": [
+    {
+      "id": "fleurs-public-candidates/en_us/1668",
+      "lang": "en",
+      "stratum": "read-speech",
+      "config": "en_us",
+      "saLocale": "en-US",
+      "officialErrors": 0,
+      "officialLength": 31,
+      "officialRate": 0,
+      "frozenErrors": 0,
+      "length": 31,
+      "rate": 0,
+      "counts": {
+        "C": 31,
+        "S": 0,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "It may also be beneficial for one to buy a Wild Card, which provides entry to either selections of parks in South Africa or all of the South African National Parks.",
+      "rawHypothesis": "It may also be beneficial for one to buy a wild card, which provides entry to either selections of parks in South Africa or all of the South African national parks.",
+      "nfkcReference": "It may also be beneficial for one to buy a Wild Card, which provides entry to either selections of parks in South Africa or all of the South African National Parks.",
+      "nfkcHypothesis": "It may also be beneficial for one to buy a wild card, which provides entry to either selections of parks in South Africa or all of the South African national parks.",
+      "tokensRef": [
+        "it",
+        "may",
+        "also",
+        "be",
+        "beneficial",
+        "for",
+        "one",
+        "to",
+        "buy",
+        "a",
+        "wild",
+        "card",
+        "which",
+        "provides",
+        "entry",
+        "to",
+        "either",
+        "selections",
+        "of",
+        "parks",
+        "in",
+        "south",
+        "africa",
+        "or",
+        "all",
+        "of",
+        "the",
+        "south",
+        "african",
+        "national",
+        "parks"
+      ],
+      "tokensHyp": [
+        "it",
+        "may",
+        "also",
+        "be",
+        "beneficial",
+        "for",
+        "one",
+        "to",
+        "buy",
+        "a",
+        "wild",
+        "card",
+        "which",
+        "provides",
+        "entry",
+        "to",
+        "either",
+        "selections",
+        "of",
+        "parks",
+        "in",
+        "south",
+        "africa",
+        "or",
+        "all",
+        "of",
+        "the",
+        "south",
+        "african",
+        "national",
+        "parks"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "it",
+          "hyp": "it"
+        },
+        {
+          "op": "C",
+          "ref": "may",
+          "hyp": "may"
+        },
+        {
+          "op": "C",
+          "ref": "also",
+          "hyp": "also"
+        },
+        {
+          "op": "C",
+          "ref": "be",
+          "hyp": "be"
+        },
+        {
+          "op": "C",
+          "ref": "beneficial",
+          "hyp": "beneficial"
+        },
+        {
+          "op": "C",
+          "ref": "for",
+          "hyp": "for"
+        },
+        {
+          "op": "C",
+          "ref": "one",
+          "hyp": "one"
+        },
+        {
+          "op": "C",
+          "ref": "to",
+          "hyp": "to"
+        },
+        {
+          "op": "C",
+          "ref": "buy",
+          "hyp": "buy"
+        },
+        {
+          "op": "C",
+          "ref": "a",
+          "hyp": "a"
+        },
+        {
+          "op": "C",
+          "ref": "wild",
+          "hyp": "wild"
+        },
+        {
+          "op": "C",
+          "ref": "card",
+          "hyp": "card"
+        },
+        {
+          "op": "C",
+          "ref": "which",
+          "hyp": "which"
+        },
+        {
+          "op": "C",
+          "ref": "provides",
+          "hyp": "provides"
+        },
+        {
+          "op": "C",
+          "ref": "entry",
+          "hyp": "entry"
+        },
+        {
+          "op": "C",
+          "ref": "to",
+          "hyp": "to"
+        },
+        {
+          "op": "C",
+          "ref": "either",
+          "hyp": "either"
+        },
+        {
+          "op": "C",
+          "ref": "selections",
+          "hyp": "selections"
+        },
+        {
+          "op": "C",
+          "ref": "of",
+          "hyp": "of"
+        },
+        {
+          "op": "C",
+          "ref": "parks",
+          "hyp": "parks"
+        },
+        {
+          "op": "C",
+          "ref": "in",
+          "hyp": "in"
+        },
+        {
+          "op": "C",
+          "ref": "south",
+          "hyp": "south"
+        },
+        {
+          "op": "C",
+          "ref": "africa",
+          "hyp": "africa"
+        },
+        {
+          "op": "C",
+          "ref": "or",
+          "hyp": "or"
+        },
+        {
+          "op": "C",
+          "ref": "all",
+          "hyp": "all"
+        },
+        {
+          "op": "C",
+          "ref": "of",
+          "hyp": "of"
+        },
+        {
+          "op": "C",
+          "ref": "the",
+          "hyp": "the"
+        },
+        {
+          "op": "C",
+          "ref": "south",
+          "hyp": "south"
+        },
+        {
+          "op": "C",
+          "ref": "african",
+          "hyp": "african"
+        },
+        {
+          "op": "C",
+          "ref": "national",
+          "hyp": "national"
+        },
+        {
+          "op": "C",
+          "ref": "parks",
+          "hyp": "parks"
+        }
+      ],
+      "errorOps": [],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": 4,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1668",
+      "lang": "zh",
+      "stratum": "read-speech",
+      "config": "cmn_hans_cn",
+      "saLocale": "zh-CN",
+      "officialErrors": 9,
+      "officialLength": 45,
+      "officialRate": 0.2,
+      "frozenErrors": 9,
+      "length": 45,
+      "rate": 0.2,
+      "counts": {
+        "C": 37,
+        "S": 0,
+        "D": 8,
+        "I": 1
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "买一张万能卡（Wild Card）也有不少好处。带着这张卡，你可以进入南非的一些公园或全部的国家公园。",
+      "rawHypothesis": "买一张万能卡也有不少好处 ，带着这张卡你可以进入南非的一些公园或者全部的国家公园。",
+      "nfkcReference": "买一张万能卡(Wild Card)也有不少好处。带着这张卡,你可以进入南非的一些公园或全部的国家公园。",
+      "nfkcHypothesis": "买一张万能卡也有不少好处 ,带着这张卡你可以进入南非的一些公园或者全部的国家公园。",
+      "tokensRef": [
+        "买",
+        "一",
+        "张",
+        "万",
+        "能",
+        "卡",
+        "W",
+        "i",
+        "l",
+        "d",
+        "C",
+        "a",
+        "r",
+        "d",
+        "也",
+        "有",
+        "不",
+        "少",
+        "好",
+        "处",
+        "带",
+        "着",
+        "这",
+        "张",
+        "卡",
+        "你",
+        "可",
+        "以",
+        "进",
+        "入",
+        "南",
+        "非",
+        "的",
+        "一",
+        "些",
+        "公",
+        "园",
+        "或",
+        "全",
+        "部",
+        "的",
+        "国",
+        "家",
+        "公",
+        "园"
+      ],
+      "tokensHyp": [
+        "买",
+        "一",
+        "张",
+        "万",
+        "能",
+        "卡",
+        "也",
+        "有",
+        "不",
+        "少",
+        "好",
+        "处",
+        "带",
+        "着",
+        "这",
+        "张",
+        "卡",
+        "你",
+        "可",
+        "以",
+        "进",
+        "入",
+        "南",
+        "非",
+        "的",
+        "一",
+        "些",
+        "公",
+        "园",
+        "或",
+        "者",
+        "全",
+        "部",
+        "的",
+        "国",
+        "家",
+        "公",
+        "园"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "买",
+          "hyp": "买"
+        },
+        {
+          "op": "C",
+          "ref": "一",
+          "hyp": "一"
+        },
+        {
+          "op": "C",
+          "ref": "张",
+          "hyp": "张"
+        },
+        {
+          "op": "C",
+          "ref": "万",
+          "hyp": "万"
+        },
+        {
+          "op": "C",
+          "ref": "能",
+          "hyp": "能"
+        },
+        {
+          "op": "C",
+          "ref": "卡",
+          "hyp": "卡"
+        },
+        {
+          "op": "D",
+          "ref": "W",
+          "hyp": null
+        },
+        {
+          "op": "D",
+          "ref": "i",
+          "hyp": null
+        },
+        {
+          "op": "D",
+          "ref": "l",
+          "hyp": null
+        },
+        {
+          "op": "D",
+          "ref": "d",
+          "hyp": null
+        },
+        {
+          "op": "D",
+          "ref": "C",
+          "hyp": null
+        },
+        {
+          "op": "D",
+          "ref": "a",
+          "hyp": null
+        },
+        {
+          "op": "D",
+          "ref": "r",
+          "hyp": null
+        },
+        {
+          "op": "D",
+          "ref": "d",
+          "hyp": null
+        },
+        {
+          "op": "C",
+          "ref": "也",
+          "hyp": "也"
+        },
+        {
+          "op": "C",
+          "ref": "有",
+          "hyp": "有"
+        },
+        {
+          "op": "C",
+          "ref": "不",
+          "hyp": "不"
+        },
+        {
+          "op": "C",
+          "ref": "少",
+          "hyp": "少"
+        },
+        {
+          "op": "C",
+          "ref": "好",
+          "hyp": "好"
+        },
+        {
+          "op": "C",
+          "ref": "处",
+          "hyp": "处"
+        },
+        {
+          "op": "C",
+          "ref": "带",
+          "hyp": "带"
+        },
+        {
+          "op": "C",
+          "ref": "着",
+          "hyp": "着"
+        },
+        {
+          "op": "C",
+          "ref": "这",
+          "hyp": "这"
+        },
+        {
+          "op": "C",
+          "ref": "张",
+          "hyp": "张"
+        },
+        {
+          "op": "C",
+          "ref": "卡",
+          "hyp": "卡"
+        },
+        {
+          "op": "C",
+          "ref": "你",
+          "hyp": "你"
+        },
+        {
+          "op": "C",
+          "ref": "可",
+          "hyp": "可"
+        },
+        {
+          "op": "C",
+          "ref": "以",
+          "hyp": "以"
+        },
+        {
+          "op": "C",
+          "ref": "进",
+          "hyp": "进"
+        },
+        {
+          "op": "C",
+          "ref": "入",
+          "hyp": "入"
+        },
+        {
+          "op": "C",
+          "ref": "南",
+          "hyp": "南"
+        },
+        {
+          "op": "C",
+          "ref": "非",
+          "hyp": "非"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        },
+        {
+          "op": "C",
+          "ref": "一",
+          "hyp": "一"
+        },
+        {
+          "op": "C",
+          "ref": "些",
+          "hyp": "些"
+        },
+        {
+          "op": "C",
+          "ref": "公",
+          "hyp": "公"
+        },
+        {
+          "op": "C",
+          "ref": "园",
+          "hyp": "园"
+        },
+        {
+          "op": "C",
+          "ref": "或",
+          "hyp": "或"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "者"
+        },
+        {
+          "op": "C",
+          "ref": "全",
+          "hyp": "全"
+        },
+        {
+          "op": "C",
+          "ref": "部",
+          "hyp": "部"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        },
+        {
+          "op": "C",
+          "ref": "国",
+          "hyp": "国"
+        },
+        {
+          "op": "C",
+          "ref": "家",
+          "hyp": "家"
+        },
+        {
+          "op": "C",
+          "ref": "公",
+          "hyp": "公"
+        },
+        {
+          "op": "C",
+          "ref": "园",
+          "hyp": "园"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "D",
+          "ref": "W",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "D",
+          "ref": "i",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "D",
+          "ref": "l",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "D",
+          "ref": "d",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "D",
+          "ref": "C",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "D",
+          "ref": "a",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "D",
+          "ref": "r",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "D",
+          "ref": "d",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "者",
+          "class": "insertion"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [
+        "W",
+        "i",
+        "l",
+        "d",
+        "C",
+        "a",
+        "r",
+        "d"
+      ],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": null,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1669",
+      "lang": "en",
+      "stratum": "read-speech",
+      "config": "en_us",
+      "saLocale": "en-US",
+      "officialErrors": 2,
+      "officialLength": 14,
+      "officialRate": 0.14285714285714285,
+      "frozenErrors": 2,
+      "length": 14,
+      "rate": 0.14285714285714285,
+      "counts": {
+        "C": 12,
+        "S": 2,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "Police superintendent Chandra Shekhar Solanki said the accused appeared in court with covered faces.",
+      "rawHypothesis": "Police superintendent Chandra Shikar Solanki said that accused appeared in court with covered faces.",
+      "nfkcReference": "Police superintendent Chandra Shekhar Solanki said the accused appeared in court with covered faces.",
+      "nfkcHypothesis": "Police superintendent Chandra Shikar Solanki said that accused appeared in court with covered faces.",
+      "tokensRef": [
+        "police",
+        "superintendent",
+        "chandra",
+        "shekhar",
+        "solanki",
+        "said",
+        "the",
+        "accused",
+        "appeared",
+        "in",
+        "court",
+        "with",
+        "covered",
+        "faces"
+      ],
+      "tokensHyp": [
+        "police",
+        "superintendent",
+        "chandra",
+        "shikar",
+        "solanki",
+        "said",
+        "that",
+        "accused",
+        "appeared",
+        "in",
+        "court",
+        "with",
+        "covered",
+        "faces"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "police",
+          "hyp": "police"
+        },
+        {
+          "op": "C",
+          "ref": "superintendent",
+          "hyp": "superintendent"
+        },
+        {
+          "op": "C",
+          "ref": "chandra",
+          "hyp": "chandra"
+        },
+        {
+          "op": "S",
+          "ref": "shekhar",
+          "hyp": "shikar"
+        },
+        {
+          "op": "C",
+          "ref": "solanki",
+          "hyp": "solanki"
+        },
+        {
+          "op": "C",
+          "ref": "said",
+          "hyp": "said"
+        },
+        {
+          "op": "S",
+          "ref": "the",
+          "hyp": "that"
+        },
+        {
+          "op": "C",
+          "ref": "accused",
+          "hyp": "accused"
+        },
+        {
+          "op": "C",
+          "ref": "appeared",
+          "hyp": "appeared"
+        },
+        {
+          "op": "C",
+          "ref": "in",
+          "hyp": "in"
+        },
+        {
+          "op": "C",
+          "ref": "court",
+          "hyp": "court"
+        },
+        {
+          "op": "C",
+          "ref": "with",
+          "hyp": "with"
+        },
+        {
+          "op": "C",
+          "ref": "covered",
+          "hyp": "covered"
+        },
+        {
+          "op": "C",
+          "ref": "faces",
+          "hyp": "faces"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "S",
+          "ref": "shekhar",
+          "hyp": "shikar",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "the",
+          "hyp": "that",
+          "class": "substitution"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": 2,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1669",
+      "lang": "zh",
+      "stratum": "read-speech",
+      "config": "cmn_hans_cn",
+      "saLocale": "zh-CN",
+      "officialErrors": 0,
+      "officialLength": 25,
+      "officialRate": 0,
+      "frozenErrors": 0,
+      "length": 25,
+      "rate": 0,
+      "counts": {
+        "C": 25,
+        "S": 0,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "警察局长钱德拉·谢卡尔·索兰基说，被告人出庭时都蒙住了脸。",
+      "rawHypothesis": "警察局长钱德拉谢卡尔索兰基说被告人出庭时都蒙住了脸。",
+      "nfkcReference": "警察局长钱德拉·谢卡尔·索兰基说,被告人出庭时都蒙住了脸。",
+      "nfkcHypothesis": "警察局长钱德拉谢卡尔索兰基说被告人出庭时都蒙住了脸。",
+      "tokensRef": [
+        "警",
+        "察",
+        "局",
+        "长",
+        "钱",
+        "德",
+        "拉",
+        "谢",
+        "卡",
+        "尔",
+        "索",
+        "兰",
+        "基",
+        "说",
+        "被",
+        "告",
+        "人",
+        "出",
+        "庭",
+        "时",
+        "都",
+        "蒙",
+        "住",
+        "了",
+        "脸"
+      ],
+      "tokensHyp": [
+        "警",
+        "察",
+        "局",
+        "长",
+        "钱",
+        "德",
+        "拉",
+        "谢",
+        "卡",
+        "尔",
+        "索",
+        "兰",
+        "基",
+        "说",
+        "被",
+        "告",
+        "人",
+        "出",
+        "庭",
+        "时",
+        "都",
+        "蒙",
+        "住",
+        "了",
+        "脸"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "警",
+          "hyp": "警"
+        },
+        {
+          "op": "C",
+          "ref": "察",
+          "hyp": "察"
+        },
+        {
+          "op": "C",
+          "ref": "局",
+          "hyp": "局"
+        },
+        {
+          "op": "C",
+          "ref": "长",
+          "hyp": "长"
+        },
+        {
+          "op": "C",
+          "ref": "钱",
+          "hyp": "钱"
+        },
+        {
+          "op": "C",
+          "ref": "德",
+          "hyp": "德"
+        },
+        {
+          "op": "C",
+          "ref": "拉",
+          "hyp": "拉"
+        },
+        {
+          "op": "C",
+          "ref": "谢",
+          "hyp": "谢"
+        },
+        {
+          "op": "C",
+          "ref": "卡",
+          "hyp": "卡"
+        },
+        {
+          "op": "C",
+          "ref": "尔",
+          "hyp": "尔"
+        },
+        {
+          "op": "C",
+          "ref": "索",
+          "hyp": "索"
+        },
+        {
+          "op": "C",
+          "ref": "兰",
+          "hyp": "兰"
+        },
+        {
+          "op": "C",
+          "ref": "基",
+          "hyp": "基"
+        },
+        {
+          "op": "C",
+          "ref": "说",
+          "hyp": "说"
+        },
+        {
+          "op": "C",
+          "ref": "被",
+          "hyp": "被"
+        },
+        {
+          "op": "C",
+          "ref": "告",
+          "hyp": "告"
+        },
+        {
+          "op": "C",
+          "ref": "人",
+          "hyp": "人"
+        },
+        {
+          "op": "C",
+          "ref": "出",
+          "hyp": "出"
+        },
+        {
+          "op": "C",
+          "ref": "庭",
+          "hyp": "庭"
+        },
+        {
+          "op": "C",
+          "ref": "时",
+          "hyp": "时"
+        },
+        {
+          "op": "C",
+          "ref": "都",
+          "hyp": "都"
+        },
+        {
+          "op": "C",
+          "ref": "蒙",
+          "hyp": "蒙"
+        },
+        {
+          "op": "C",
+          "ref": "住",
+          "hyp": "住"
+        },
+        {
+          "op": "C",
+          "ref": "了",
+          "hyp": "了"
+        },
+        {
+          "op": "C",
+          "ref": "脸",
+          "hyp": "脸"
+        }
+      ],
+      "errorOps": [],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": null,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1670",
+      "lang": "en",
+      "stratum": "read-speech",
+      "config": "en_us",
+      "saLocale": "en-US",
+      "officialErrors": 6,
+      "officialLength": 52,
+      "officialRate": 0.11538461538461539,
+      "frozenErrors": 6,
+      "length": 52,
+      "rate": 0.11538461538461539,
+      "counts": {
+        "C": 46,
+        "S": 4,
+        "D": 2,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "Their thermal behavior is not as steady as large caves on Earth that often maintain a fairly constant temperature, but it is consistent with these being deep holes in the ground,\" said Glen Cushing of the United States Geological Survey (USGS) Astrogeology Team and of Northern Arizona University located in Flagstaff, Arizona.",
+      "rawHypothesis": "Their thermal behavior is not as steady as large caves on earth that often maintain a fairly constant temperature. But it's consistent with these being deep holes in the ground, set Glenn Cushing, a United States geological survey, astrogeology team, and of Northern Arizona University, located in Flagstaff, Arizona.",
+      "nfkcReference": "Their thermal behavior is not as steady as large caves on Earth that often maintain a fairly constant temperature, but it is consistent with these being deep holes in the ground,\" said Glen Cushing of the United States Geological Survey (USGS) Astrogeology Team and of Northern Arizona University located in Flagstaff, Arizona.",
+      "nfkcHypothesis": "Their thermal behavior is not as steady as large caves on earth that often maintain a fairly constant temperature. But it's consistent with these being deep holes in the ground, set Glenn Cushing, a United States geological survey, astrogeology team, and of Northern Arizona University, located in Flagstaff, Arizona.",
+      "tokensRef": [
+        "their",
+        "thermal",
+        "behavior",
+        "is",
+        "not",
+        "as",
+        "steady",
+        "as",
+        "large",
+        "caves",
+        "on",
+        "earth",
+        "that",
+        "often",
+        "maintain",
+        "a",
+        "fairly",
+        "constant",
+        "temperature",
+        "but",
+        "it",
+        "is",
+        "consistent",
+        "with",
+        "these",
+        "being",
+        "deep",
+        "holes",
+        "in",
+        "the",
+        "ground",
+        "said",
+        "glen",
+        "cushing",
+        "of",
+        "the",
+        "united",
+        "states",
+        "geological",
+        "survey",
+        "usgs",
+        "astrogeology",
+        "team",
+        "and",
+        "of",
+        "northern",
+        "arizona",
+        "university",
+        "located",
+        "in",
+        "flagstaff",
+        "arizona"
+      ],
+      "tokensHyp": [
+        "their",
+        "thermal",
+        "behavior",
+        "is",
+        "not",
+        "as",
+        "steady",
+        "as",
+        "large",
+        "caves",
+        "on",
+        "earth",
+        "that",
+        "often",
+        "maintain",
+        "a",
+        "fairly",
+        "constant",
+        "temperature",
+        "but",
+        "it",
+        "s",
+        "consistent",
+        "with",
+        "these",
+        "being",
+        "deep",
+        "holes",
+        "in",
+        "the",
+        "ground",
+        "set",
+        "glenn",
+        "cushing",
+        "a",
+        "united",
+        "states",
+        "geological",
+        "survey",
+        "astrogeology",
+        "team",
+        "and",
+        "of",
+        "northern",
+        "arizona",
+        "university",
+        "located",
+        "in",
+        "flagstaff",
+        "arizona"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "their",
+          "hyp": "their"
+        },
+        {
+          "op": "C",
+          "ref": "thermal",
+          "hyp": "thermal"
+        },
+        {
+          "op": "C",
+          "ref": "behavior",
+          "hyp": "behavior"
+        },
+        {
+          "op": "C",
+          "ref": "is",
+          "hyp": "is"
+        },
+        {
+          "op": "C",
+          "ref": "not",
+          "hyp": "not"
+        },
+        {
+          "op": "C",
+          "ref": "as",
+          "hyp": "as"
+        },
+        {
+          "op": "C",
+          "ref": "steady",
+          "hyp": "steady"
+        },
+        {
+          "op": "C",
+          "ref": "as",
+          "hyp": "as"
+        },
+        {
+          "op": "C",
+          "ref": "large",
+          "hyp": "large"
+        },
+        {
+          "op": "C",
+          "ref": "caves",
+          "hyp": "caves"
+        },
+        {
+          "op": "C",
+          "ref": "on",
+          "hyp": "on"
+        },
+        {
+          "op": "C",
+          "ref": "earth",
+          "hyp": "earth"
+        },
+        {
+          "op": "C",
+          "ref": "that",
+          "hyp": "that"
+        },
+        {
+          "op": "C",
+          "ref": "often",
+          "hyp": "often"
+        },
+        {
+          "op": "C",
+          "ref": "maintain",
+          "hyp": "maintain"
+        },
+        {
+          "op": "C",
+          "ref": "a",
+          "hyp": "a"
+        },
+        {
+          "op": "C",
+          "ref": "fairly",
+          "hyp": "fairly"
+        },
+        {
+          "op": "C",
+          "ref": "constant",
+          "hyp": "constant"
+        },
+        {
+          "op": "C",
+          "ref": "temperature",
+          "hyp": "temperature"
+        },
+        {
+          "op": "C",
+          "ref": "but",
+          "hyp": "but"
+        },
+        {
+          "op": "C",
+          "ref": "it",
+          "hyp": "it"
+        },
+        {
+          "op": "S",
+          "ref": "is",
+          "hyp": "s"
+        },
+        {
+          "op": "C",
+          "ref": "consistent",
+          "hyp": "consistent"
+        },
+        {
+          "op": "C",
+          "ref": "with",
+          "hyp": "with"
+        },
+        {
+          "op": "C",
+          "ref": "these",
+          "hyp": "these"
+        },
+        {
+          "op": "C",
+          "ref": "being",
+          "hyp": "being"
+        },
+        {
+          "op": "C",
+          "ref": "deep",
+          "hyp": "deep"
+        },
+        {
+          "op": "C",
+          "ref": "holes",
+          "hyp": "holes"
+        },
+        {
+          "op": "C",
+          "ref": "in",
+          "hyp": "in"
+        },
+        {
+          "op": "C",
+          "ref": "the",
+          "hyp": "the"
+        },
+        {
+          "op": "C",
+          "ref": "ground",
+          "hyp": "ground"
+        },
+        {
+          "op": "S",
+          "ref": "said",
+          "hyp": "set"
+        },
+        {
+          "op": "S",
+          "ref": "glen",
+          "hyp": "glenn"
+        },
+        {
+          "op": "C",
+          "ref": "cushing",
+          "hyp": "cushing"
+        },
+        {
+          "op": "D",
+          "ref": "of",
+          "hyp": null
+        },
+        {
+          "op": "S",
+          "ref": "the",
+          "hyp": "a"
+        },
+        {
+          "op": "C",
+          "ref": "united",
+          "hyp": "united"
+        },
+        {
+          "op": "C",
+          "ref": "states",
+          "hyp": "states"
+        },
+        {
+          "op": "C",
+          "ref": "geological",
+          "hyp": "geological"
+        },
+        {
+          "op": "C",
+          "ref": "survey",
+          "hyp": "survey"
+        },
+        {
+          "op": "D",
+          "ref": "usgs",
+          "hyp": null
+        },
+        {
+          "op": "C",
+          "ref": "astrogeology",
+          "hyp": "astrogeology"
+        },
+        {
+          "op": "C",
+          "ref": "team",
+          "hyp": "team"
+        },
+        {
+          "op": "C",
+          "ref": "and",
+          "hyp": "and"
+        },
+        {
+          "op": "C",
+          "ref": "of",
+          "hyp": "of"
+        },
+        {
+          "op": "C",
+          "ref": "northern",
+          "hyp": "northern"
+        },
+        {
+          "op": "C",
+          "ref": "arizona",
+          "hyp": "arizona"
+        },
+        {
+          "op": "C",
+          "ref": "university",
+          "hyp": "university"
+        },
+        {
+          "op": "C",
+          "ref": "located",
+          "hyp": "located"
+        },
+        {
+          "op": "C",
+          "ref": "in",
+          "hyp": "in"
+        },
+        {
+          "op": "C",
+          "ref": "flagstaff",
+          "hyp": "flagstaff"
+        },
+        {
+          "op": "C",
+          "ref": "arizona",
+          "hyp": "arizona"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "S",
+          "ref": "is",
+          "hyp": "s",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "said",
+          "hyp": "set",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "glen",
+          "hyp": "glenn",
+          "class": "substitution"
+        },
+        {
+          "op": "D",
+          "ref": "of",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "S",
+          "ref": "the",
+          "hyp": "a",
+          "class": "substitution"
+        },
+        {
+          "op": "D",
+          "ref": "usgs",
+          "hyp": null,
+          "class": "deletion"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": 12,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1670",
+      "lang": "zh",
+      "stratum": "read-speech",
+      "config": "cmn_hans_cn",
+      "saLocale": "zh-CN",
+      "officialErrors": 7,
+      "officialLength": 92,
+      "officialRate": 0.07608695652173914,
+      "frozenErrors": 7,
+      "length": 92,
+      "rate": 0.07608695652173914,
+      "counts": {
+        "C": 85,
+        "S": 7,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "“它们的热行为不像地球上的大型洞穴那么稳定，这些大型洞穴通常会保持相当恒定的温度，但它们与地下深穴的情况很相似，”亚利桑那州旗杆镇美国地质调查局 (USGS) 太空地质团队和北亚利桑那大学的格伦·库欣说道。",
+      "rawHypothesis": "他们的热行为不像地球上的大型洞穴那么稳定 ，这些大型洞穴通常会保持相当恒定的温度。但它们与地下升雪的情况很相似。亚历桑那州旗甘镇美国地质调查局 USGS太空地质团队和北亚历桑那大学的格伦库星说道。",
+      "nfkcReference": "“它们的热行为不像地球上的大型洞穴那么稳定,这些大型洞穴通常会保持相当恒定的温度,但它们与地下深穴的情况很相似,”亚利桑那州旗杆镇美国地质调查局 (USGS) 太空地质团队和北亚利桑那大学的格伦·库欣说道。",
+      "nfkcHypothesis": "他们的热行为不像地球上的大型洞穴那么稳定 ,这些大型洞穴通常会保持相当恒定的温度。但它们与地下升雪的情况很相似。亚历桑那州旗甘镇美国地质调查局 USGS太空地质团队和北亚历桑那大学的格伦库星说道。",
+      "tokensRef": [
+        "它",
+        "们",
+        "的",
+        "热",
+        "行",
+        "为",
+        "不",
+        "像",
+        "地",
+        "球",
+        "上",
+        "的",
+        "大",
+        "型",
+        "洞",
+        "穴",
+        "那",
+        "么",
+        "稳",
+        "定",
+        "这",
+        "些",
+        "大",
+        "型",
+        "洞",
+        "穴",
+        "通",
+        "常",
+        "会",
+        "保",
+        "持",
+        "相",
+        "当",
+        "恒",
+        "定",
+        "的",
+        "温",
+        "度",
+        "但",
+        "它",
+        "们",
+        "与",
+        "地",
+        "下",
+        "深",
+        "穴",
+        "的",
+        "情",
+        "况",
+        "很",
+        "相",
+        "似",
+        "亚",
+        "利",
+        "桑",
+        "那",
+        "州",
+        "旗",
+        "杆",
+        "镇",
+        "美",
+        "国",
+        "地",
+        "质",
+        "调",
+        "查",
+        "局",
+        "U",
+        "S",
+        "G",
+        "S",
+        "太",
+        "空",
+        "地",
+        "质",
+        "团",
+        "队",
+        "和",
+        "北",
+        "亚",
+        "利",
+        "桑",
+        "那",
+        "大",
+        "学",
+        "的",
+        "格",
+        "伦",
+        "库",
+        "欣",
+        "说",
+        "道"
+      ],
+      "tokensHyp": [
+        "他",
+        "们",
+        "的",
+        "热",
+        "行",
+        "为",
+        "不",
+        "像",
+        "地",
+        "球",
+        "上",
+        "的",
+        "大",
+        "型",
+        "洞",
+        "穴",
+        "那",
+        "么",
+        "稳",
+        "定",
+        "这",
+        "些",
+        "大",
+        "型",
+        "洞",
+        "穴",
+        "通",
+        "常",
+        "会",
+        "保",
+        "持",
+        "相",
+        "当",
+        "恒",
+        "定",
+        "的",
+        "温",
+        "度",
+        "但",
+        "它",
+        "们",
+        "与",
+        "地",
+        "下",
+        "升",
+        "雪",
+        "的",
+        "情",
+        "况",
+        "很",
+        "相",
+        "似",
+        "亚",
+        "历",
+        "桑",
+        "那",
+        "州",
+        "旗",
+        "甘",
+        "镇",
+        "美",
+        "国",
+        "地",
+        "质",
+        "调",
+        "查",
+        "局",
+        "U",
+        "S",
+        "G",
+        "S",
+        "太",
+        "空",
+        "地",
+        "质",
+        "团",
+        "队",
+        "和",
+        "北",
+        "亚",
+        "历",
+        "桑",
+        "那",
+        "大",
+        "学",
+        "的",
+        "格",
+        "伦",
+        "库",
+        "星",
+        "说",
+        "道"
+      ],
+      "ops": [
+        {
+          "op": "S",
+          "ref": "它",
+          "hyp": "他"
+        },
+        {
+          "op": "C",
+          "ref": "们",
+          "hyp": "们"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        },
+        {
+          "op": "C",
+          "ref": "热",
+          "hyp": "热"
+        },
+        {
+          "op": "C",
+          "ref": "行",
+          "hyp": "行"
+        },
+        {
+          "op": "C",
+          "ref": "为",
+          "hyp": "为"
+        },
+        {
+          "op": "C",
+          "ref": "不",
+          "hyp": "不"
+        },
+        {
+          "op": "C",
+          "ref": "像",
+          "hyp": "像"
+        },
+        {
+          "op": "C",
+          "ref": "地",
+          "hyp": "地"
+        },
+        {
+          "op": "C",
+          "ref": "球",
+          "hyp": "球"
+        },
+        {
+          "op": "C",
+          "ref": "上",
+          "hyp": "上"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        },
+        {
+          "op": "C",
+          "ref": "大",
+          "hyp": "大"
+        },
+        {
+          "op": "C",
+          "ref": "型",
+          "hyp": "型"
+        },
+        {
+          "op": "C",
+          "ref": "洞",
+          "hyp": "洞"
+        },
+        {
+          "op": "C",
+          "ref": "穴",
+          "hyp": "穴"
+        },
+        {
+          "op": "C",
+          "ref": "那",
+          "hyp": "那"
+        },
+        {
+          "op": "C",
+          "ref": "么",
+          "hyp": "么"
+        },
+        {
+          "op": "C",
+          "ref": "稳",
+          "hyp": "稳"
+        },
+        {
+          "op": "C",
+          "ref": "定",
+          "hyp": "定"
+        },
+        {
+          "op": "C",
+          "ref": "这",
+          "hyp": "这"
+        },
+        {
+          "op": "C",
+          "ref": "些",
+          "hyp": "些"
+        },
+        {
+          "op": "C",
+          "ref": "大",
+          "hyp": "大"
+        },
+        {
+          "op": "C",
+          "ref": "型",
+          "hyp": "型"
+        },
+        {
+          "op": "C",
+          "ref": "洞",
+          "hyp": "洞"
+        },
+        {
+          "op": "C",
+          "ref": "穴",
+          "hyp": "穴"
+        },
+        {
+          "op": "C",
+          "ref": "通",
+          "hyp": "通"
+        },
+        {
+          "op": "C",
+          "ref": "常",
+          "hyp": "常"
+        },
+        {
+          "op": "C",
+          "ref": "会",
+          "hyp": "会"
+        },
+        {
+          "op": "C",
+          "ref": "保",
+          "hyp": "保"
+        },
+        {
+          "op": "C",
+          "ref": "持",
+          "hyp": "持"
+        },
+        {
+          "op": "C",
+          "ref": "相",
+          "hyp": "相"
+        },
+        {
+          "op": "C",
+          "ref": "当",
+          "hyp": "当"
+        },
+        {
+          "op": "C",
+          "ref": "恒",
+          "hyp": "恒"
+        },
+        {
+          "op": "C",
+          "ref": "定",
+          "hyp": "定"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        },
+        {
+          "op": "C",
+          "ref": "温",
+          "hyp": "温"
+        },
+        {
+          "op": "C",
+          "ref": "度",
+          "hyp": "度"
+        },
+        {
+          "op": "C",
+          "ref": "但",
+          "hyp": "但"
+        },
+        {
+          "op": "C",
+          "ref": "它",
+          "hyp": "它"
+        },
+        {
+          "op": "C",
+          "ref": "们",
+          "hyp": "们"
+        },
+        {
+          "op": "C",
+          "ref": "与",
+          "hyp": "与"
+        },
+        {
+          "op": "C",
+          "ref": "地",
+          "hyp": "地"
+        },
+        {
+          "op": "C",
+          "ref": "下",
+          "hyp": "下"
+        },
+        {
+          "op": "S",
+          "ref": "深",
+          "hyp": "升"
+        },
+        {
+          "op": "S",
+          "ref": "穴",
+          "hyp": "雪"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        },
+        {
+          "op": "C",
+          "ref": "情",
+          "hyp": "情"
+        },
+        {
+          "op": "C",
+          "ref": "况",
+          "hyp": "况"
+        },
+        {
+          "op": "C",
+          "ref": "很",
+          "hyp": "很"
+        },
+        {
+          "op": "C",
+          "ref": "相",
+          "hyp": "相"
+        },
+        {
+          "op": "C",
+          "ref": "似",
+          "hyp": "似"
+        },
+        {
+          "op": "C",
+          "ref": "亚",
+          "hyp": "亚"
+        },
+        {
+          "op": "S",
+          "ref": "利",
+          "hyp": "历"
+        },
+        {
+          "op": "C",
+          "ref": "桑",
+          "hyp": "桑"
+        },
+        {
+          "op": "C",
+          "ref": "那",
+          "hyp": "那"
+        },
+        {
+          "op": "C",
+          "ref": "州",
+          "hyp": "州"
+        },
+        {
+          "op": "C",
+          "ref": "旗",
+          "hyp": "旗"
+        },
+        {
+          "op": "S",
+          "ref": "杆",
+          "hyp": "甘"
+        },
+        {
+          "op": "C",
+          "ref": "镇",
+          "hyp": "镇"
+        },
+        {
+          "op": "C",
+          "ref": "美",
+          "hyp": "美"
+        },
+        {
+          "op": "C",
+          "ref": "国",
+          "hyp": "国"
+        },
+        {
+          "op": "C",
+          "ref": "地",
+          "hyp": "地"
+        },
+        {
+          "op": "C",
+          "ref": "质",
+          "hyp": "质"
+        },
+        {
+          "op": "C",
+          "ref": "调",
+          "hyp": "调"
+        },
+        {
+          "op": "C",
+          "ref": "查",
+          "hyp": "查"
+        },
+        {
+          "op": "C",
+          "ref": "局",
+          "hyp": "局"
+        },
+        {
+          "op": "C",
+          "ref": "U",
+          "hyp": "U"
+        },
+        {
+          "op": "C",
+          "ref": "S",
+          "hyp": "S"
+        },
+        {
+          "op": "C",
+          "ref": "G",
+          "hyp": "G"
+        },
+        {
+          "op": "C",
+          "ref": "S",
+          "hyp": "S"
+        },
+        {
+          "op": "C",
+          "ref": "太",
+          "hyp": "太"
+        },
+        {
+          "op": "C",
+          "ref": "空",
+          "hyp": "空"
+        },
+        {
+          "op": "C",
+          "ref": "地",
+          "hyp": "地"
+        },
+        {
+          "op": "C",
+          "ref": "质",
+          "hyp": "质"
+        },
+        {
+          "op": "C",
+          "ref": "团",
+          "hyp": "团"
+        },
+        {
+          "op": "C",
+          "ref": "队",
+          "hyp": "队"
+        },
+        {
+          "op": "C",
+          "ref": "和",
+          "hyp": "和"
+        },
+        {
+          "op": "C",
+          "ref": "北",
+          "hyp": "北"
+        },
+        {
+          "op": "C",
+          "ref": "亚",
+          "hyp": "亚"
+        },
+        {
+          "op": "S",
+          "ref": "利",
+          "hyp": "历"
+        },
+        {
+          "op": "C",
+          "ref": "桑",
+          "hyp": "桑"
+        },
+        {
+          "op": "C",
+          "ref": "那",
+          "hyp": "那"
+        },
+        {
+          "op": "C",
+          "ref": "大",
+          "hyp": "大"
+        },
+        {
+          "op": "C",
+          "ref": "学",
+          "hyp": "学"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        },
+        {
+          "op": "C",
+          "ref": "格",
+          "hyp": "格"
+        },
+        {
+          "op": "C",
+          "ref": "伦",
+          "hyp": "伦"
+        },
+        {
+          "op": "C",
+          "ref": "库",
+          "hyp": "库"
+        },
+        {
+          "op": "S",
+          "ref": "欣",
+          "hyp": "星"
+        },
+        {
+          "op": "C",
+          "ref": "说",
+          "hyp": "说"
+        },
+        {
+          "op": "C",
+          "ref": "道",
+          "hyp": "道"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "S",
+          "ref": "它",
+          "hyp": "他",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "深",
+          "hyp": "升",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "穴",
+          "hyp": "雪",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "利",
+          "hyp": "历",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "杆",
+          "hyp": "甘",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "利",
+          "hyp": "历",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "欣",
+          "hyp": "星",
+          "class": "substitution"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [
+        "U",
+        "S",
+        "G",
+        "S"
+      ],
+      "latinCharsInZhHyp": [
+        "U",
+        "S",
+        "G",
+        "S"
+      ],
+      "caseSensitiveEnErrors": null,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1671",
+      "lang": "en",
+      "stratum": "read-speech",
+      "config": "en_us",
+      "saLocale": "en-US",
+      "officialErrors": 0,
+      "officialLength": 21,
+      "officialRate": 0,
+      "frozenErrors": 0,
+      "length": 21,
+      "rate": 0,
+      "counts": {
+        "C": 21,
+        "S": 0,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "Congress began funding the obscenity initiative in fiscal 2005 and specified that the FBI must devote 10 agents to adult pornography.",
+      "rawHypothesis": "Congress began funding the obscenity initiative in fiscal 2005 and specified that the FBI must devote 10 agents to adult pornography.",
+      "nfkcReference": "Congress began funding the obscenity initiative in fiscal 2005 and specified that the FBI must devote 10 agents to adult pornography.",
+      "nfkcHypothesis": "Congress began funding the obscenity initiative in fiscal 2005 and specified that the FBI must devote 10 agents to adult pornography.",
+      "tokensRef": [
+        "congress",
+        "began",
+        "funding",
+        "the",
+        "obscenity",
+        "initiative",
+        "in",
+        "fiscal",
+        "2005",
+        "and",
+        "specified",
+        "that",
+        "the",
+        "fbi",
+        "must",
+        "devote",
+        "10",
+        "agents",
+        "to",
+        "adult",
+        "pornography"
+      ],
+      "tokensHyp": [
+        "congress",
+        "began",
+        "funding",
+        "the",
+        "obscenity",
+        "initiative",
+        "in",
+        "fiscal",
+        "2005",
+        "and",
+        "specified",
+        "that",
+        "the",
+        "fbi",
+        "must",
+        "devote",
+        "10",
+        "agents",
+        "to",
+        "adult",
+        "pornography"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "congress",
+          "hyp": "congress"
+        },
+        {
+          "op": "C",
+          "ref": "began",
+          "hyp": "began"
+        },
+        {
+          "op": "C",
+          "ref": "funding",
+          "hyp": "funding"
+        },
+        {
+          "op": "C",
+          "ref": "the",
+          "hyp": "the"
+        },
+        {
+          "op": "C",
+          "ref": "obscenity",
+          "hyp": "obscenity"
+        },
+        {
+          "op": "C",
+          "ref": "initiative",
+          "hyp": "initiative"
+        },
+        {
+          "op": "C",
+          "ref": "in",
+          "hyp": "in"
+        },
+        {
+          "op": "C",
+          "ref": "fiscal",
+          "hyp": "fiscal"
+        },
+        {
+          "op": "C",
+          "ref": "2005",
+          "hyp": "2005"
+        },
+        {
+          "op": "C",
+          "ref": "and",
+          "hyp": "and"
+        },
+        {
+          "op": "C",
+          "ref": "specified",
+          "hyp": "specified"
+        },
+        {
+          "op": "C",
+          "ref": "that",
+          "hyp": "that"
+        },
+        {
+          "op": "C",
+          "ref": "the",
+          "hyp": "the"
+        },
+        {
+          "op": "C",
+          "ref": "fbi",
+          "hyp": "fbi"
+        },
+        {
+          "op": "C",
+          "ref": "must",
+          "hyp": "must"
+        },
+        {
+          "op": "C",
+          "ref": "devote",
+          "hyp": "devote"
+        },
+        {
+          "op": "C",
+          "ref": "10",
+          "hyp": "10"
+        },
+        {
+          "op": "C",
+          "ref": "agents",
+          "hyp": "agents"
+        },
+        {
+          "op": "C",
+          "ref": "to",
+          "hyp": "to"
+        },
+        {
+          "op": "C",
+          "ref": "adult",
+          "hyp": "adult"
+        },
+        {
+          "op": "C",
+          "ref": "pornography",
+          "hyp": "pornography"
+        }
+      ],
+      "errorOps": [],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": 0,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "lang": "zh",
+      "stratum": "read-speech",
+      "config": "cmn_hans_cn",
+      "saLocale": "zh-CN",
+      "officialErrors": 6,
+      "officialLength": 46,
+      "officialRate": 0.13043478260869565,
+      "frozenErrors": 6,
+      "length": 46,
+      "rate": 0.13043478260869565,
+      "counts": {
+        "C": 41,
+        "S": 2,
+        "D": 3,
+        "I": 1
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "国会从 2005 财年开始资助该扫黄倡议，并规定联邦调查局 (FBI) 必须指派 10 名探员专门打击成人色情。",
+      "rawHypothesis": "国会从 2005年才年开始资助该扫黄倡议并规定联邦调查局必须指派 10名太员专门打击成人色情。",
+      "nfkcReference": "国会从 2005 财年开始资助该扫黄倡议,并规定联邦调查局 (FBI) 必须指派 10 名探员专门打击成人色情。",
+      "nfkcHypothesis": "国会从 2005年才年开始资助该扫黄倡议并规定联邦调查局必须指派 10名太员专门打击成人色情。",
+      "tokensRef": [
+        "国",
+        "会",
+        "从",
+        "2",
+        "0",
+        "0",
+        "5",
+        "财",
+        "年",
+        "开",
+        "始",
+        "资",
+        "助",
+        "该",
+        "扫",
+        "黄",
+        "倡",
+        "议",
+        "并",
+        "规",
+        "定",
+        "联",
+        "邦",
+        "调",
+        "查",
+        "局",
+        "F",
+        "B",
+        "I",
+        "必",
+        "须",
+        "指",
+        "派",
+        "1",
+        "0",
+        "名",
+        "探",
+        "员",
+        "专",
+        "门",
+        "打",
+        "击",
+        "成",
+        "人",
+        "色",
+        "情"
+      ],
+      "tokensHyp": [
+        "国",
+        "会",
+        "从",
+        "2",
+        "0",
+        "0",
+        "5",
+        "年",
+        "才",
+        "年",
+        "开",
+        "始",
+        "资",
+        "助",
+        "该",
+        "扫",
+        "黄",
+        "倡",
+        "议",
+        "并",
+        "规",
+        "定",
+        "联",
+        "邦",
+        "调",
+        "查",
+        "局",
+        "必",
+        "须",
+        "指",
+        "派",
+        "1",
+        "0",
+        "名",
+        "太",
+        "员",
+        "专",
+        "门",
+        "打",
+        "击",
+        "成",
+        "人",
+        "色",
+        "情"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "国",
+          "hyp": "国"
+        },
+        {
+          "op": "C",
+          "ref": "会",
+          "hyp": "会"
+        },
+        {
+          "op": "C",
+          "ref": "从",
+          "hyp": "从"
+        },
+        {
+          "op": "C",
+          "ref": "2",
+          "hyp": "2"
+        },
+        {
+          "op": "C",
+          "ref": "0",
+          "hyp": "0"
+        },
+        {
+          "op": "C",
+          "ref": "0",
+          "hyp": "0"
+        },
+        {
+          "op": "C",
+          "ref": "5",
+          "hyp": "5"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "年"
+        },
+        {
+          "op": "S",
+          "ref": "财",
+          "hyp": "才"
+        },
+        {
+          "op": "C",
+          "ref": "年",
+          "hyp": "年"
+        },
+        {
+          "op": "C",
+          "ref": "开",
+          "hyp": "开"
+        },
+        {
+          "op": "C",
+          "ref": "始",
+          "hyp": "始"
+        },
+        {
+          "op": "C",
+          "ref": "资",
+          "hyp": "资"
+        },
+        {
+          "op": "C",
+          "ref": "助",
+          "hyp": "助"
+        },
+        {
+          "op": "C",
+          "ref": "该",
+          "hyp": "该"
+        },
+        {
+          "op": "C",
+          "ref": "扫",
+          "hyp": "扫"
+        },
+        {
+          "op": "C",
+          "ref": "黄",
+          "hyp": "黄"
+        },
+        {
+          "op": "C",
+          "ref": "倡",
+          "hyp": "倡"
+        },
+        {
+          "op": "C",
+          "ref": "议",
+          "hyp": "议"
+        },
+        {
+          "op": "C",
+          "ref": "并",
+          "hyp": "并"
+        },
+        {
+          "op": "C",
+          "ref": "规",
+          "hyp": "规"
+        },
+        {
+          "op": "C",
+          "ref": "定",
+          "hyp": "定"
+        },
+        {
+          "op": "C",
+          "ref": "联",
+          "hyp": "联"
+        },
+        {
+          "op": "C",
+          "ref": "邦",
+          "hyp": "邦"
+        },
+        {
+          "op": "C",
+          "ref": "调",
+          "hyp": "调"
+        },
+        {
+          "op": "C",
+          "ref": "查",
+          "hyp": "查"
+        },
+        {
+          "op": "C",
+          "ref": "局",
+          "hyp": "局"
+        },
+        {
+          "op": "D",
+          "ref": "F",
+          "hyp": null
+        },
+        {
+          "op": "D",
+          "ref": "B",
+          "hyp": null
+        },
+        {
+          "op": "D",
+          "ref": "I",
+          "hyp": null
+        },
+        {
+          "op": "C",
+          "ref": "必",
+          "hyp": "必"
+        },
+        {
+          "op": "C",
+          "ref": "须",
+          "hyp": "须"
+        },
+        {
+          "op": "C",
+          "ref": "指",
+          "hyp": "指"
+        },
+        {
+          "op": "C",
+          "ref": "派",
+          "hyp": "派"
+        },
+        {
+          "op": "C",
+          "ref": "1",
+          "hyp": "1"
+        },
+        {
+          "op": "C",
+          "ref": "0",
+          "hyp": "0"
+        },
+        {
+          "op": "C",
+          "ref": "名",
+          "hyp": "名"
+        },
+        {
+          "op": "S",
+          "ref": "探",
+          "hyp": "太"
+        },
+        {
+          "op": "C",
+          "ref": "员",
+          "hyp": "员"
+        },
+        {
+          "op": "C",
+          "ref": "专",
+          "hyp": "专"
+        },
+        {
+          "op": "C",
+          "ref": "门",
+          "hyp": "门"
+        },
+        {
+          "op": "C",
+          "ref": "打",
+          "hyp": "打"
+        },
+        {
+          "op": "C",
+          "ref": "击",
+          "hyp": "击"
+        },
+        {
+          "op": "C",
+          "ref": "成",
+          "hyp": "成"
+        },
+        {
+          "op": "C",
+          "ref": "人",
+          "hyp": "人"
+        },
+        {
+          "op": "C",
+          "ref": "色",
+          "hyp": "色"
+        },
+        {
+          "op": "C",
+          "ref": "情",
+          "hyp": "情"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "年",
+          "class": "insertion"
+        },
+        {
+          "op": "S",
+          "ref": "财",
+          "hyp": "才",
+          "class": "substitution"
+        },
+        {
+          "op": "D",
+          "ref": "F",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "D",
+          "ref": "B",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "D",
+          "ref": "I",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "S",
+          "ref": "探",
+          "hyp": "太",
+          "class": "substitution"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [
+        "F",
+        "B",
+        "I"
+      ],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": null,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1672",
+      "lang": "en",
+      "stratum": "read-speech",
+      "config": "en_us",
+      "saLocale": "en-US",
+      "officialErrors": 2,
+      "officialLength": 19,
+      "officialRate": 0.10526315789473684,
+      "frozenErrors": 2,
+      "length": 19,
+      "rate": 0.10526315789473684,
+      "counts": {
+        "C": 19,
+        "S": 0,
+        "D": 0,
+        "I": 2
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "Be careful not to allow fabric to become too hot (which can cause shrinkage, or in extreme cases, scorch).",
+      "rawHypothesis": "All right, be careful not to allow fabric to become too hot, which can cause shrinkage, or in extreme cases, scorch.",
+      "nfkcReference": "Be careful not to allow fabric to become too hot (which can cause shrinkage, or in extreme cases, scorch).",
+      "nfkcHypothesis": "All right, be careful not to allow fabric to become too hot, which can cause shrinkage, or in extreme cases, scorch.",
+      "tokensRef": [
+        "be",
+        "careful",
+        "not",
+        "to",
+        "allow",
+        "fabric",
+        "to",
+        "become",
+        "too",
+        "hot",
+        "which",
+        "can",
+        "cause",
+        "shrinkage",
+        "or",
+        "in",
+        "extreme",
+        "cases",
+        "scorch"
+      ],
+      "tokensHyp": [
+        "all",
+        "right",
+        "be",
+        "careful",
+        "not",
+        "to",
+        "allow",
+        "fabric",
+        "to",
+        "become",
+        "too",
+        "hot",
+        "which",
+        "can",
+        "cause",
+        "shrinkage",
+        "or",
+        "in",
+        "extreme",
+        "cases",
+        "scorch"
+      ],
+      "ops": [
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "all"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "right"
+        },
+        {
+          "op": "C",
+          "ref": "be",
+          "hyp": "be"
+        },
+        {
+          "op": "C",
+          "ref": "careful",
+          "hyp": "careful"
+        },
+        {
+          "op": "C",
+          "ref": "not",
+          "hyp": "not"
+        },
+        {
+          "op": "C",
+          "ref": "to",
+          "hyp": "to"
+        },
+        {
+          "op": "C",
+          "ref": "allow",
+          "hyp": "allow"
+        },
+        {
+          "op": "C",
+          "ref": "fabric",
+          "hyp": "fabric"
+        },
+        {
+          "op": "C",
+          "ref": "to",
+          "hyp": "to"
+        },
+        {
+          "op": "C",
+          "ref": "become",
+          "hyp": "become"
+        },
+        {
+          "op": "C",
+          "ref": "too",
+          "hyp": "too"
+        },
+        {
+          "op": "C",
+          "ref": "hot",
+          "hyp": "hot"
+        },
+        {
+          "op": "C",
+          "ref": "which",
+          "hyp": "which"
+        },
+        {
+          "op": "C",
+          "ref": "can",
+          "hyp": "can"
+        },
+        {
+          "op": "C",
+          "ref": "cause",
+          "hyp": "cause"
+        },
+        {
+          "op": "C",
+          "ref": "shrinkage",
+          "hyp": "shrinkage"
+        },
+        {
+          "op": "C",
+          "ref": "or",
+          "hyp": "or"
+        },
+        {
+          "op": "C",
+          "ref": "in",
+          "hyp": "in"
+        },
+        {
+          "op": "C",
+          "ref": "extreme",
+          "hyp": "extreme"
+        },
+        {
+          "op": "C",
+          "ref": "cases",
+          "hyp": "cases"
+        },
+        {
+          "op": "C",
+          "ref": "scorch",
+          "hyp": "scorch"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "all",
+          "class": "insertion"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "right",
+          "class": "insertion"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": 3,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1672",
+      "lang": "zh",
+      "stratum": "read-speech",
+      "config": "cmn_hans_cn",
+      "saLocale": "zh-CN",
+      "officialErrors": 0,
+      "officialLength": 33,
+      "officialRate": 0,
+      "frozenErrors": 0,
+      "length": 33,
+      "rate": 0,
+      "counts": {
+        "C": 33,
+        "S": 0,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "小心不要让衣服变得太热（这可能会产生收缩现象，在极端情况下会把衣服烤焦）。",
+      "rawHypothesis": "小心不要让衣服变得太热 ，这可能会产生收缩现象 ，在极端情况下会把衣服烤焦。",
+      "nfkcReference": "小心不要让衣服变得太热(这可能会产生收缩现象,在极端情况下会把衣服烤焦)。",
+      "nfkcHypothesis": "小心不要让衣服变得太热 ,这可能会产生收缩现象 ,在极端情况下会把衣服烤焦。",
+      "tokensRef": [
+        "小",
+        "心",
+        "不",
+        "要",
+        "让",
+        "衣",
+        "服",
+        "变",
+        "得",
+        "太",
+        "热",
+        "这",
+        "可",
+        "能",
+        "会",
+        "产",
+        "生",
+        "收",
+        "缩",
+        "现",
+        "象",
+        "在",
+        "极",
+        "端",
+        "情",
+        "况",
+        "下",
+        "会",
+        "把",
+        "衣",
+        "服",
+        "烤",
+        "焦"
+      ],
+      "tokensHyp": [
+        "小",
+        "心",
+        "不",
+        "要",
+        "让",
+        "衣",
+        "服",
+        "变",
+        "得",
+        "太",
+        "热",
+        "这",
+        "可",
+        "能",
+        "会",
+        "产",
+        "生",
+        "收",
+        "缩",
+        "现",
+        "象",
+        "在",
+        "极",
+        "端",
+        "情",
+        "况",
+        "下",
+        "会",
+        "把",
+        "衣",
+        "服",
+        "烤",
+        "焦"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "小",
+          "hyp": "小"
+        },
+        {
+          "op": "C",
+          "ref": "心",
+          "hyp": "心"
+        },
+        {
+          "op": "C",
+          "ref": "不",
+          "hyp": "不"
+        },
+        {
+          "op": "C",
+          "ref": "要",
+          "hyp": "要"
+        },
+        {
+          "op": "C",
+          "ref": "让",
+          "hyp": "让"
+        },
+        {
+          "op": "C",
+          "ref": "衣",
+          "hyp": "衣"
+        },
+        {
+          "op": "C",
+          "ref": "服",
+          "hyp": "服"
+        },
+        {
+          "op": "C",
+          "ref": "变",
+          "hyp": "变"
+        },
+        {
+          "op": "C",
+          "ref": "得",
+          "hyp": "得"
+        },
+        {
+          "op": "C",
+          "ref": "太",
+          "hyp": "太"
+        },
+        {
+          "op": "C",
+          "ref": "热",
+          "hyp": "热"
+        },
+        {
+          "op": "C",
+          "ref": "这",
+          "hyp": "这"
+        },
+        {
+          "op": "C",
+          "ref": "可",
+          "hyp": "可"
+        },
+        {
+          "op": "C",
+          "ref": "能",
+          "hyp": "能"
+        },
+        {
+          "op": "C",
+          "ref": "会",
+          "hyp": "会"
+        },
+        {
+          "op": "C",
+          "ref": "产",
+          "hyp": "产"
+        },
+        {
+          "op": "C",
+          "ref": "生",
+          "hyp": "生"
+        },
+        {
+          "op": "C",
+          "ref": "收",
+          "hyp": "收"
+        },
+        {
+          "op": "C",
+          "ref": "缩",
+          "hyp": "缩"
+        },
+        {
+          "op": "C",
+          "ref": "现",
+          "hyp": "现"
+        },
+        {
+          "op": "C",
+          "ref": "象",
+          "hyp": "象"
+        },
+        {
+          "op": "C",
+          "ref": "在",
+          "hyp": "在"
+        },
+        {
+          "op": "C",
+          "ref": "极",
+          "hyp": "极"
+        },
+        {
+          "op": "C",
+          "ref": "端",
+          "hyp": "端"
+        },
+        {
+          "op": "C",
+          "ref": "情",
+          "hyp": "情"
+        },
+        {
+          "op": "C",
+          "ref": "况",
+          "hyp": "况"
+        },
+        {
+          "op": "C",
+          "ref": "下",
+          "hyp": "下"
+        },
+        {
+          "op": "C",
+          "ref": "会",
+          "hyp": "会"
+        },
+        {
+          "op": "C",
+          "ref": "把",
+          "hyp": "把"
+        },
+        {
+          "op": "C",
+          "ref": "衣",
+          "hyp": "衣"
+        },
+        {
+          "op": "C",
+          "ref": "服",
+          "hyp": "服"
+        },
+        {
+          "op": "C",
+          "ref": "烤",
+          "hyp": "烤"
+        },
+        {
+          "op": "C",
+          "ref": "焦",
+          "hyp": "焦"
+        }
+      ],
+      "errorOps": [],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": null,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1673",
+      "lang": "en",
+      "stratum": "read-speech",
+      "config": "en_us",
+      "saLocale": "en-US",
+      "officialErrors": 1,
+      "officialLength": 25,
+      "officialRate": 0.04,
+      "frozenErrors": 1,
+      "length": 25,
+      "rate": 0.04,
+      "counts": {
+        "C": 24,
+        "S": 1,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "During the Revolutionary War, the thirteen states first formed a weak central government—with the Congress being its only component—under the Articles of Confederation.",
+      "rawHypothesis": "During the Revolutionary War, the 13 states first formed a weak central government, with the Congress being its only component under the Articles of Confederation.",
+      "nfkcReference": "During the Revolutionary War, the thirteen states first formed a weak central government—with the Congress being its only component—under the Articles of Confederation.",
+      "nfkcHypothesis": "During the Revolutionary War, the 13 states first formed a weak central government, with the Congress being its only component under the Articles of Confederation.",
+      "tokensRef": [
+        "during",
+        "the",
+        "revolutionary",
+        "war",
+        "the",
+        "thirteen",
+        "states",
+        "first",
+        "formed",
+        "a",
+        "weak",
+        "central",
+        "government",
+        "with",
+        "the",
+        "congress",
+        "being",
+        "its",
+        "only",
+        "component",
+        "under",
+        "the",
+        "articles",
+        "of",
+        "confederation"
+      ],
+      "tokensHyp": [
+        "during",
+        "the",
+        "revolutionary",
+        "war",
+        "the",
+        "13",
+        "states",
+        "first",
+        "formed",
+        "a",
+        "weak",
+        "central",
+        "government",
+        "with",
+        "the",
+        "congress",
+        "being",
+        "its",
+        "only",
+        "component",
+        "under",
+        "the",
+        "articles",
+        "of",
+        "confederation"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "during",
+          "hyp": "during"
+        },
+        {
+          "op": "C",
+          "ref": "the",
+          "hyp": "the"
+        },
+        {
+          "op": "C",
+          "ref": "revolutionary",
+          "hyp": "revolutionary"
+        },
+        {
+          "op": "C",
+          "ref": "war",
+          "hyp": "war"
+        },
+        {
+          "op": "C",
+          "ref": "the",
+          "hyp": "the"
+        },
+        {
+          "op": "S",
+          "ref": "thirteen",
+          "hyp": "13"
+        },
+        {
+          "op": "C",
+          "ref": "states",
+          "hyp": "states"
+        },
+        {
+          "op": "C",
+          "ref": "first",
+          "hyp": "first"
+        },
+        {
+          "op": "C",
+          "ref": "formed",
+          "hyp": "formed"
+        },
+        {
+          "op": "C",
+          "ref": "a",
+          "hyp": "a"
+        },
+        {
+          "op": "C",
+          "ref": "weak",
+          "hyp": "weak"
+        },
+        {
+          "op": "C",
+          "ref": "central",
+          "hyp": "central"
+        },
+        {
+          "op": "C",
+          "ref": "government",
+          "hyp": "government"
+        },
+        {
+          "op": "C",
+          "ref": "with",
+          "hyp": "with"
+        },
+        {
+          "op": "C",
+          "ref": "the",
+          "hyp": "the"
+        },
+        {
+          "op": "C",
+          "ref": "congress",
+          "hyp": "congress"
+        },
+        {
+          "op": "C",
+          "ref": "being",
+          "hyp": "being"
+        },
+        {
+          "op": "C",
+          "ref": "its",
+          "hyp": "its"
+        },
+        {
+          "op": "C",
+          "ref": "only",
+          "hyp": "only"
+        },
+        {
+          "op": "C",
+          "ref": "component",
+          "hyp": "component"
+        },
+        {
+          "op": "C",
+          "ref": "under",
+          "hyp": "under"
+        },
+        {
+          "op": "C",
+          "ref": "the",
+          "hyp": "the"
+        },
+        {
+          "op": "C",
+          "ref": "articles",
+          "hyp": "articles"
+        },
+        {
+          "op": "C",
+          "ref": "of",
+          "hyp": "of"
+        },
+        {
+          "op": "C",
+          "ref": "confederation",
+          "hyp": "confederation"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "S",
+          "ref": "thirteen",
+          "hyp": "13",
+          "class": "number-itn-equivalent"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": 1,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1673",
+      "lang": "zh",
+      "stratum": "read-speech",
+      "config": "cmn_hans_cn",
+      "saLocale": "zh-CN",
+      "officialErrors": 4,
+      "officialLength": 40,
+      "officialRate": 0.1,
+      "frozenErrors": 4,
+      "length": 40,
+      "rate": 0.1,
+      "counts": {
+        "C": 36,
+        "S": 2,
+        "D": 2,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "在独立战争期间，十三个州最初根据《联邦条例》组成了弱小的中央政府（国会是其唯一的组成部分）。",
+      "rawHypothesis": "在独立战争期间 ，13个州根据联邦条例组成了弱小的中央政府国会是其唯一的组成部分。",
+      "nfkcReference": "在独立战争期间,十三个州最初根据《联邦条例》组成了弱小的中央政府(国会是其唯一的组成部分)。",
+      "nfkcHypothesis": "在独立战争期间 ,13个州根据联邦条例组成了弱小的中央政府国会是其唯一的组成部分。",
+      "tokensRef": [
+        "在",
+        "独",
+        "立",
+        "战",
+        "争",
+        "期",
+        "间",
+        "十",
+        "三",
+        "个",
+        "州",
+        "最",
+        "初",
+        "根",
+        "据",
+        "联",
+        "邦",
+        "条",
+        "例",
+        "组",
+        "成",
+        "了",
+        "弱",
+        "小",
+        "的",
+        "中",
+        "央",
+        "政",
+        "府",
+        "国",
+        "会",
+        "是",
+        "其",
+        "唯",
+        "一",
+        "的",
+        "组",
+        "成",
+        "部",
+        "分"
+      ],
+      "tokensHyp": [
+        "在",
+        "独",
+        "立",
+        "战",
+        "争",
+        "期",
+        "间",
+        "1",
+        "3",
+        "个",
+        "州",
+        "根",
+        "据",
+        "联",
+        "邦",
+        "条",
+        "例",
+        "组",
+        "成",
+        "了",
+        "弱",
+        "小",
+        "的",
+        "中",
+        "央",
+        "政",
+        "府",
+        "国",
+        "会",
+        "是",
+        "其",
+        "唯",
+        "一",
+        "的",
+        "组",
+        "成",
+        "部",
+        "分"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "在",
+          "hyp": "在"
+        },
+        {
+          "op": "C",
+          "ref": "独",
+          "hyp": "独"
+        },
+        {
+          "op": "C",
+          "ref": "立",
+          "hyp": "立"
+        },
+        {
+          "op": "C",
+          "ref": "战",
+          "hyp": "战"
+        },
+        {
+          "op": "C",
+          "ref": "争",
+          "hyp": "争"
+        },
+        {
+          "op": "C",
+          "ref": "期",
+          "hyp": "期"
+        },
+        {
+          "op": "C",
+          "ref": "间",
+          "hyp": "间"
+        },
+        {
+          "op": "S",
+          "ref": "十",
+          "hyp": "1"
+        },
+        {
+          "op": "S",
+          "ref": "三",
+          "hyp": "3"
+        },
+        {
+          "op": "C",
+          "ref": "个",
+          "hyp": "个"
+        },
+        {
+          "op": "C",
+          "ref": "州",
+          "hyp": "州"
+        },
+        {
+          "op": "D",
+          "ref": "最",
+          "hyp": null
+        },
+        {
+          "op": "D",
+          "ref": "初",
+          "hyp": null
+        },
+        {
+          "op": "C",
+          "ref": "根",
+          "hyp": "根"
+        },
+        {
+          "op": "C",
+          "ref": "据",
+          "hyp": "据"
+        },
+        {
+          "op": "C",
+          "ref": "联",
+          "hyp": "联"
+        },
+        {
+          "op": "C",
+          "ref": "邦",
+          "hyp": "邦"
+        },
+        {
+          "op": "C",
+          "ref": "条",
+          "hyp": "条"
+        },
+        {
+          "op": "C",
+          "ref": "例",
+          "hyp": "例"
+        },
+        {
+          "op": "C",
+          "ref": "组",
+          "hyp": "组"
+        },
+        {
+          "op": "C",
+          "ref": "成",
+          "hyp": "成"
+        },
+        {
+          "op": "C",
+          "ref": "了",
+          "hyp": "了"
+        },
+        {
+          "op": "C",
+          "ref": "弱",
+          "hyp": "弱"
+        },
+        {
+          "op": "C",
+          "ref": "小",
+          "hyp": "小"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        },
+        {
+          "op": "C",
+          "ref": "中",
+          "hyp": "中"
+        },
+        {
+          "op": "C",
+          "ref": "央",
+          "hyp": "央"
+        },
+        {
+          "op": "C",
+          "ref": "政",
+          "hyp": "政"
+        },
+        {
+          "op": "C",
+          "ref": "府",
+          "hyp": "府"
+        },
+        {
+          "op": "C",
+          "ref": "国",
+          "hyp": "国"
+        },
+        {
+          "op": "C",
+          "ref": "会",
+          "hyp": "会"
+        },
+        {
+          "op": "C",
+          "ref": "是",
+          "hyp": "是"
+        },
+        {
+          "op": "C",
+          "ref": "其",
+          "hyp": "其"
+        },
+        {
+          "op": "C",
+          "ref": "唯",
+          "hyp": "唯"
+        },
+        {
+          "op": "C",
+          "ref": "一",
+          "hyp": "一"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        },
+        {
+          "op": "C",
+          "ref": "组",
+          "hyp": "组"
+        },
+        {
+          "op": "C",
+          "ref": "成",
+          "hyp": "成"
+        },
+        {
+          "op": "C",
+          "ref": "部",
+          "hyp": "部"
+        },
+        {
+          "op": "C",
+          "ref": "分",
+          "hyp": "分"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "S",
+          "ref": "十",
+          "hyp": "1",
+          "class": "number-form"
+        },
+        {
+          "op": "S",
+          "ref": "三",
+          "hyp": "3",
+          "class": "number-itn-equivalent"
+        },
+        {
+          "op": "D",
+          "ref": "最",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "D",
+          "ref": "初",
+          "hyp": null,
+          "class": "deletion"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": null,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1674",
+      "lang": "en",
+      "stratum": "read-speech",
+      "config": "en_us",
+      "saLocale": "en-US",
+      "officialErrors": 2,
+      "officialLength": 16,
+      "officialRate": 0.125,
+      "frozenErrors": 2,
+      "length": 16,
+      "rate": 0.125,
+      "counts": {
+        "C": 14,
+        "S": 2,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "In some areas boiling water for a minute is enough, in others several minutes are needed.",
+      "rawHypothesis": "In some areas, boiling water for a minute is enough, and other several minutes are needed.",
+      "nfkcReference": "In some areas boiling water for a minute is enough, in others several minutes are needed.",
+      "nfkcHypothesis": "In some areas, boiling water for a minute is enough, and other several minutes are needed.",
+      "tokensRef": [
+        "in",
+        "some",
+        "areas",
+        "boiling",
+        "water",
+        "for",
+        "a",
+        "minute",
+        "is",
+        "enough",
+        "in",
+        "others",
+        "several",
+        "minutes",
+        "are",
+        "needed"
+      ],
+      "tokensHyp": [
+        "in",
+        "some",
+        "areas",
+        "boiling",
+        "water",
+        "for",
+        "a",
+        "minute",
+        "is",
+        "enough",
+        "and",
+        "other",
+        "several",
+        "minutes",
+        "are",
+        "needed"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "in",
+          "hyp": "in"
+        },
+        {
+          "op": "C",
+          "ref": "some",
+          "hyp": "some"
+        },
+        {
+          "op": "C",
+          "ref": "areas",
+          "hyp": "areas"
+        },
+        {
+          "op": "C",
+          "ref": "boiling",
+          "hyp": "boiling"
+        },
+        {
+          "op": "C",
+          "ref": "water",
+          "hyp": "water"
+        },
+        {
+          "op": "C",
+          "ref": "for",
+          "hyp": "for"
+        },
+        {
+          "op": "C",
+          "ref": "a",
+          "hyp": "a"
+        },
+        {
+          "op": "C",
+          "ref": "minute",
+          "hyp": "minute"
+        },
+        {
+          "op": "C",
+          "ref": "is",
+          "hyp": "is"
+        },
+        {
+          "op": "C",
+          "ref": "enough",
+          "hyp": "enough"
+        },
+        {
+          "op": "S",
+          "ref": "in",
+          "hyp": "and"
+        },
+        {
+          "op": "S",
+          "ref": "others",
+          "hyp": "other"
+        },
+        {
+          "op": "C",
+          "ref": "several",
+          "hyp": "several"
+        },
+        {
+          "op": "C",
+          "ref": "minutes",
+          "hyp": "minutes"
+        },
+        {
+          "op": "C",
+          "ref": "are",
+          "hyp": "are"
+        },
+        {
+          "op": "C",
+          "ref": "needed",
+          "hyp": "needed"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "S",
+          "ref": "in",
+          "hyp": "and",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "others",
+          "hyp": "other",
+          "class": "substitution"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": 2,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1674",
+      "lang": "zh",
+      "stratum": "read-speech",
+      "config": "cmn_hans_cn",
+      "saLocale": "zh-CN",
+      "officialErrors": 1,
+      "officialLength": 28,
+      "officialRate": 0.03571428571428571,
+      "frozenErrors": 1,
+      "length": 28,
+      "rate": 0.03571428571428571,
+      "counts": {
+        "C": 27,
+        "S": 1,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "在某些地区，水煮一分钟就足够了，在其他地区则需要几分钟的时间。",
+      "rawHypothesis": "在某些地区水煮 1分钟就足够了 ，在其他地区则需要几分钟的时间。",
+      "nfkcReference": "在某些地区,水煮一分钟就足够了,在其他地区则需要几分钟的时间。",
+      "nfkcHypothesis": "在某些地区水煮 1分钟就足够了 ,在其他地区则需要几分钟的时间。",
+      "tokensRef": [
+        "在",
+        "某",
+        "些",
+        "地",
+        "区",
+        "水",
+        "煮",
+        "一",
+        "分",
+        "钟",
+        "就",
+        "足",
+        "够",
+        "了",
+        "在",
+        "其",
+        "他",
+        "地",
+        "区",
+        "则",
+        "需",
+        "要",
+        "几",
+        "分",
+        "钟",
+        "的",
+        "时",
+        "间"
+      ],
+      "tokensHyp": [
+        "在",
+        "某",
+        "些",
+        "地",
+        "区",
+        "水",
+        "煮",
+        "1",
+        "分",
+        "钟",
+        "就",
+        "足",
+        "够",
+        "了",
+        "在",
+        "其",
+        "他",
+        "地",
+        "区",
+        "则",
+        "需",
+        "要",
+        "几",
+        "分",
+        "钟",
+        "的",
+        "时",
+        "间"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "在",
+          "hyp": "在"
+        },
+        {
+          "op": "C",
+          "ref": "某",
+          "hyp": "某"
+        },
+        {
+          "op": "C",
+          "ref": "些",
+          "hyp": "些"
+        },
+        {
+          "op": "C",
+          "ref": "地",
+          "hyp": "地"
+        },
+        {
+          "op": "C",
+          "ref": "区",
+          "hyp": "区"
+        },
+        {
+          "op": "C",
+          "ref": "水",
+          "hyp": "水"
+        },
+        {
+          "op": "C",
+          "ref": "煮",
+          "hyp": "煮"
+        },
+        {
+          "op": "S",
+          "ref": "一",
+          "hyp": "1"
+        },
+        {
+          "op": "C",
+          "ref": "分",
+          "hyp": "分"
+        },
+        {
+          "op": "C",
+          "ref": "钟",
+          "hyp": "钟"
+        },
+        {
+          "op": "C",
+          "ref": "就",
+          "hyp": "就"
+        },
+        {
+          "op": "C",
+          "ref": "足",
+          "hyp": "足"
+        },
+        {
+          "op": "C",
+          "ref": "够",
+          "hyp": "够"
+        },
+        {
+          "op": "C",
+          "ref": "了",
+          "hyp": "了"
+        },
+        {
+          "op": "C",
+          "ref": "在",
+          "hyp": "在"
+        },
+        {
+          "op": "C",
+          "ref": "其",
+          "hyp": "其"
+        },
+        {
+          "op": "C",
+          "ref": "他",
+          "hyp": "他"
+        },
+        {
+          "op": "C",
+          "ref": "地",
+          "hyp": "地"
+        },
+        {
+          "op": "C",
+          "ref": "区",
+          "hyp": "区"
+        },
+        {
+          "op": "C",
+          "ref": "则",
+          "hyp": "则"
+        },
+        {
+          "op": "C",
+          "ref": "需",
+          "hyp": "需"
+        },
+        {
+          "op": "C",
+          "ref": "要",
+          "hyp": "要"
+        },
+        {
+          "op": "C",
+          "ref": "几",
+          "hyp": "几"
+        },
+        {
+          "op": "C",
+          "ref": "分",
+          "hyp": "分"
+        },
+        {
+          "op": "C",
+          "ref": "钟",
+          "hyp": "钟"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        },
+        {
+          "op": "C",
+          "ref": "时",
+          "hyp": "时"
+        },
+        {
+          "op": "C",
+          "ref": "间",
+          "hyp": "间"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "S",
+          "ref": "一",
+          "hyp": "1",
+          "class": "number-itn-equivalent"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": null,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1675",
+      "lang": "en",
+      "stratum": "read-speech",
+      "config": "en_us",
+      "saLocale": "en-US",
+      "officialErrors": 2,
+      "officialLength": 21,
+      "officialRate": 0.09523809523809523,
+      "frozenErrors": 2,
+      "length": 21,
+      "rate": 0.09523809523809523,
+      "counts": {
+        "C": 19,
+        "S": 2,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "All nouns, alongside the word Sie for you, always begin with a capital letter, even in the middle of a sentence.",
+      "rawHypothesis": "All nouns alongside the world safe for you, always begin with a capital letter, even in the middle of a sentence.",
+      "nfkcReference": "All nouns, alongside the word Sie for you, always begin with a capital letter, even in the middle of a sentence.",
+      "nfkcHypothesis": "All nouns alongside the world safe for you, always begin with a capital letter, even in the middle of a sentence.",
+      "tokensRef": [
+        "all",
+        "nouns",
+        "alongside",
+        "the",
+        "word",
+        "sie",
+        "for",
+        "you",
+        "always",
+        "begin",
+        "with",
+        "a",
+        "capital",
+        "letter",
+        "even",
+        "in",
+        "the",
+        "middle",
+        "of",
+        "a",
+        "sentence"
+      ],
+      "tokensHyp": [
+        "all",
+        "nouns",
+        "alongside",
+        "the",
+        "world",
+        "safe",
+        "for",
+        "you",
+        "always",
+        "begin",
+        "with",
+        "a",
+        "capital",
+        "letter",
+        "even",
+        "in",
+        "the",
+        "middle",
+        "of",
+        "a",
+        "sentence"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "all",
+          "hyp": "all"
+        },
+        {
+          "op": "C",
+          "ref": "nouns",
+          "hyp": "nouns"
+        },
+        {
+          "op": "C",
+          "ref": "alongside",
+          "hyp": "alongside"
+        },
+        {
+          "op": "C",
+          "ref": "the",
+          "hyp": "the"
+        },
+        {
+          "op": "S",
+          "ref": "word",
+          "hyp": "world"
+        },
+        {
+          "op": "S",
+          "ref": "sie",
+          "hyp": "safe"
+        },
+        {
+          "op": "C",
+          "ref": "for",
+          "hyp": "for"
+        },
+        {
+          "op": "C",
+          "ref": "you",
+          "hyp": "you"
+        },
+        {
+          "op": "C",
+          "ref": "always",
+          "hyp": "always"
+        },
+        {
+          "op": "C",
+          "ref": "begin",
+          "hyp": "begin"
+        },
+        {
+          "op": "C",
+          "ref": "with",
+          "hyp": "with"
+        },
+        {
+          "op": "C",
+          "ref": "a",
+          "hyp": "a"
+        },
+        {
+          "op": "C",
+          "ref": "capital",
+          "hyp": "capital"
+        },
+        {
+          "op": "C",
+          "ref": "letter",
+          "hyp": "letter"
+        },
+        {
+          "op": "C",
+          "ref": "even",
+          "hyp": "even"
+        },
+        {
+          "op": "C",
+          "ref": "in",
+          "hyp": "in"
+        },
+        {
+          "op": "C",
+          "ref": "the",
+          "hyp": "the"
+        },
+        {
+          "op": "C",
+          "ref": "middle",
+          "hyp": "middle"
+        },
+        {
+          "op": "C",
+          "ref": "of",
+          "hyp": "of"
+        },
+        {
+          "op": "C",
+          "ref": "a",
+          "hyp": "a"
+        },
+        {
+          "op": "C",
+          "ref": "sentence",
+          "hyp": "sentence"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "S",
+          "ref": "word",
+          "hyp": "world",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "sie",
+          "hyp": "safe",
+          "class": "substitution"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": 2,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1675",
+      "lang": "zh",
+      "stratum": "read-speech",
+      "config": "cmn_hans_cn",
+      "saLocale": "zh-CN",
+      "officialErrors": 5,
+      "officialLength": 36,
+      "officialRate": 0.1388888888888889,
+      "frozenErrors": 5,
+      "length": 36,
+      "rate": 0.1388888888888889,
+      "counts": {
+        "C": 31,
+        "S": 3,
+        "D": 2,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "除去表示您的“Sie”之外的所有名词都应以大写字母开头，即使在句子中间也应如此。",
+      "rawHypothesis": "除去表示您的 C之外的所有名词都应以大写字幕开头 ，即便在句子中间也应如此。",
+      "nfkcReference": "除去表示您的“Sie”之外的所有名词都应以大写字母开头,即使在句子中间也应如此。",
+      "nfkcHypothesis": "除去表示您的 C之外的所有名词都应以大写字幕开头 ,即便在句子中间也应如此。",
+      "tokensRef": [
+        "除",
+        "去",
+        "表",
+        "示",
+        "您",
+        "的",
+        "S",
+        "i",
+        "e",
+        "之",
+        "外",
+        "的",
+        "所",
+        "有",
+        "名",
+        "词",
+        "都",
+        "应",
+        "以",
+        "大",
+        "写",
+        "字",
+        "母",
+        "开",
+        "头",
+        "即",
+        "使",
+        "在",
+        "句",
+        "子",
+        "中",
+        "间",
+        "也",
+        "应",
+        "如",
+        "此"
+      ],
+      "tokensHyp": [
+        "除",
+        "去",
+        "表",
+        "示",
+        "您",
+        "的",
+        "C",
+        "之",
+        "外",
+        "的",
+        "所",
+        "有",
+        "名",
+        "词",
+        "都",
+        "应",
+        "以",
+        "大",
+        "写",
+        "字",
+        "幕",
+        "开",
+        "头",
+        "即",
+        "便",
+        "在",
+        "句",
+        "子",
+        "中",
+        "间",
+        "也",
+        "应",
+        "如",
+        "此"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "除",
+          "hyp": "除"
+        },
+        {
+          "op": "C",
+          "ref": "去",
+          "hyp": "去"
+        },
+        {
+          "op": "C",
+          "ref": "表",
+          "hyp": "表"
+        },
+        {
+          "op": "C",
+          "ref": "示",
+          "hyp": "示"
+        },
+        {
+          "op": "C",
+          "ref": "您",
+          "hyp": "您"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        },
+        {
+          "op": "D",
+          "ref": "S",
+          "hyp": null
+        },
+        {
+          "op": "D",
+          "ref": "i",
+          "hyp": null
+        },
+        {
+          "op": "S",
+          "ref": "e",
+          "hyp": "C"
+        },
+        {
+          "op": "C",
+          "ref": "之",
+          "hyp": "之"
+        },
+        {
+          "op": "C",
+          "ref": "外",
+          "hyp": "外"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        },
+        {
+          "op": "C",
+          "ref": "所",
+          "hyp": "所"
+        },
+        {
+          "op": "C",
+          "ref": "有",
+          "hyp": "有"
+        },
+        {
+          "op": "C",
+          "ref": "名",
+          "hyp": "名"
+        },
+        {
+          "op": "C",
+          "ref": "词",
+          "hyp": "词"
+        },
+        {
+          "op": "C",
+          "ref": "都",
+          "hyp": "都"
+        },
+        {
+          "op": "C",
+          "ref": "应",
+          "hyp": "应"
+        },
+        {
+          "op": "C",
+          "ref": "以",
+          "hyp": "以"
+        },
+        {
+          "op": "C",
+          "ref": "大",
+          "hyp": "大"
+        },
+        {
+          "op": "C",
+          "ref": "写",
+          "hyp": "写"
+        },
+        {
+          "op": "C",
+          "ref": "字",
+          "hyp": "字"
+        },
+        {
+          "op": "S",
+          "ref": "母",
+          "hyp": "幕"
+        },
+        {
+          "op": "C",
+          "ref": "开",
+          "hyp": "开"
+        },
+        {
+          "op": "C",
+          "ref": "头",
+          "hyp": "头"
+        },
+        {
+          "op": "C",
+          "ref": "即",
+          "hyp": "即"
+        },
+        {
+          "op": "S",
+          "ref": "使",
+          "hyp": "便"
+        },
+        {
+          "op": "C",
+          "ref": "在",
+          "hyp": "在"
+        },
+        {
+          "op": "C",
+          "ref": "句",
+          "hyp": "句"
+        },
+        {
+          "op": "C",
+          "ref": "子",
+          "hyp": "子"
+        },
+        {
+          "op": "C",
+          "ref": "中",
+          "hyp": "中"
+        },
+        {
+          "op": "C",
+          "ref": "间",
+          "hyp": "间"
+        },
+        {
+          "op": "C",
+          "ref": "也",
+          "hyp": "也"
+        },
+        {
+          "op": "C",
+          "ref": "应",
+          "hyp": "应"
+        },
+        {
+          "op": "C",
+          "ref": "如",
+          "hyp": "如"
+        },
+        {
+          "op": "C",
+          "ref": "此",
+          "hyp": "此"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "D",
+          "ref": "S",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "D",
+          "ref": "i",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "S",
+          "ref": "e",
+          "hyp": "C",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "母",
+          "hyp": "幕",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "使",
+          "hyp": "便",
+          "class": "substitution"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [
+        "S",
+        "i",
+        "e"
+      ],
+      "latinCharsInZhHyp": [
+        "C"
+      ],
+      "caseSensitiveEnErrors": null,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1676",
+      "lang": "en",
+      "stratum": "read-speech",
+      "config": "en_us",
+      "saLocale": "en-US",
+      "officialErrors": 0,
+      "officialLength": 17,
+      "officialRate": 0,
+      "frozenErrors": 0,
+      "length": 17,
+      "rate": 0,
+      "counts": {
+        "C": 17,
+        "S": 0,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "As with all South African National Parks, there are daily conservation and entry fees for the park.",
+      "rawHypothesis": "As with all South African national parks, there are daily conservation and entry fees for the park.",
+      "nfkcReference": "As with all South African National Parks, there are daily conservation and entry fees for the park.",
+      "nfkcHypothesis": "As with all South African national parks, there are daily conservation and entry fees for the park.",
+      "tokensRef": [
+        "as",
+        "with",
+        "all",
+        "south",
+        "african",
+        "national",
+        "parks",
+        "there",
+        "are",
+        "daily",
+        "conservation",
+        "and",
+        "entry",
+        "fees",
+        "for",
+        "the",
+        "park"
+      ],
+      "tokensHyp": [
+        "as",
+        "with",
+        "all",
+        "south",
+        "african",
+        "national",
+        "parks",
+        "there",
+        "are",
+        "daily",
+        "conservation",
+        "and",
+        "entry",
+        "fees",
+        "for",
+        "the",
+        "park"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "as",
+          "hyp": "as"
+        },
+        {
+          "op": "C",
+          "ref": "with",
+          "hyp": "with"
+        },
+        {
+          "op": "C",
+          "ref": "all",
+          "hyp": "all"
+        },
+        {
+          "op": "C",
+          "ref": "south",
+          "hyp": "south"
+        },
+        {
+          "op": "C",
+          "ref": "african",
+          "hyp": "african"
+        },
+        {
+          "op": "C",
+          "ref": "national",
+          "hyp": "national"
+        },
+        {
+          "op": "C",
+          "ref": "parks",
+          "hyp": "parks"
+        },
+        {
+          "op": "C",
+          "ref": "there",
+          "hyp": "there"
+        },
+        {
+          "op": "C",
+          "ref": "are",
+          "hyp": "are"
+        },
+        {
+          "op": "C",
+          "ref": "daily",
+          "hyp": "daily"
+        },
+        {
+          "op": "C",
+          "ref": "conservation",
+          "hyp": "conservation"
+        },
+        {
+          "op": "C",
+          "ref": "and",
+          "hyp": "and"
+        },
+        {
+          "op": "C",
+          "ref": "entry",
+          "hyp": "entry"
+        },
+        {
+          "op": "C",
+          "ref": "fees",
+          "hyp": "fees"
+        },
+        {
+          "op": "C",
+          "ref": "for",
+          "hyp": "for"
+        },
+        {
+          "op": "C",
+          "ref": "the",
+          "hyp": "the"
+        },
+        {
+          "op": "C",
+          "ref": "park",
+          "hyp": "park"
+        }
+      ],
+      "errorOps": [],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": 2,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1676",
+      "lang": "zh",
+      "stratum": "read-speech",
+      "config": "cmn_hans_cn",
+      "saLocale": "zh-CN",
+      "officialErrors": 0,
+      "officialLength": 26,
+      "officialRate": 0,
+      "frozenErrors": 0,
+      "length": 26,
+      "rate": 0,
+      "counts": {
+        "C": 26,
+        "S": 0,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "与所有南非国家公园一样，该公园每天都收取养护费和门票费。",
+      "rawHypothesis": "与所有南非国家公园一样 ，该公园每天都收取养护费和门票费。",
+      "nfkcReference": "与所有南非国家公园一样,该公园每天都收取养护费和门票费。",
+      "nfkcHypothesis": "与所有南非国家公园一样 ,该公园每天都收取养护费和门票费。",
+      "tokensRef": [
+        "与",
+        "所",
+        "有",
+        "南",
+        "非",
+        "国",
+        "家",
+        "公",
+        "园",
+        "一",
+        "样",
+        "该",
+        "公",
+        "园",
+        "每",
+        "天",
+        "都",
+        "收",
+        "取",
+        "养",
+        "护",
+        "费",
+        "和",
+        "门",
+        "票",
+        "费"
+      ],
+      "tokensHyp": [
+        "与",
+        "所",
+        "有",
+        "南",
+        "非",
+        "国",
+        "家",
+        "公",
+        "园",
+        "一",
+        "样",
+        "该",
+        "公",
+        "园",
+        "每",
+        "天",
+        "都",
+        "收",
+        "取",
+        "养",
+        "护",
+        "费",
+        "和",
+        "门",
+        "票",
+        "费"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "与",
+          "hyp": "与"
+        },
+        {
+          "op": "C",
+          "ref": "所",
+          "hyp": "所"
+        },
+        {
+          "op": "C",
+          "ref": "有",
+          "hyp": "有"
+        },
+        {
+          "op": "C",
+          "ref": "南",
+          "hyp": "南"
+        },
+        {
+          "op": "C",
+          "ref": "非",
+          "hyp": "非"
+        },
+        {
+          "op": "C",
+          "ref": "国",
+          "hyp": "国"
+        },
+        {
+          "op": "C",
+          "ref": "家",
+          "hyp": "家"
+        },
+        {
+          "op": "C",
+          "ref": "公",
+          "hyp": "公"
+        },
+        {
+          "op": "C",
+          "ref": "园",
+          "hyp": "园"
+        },
+        {
+          "op": "C",
+          "ref": "一",
+          "hyp": "一"
+        },
+        {
+          "op": "C",
+          "ref": "样",
+          "hyp": "样"
+        },
+        {
+          "op": "C",
+          "ref": "该",
+          "hyp": "该"
+        },
+        {
+          "op": "C",
+          "ref": "公",
+          "hyp": "公"
+        },
+        {
+          "op": "C",
+          "ref": "园",
+          "hyp": "园"
+        },
+        {
+          "op": "C",
+          "ref": "每",
+          "hyp": "每"
+        },
+        {
+          "op": "C",
+          "ref": "天",
+          "hyp": "天"
+        },
+        {
+          "op": "C",
+          "ref": "都",
+          "hyp": "都"
+        },
+        {
+          "op": "C",
+          "ref": "收",
+          "hyp": "收"
+        },
+        {
+          "op": "C",
+          "ref": "取",
+          "hyp": "取"
+        },
+        {
+          "op": "C",
+          "ref": "养",
+          "hyp": "养"
+        },
+        {
+          "op": "C",
+          "ref": "护",
+          "hyp": "护"
+        },
+        {
+          "op": "C",
+          "ref": "费",
+          "hyp": "费"
+        },
+        {
+          "op": "C",
+          "ref": "和",
+          "hyp": "和"
+        },
+        {
+          "op": "C",
+          "ref": "门",
+          "hyp": "门"
+        },
+        {
+          "op": "C",
+          "ref": "票",
+          "hyp": "票"
+        },
+        {
+          "op": "C",
+          "ref": "费",
+          "hyp": "费"
+        }
+      ],
+      "errorOps": [],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": null,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1677",
+      "lang": "en",
+      "stratum": "read-speech",
+      "config": "en_us",
+      "saLocale": "en-US",
+      "officialErrors": 4,
+      "officialLength": 15,
+      "officialRate": 0.26666666666666666,
+      "frozenErrors": 4,
+      "length": 15,
+      "rate": 0.26666666666666666,
+      "counts": {
+        "C": 11,
+        "S": 4,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "Today, the only insects that cannot fold back their wings are dragon flies and mayflies.",
+      "rawHypothesis": "Today, the only insects that cannot fold back their wings are dragonflies and may flies.",
+      "nfkcReference": "Today, the only insects that cannot fold back their wings are dragon flies and mayflies.",
+      "nfkcHypothesis": "Today, the only insects that cannot fold back their wings are dragonflies and may flies.",
+      "tokensRef": [
+        "today",
+        "the",
+        "only",
+        "insects",
+        "that",
+        "cannot",
+        "fold",
+        "back",
+        "their",
+        "wings",
+        "are",
+        "dragon",
+        "flies",
+        "and",
+        "mayflies"
+      ],
+      "tokensHyp": [
+        "today",
+        "the",
+        "only",
+        "insects",
+        "that",
+        "cannot",
+        "fold",
+        "back",
+        "their",
+        "wings",
+        "are",
+        "dragonflies",
+        "and",
+        "may",
+        "flies"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "today",
+          "hyp": "today"
+        },
+        {
+          "op": "C",
+          "ref": "the",
+          "hyp": "the"
+        },
+        {
+          "op": "C",
+          "ref": "only",
+          "hyp": "only"
+        },
+        {
+          "op": "C",
+          "ref": "insects",
+          "hyp": "insects"
+        },
+        {
+          "op": "C",
+          "ref": "that",
+          "hyp": "that"
+        },
+        {
+          "op": "C",
+          "ref": "cannot",
+          "hyp": "cannot"
+        },
+        {
+          "op": "C",
+          "ref": "fold",
+          "hyp": "fold"
+        },
+        {
+          "op": "C",
+          "ref": "back",
+          "hyp": "back"
+        },
+        {
+          "op": "C",
+          "ref": "their",
+          "hyp": "their"
+        },
+        {
+          "op": "C",
+          "ref": "wings",
+          "hyp": "wings"
+        },
+        {
+          "op": "C",
+          "ref": "are",
+          "hyp": "are"
+        },
+        {
+          "op": "S",
+          "ref": "dragon",
+          "hyp": "dragonflies"
+        },
+        {
+          "op": "S",
+          "ref": "flies",
+          "hyp": "and"
+        },
+        {
+          "op": "S",
+          "ref": "and",
+          "hyp": "may"
+        },
+        {
+          "op": "S",
+          "ref": "mayflies",
+          "hyp": "flies"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "S",
+          "ref": "dragon",
+          "hyp": "dragonflies",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "flies",
+          "hyp": "and",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "and",
+          "hyp": "may",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "mayflies",
+          "hyp": "flies",
+          "class": "substitution"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": 4,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1677",
+      "lang": "zh",
+      "stratum": "read-speech",
+      "config": "cmn_hans_cn",
+      "saLocale": "zh-CN",
+      "officialErrors": 2,
+      "officialLength": 21,
+      "officialRate": 0.09523809523809523,
+      "frozenErrors": 2,
+      "length": 21,
+      "rate": 0.09523809523809523,
+      "counts": {
+        "C": 19,
+        "S": 2,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "如今，唯一不能向后折叠翅膀的昆虫是蜻蜓和蜉蝣。",
+      "rawHypothesis": "如今唯一不能向后折叠翅膀的昆虫是蜻蜓和浮游。",
+      "nfkcReference": "如今,唯一不能向后折叠翅膀的昆虫是蜻蜓和蜉蝣。",
+      "nfkcHypothesis": "如今唯一不能向后折叠翅膀的昆虫是蜻蜓和浮游。",
+      "tokensRef": [
+        "如",
+        "今",
+        "唯",
+        "一",
+        "不",
+        "能",
+        "向",
+        "后",
+        "折",
+        "叠",
+        "翅",
+        "膀",
+        "的",
+        "昆",
+        "虫",
+        "是",
+        "蜻",
+        "蜓",
+        "和",
+        "蜉",
+        "蝣"
+      ],
+      "tokensHyp": [
+        "如",
+        "今",
+        "唯",
+        "一",
+        "不",
+        "能",
+        "向",
+        "后",
+        "折",
+        "叠",
+        "翅",
+        "膀",
+        "的",
+        "昆",
+        "虫",
+        "是",
+        "蜻",
+        "蜓",
+        "和",
+        "浮",
+        "游"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "如",
+          "hyp": "如"
+        },
+        {
+          "op": "C",
+          "ref": "今",
+          "hyp": "今"
+        },
+        {
+          "op": "C",
+          "ref": "唯",
+          "hyp": "唯"
+        },
+        {
+          "op": "C",
+          "ref": "一",
+          "hyp": "一"
+        },
+        {
+          "op": "C",
+          "ref": "不",
+          "hyp": "不"
+        },
+        {
+          "op": "C",
+          "ref": "能",
+          "hyp": "能"
+        },
+        {
+          "op": "C",
+          "ref": "向",
+          "hyp": "向"
+        },
+        {
+          "op": "C",
+          "ref": "后",
+          "hyp": "后"
+        },
+        {
+          "op": "C",
+          "ref": "折",
+          "hyp": "折"
+        },
+        {
+          "op": "C",
+          "ref": "叠",
+          "hyp": "叠"
+        },
+        {
+          "op": "C",
+          "ref": "翅",
+          "hyp": "翅"
+        },
+        {
+          "op": "C",
+          "ref": "膀",
+          "hyp": "膀"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        },
+        {
+          "op": "C",
+          "ref": "昆",
+          "hyp": "昆"
+        },
+        {
+          "op": "C",
+          "ref": "虫",
+          "hyp": "虫"
+        },
+        {
+          "op": "C",
+          "ref": "是",
+          "hyp": "是"
+        },
+        {
+          "op": "C",
+          "ref": "蜻",
+          "hyp": "蜻"
+        },
+        {
+          "op": "C",
+          "ref": "蜓",
+          "hyp": "蜓"
+        },
+        {
+          "op": "C",
+          "ref": "和",
+          "hyp": "和"
+        },
+        {
+          "op": "S",
+          "ref": "蜉",
+          "hyp": "浮"
+        },
+        {
+          "op": "S",
+          "ref": "蝣",
+          "hyp": "游"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "S",
+          "ref": "蜉",
+          "hyp": "浮",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "蝣",
+          "hyp": "游",
+          "class": "substitution"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": null,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1678",
+      "lang": "en",
+      "stratum": "read-speech",
+      "config": "en_us",
+      "saLocale": "en-US",
+      "officialErrors": 2,
+      "officialLength": 29,
+      "officialRate": 0.06896551724137931,
+      "frozenErrors": 2,
+      "length": 29,
+      "rate": 0.06896551724137931,
+      "counts": {
+        "C": 27,
+        "S": 2,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "Oliver Sacks, in his paper The President's Speech, indicated how people who are unable to understand speech because of brain damage are nevertheless able to assess sincerity accurately.",
+      "rawHypothesis": "Oliver Sachs and his paper, the president's speech, indicated how people who are unable to understand speech because of brain damage are nevertheless able to assess sincerity accurately.",
+      "nfkcReference": "Oliver Sacks, in his paper The President's Speech, indicated how people who are unable to understand speech because of brain damage are nevertheless able to assess sincerity accurately.",
+      "nfkcHypothesis": "Oliver Sachs and his paper, the president's speech, indicated how people who are unable to understand speech because of brain damage are nevertheless able to assess sincerity accurately.",
+      "tokensRef": [
+        "oliver",
+        "sacks",
+        "in",
+        "his",
+        "paper",
+        "the",
+        "president",
+        "s",
+        "speech",
+        "indicated",
+        "how",
+        "people",
+        "who",
+        "are",
+        "unable",
+        "to",
+        "understand",
+        "speech",
+        "because",
+        "of",
+        "brain",
+        "damage",
+        "are",
+        "nevertheless",
+        "able",
+        "to",
+        "assess",
+        "sincerity",
+        "accurately"
+      ],
+      "tokensHyp": [
+        "oliver",
+        "sachs",
+        "and",
+        "his",
+        "paper",
+        "the",
+        "president",
+        "s",
+        "speech",
+        "indicated",
+        "how",
+        "people",
+        "who",
+        "are",
+        "unable",
+        "to",
+        "understand",
+        "speech",
+        "because",
+        "of",
+        "brain",
+        "damage",
+        "are",
+        "nevertheless",
+        "able",
+        "to",
+        "assess",
+        "sincerity",
+        "accurately"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "oliver",
+          "hyp": "oliver"
+        },
+        {
+          "op": "S",
+          "ref": "sacks",
+          "hyp": "sachs"
+        },
+        {
+          "op": "S",
+          "ref": "in",
+          "hyp": "and"
+        },
+        {
+          "op": "C",
+          "ref": "his",
+          "hyp": "his"
+        },
+        {
+          "op": "C",
+          "ref": "paper",
+          "hyp": "paper"
+        },
+        {
+          "op": "C",
+          "ref": "the",
+          "hyp": "the"
+        },
+        {
+          "op": "C",
+          "ref": "president",
+          "hyp": "president"
+        },
+        {
+          "op": "C",
+          "ref": "s",
+          "hyp": "s"
+        },
+        {
+          "op": "C",
+          "ref": "speech",
+          "hyp": "speech"
+        },
+        {
+          "op": "C",
+          "ref": "indicated",
+          "hyp": "indicated"
+        },
+        {
+          "op": "C",
+          "ref": "how",
+          "hyp": "how"
+        },
+        {
+          "op": "C",
+          "ref": "people",
+          "hyp": "people"
+        },
+        {
+          "op": "C",
+          "ref": "who",
+          "hyp": "who"
+        },
+        {
+          "op": "C",
+          "ref": "are",
+          "hyp": "are"
+        },
+        {
+          "op": "C",
+          "ref": "unable",
+          "hyp": "unable"
+        },
+        {
+          "op": "C",
+          "ref": "to",
+          "hyp": "to"
+        },
+        {
+          "op": "C",
+          "ref": "understand",
+          "hyp": "understand"
+        },
+        {
+          "op": "C",
+          "ref": "speech",
+          "hyp": "speech"
+        },
+        {
+          "op": "C",
+          "ref": "because",
+          "hyp": "because"
+        },
+        {
+          "op": "C",
+          "ref": "of",
+          "hyp": "of"
+        },
+        {
+          "op": "C",
+          "ref": "brain",
+          "hyp": "brain"
+        },
+        {
+          "op": "C",
+          "ref": "damage",
+          "hyp": "damage"
+        },
+        {
+          "op": "C",
+          "ref": "are",
+          "hyp": "are"
+        },
+        {
+          "op": "C",
+          "ref": "nevertheless",
+          "hyp": "nevertheless"
+        },
+        {
+          "op": "C",
+          "ref": "able",
+          "hyp": "able"
+        },
+        {
+          "op": "C",
+          "ref": "to",
+          "hyp": "to"
+        },
+        {
+          "op": "C",
+          "ref": "assess",
+          "hyp": "assess"
+        },
+        {
+          "op": "C",
+          "ref": "sincerity",
+          "hyp": "sincerity"
+        },
+        {
+          "op": "C",
+          "ref": "accurately",
+          "hyp": "accurately"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "S",
+          "ref": "sacks",
+          "hyp": "sachs",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "in",
+          "hyp": "and",
+          "class": "substitution"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": 5,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1678",
+      "lang": "zh",
+      "stratum": "read-speech",
+      "config": "cmn_hans_cn",
+      "saLocale": "zh-CN",
+      "officialErrors": 8,
+      "officialLength": 63,
+      "officialRate": 0.12698412698412698,
+      "frozenErrors": 8,
+      "length": 63,
+      "rate": 0.12698412698412698,
+      "counts": {
+        "C": 55,
+        "S": 5,
+        "D": 3,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "奥利弗·萨克斯 (Oliver Sacks) 在他的论文《总统的演讲》中指出，那些因为脑损伤而无法理解语言的人仍然能够准确地判断说话人是否有诚意。",
+      "rawHypothesis": "奥里弗萨克斯奥live萨克斯在他的论文总统的演讲中指出那些因为脑损伤而无法理解语言的人仍然能够准确地判断说话人是否有诚意。",
+      "nfkcReference": "奥利弗·萨克斯 (Oliver Sacks) 在他的论文《总统的演讲》中指出,那些因为脑损伤而无法理解语言的人仍然能够准确地判断说话人是否有诚意。",
+      "nfkcHypothesis": "奥里弗萨克斯奥live萨克斯在他的论文总统的演讲中指出那些因为脑损伤而无法理解语言的人仍然能够准确地判断说话人是否有诚意。",
+      "tokensRef": [
+        "奥",
+        "利",
+        "弗",
+        "萨",
+        "克",
+        "斯",
+        "O",
+        "l",
+        "i",
+        "v",
+        "e",
+        "r",
+        "S",
+        "a",
+        "c",
+        "k",
+        "s",
+        "在",
+        "他",
+        "的",
+        "论",
+        "文",
+        "总",
+        "统",
+        "的",
+        "演",
+        "讲",
+        "中",
+        "指",
+        "出",
+        "那",
+        "些",
+        "因",
+        "为",
+        "脑",
+        "损",
+        "伤",
+        "而",
+        "无",
+        "法",
+        "理",
+        "解",
+        "语",
+        "言",
+        "的",
+        "人",
+        "仍",
+        "然",
+        "能",
+        "够",
+        "准",
+        "确",
+        "地",
+        "判",
+        "断",
+        "说",
+        "话",
+        "人",
+        "是",
+        "否",
+        "有",
+        "诚",
+        "意"
+      ],
+      "tokensHyp": [
+        "奥",
+        "里",
+        "弗",
+        "萨",
+        "克",
+        "斯",
+        "奥",
+        "l",
+        "i",
+        "v",
+        "e",
+        "萨",
+        "克",
+        "斯",
+        "在",
+        "他",
+        "的",
+        "论",
+        "文",
+        "总",
+        "统",
+        "的",
+        "演",
+        "讲",
+        "中",
+        "指",
+        "出",
+        "那",
+        "些",
+        "因",
+        "为",
+        "脑",
+        "损",
+        "伤",
+        "而",
+        "无",
+        "法",
+        "理",
+        "解",
+        "语",
+        "言",
+        "的",
+        "人",
+        "仍",
+        "然",
+        "能",
+        "够",
+        "准",
+        "确",
+        "地",
+        "判",
+        "断",
+        "说",
+        "话",
+        "人",
+        "是",
+        "否",
+        "有",
+        "诚",
+        "意"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "奥",
+          "hyp": "奥"
+        },
+        {
+          "op": "S",
+          "ref": "利",
+          "hyp": "里"
+        },
+        {
+          "op": "C",
+          "ref": "弗",
+          "hyp": "弗"
+        },
+        {
+          "op": "C",
+          "ref": "萨",
+          "hyp": "萨"
+        },
+        {
+          "op": "C",
+          "ref": "克",
+          "hyp": "克"
+        },
+        {
+          "op": "C",
+          "ref": "斯",
+          "hyp": "斯"
+        },
+        {
+          "op": "S",
+          "ref": "O",
+          "hyp": "奥"
+        },
+        {
+          "op": "C",
+          "ref": "l",
+          "hyp": "l"
+        },
+        {
+          "op": "C",
+          "ref": "i",
+          "hyp": "i"
+        },
+        {
+          "op": "C",
+          "ref": "v",
+          "hyp": "v"
+        },
+        {
+          "op": "C",
+          "ref": "e",
+          "hyp": "e"
+        },
+        {
+          "op": "D",
+          "ref": "r",
+          "hyp": null
+        },
+        {
+          "op": "D",
+          "ref": "S",
+          "hyp": null
+        },
+        {
+          "op": "D",
+          "ref": "a",
+          "hyp": null
+        },
+        {
+          "op": "S",
+          "ref": "c",
+          "hyp": "萨"
+        },
+        {
+          "op": "S",
+          "ref": "k",
+          "hyp": "克"
+        },
+        {
+          "op": "S",
+          "ref": "s",
+          "hyp": "斯"
+        },
+        {
+          "op": "C",
+          "ref": "在",
+          "hyp": "在"
+        },
+        {
+          "op": "C",
+          "ref": "他",
+          "hyp": "他"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        },
+        {
+          "op": "C",
+          "ref": "论",
+          "hyp": "论"
+        },
+        {
+          "op": "C",
+          "ref": "文",
+          "hyp": "文"
+        },
+        {
+          "op": "C",
+          "ref": "总",
+          "hyp": "总"
+        },
+        {
+          "op": "C",
+          "ref": "统",
+          "hyp": "统"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        },
+        {
+          "op": "C",
+          "ref": "演",
+          "hyp": "演"
+        },
+        {
+          "op": "C",
+          "ref": "讲",
+          "hyp": "讲"
+        },
+        {
+          "op": "C",
+          "ref": "中",
+          "hyp": "中"
+        },
+        {
+          "op": "C",
+          "ref": "指",
+          "hyp": "指"
+        },
+        {
+          "op": "C",
+          "ref": "出",
+          "hyp": "出"
+        },
+        {
+          "op": "C",
+          "ref": "那",
+          "hyp": "那"
+        },
+        {
+          "op": "C",
+          "ref": "些",
+          "hyp": "些"
+        },
+        {
+          "op": "C",
+          "ref": "因",
+          "hyp": "因"
+        },
+        {
+          "op": "C",
+          "ref": "为",
+          "hyp": "为"
+        },
+        {
+          "op": "C",
+          "ref": "脑",
+          "hyp": "脑"
+        },
+        {
+          "op": "C",
+          "ref": "损",
+          "hyp": "损"
+        },
+        {
+          "op": "C",
+          "ref": "伤",
+          "hyp": "伤"
+        },
+        {
+          "op": "C",
+          "ref": "而",
+          "hyp": "而"
+        },
+        {
+          "op": "C",
+          "ref": "无",
+          "hyp": "无"
+        },
+        {
+          "op": "C",
+          "ref": "法",
+          "hyp": "法"
+        },
+        {
+          "op": "C",
+          "ref": "理",
+          "hyp": "理"
+        },
+        {
+          "op": "C",
+          "ref": "解",
+          "hyp": "解"
+        },
+        {
+          "op": "C",
+          "ref": "语",
+          "hyp": "语"
+        },
+        {
+          "op": "C",
+          "ref": "言",
+          "hyp": "言"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        },
+        {
+          "op": "C",
+          "ref": "人",
+          "hyp": "人"
+        },
+        {
+          "op": "C",
+          "ref": "仍",
+          "hyp": "仍"
+        },
+        {
+          "op": "C",
+          "ref": "然",
+          "hyp": "然"
+        },
+        {
+          "op": "C",
+          "ref": "能",
+          "hyp": "能"
+        },
+        {
+          "op": "C",
+          "ref": "够",
+          "hyp": "够"
+        },
+        {
+          "op": "C",
+          "ref": "准",
+          "hyp": "准"
+        },
+        {
+          "op": "C",
+          "ref": "确",
+          "hyp": "确"
+        },
+        {
+          "op": "C",
+          "ref": "地",
+          "hyp": "地"
+        },
+        {
+          "op": "C",
+          "ref": "判",
+          "hyp": "判"
+        },
+        {
+          "op": "C",
+          "ref": "断",
+          "hyp": "断"
+        },
+        {
+          "op": "C",
+          "ref": "说",
+          "hyp": "说"
+        },
+        {
+          "op": "C",
+          "ref": "话",
+          "hyp": "话"
+        },
+        {
+          "op": "C",
+          "ref": "人",
+          "hyp": "人"
+        },
+        {
+          "op": "C",
+          "ref": "是",
+          "hyp": "是"
+        },
+        {
+          "op": "C",
+          "ref": "否",
+          "hyp": "否"
+        },
+        {
+          "op": "C",
+          "ref": "有",
+          "hyp": "有"
+        },
+        {
+          "op": "C",
+          "ref": "诚",
+          "hyp": "诚"
+        },
+        {
+          "op": "C",
+          "ref": "意",
+          "hyp": "意"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "S",
+          "ref": "利",
+          "hyp": "里",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "O",
+          "hyp": "奥",
+          "class": "substitution"
+        },
+        {
+          "op": "D",
+          "ref": "r",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "D",
+          "ref": "S",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "D",
+          "ref": "a",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "S",
+          "ref": "c",
+          "hyp": "萨",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "k",
+          "hyp": "克",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "s",
+          "hyp": "斯",
+          "class": "substitution"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [
+        "O",
+        "l",
+        "i",
+        "v",
+        "e",
+        "r",
+        "S",
+        "a",
+        "c",
+        "k",
+        "s"
+      ],
+      "latinCharsInZhHyp": [
+        "l",
+        "i",
+        "v",
+        "e"
+      ],
+      "caseSensitiveEnErrors": null,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1679",
+      "lang": "en",
+      "stratum": "read-speech",
+      "config": "en_us",
+      "saLocale": "en-US",
+      "officialErrors": 2,
+      "officialLength": 9,
+      "officialRate": 0.2222222222222222,
+      "frozenErrors": 2,
+      "length": 9,
+      "rate": 0.2222222222222222,
+      "counts": {
+        "C": 7,
+        "S": 2,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "Aerosmith have cancelled their remaining concerts on their tour.",
+      "rawHypothesis": "Aerosmith had canceled their remaining concerts on their tour.",
+      "nfkcReference": "Aerosmith have cancelled their remaining concerts on their tour.",
+      "nfkcHypothesis": "Aerosmith had canceled their remaining concerts on their tour.",
+      "tokensRef": [
+        "aerosmith",
+        "have",
+        "cancelled",
+        "their",
+        "remaining",
+        "concerts",
+        "on",
+        "their",
+        "tour"
+      ],
+      "tokensHyp": [
+        "aerosmith",
+        "had",
+        "canceled",
+        "their",
+        "remaining",
+        "concerts",
+        "on",
+        "their",
+        "tour"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "aerosmith",
+          "hyp": "aerosmith"
+        },
+        {
+          "op": "S",
+          "ref": "have",
+          "hyp": "had"
+        },
+        {
+          "op": "S",
+          "ref": "cancelled",
+          "hyp": "canceled"
+        },
+        {
+          "op": "C",
+          "ref": "their",
+          "hyp": "their"
+        },
+        {
+          "op": "C",
+          "ref": "remaining",
+          "hyp": "remaining"
+        },
+        {
+          "op": "C",
+          "ref": "concerts",
+          "hyp": "concerts"
+        },
+        {
+          "op": "C",
+          "ref": "on",
+          "hyp": "on"
+        },
+        {
+          "op": "C",
+          "ref": "their",
+          "hyp": "their"
+        },
+        {
+          "op": "C",
+          "ref": "tour",
+          "hyp": "tour"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "S",
+          "ref": "have",
+          "hyp": "had",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "cancelled",
+          "hyp": "canceled",
+          "class": "substitution"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": 2,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1679",
+      "lang": "zh",
+      "stratum": "read-speech",
+      "config": "cmn_hans_cn",
+      "saLocale": "zh-CN",
+      "officialErrors": 0,
+      "officialLength": 23,
+      "officialRate": 0,
+      "frozenErrors": 0,
+      "length": 23,
+      "rate": 0,
+      "counts": {
+        "C": 23,
+        "S": 0,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "空中铁匠乐队已经取消了他们巡回演唱会的剩余场次。",
+      "rawHypothesis": "空中铁匠乐队已经取消了他们巡回演唱会的剩余场次。",
+      "nfkcReference": "空中铁匠乐队已经取消了他们巡回演唱会的剩余场次。",
+      "nfkcHypothesis": "空中铁匠乐队已经取消了他们巡回演唱会的剩余场次。",
+      "tokensRef": [
+        "空",
+        "中",
+        "铁",
+        "匠",
+        "乐",
+        "队",
+        "已",
+        "经",
+        "取",
+        "消",
+        "了",
+        "他",
+        "们",
+        "巡",
+        "回",
+        "演",
+        "唱",
+        "会",
+        "的",
+        "剩",
+        "余",
+        "场",
+        "次"
+      ],
+      "tokensHyp": [
+        "空",
+        "中",
+        "铁",
+        "匠",
+        "乐",
+        "队",
+        "已",
+        "经",
+        "取",
+        "消",
+        "了",
+        "他",
+        "们",
+        "巡",
+        "回",
+        "演",
+        "唱",
+        "会",
+        "的",
+        "剩",
+        "余",
+        "场",
+        "次"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "空",
+          "hyp": "空"
+        },
+        {
+          "op": "C",
+          "ref": "中",
+          "hyp": "中"
+        },
+        {
+          "op": "C",
+          "ref": "铁",
+          "hyp": "铁"
+        },
+        {
+          "op": "C",
+          "ref": "匠",
+          "hyp": "匠"
+        },
+        {
+          "op": "C",
+          "ref": "乐",
+          "hyp": "乐"
+        },
+        {
+          "op": "C",
+          "ref": "队",
+          "hyp": "队"
+        },
+        {
+          "op": "C",
+          "ref": "已",
+          "hyp": "已"
+        },
+        {
+          "op": "C",
+          "ref": "经",
+          "hyp": "经"
+        },
+        {
+          "op": "C",
+          "ref": "取",
+          "hyp": "取"
+        },
+        {
+          "op": "C",
+          "ref": "消",
+          "hyp": "消"
+        },
+        {
+          "op": "C",
+          "ref": "了",
+          "hyp": "了"
+        },
+        {
+          "op": "C",
+          "ref": "他",
+          "hyp": "他"
+        },
+        {
+          "op": "C",
+          "ref": "们",
+          "hyp": "们"
+        },
+        {
+          "op": "C",
+          "ref": "巡",
+          "hyp": "巡"
+        },
+        {
+          "op": "C",
+          "ref": "回",
+          "hyp": "回"
+        },
+        {
+          "op": "C",
+          "ref": "演",
+          "hyp": "演"
+        },
+        {
+          "op": "C",
+          "ref": "唱",
+          "hyp": "唱"
+        },
+        {
+          "op": "C",
+          "ref": "会",
+          "hyp": "会"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        },
+        {
+          "op": "C",
+          "ref": "剩",
+          "hyp": "剩"
+        },
+        {
+          "op": "C",
+          "ref": "余",
+          "hyp": "余"
+        },
+        {
+          "op": "C",
+          "ref": "场",
+          "hyp": "场"
+        },
+        {
+          "op": "C",
+          "ref": "次",
+          "hyp": "次"
+        }
+      ],
+      "errorOps": [],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": null,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1680",
+      "lang": "en",
+      "stratum": "read-speech",
+      "config": "en_us",
+      "saLocale": "en-US",
+      "officialErrors": 2,
+      "officialLength": 26,
+      "officialRate": 0.07692307692307693,
+      "frozenErrors": 2,
+      "length": 26,
+      "rate": 0.07692307692307693,
+      "counts": {
+        "C": 24,
+        "S": 2,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "A well rounded athlete, the tiger can climb (though not well), swim, leap great distances and pull with five times the force of a strong human.",
+      "rawHypothesis": "A well-rounded athlete, the tiger can climb, though not well, swim, leave great distances, and pull with 5 times the force of a strong human.",
+      "nfkcReference": "A well rounded athlete, the tiger can climb (though not well), swim, leap great distances and pull with five times the force of a strong human.",
+      "nfkcHypothesis": "A well-rounded athlete, the tiger can climb, though not well, swim, leave great distances, and pull with 5 times the force of a strong human.",
+      "tokensRef": [
+        "a",
+        "well",
+        "rounded",
+        "athlete",
+        "the",
+        "tiger",
+        "can",
+        "climb",
+        "though",
+        "not",
+        "well",
+        "swim",
+        "leap",
+        "great",
+        "distances",
+        "and",
+        "pull",
+        "with",
+        "five",
+        "times",
+        "the",
+        "force",
+        "of",
+        "a",
+        "strong",
+        "human"
+      ],
+      "tokensHyp": [
+        "a",
+        "well",
+        "rounded",
+        "athlete",
+        "the",
+        "tiger",
+        "can",
+        "climb",
+        "though",
+        "not",
+        "well",
+        "swim",
+        "leave",
+        "great",
+        "distances",
+        "and",
+        "pull",
+        "with",
+        "5",
+        "times",
+        "the",
+        "force",
+        "of",
+        "a",
+        "strong",
+        "human"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "a",
+          "hyp": "a"
+        },
+        {
+          "op": "C",
+          "ref": "well",
+          "hyp": "well"
+        },
+        {
+          "op": "C",
+          "ref": "rounded",
+          "hyp": "rounded"
+        },
+        {
+          "op": "C",
+          "ref": "athlete",
+          "hyp": "athlete"
+        },
+        {
+          "op": "C",
+          "ref": "the",
+          "hyp": "the"
+        },
+        {
+          "op": "C",
+          "ref": "tiger",
+          "hyp": "tiger"
+        },
+        {
+          "op": "C",
+          "ref": "can",
+          "hyp": "can"
+        },
+        {
+          "op": "C",
+          "ref": "climb",
+          "hyp": "climb"
+        },
+        {
+          "op": "C",
+          "ref": "though",
+          "hyp": "though"
+        },
+        {
+          "op": "C",
+          "ref": "not",
+          "hyp": "not"
+        },
+        {
+          "op": "C",
+          "ref": "well",
+          "hyp": "well"
+        },
+        {
+          "op": "C",
+          "ref": "swim",
+          "hyp": "swim"
+        },
+        {
+          "op": "S",
+          "ref": "leap",
+          "hyp": "leave"
+        },
+        {
+          "op": "C",
+          "ref": "great",
+          "hyp": "great"
+        },
+        {
+          "op": "C",
+          "ref": "distances",
+          "hyp": "distances"
+        },
+        {
+          "op": "C",
+          "ref": "and",
+          "hyp": "and"
+        },
+        {
+          "op": "C",
+          "ref": "pull",
+          "hyp": "pull"
+        },
+        {
+          "op": "C",
+          "ref": "with",
+          "hyp": "with"
+        },
+        {
+          "op": "S",
+          "ref": "five",
+          "hyp": "5"
+        },
+        {
+          "op": "C",
+          "ref": "times",
+          "hyp": "times"
+        },
+        {
+          "op": "C",
+          "ref": "the",
+          "hyp": "the"
+        },
+        {
+          "op": "C",
+          "ref": "force",
+          "hyp": "force"
+        },
+        {
+          "op": "C",
+          "ref": "of",
+          "hyp": "of"
+        },
+        {
+          "op": "C",
+          "ref": "a",
+          "hyp": "a"
+        },
+        {
+          "op": "C",
+          "ref": "strong",
+          "hyp": "strong"
+        },
+        {
+          "op": "C",
+          "ref": "human",
+          "hyp": "human"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "S",
+          "ref": "leap",
+          "hyp": "leave",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "five",
+          "hyp": "5",
+          "class": "number-itn-equivalent"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": 2,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "lang": "zh",
+      "stratum": "read-speech",
+      "config": "cmn_hans_cn",
+      "saLocale": "zh-CN",
+      "officialErrors": 3,
+      "officialLength": 39,
+      "officialRate": 0.07692307692307693,
+      "frozenErrors": 3,
+      "length": 39,
+      "rate": 0.07692307692307693,
+      "counts": {
+        "C": 36,
+        "S": 3,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "老虎是全能运动员，它会攀爬（虽然攀爬能力不是很强）、游泳、跳远，拉力能达到人类大力士的五倍。",
+      "rawHypothesis": "老虎是全能运动员 ，他会攀爬 ，虽然攀爬能力不是很强 ，游泳跳远拉力能拿到人类大力石的五倍。",
+      "nfkcReference": "老虎是全能运动员,它会攀爬(虽然攀爬能力不是很强)、游泳、跳远,拉力能达到人类大力士的五倍。",
+      "nfkcHypothesis": "老虎是全能运动员 ,他会攀爬 ,虽然攀爬能力不是很强 ,游泳跳远拉力能拿到人类大力石的五倍。",
+      "tokensRef": [
+        "老",
+        "虎",
+        "是",
+        "全",
+        "能",
+        "运",
+        "动",
+        "员",
+        "它",
+        "会",
+        "攀",
+        "爬",
+        "虽",
+        "然",
+        "攀",
+        "爬",
+        "能",
+        "力",
+        "不",
+        "是",
+        "很",
+        "强",
+        "游",
+        "泳",
+        "跳",
+        "远",
+        "拉",
+        "力",
+        "能",
+        "达",
+        "到",
+        "人",
+        "类",
+        "大",
+        "力",
+        "士",
+        "的",
+        "五",
+        "倍"
+      ],
+      "tokensHyp": [
+        "老",
+        "虎",
+        "是",
+        "全",
+        "能",
+        "运",
+        "动",
+        "员",
+        "他",
+        "会",
+        "攀",
+        "爬",
+        "虽",
+        "然",
+        "攀",
+        "爬",
+        "能",
+        "力",
+        "不",
+        "是",
+        "很",
+        "强",
+        "游",
+        "泳",
+        "跳",
+        "远",
+        "拉",
+        "力",
+        "能",
+        "拿",
+        "到",
+        "人",
+        "类",
+        "大",
+        "力",
+        "石",
+        "的",
+        "五",
+        "倍"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "老",
+          "hyp": "老"
+        },
+        {
+          "op": "C",
+          "ref": "虎",
+          "hyp": "虎"
+        },
+        {
+          "op": "C",
+          "ref": "是",
+          "hyp": "是"
+        },
+        {
+          "op": "C",
+          "ref": "全",
+          "hyp": "全"
+        },
+        {
+          "op": "C",
+          "ref": "能",
+          "hyp": "能"
+        },
+        {
+          "op": "C",
+          "ref": "运",
+          "hyp": "运"
+        },
+        {
+          "op": "C",
+          "ref": "动",
+          "hyp": "动"
+        },
+        {
+          "op": "C",
+          "ref": "员",
+          "hyp": "员"
+        },
+        {
+          "op": "S",
+          "ref": "它",
+          "hyp": "他"
+        },
+        {
+          "op": "C",
+          "ref": "会",
+          "hyp": "会"
+        },
+        {
+          "op": "C",
+          "ref": "攀",
+          "hyp": "攀"
+        },
+        {
+          "op": "C",
+          "ref": "爬",
+          "hyp": "爬"
+        },
+        {
+          "op": "C",
+          "ref": "虽",
+          "hyp": "虽"
+        },
+        {
+          "op": "C",
+          "ref": "然",
+          "hyp": "然"
+        },
+        {
+          "op": "C",
+          "ref": "攀",
+          "hyp": "攀"
+        },
+        {
+          "op": "C",
+          "ref": "爬",
+          "hyp": "爬"
+        },
+        {
+          "op": "C",
+          "ref": "能",
+          "hyp": "能"
+        },
+        {
+          "op": "C",
+          "ref": "力",
+          "hyp": "力"
+        },
+        {
+          "op": "C",
+          "ref": "不",
+          "hyp": "不"
+        },
+        {
+          "op": "C",
+          "ref": "是",
+          "hyp": "是"
+        },
+        {
+          "op": "C",
+          "ref": "很",
+          "hyp": "很"
+        },
+        {
+          "op": "C",
+          "ref": "强",
+          "hyp": "强"
+        },
+        {
+          "op": "C",
+          "ref": "游",
+          "hyp": "游"
+        },
+        {
+          "op": "C",
+          "ref": "泳",
+          "hyp": "泳"
+        },
+        {
+          "op": "C",
+          "ref": "跳",
+          "hyp": "跳"
+        },
+        {
+          "op": "C",
+          "ref": "远",
+          "hyp": "远"
+        },
+        {
+          "op": "C",
+          "ref": "拉",
+          "hyp": "拉"
+        },
+        {
+          "op": "C",
+          "ref": "力",
+          "hyp": "力"
+        },
+        {
+          "op": "C",
+          "ref": "能",
+          "hyp": "能"
+        },
+        {
+          "op": "S",
+          "ref": "达",
+          "hyp": "拿"
+        },
+        {
+          "op": "C",
+          "ref": "到",
+          "hyp": "到"
+        },
+        {
+          "op": "C",
+          "ref": "人",
+          "hyp": "人"
+        },
+        {
+          "op": "C",
+          "ref": "类",
+          "hyp": "类"
+        },
+        {
+          "op": "C",
+          "ref": "大",
+          "hyp": "大"
+        },
+        {
+          "op": "C",
+          "ref": "力",
+          "hyp": "力"
+        },
+        {
+          "op": "S",
+          "ref": "士",
+          "hyp": "石"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        },
+        {
+          "op": "C",
+          "ref": "五",
+          "hyp": "五"
+        },
+        {
+          "op": "C",
+          "ref": "倍",
+          "hyp": "倍"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "S",
+          "ref": "它",
+          "hyp": "他",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "达",
+          "hyp": "拿",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "士",
+          "hyp": "石",
+          "class": "substitution"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": null,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1681",
+      "lang": "en",
+      "stratum": "read-speech",
+      "config": "en_us",
+      "saLocale": "en-US",
+      "officialErrors": 0,
+      "officialLength": 33,
+      "officialRate": 0,
+      "frozenErrors": 0,
+      "length": 33,
+      "rate": 0,
+      "counts": {
+        "C": 33,
+        "S": 0,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "It isn’t alone though, experimentation, and an experiment is a test that is used to eliminate one or more of the possible hypotheses, asking questions, and making observations also guide scientific research.",
+      "rawHypothesis": "It isn't alone though, experimentation. And an experiment is a test that is used to eliminate one or more of the possible hypotheses, asking questions, and making observations also guide scientific research.",
+      "nfkcReference": "It isn’t alone though, experimentation, and an experiment is a test that is used to eliminate one or more of the possible hypotheses, asking questions, and making observations also guide scientific research.",
+      "nfkcHypothesis": "It isn't alone though, experimentation. And an experiment is a test that is used to eliminate one or more of the possible hypotheses, asking questions, and making observations also guide scientific research.",
+      "tokensRef": [
+        "it",
+        "isn",
+        "t",
+        "alone",
+        "though",
+        "experimentation",
+        "and",
+        "an",
+        "experiment",
+        "is",
+        "a",
+        "test",
+        "that",
+        "is",
+        "used",
+        "to",
+        "eliminate",
+        "one",
+        "or",
+        "more",
+        "of",
+        "the",
+        "possible",
+        "hypotheses",
+        "asking",
+        "questions",
+        "and",
+        "making",
+        "observations",
+        "also",
+        "guide",
+        "scientific",
+        "research"
+      ],
+      "tokensHyp": [
+        "it",
+        "isn",
+        "t",
+        "alone",
+        "though",
+        "experimentation",
+        "and",
+        "an",
+        "experiment",
+        "is",
+        "a",
+        "test",
+        "that",
+        "is",
+        "used",
+        "to",
+        "eliminate",
+        "one",
+        "or",
+        "more",
+        "of",
+        "the",
+        "possible",
+        "hypotheses",
+        "asking",
+        "questions",
+        "and",
+        "making",
+        "observations",
+        "also",
+        "guide",
+        "scientific",
+        "research"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "it",
+          "hyp": "it"
+        },
+        {
+          "op": "C",
+          "ref": "isn",
+          "hyp": "isn"
+        },
+        {
+          "op": "C",
+          "ref": "t",
+          "hyp": "t"
+        },
+        {
+          "op": "C",
+          "ref": "alone",
+          "hyp": "alone"
+        },
+        {
+          "op": "C",
+          "ref": "though",
+          "hyp": "though"
+        },
+        {
+          "op": "C",
+          "ref": "experimentation",
+          "hyp": "experimentation"
+        },
+        {
+          "op": "C",
+          "ref": "and",
+          "hyp": "and"
+        },
+        {
+          "op": "C",
+          "ref": "an",
+          "hyp": "an"
+        },
+        {
+          "op": "C",
+          "ref": "experiment",
+          "hyp": "experiment"
+        },
+        {
+          "op": "C",
+          "ref": "is",
+          "hyp": "is"
+        },
+        {
+          "op": "C",
+          "ref": "a",
+          "hyp": "a"
+        },
+        {
+          "op": "C",
+          "ref": "test",
+          "hyp": "test"
+        },
+        {
+          "op": "C",
+          "ref": "that",
+          "hyp": "that"
+        },
+        {
+          "op": "C",
+          "ref": "is",
+          "hyp": "is"
+        },
+        {
+          "op": "C",
+          "ref": "used",
+          "hyp": "used"
+        },
+        {
+          "op": "C",
+          "ref": "to",
+          "hyp": "to"
+        },
+        {
+          "op": "C",
+          "ref": "eliminate",
+          "hyp": "eliminate"
+        },
+        {
+          "op": "C",
+          "ref": "one",
+          "hyp": "one"
+        },
+        {
+          "op": "C",
+          "ref": "or",
+          "hyp": "or"
+        },
+        {
+          "op": "C",
+          "ref": "more",
+          "hyp": "more"
+        },
+        {
+          "op": "C",
+          "ref": "of",
+          "hyp": "of"
+        },
+        {
+          "op": "C",
+          "ref": "the",
+          "hyp": "the"
+        },
+        {
+          "op": "C",
+          "ref": "possible",
+          "hyp": "possible"
+        },
+        {
+          "op": "C",
+          "ref": "hypotheses",
+          "hyp": "hypotheses"
+        },
+        {
+          "op": "C",
+          "ref": "asking",
+          "hyp": "asking"
+        },
+        {
+          "op": "C",
+          "ref": "questions",
+          "hyp": "questions"
+        },
+        {
+          "op": "C",
+          "ref": "and",
+          "hyp": "and"
+        },
+        {
+          "op": "C",
+          "ref": "making",
+          "hyp": "making"
+        },
+        {
+          "op": "C",
+          "ref": "observations",
+          "hyp": "observations"
+        },
+        {
+          "op": "C",
+          "ref": "also",
+          "hyp": "also"
+        },
+        {
+          "op": "C",
+          "ref": "guide",
+          "hyp": "guide"
+        },
+        {
+          "op": "C",
+          "ref": "scientific",
+          "hyp": "scientific"
+        },
+        {
+          "op": "C",
+          "ref": "research",
+          "hyp": "research"
+        }
+      ],
+      "errorOps": [],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": 1,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1681",
+      "lang": "zh",
+      "stratum": "read-speech",
+      "config": "cmn_hans_cn",
+      "saLocale": "zh-CN",
+      "officialErrors": 2,
+      "officialLength": 52,
+      "officialRate": 0.038461538461538464,
+      "frozenErrors": 2,
+      "length": 52,
+      "rate": 0.038461538461538464,
+      "counts": {
+        "C": 51,
+        "S": 1,
+        "D": 0,
+        "I": 1
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "实验是一种用来消除一个或多个可能性假设的试验，不过，实验并不是唯一的方法。提出问题及进行观察也可以指导科学研究。",
+      "rawHypothesis": "实验是一种用来消除一个或多个可能性假设的实验。不过实验并不是唯一的方法提出问题以及进行观察也可以指导科学研究。",
+      "nfkcReference": "实验是一种用来消除一个或多个可能性假设的试验,不过,实验并不是唯一的方法。提出问题及进行观察也可以指导科学研究。",
+      "nfkcHypothesis": "实验是一种用来消除一个或多个可能性假设的实验。不过实验并不是唯一的方法提出问题以及进行观察也可以指导科学研究。",
+      "tokensRef": [
+        "实",
+        "验",
+        "是",
+        "一",
+        "种",
+        "用",
+        "来",
+        "消",
+        "除",
+        "一",
+        "个",
+        "或",
+        "多",
+        "个",
+        "可",
+        "能",
+        "性",
+        "假",
+        "设",
+        "的",
+        "试",
+        "验",
+        "不",
+        "过",
+        "实",
+        "验",
+        "并",
+        "不",
+        "是",
+        "唯",
+        "一",
+        "的",
+        "方",
+        "法",
+        "提",
+        "出",
+        "问",
+        "题",
+        "及",
+        "进",
+        "行",
+        "观",
+        "察",
+        "也",
+        "可",
+        "以",
+        "指",
+        "导",
+        "科",
+        "学",
+        "研",
+        "究"
+      ],
+      "tokensHyp": [
+        "实",
+        "验",
+        "是",
+        "一",
+        "种",
+        "用",
+        "来",
+        "消",
+        "除",
+        "一",
+        "个",
+        "或",
+        "多",
+        "个",
+        "可",
+        "能",
+        "性",
+        "假",
+        "设",
+        "的",
+        "实",
+        "验",
+        "不",
+        "过",
+        "实",
+        "验",
+        "并",
+        "不",
+        "是",
+        "唯",
+        "一",
+        "的",
+        "方",
+        "法",
+        "提",
+        "出",
+        "问",
+        "题",
+        "以",
+        "及",
+        "进",
+        "行",
+        "观",
+        "察",
+        "也",
+        "可",
+        "以",
+        "指",
+        "导",
+        "科",
+        "学",
+        "研",
+        "究"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "实",
+          "hyp": "实"
+        },
+        {
+          "op": "C",
+          "ref": "验",
+          "hyp": "验"
+        },
+        {
+          "op": "C",
+          "ref": "是",
+          "hyp": "是"
+        },
+        {
+          "op": "C",
+          "ref": "一",
+          "hyp": "一"
+        },
+        {
+          "op": "C",
+          "ref": "种",
+          "hyp": "种"
+        },
+        {
+          "op": "C",
+          "ref": "用",
+          "hyp": "用"
+        },
+        {
+          "op": "C",
+          "ref": "来",
+          "hyp": "来"
+        },
+        {
+          "op": "C",
+          "ref": "消",
+          "hyp": "消"
+        },
+        {
+          "op": "C",
+          "ref": "除",
+          "hyp": "除"
+        },
+        {
+          "op": "C",
+          "ref": "一",
+          "hyp": "一"
+        },
+        {
+          "op": "C",
+          "ref": "个",
+          "hyp": "个"
+        },
+        {
+          "op": "C",
+          "ref": "或",
+          "hyp": "或"
+        },
+        {
+          "op": "C",
+          "ref": "多",
+          "hyp": "多"
+        },
+        {
+          "op": "C",
+          "ref": "个",
+          "hyp": "个"
+        },
+        {
+          "op": "C",
+          "ref": "可",
+          "hyp": "可"
+        },
+        {
+          "op": "C",
+          "ref": "能",
+          "hyp": "能"
+        },
+        {
+          "op": "C",
+          "ref": "性",
+          "hyp": "性"
+        },
+        {
+          "op": "C",
+          "ref": "假",
+          "hyp": "假"
+        },
+        {
+          "op": "C",
+          "ref": "设",
+          "hyp": "设"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        },
+        {
+          "op": "S",
+          "ref": "试",
+          "hyp": "实"
+        },
+        {
+          "op": "C",
+          "ref": "验",
+          "hyp": "验"
+        },
+        {
+          "op": "C",
+          "ref": "不",
+          "hyp": "不"
+        },
+        {
+          "op": "C",
+          "ref": "过",
+          "hyp": "过"
+        },
+        {
+          "op": "C",
+          "ref": "实",
+          "hyp": "实"
+        },
+        {
+          "op": "C",
+          "ref": "验",
+          "hyp": "验"
+        },
+        {
+          "op": "C",
+          "ref": "并",
+          "hyp": "并"
+        },
+        {
+          "op": "C",
+          "ref": "不",
+          "hyp": "不"
+        },
+        {
+          "op": "C",
+          "ref": "是",
+          "hyp": "是"
+        },
+        {
+          "op": "C",
+          "ref": "唯",
+          "hyp": "唯"
+        },
+        {
+          "op": "C",
+          "ref": "一",
+          "hyp": "一"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        },
+        {
+          "op": "C",
+          "ref": "方",
+          "hyp": "方"
+        },
+        {
+          "op": "C",
+          "ref": "法",
+          "hyp": "法"
+        },
+        {
+          "op": "C",
+          "ref": "提",
+          "hyp": "提"
+        },
+        {
+          "op": "C",
+          "ref": "出",
+          "hyp": "出"
+        },
+        {
+          "op": "C",
+          "ref": "问",
+          "hyp": "问"
+        },
+        {
+          "op": "C",
+          "ref": "题",
+          "hyp": "题"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "以"
+        },
+        {
+          "op": "C",
+          "ref": "及",
+          "hyp": "及"
+        },
+        {
+          "op": "C",
+          "ref": "进",
+          "hyp": "进"
+        },
+        {
+          "op": "C",
+          "ref": "行",
+          "hyp": "行"
+        },
+        {
+          "op": "C",
+          "ref": "观",
+          "hyp": "观"
+        },
+        {
+          "op": "C",
+          "ref": "察",
+          "hyp": "察"
+        },
+        {
+          "op": "C",
+          "ref": "也",
+          "hyp": "也"
+        },
+        {
+          "op": "C",
+          "ref": "可",
+          "hyp": "可"
+        },
+        {
+          "op": "C",
+          "ref": "以",
+          "hyp": "以"
+        },
+        {
+          "op": "C",
+          "ref": "指",
+          "hyp": "指"
+        },
+        {
+          "op": "C",
+          "ref": "导",
+          "hyp": "导"
+        },
+        {
+          "op": "C",
+          "ref": "科",
+          "hyp": "科"
+        },
+        {
+          "op": "C",
+          "ref": "学",
+          "hyp": "学"
+        },
+        {
+          "op": "C",
+          "ref": "研",
+          "hyp": "研"
+        },
+        {
+          "op": "C",
+          "ref": "究",
+          "hyp": "究"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "S",
+          "ref": "试",
+          "hyp": "实",
+          "class": "substitution"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "以",
+          "class": "insertion"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": null,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1682",
+      "lang": "en",
+      "stratum": "read-speech",
+      "config": "en_us",
+      "saLocale": "en-US",
+      "officialErrors": 11,
+      "officialLength": 35,
+      "officialRate": 0.3142857142857143,
+      "frozenErrors": 11,
+      "length": 35,
+      "rate": 0.3142857142857143,
+      "counts": {
+        "C": 26,
+        "S": 7,
+        "D": 2,
+        "I": 2
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "While no one knows for certain who wrote it, it is known that early in its life, the large parchment document (it measures 29¾ inches by 24½ inches) was rolled up for storage.",
+      "rawHypothesis": "While no one knows for Serenhu Roi, it is known that early in its life, the large parchment document, in Messrs. 29, 3/4 inches by 24 and half inches, was rolled up for storage.",
+      "nfkcReference": "While no one knows for certain who wrote it, it is known that early in its life, the large parchment document (it measures 293⁄4 inches by 241⁄2 inches) was rolled up for storage.",
+      "nfkcHypothesis": "While no one knows for Serenhu Roi, it is known that early in its life, the large parchment document, in Messrs. 29, 3/4 inches by 24 and half inches, was rolled up for storage.",
+      "tokensRef": [
+        "while",
+        "no",
+        "one",
+        "knows",
+        "for",
+        "certain",
+        "who",
+        "wrote",
+        "it",
+        "it",
+        "is",
+        "known",
+        "that",
+        "early",
+        "in",
+        "its",
+        "life",
+        "the",
+        "large",
+        "parchment",
+        "document",
+        "it",
+        "measures",
+        "293",
+        "4",
+        "inches",
+        "by",
+        "241",
+        "2",
+        "inches",
+        "was",
+        "rolled",
+        "up",
+        "for",
+        "storage"
+      ],
+      "tokensHyp": [
+        "while",
+        "no",
+        "one",
+        "knows",
+        "for",
+        "serenhu",
+        "roi",
+        "it",
+        "is",
+        "known",
+        "that",
+        "early",
+        "in",
+        "its",
+        "life",
+        "the",
+        "large",
+        "parchment",
+        "document",
+        "in",
+        "messrs",
+        "29",
+        "3",
+        "4",
+        "inches",
+        "by",
+        "24",
+        "and",
+        "half",
+        "inches",
+        "was",
+        "rolled",
+        "up",
+        "for",
+        "storage"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "while",
+          "hyp": "while"
+        },
+        {
+          "op": "C",
+          "ref": "no",
+          "hyp": "no"
+        },
+        {
+          "op": "C",
+          "ref": "one",
+          "hyp": "one"
+        },
+        {
+          "op": "C",
+          "ref": "knows",
+          "hyp": "knows"
+        },
+        {
+          "op": "C",
+          "ref": "for",
+          "hyp": "for"
+        },
+        {
+          "op": "D",
+          "ref": "certain",
+          "hyp": null
+        },
+        {
+          "op": "D",
+          "ref": "who",
+          "hyp": null
+        },
+        {
+          "op": "S",
+          "ref": "wrote",
+          "hyp": "serenhu"
+        },
+        {
+          "op": "S",
+          "ref": "it",
+          "hyp": "roi"
+        },
+        {
+          "op": "C",
+          "ref": "it",
+          "hyp": "it"
+        },
+        {
+          "op": "C",
+          "ref": "is",
+          "hyp": "is"
+        },
+        {
+          "op": "C",
+          "ref": "known",
+          "hyp": "known"
+        },
+        {
+          "op": "C",
+          "ref": "that",
+          "hyp": "that"
+        },
+        {
+          "op": "C",
+          "ref": "early",
+          "hyp": "early"
+        },
+        {
+          "op": "C",
+          "ref": "in",
+          "hyp": "in"
+        },
+        {
+          "op": "C",
+          "ref": "its",
+          "hyp": "its"
+        },
+        {
+          "op": "C",
+          "ref": "life",
+          "hyp": "life"
+        },
+        {
+          "op": "C",
+          "ref": "the",
+          "hyp": "the"
+        },
+        {
+          "op": "C",
+          "ref": "large",
+          "hyp": "large"
+        },
+        {
+          "op": "C",
+          "ref": "parchment",
+          "hyp": "parchment"
+        },
+        {
+          "op": "C",
+          "ref": "document",
+          "hyp": "document"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "in"
+        },
+        {
+          "op": "S",
+          "ref": "it",
+          "hyp": "messrs"
+        },
+        {
+          "op": "S",
+          "ref": "measures",
+          "hyp": "29"
+        },
+        {
+          "op": "S",
+          "ref": "293",
+          "hyp": "3"
+        },
+        {
+          "op": "C",
+          "ref": "4",
+          "hyp": "4"
+        },
+        {
+          "op": "C",
+          "ref": "inches",
+          "hyp": "inches"
+        },
+        {
+          "op": "C",
+          "ref": "by",
+          "hyp": "by"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "24"
+        },
+        {
+          "op": "S",
+          "ref": "241",
+          "hyp": "and"
+        },
+        {
+          "op": "S",
+          "ref": "2",
+          "hyp": "half"
+        },
+        {
+          "op": "C",
+          "ref": "inches",
+          "hyp": "inches"
+        },
+        {
+          "op": "C",
+          "ref": "was",
+          "hyp": "was"
+        },
+        {
+          "op": "C",
+          "ref": "rolled",
+          "hyp": "rolled"
+        },
+        {
+          "op": "C",
+          "ref": "up",
+          "hyp": "up"
+        },
+        {
+          "op": "C",
+          "ref": "for",
+          "hyp": "for"
+        },
+        {
+          "op": "C",
+          "ref": "storage",
+          "hyp": "storage"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "D",
+          "ref": "certain",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "D",
+          "ref": "who",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "S",
+          "ref": "wrote",
+          "hyp": "serenhu",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "it",
+          "hyp": "roi",
+          "class": "substitution"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "in",
+          "class": "insertion"
+        },
+        {
+          "op": "S",
+          "ref": "it",
+          "hyp": "messrs",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "measures",
+          "hyp": "29",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "293",
+          "hyp": "3",
+          "class": "number-form"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "24",
+          "class": "number-insertion"
+        },
+        {
+          "op": "S",
+          "ref": "241",
+          "hyp": "and",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "2",
+          "hyp": "half",
+          "class": "substitution"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": 11,
+      "mixed": null
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1682",
+      "lang": "zh",
+      "stratum": "read-speech",
+      "config": "cmn_hans_cn",
+      "saLocale": "zh-CN",
+      "officialErrors": 10,
+      "officialLength": 55,
+      "officialRate": 0.18181818181818182,
+      "frozenErrors": 10,
+      "length": 55,
+      "rate": 0.18181818181818182,
+      "counts": {
+        "C": 51,
+        "S": 4,
+        "D": 0,
+        "I": 6
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "虽然没有人能确定作者是谁，但这个大型羊皮纸文档（尺寸为 29¾ 英寸乘以 24½ 英寸）据称在刚写成的时候是卷起来存放的。",
+      "rawHypothesis": "虽然没有人能确定作者是谁 ，但这个大型羊皮纸文档尺寸为 29又四分之三英寸乘以 24有二分之一英寸。据称在刚写成的时候是卷起来存放的。",
+      "nfkcReference": "虽然没有人能确定作者是谁,但这个大型羊皮纸文档(尺寸为 293⁄4 英寸乘以 241⁄2 英寸)据称在刚写成的时候是卷起来存放的。",
+      "nfkcHypothesis": "虽然没有人能确定作者是谁 ,但这个大型羊皮纸文档尺寸为 29又四分之三英寸乘以 24有二分之一英寸。据称在刚写成的时候是卷起来存放的。",
+      "tokensRef": [
+        "虽",
+        "然",
+        "没",
+        "有",
+        "人",
+        "能",
+        "确",
+        "定",
+        "作",
+        "者",
+        "是",
+        "谁",
+        "但",
+        "这",
+        "个",
+        "大",
+        "型",
+        "羊",
+        "皮",
+        "纸",
+        "文",
+        "档",
+        "尺",
+        "寸",
+        "为",
+        "2",
+        "9",
+        "3",
+        "4",
+        "英",
+        "寸",
+        "乘",
+        "以",
+        "2",
+        "4",
+        "1",
+        "2",
+        "英",
+        "寸",
+        "据",
+        "称",
+        "在",
+        "刚",
+        "写",
+        "成",
+        "的",
+        "时",
+        "候",
+        "是",
+        "卷",
+        "起",
+        "来",
+        "存",
+        "放",
+        "的"
+      ],
+      "tokensHyp": [
+        "虽",
+        "然",
+        "没",
+        "有",
+        "人",
+        "能",
+        "确",
+        "定",
+        "作",
+        "者",
+        "是",
+        "谁",
+        "但",
+        "这",
+        "个",
+        "大",
+        "型",
+        "羊",
+        "皮",
+        "纸",
+        "文",
+        "档",
+        "尺",
+        "寸",
+        "为",
+        "2",
+        "9",
+        "又",
+        "四",
+        "分",
+        "之",
+        "三",
+        "英",
+        "寸",
+        "乘",
+        "以",
+        "2",
+        "4",
+        "有",
+        "二",
+        "分",
+        "之",
+        "一",
+        "英",
+        "寸",
+        "据",
+        "称",
+        "在",
+        "刚",
+        "写",
+        "成",
+        "的",
+        "时",
+        "候",
+        "是",
+        "卷",
+        "起",
+        "来",
+        "存",
+        "放",
+        "的"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "虽",
+          "hyp": "虽"
+        },
+        {
+          "op": "C",
+          "ref": "然",
+          "hyp": "然"
+        },
+        {
+          "op": "C",
+          "ref": "没",
+          "hyp": "没"
+        },
+        {
+          "op": "C",
+          "ref": "有",
+          "hyp": "有"
+        },
+        {
+          "op": "C",
+          "ref": "人",
+          "hyp": "人"
+        },
+        {
+          "op": "C",
+          "ref": "能",
+          "hyp": "能"
+        },
+        {
+          "op": "C",
+          "ref": "确",
+          "hyp": "确"
+        },
+        {
+          "op": "C",
+          "ref": "定",
+          "hyp": "定"
+        },
+        {
+          "op": "C",
+          "ref": "作",
+          "hyp": "作"
+        },
+        {
+          "op": "C",
+          "ref": "者",
+          "hyp": "者"
+        },
+        {
+          "op": "C",
+          "ref": "是",
+          "hyp": "是"
+        },
+        {
+          "op": "C",
+          "ref": "谁",
+          "hyp": "谁"
+        },
+        {
+          "op": "C",
+          "ref": "但",
+          "hyp": "但"
+        },
+        {
+          "op": "C",
+          "ref": "这",
+          "hyp": "这"
+        },
+        {
+          "op": "C",
+          "ref": "个",
+          "hyp": "个"
+        },
+        {
+          "op": "C",
+          "ref": "大",
+          "hyp": "大"
+        },
+        {
+          "op": "C",
+          "ref": "型",
+          "hyp": "型"
+        },
+        {
+          "op": "C",
+          "ref": "羊",
+          "hyp": "羊"
+        },
+        {
+          "op": "C",
+          "ref": "皮",
+          "hyp": "皮"
+        },
+        {
+          "op": "C",
+          "ref": "纸",
+          "hyp": "纸"
+        },
+        {
+          "op": "C",
+          "ref": "文",
+          "hyp": "文"
+        },
+        {
+          "op": "C",
+          "ref": "档",
+          "hyp": "档"
+        },
+        {
+          "op": "C",
+          "ref": "尺",
+          "hyp": "尺"
+        },
+        {
+          "op": "C",
+          "ref": "寸",
+          "hyp": "寸"
+        },
+        {
+          "op": "C",
+          "ref": "为",
+          "hyp": "为"
+        },
+        {
+          "op": "C",
+          "ref": "2",
+          "hyp": "2"
+        },
+        {
+          "op": "C",
+          "ref": "9",
+          "hyp": "9"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "又"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "四"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "分"
+        },
+        {
+          "op": "S",
+          "ref": "3",
+          "hyp": "之"
+        },
+        {
+          "op": "S",
+          "ref": "4",
+          "hyp": "三"
+        },
+        {
+          "op": "C",
+          "ref": "英",
+          "hyp": "英"
+        },
+        {
+          "op": "C",
+          "ref": "寸",
+          "hyp": "寸"
+        },
+        {
+          "op": "C",
+          "ref": "乘",
+          "hyp": "乘"
+        },
+        {
+          "op": "C",
+          "ref": "以",
+          "hyp": "以"
+        },
+        {
+          "op": "C",
+          "ref": "2",
+          "hyp": "2"
+        },
+        {
+          "op": "C",
+          "ref": "4",
+          "hyp": "4"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "有"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "二"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "分"
+        },
+        {
+          "op": "S",
+          "ref": "1",
+          "hyp": "之"
+        },
+        {
+          "op": "S",
+          "ref": "2",
+          "hyp": "一"
+        },
+        {
+          "op": "C",
+          "ref": "英",
+          "hyp": "英"
+        },
+        {
+          "op": "C",
+          "ref": "寸",
+          "hyp": "寸"
+        },
+        {
+          "op": "C",
+          "ref": "据",
+          "hyp": "据"
+        },
+        {
+          "op": "C",
+          "ref": "称",
+          "hyp": "称"
+        },
+        {
+          "op": "C",
+          "ref": "在",
+          "hyp": "在"
+        },
+        {
+          "op": "C",
+          "ref": "刚",
+          "hyp": "刚"
+        },
+        {
+          "op": "C",
+          "ref": "写",
+          "hyp": "写"
+        },
+        {
+          "op": "C",
+          "ref": "成",
+          "hyp": "成"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        },
+        {
+          "op": "C",
+          "ref": "时",
+          "hyp": "时"
+        },
+        {
+          "op": "C",
+          "ref": "候",
+          "hyp": "候"
+        },
+        {
+          "op": "C",
+          "ref": "是",
+          "hyp": "是"
+        },
+        {
+          "op": "C",
+          "ref": "卷",
+          "hyp": "卷"
+        },
+        {
+          "op": "C",
+          "ref": "起",
+          "hyp": "起"
+        },
+        {
+          "op": "C",
+          "ref": "来",
+          "hyp": "来"
+        },
+        {
+          "op": "C",
+          "ref": "存",
+          "hyp": "存"
+        },
+        {
+          "op": "C",
+          "ref": "放",
+          "hyp": "放"
+        },
+        {
+          "op": "C",
+          "ref": "的",
+          "hyp": "的"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "又",
+          "class": "insertion"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "四",
+          "class": "number-insertion"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "分",
+          "class": "insertion"
+        },
+        {
+          "op": "S",
+          "ref": "3",
+          "hyp": "之",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "4",
+          "hyp": "三",
+          "class": "number-form"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "有",
+          "class": "insertion"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "二",
+          "class": "number-insertion"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "分",
+          "class": "insertion"
+        },
+        {
+          "op": "S",
+          "ref": "1",
+          "hyp": "之",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "2",
+          "hyp": "一",
+          "class": "number-form"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": null,
+      "mixed": null
+    },
+    {
+      "id": "ascend/00004",
+      "lang": "mixed",
+      "stratum": "code-switch",
+      "config": "ascend",
+      "saLocale": "zh-CN",
+      "officialErrors": 5,
+      "officialLength": 5,
+      "officialRate": 1,
+      "frozenErrors": 5,
+      "length": 5,
+      "rate": 1,
+      "counts": {
+        "C": 0,
+        "S": 2,
+        "D": 3,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "呃what's the呃",
+      "rawHypothesis": "我so",
+      "nfkcReference": "呃what's the呃",
+      "nfkcHypothesis": "我so",
+      "tokensRef": [
+        "呃",
+        "what",
+        "s",
+        "the",
+        "呃"
+      ],
+      "tokensHyp": [
+        "我",
+        "so"
+      ],
+      "ops": [
+        {
+          "op": "D",
+          "ref": "呃",
+          "hyp": null
+        },
+        {
+          "op": "D",
+          "ref": "what",
+          "hyp": null
+        },
+        {
+          "op": "D",
+          "ref": "s",
+          "hyp": null
+        },
+        {
+          "op": "S",
+          "ref": "the",
+          "hyp": "我"
+        },
+        {
+          "op": "S",
+          "ref": "呃",
+          "hyp": "so"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "D",
+          "ref": "呃",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "D",
+          "ref": "what",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "D",
+          "ref": "s",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "S",
+          "ref": "the",
+          "hyp": "我",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "呃",
+          "hyp": "so",
+          "class": "substitution"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": null,
+      "mixed": {
+        "han": {
+          "errors": 2,
+          "length": 2,
+          "rate": 1
+        },
+        "latin": {
+          "errors": 3,
+          "length": 3,
+          "rate": 1
+        },
+        "ranking": false
+      }
+    },
+    {
+      "id": "ascend/00009",
+      "lang": "mixed",
+      "stratum": "code-switch",
+      "config": "ascend",
+      "saLocale": "zh-CN",
+      "officialErrors": 9,
+      "officialLength": 13,
+      "officialRate": 0.6923076923076923,
+      "frozenErrors": 9,
+      "length": 13,
+      "rate": 0.6923076923076923,
+      "counts": {
+        "C": 4,
+        "S": 6,
+        "D": 3,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "no我专业是那个i s m information systems management",
+      "rawHypothesis": "那我觉爱是那个 ISM impormation sistancemangement。",
+      "nfkcReference": "no我专业是那个i s m information systems management",
+      "nfkcHypothesis": "那我觉爱是那个 ISM impormation sistancemangement。",
+      "tokensRef": [
+        "no",
+        "我",
+        "专",
+        "业",
+        "是",
+        "那",
+        "个",
+        "i",
+        "s",
+        "m",
+        "information",
+        "systems",
+        "management"
+      ],
+      "tokensHyp": [
+        "那",
+        "我",
+        "觉",
+        "爱",
+        "是",
+        "那",
+        "个",
+        "ism",
+        "impormation",
+        "sistancemangement"
+      ],
+      "ops": [
+        {
+          "op": "S",
+          "ref": "no",
+          "hyp": "那"
+        },
+        {
+          "op": "C",
+          "ref": "我",
+          "hyp": "我"
+        },
+        {
+          "op": "S",
+          "ref": "专",
+          "hyp": "觉"
+        },
+        {
+          "op": "S",
+          "ref": "业",
+          "hyp": "爱"
+        },
+        {
+          "op": "C",
+          "ref": "是",
+          "hyp": "是"
+        },
+        {
+          "op": "C",
+          "ref": "那",
+          "hyp": "那"
+        },
+        {
+          "op": "C",
+          "ref": "个",
+          "hyp": "个"
+        },
+        {
+          "op": "D",
+          "ref": "i",
+          "hyp": null
+        },
+        {
+          "op": "D",
+          "ref": "s",
+          "hyp": null
+        },
+        {
+          "op": "D",
+          "ref": "m",
+          "hyp": null
+        },
+        {
+          "op": "S",
+          "ref": "information",
+          "hyp": "ism"
+        },
+        {
+          "op": "S",
+          "ref": "systems",
+          "hyp": "impormation"
+        },
+        {
+          "op": "S",
+          "ref": "management",
+          "hyp": "sistancemangement"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "S",
+          "ref": "no",
+          "hyp": "那",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "专",
+          "hyp": "觉",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "业",
+          "hyp": "爱",
+          "class": "substitution"
+        },
+        {
+          "op": "D",
+          "ref": "i",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "D",
+          "ref": "s",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "D",
+          "ref": "m",
+          "hyp": null,
+          "class": "deletion"
+        },
+        {
+          "op": "S",
+          "ref": "information",
+          "hyp": "ism",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "systems",
+          "hyp": "impormation",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "management",
+          "hyp": "sistancemangement",
+          "class": "substitution"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": null,
+      "mixed": {
+        "han": {
+          "errors": 3,
+          "length": 6,
+          "rate": 0.5
+        },
+        "latin": {
+          "errors": 7,
+          "length": 7,
+          "rate": 1
+        },
+        "ranking": false
+      }
+    },
+    {
+      "id": "ascend/00028",
+      "lang": "mixed",
+      "stratum": "code-switch",
+      "config": "ascend",
+      "saLocale": "zh-CN",
+      "officialErrors": 2,
+      "officialLength": 3,
+      "officialRate": 0.6666666666666666,
+      "frozenErrors": 2,
+      "length": 3,
+      "rate": 0.6666666666666666,
+      "counts": {
+        "C": 1,
+        "S": 2,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "ok福建",
+      "rawHypothesis": "OK附件。",
+      "nfkcReference": "ok福建",
+      "nfkcHypothesis": "OK附件。",
+      "tokensRef": [
+        "ok",
+        "福",
+        "建"
+      ],
+      "tokensHyp": [
+        "ok",
+        "附",
+        "件"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "ok",
+          "hyp": "ok"
+        },
+        {
+          "op": "S",
+          "ref": "福",
+          "hyp": "附"
+        },
+        {
+          "op": "S",
+          "ref": "建",
+          "hyp": "件"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "S",
+          "ref": "福",
+          "hyp": "附",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "建",
+          "hyp": "件",
+          "class": "substitution"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": null,
+      "mixed": {
+        "han": {
+          "errors": 2,
+          "length": 2,
+          "rate": 1
+        },
+        "latin": {
+          "errors": 0,
+          "length": 1,
+          "rate": 0
+        },
+        "ranking": false
+      }
+    },
+    {
+      "id": "ascend/00055",
+      "lang": "mixed",
+      "stratum": "code-switch",
+      "config": "ascend",
+      "saLocale": "zh-CN",
+      "officialErrors": 1,
+      "officialLength": 14,
+      "officialRate": 0.07142857142857142,
+      "frozenErrors": 1,
+      "length": 14,
+      "rate": 0.07142857142857142,
+      "counts": {
+        "C": 13,
+        "S": 1,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "um运动啊男生一般不都喜欢运动",
+      "rawHypothesis": "嗯 ，运动啊 ，男生一般不都喜欢运动",
+      "nfkcReference": "um运动啊男生一般不都喜欢运动",
+      "nfkcHypothesis": "嗯 ,运动啊 ,男生一般不都喜欢运动",
+      "tokensRef": [
+        "um",
+        "运",
+        "动",
+        "啊",
+        "男",
+        "生",
+        "一",
+        "般",
+        "不",
+        "都",
+        "喜",
+        "欢",
+        "运",
+        "动"
+      ],
+      "tokensHyp": [
+        "嗯",
+        "运",
+        "动",
+        "啊",
+        "男",
+        "生",
+        "一",
+        "般",
+        "不",
+        "都",
+        "喜",
+        "欢",
+        "运",
+        "动"
+      ],
+      "ops": [
+        {
+          "op": "S",
+          "ref": "um",
+          "hyp": "嗯"
+        },
+        {
+          "op": "C",
+          "ref": "运",
+          "hyp": "运"
+        },
+        {
+          "op": "C",
+          "ref": "动",
+          "hyp": "动"
+        },
+        {
+          "op": "C",
+          "ref": "啊",
+          "hyp": "啊"
+        },
+        {
+          "op": "C",
+          "ref": "男",
+          "hyp": "男"
+        },
+        {
+          "op": "C",
+          "ref": "生",
+          "hyp": "生"
+        },
+        {
+          "op": "C",
+          "ref": "一",
+          "hyp": "一"
+        },
+        {
+          "op": "C",
+          "ref": "般",
+          "hyp": "般"
+        },
+        {
+          "op": "C",
+          "ref": "不",
+          "hyp": "不"
+        },
+        {
+          "op": "C",
+          "ref": "都",
+          "hyp": "都"
+        },
+        {
+          "op": "C",
+          "ref": "喜",
+          "hyp": "喜"
+        },
+        {
+          "op": "C",
+          "ref": "欢",
+          "hyp": "欢"
+        },
+        {
+          "op": "C",
+          "ref": "运",
+          "hyp": "运"
+        },
+        {
+          "op": "C",
+          "ref": "动",
+          "hyp": "动"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "S",
+          "ref": "um",
+          "hyp": "嗯",
+          "class": "substitution"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": null,
+      "mixed": {
+        "han": {
+          "errors": 1,
+          "length": 13,
+          "rate": 0.07692307692307693
+        },
+        "latin": {
+          "errors": 1,
+          "length": 1,
+          "rate": 1
+        },
+        "ranking": false
+      }
+    },
+    {
+      "id": "ascend/00066",
+      "lang": "mixed",
+      "stratum": "code-switch",
+      "config": "ascend",
+      "saLocale": "zh-CN",
+      "officialErrors": 1,
+      "officialLength": 4,
+      "officialRate": 0.25,
+      "frozenErrors": 1,
+      "length": 4,
+      "rate": 0.25,
+      "counts": {
+        "C": 3,
+        "S": 1,
+        "D": 0,
+        "I": 0
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "哦这么technical",
+      "rawHypothesis": "哦 ，这么 technicle",
+      "nfkcReference": "哦这么technical",
+      "nfkcHypothesis": "哦 ,这么 technicle",
+      "tokensRef": [
+        "哦",
+        "这",
+        "么",
+        "technical"
+      ],
+      "tokensHyp": [
+        "哦",
+        "这",
+        "么",
+        "technicle"
+      ],
+      "ops": [
+        {
+          "op": "C",
+          "ref": "哦",
+          "hyp": "哦"
+        },
+        {
+          "op": "C",
+          "ref": "这",
+          "hyp": "这"
+        },
+        {
+          "op": "C",
+          "ref": "么",
+          "hyp": "么"
+        },
+        {
+          "op": "S",
+          "ref": "technical",
+          "hyp": "technicle"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "S",
+          "ref": "technical",
+          "hyp": "technicle",
+          "class": "substitution"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": null,
+      "mixed": {
+        "han": {
+          "errors": 0,
+          "length": 3,
+          "rate": 0
+        },
+        "latin": {
+          "errors": 1,
+          "length": 1,
+          "rate": 1
+        },
+        "ranking": false
+      }
+    },
+    {
+      "id": "ascend/00068",
+      "lang": "mixed",
+      "stratum": "code-switch",
+      "config": "ascend",
+      "saLocale": "zh-CN",
+      "officialErrors": 6,
+      "officialLength": 3,
+      "officialRate": 2,
+      "frozenErrors": 6,
+      "length": 3,
+      "rate": 2,
+      "counts": {
+        "C": 0,
+        "S": 3,
+        "D": 0,
+        "I": 3
+      },
+      "alignDistanceEqualsFrozen": true,
+      "rawReference": "computer languages是",
+      "rawHypothesis": "可能平时都 anguage",
+      "nfkcReference": "computer languages是",
+      "nfkcHypothesis": "可能平时都 anguage",
+      "tokensRef": [
+        "computer",
+        "languages",
+        "是"
+      ],
+      "tokensHyp": [
+        "可",
+        "能",
+        "平",
+        "时",
+        "都",
+        "anguage"
+      ],
+      "ops": [
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "可"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "能"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "平"
+        },
+        {
+          "op": "S",
+          "ref": "computer",
+          "hyp": "时"
+        },
+        {
+          "op": "S",
+          "ref": "languages",
+          "hyp": "都"
+        },
+        {
+          "op": "S",
+          "ref": "是",
+          "hyp": "anguage"
+        }
+      ],
+      "errorOps": [
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "可",
+          "class": "insertion"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "能",
+          "class": "insertion"
+        },
+        {
+          "op": "I",
+          "ref": null,
+          "hyp": "平",
+          "class": "insertion"
+        },
+        {
+          "op": "S",
+          "ref": "computer",
+          "hyp": "时",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "languages",
+          "hyp": "都",
+          "class": "substitution"
+        },
+        {
+          "op": "S",
+          "ref": "是",
+          "hyp": "anguage",
+          "class": "substitution"
+        }
+      ],
+      "controlTokens": {
+        "ref": false,
+        "hyp": false
+      },
+      "latinCharsInZhRef": [],
+      "latinCharsInZhHyp": [],
+      "caseSensitiveEnErrors": null,
+      "mixed": {
+        "han": {
+          "errors": 5,
+          "length": 1,
+          "rate": 5
+        },
+        "latin": {
+          "errors": 2,
+          "length": 2,
+          "rate": 1
+        },
+        "ranking": false
+      }
+    }
+  ]
+}

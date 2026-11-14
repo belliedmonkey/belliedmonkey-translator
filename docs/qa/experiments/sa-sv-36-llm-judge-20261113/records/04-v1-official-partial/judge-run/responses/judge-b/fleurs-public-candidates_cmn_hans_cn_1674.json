@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 9648,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/cmn_hans_cn/1674\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": true,\n      \"confidence\": 0,\n      \"note\": \"Candidate matches the reference exactly.\",\n      \"findings\": []\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"Candidate differs from reference in spacing and number format.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"一分钟\",\n          \"hypQuote\": \"1分钟\",\n          \"reason\": \"The reference uses the written form '一分钟' while the candidate uses the numeric digit '1分钟'. This is a surface-level format difference with no semantic change.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"，\",\n          \"hypQuote\": \"\",\n          \"reason\": \"The candidate omits the full-width comma after '某些地区' that is present in the reference.\"\n        },\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"\",\n          \"hypQuote\": \" \",\n          \"reason\": \"The candidate adds a space before '1分钟' which does not appear in the reference.\"\n        },\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"\",\n          \"hypQuote\": \" \",\n          \"reason\": \"The candidate adds a space after '足够了' which does not appear in the reference.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.00032008,
+  "usage": {
+    "inputTokens": 476,
+    "outputTokens": 360,
+    "providerUsd": 0.00032008,
+    "complete": true
+  },
+  "settledUsd": 0.0003832
+}

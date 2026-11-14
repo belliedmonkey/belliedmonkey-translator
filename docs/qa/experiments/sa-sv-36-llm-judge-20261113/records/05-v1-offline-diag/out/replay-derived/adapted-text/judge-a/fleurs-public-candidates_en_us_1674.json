@@ -1,0 +1,60 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/en_us/1674",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/en_us/1674",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.8,
+          "note": "Candidate 1 introduces a conjunction 'and' and changes 'in others' to 'and other', which alters the meaning and introduces a grammatical issue.",
+          "findings": [
+            {
+              "kind": "semantic",
+              "refQuote": "in others several minutes are needed",
+              "hypQuote": "and other several minutes are needed",
+              "reason": "The phrase 'in others' is changed to 'and other', which changes the meaning and is grammatically incorrect."
+            },
+            {
+              "kind": "addition",
+              "refQuote": "In some areas boiling water for a minute is enough, in others several minutes are needed.",
+              "hypQuote": "In some areas, boiling water for a minute is enough, and other several minutes are needed.",
+              "reason": "The addition of 'and' before 'other several minutes are needed' is not present in the reference."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.8,
+          "note": "Candidate 2 omits the comma after 'areas' and changes 'in others' to 'and other', which alters the meaning and introduces a grammatical issue.",
+          "findings": [
+            {
+              "kind": "semantic",
+              "refQuote": "in others several minutes are needed",
+              "hypQuote": "and other several minutes are needed",
+              "reason": "The phrase 'in others' is changed to 'and other', which changes the meaning and is grammatically incorrect."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "In some areas boiling water for a minute is enough, in others several minutes are needed.",
+              "hypQuote": "In some areas, boiling water for a minute is enough and other several minutes are needed.",
+              "reason": "The comma after 'areas' is added, but the comma after 'enough' is missing, changing the sentence flow."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

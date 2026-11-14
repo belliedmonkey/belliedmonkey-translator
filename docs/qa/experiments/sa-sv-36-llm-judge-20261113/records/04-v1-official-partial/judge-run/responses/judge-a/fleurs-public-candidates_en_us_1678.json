@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 6131,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1678\",\n  \"slots\": {\n    \"slot-1\": {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Minor spelling error in the name 'Oliver Sacks' and missing comma after 'Saackchs'.\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"Oliver Sacks\",\n          \"hypQuote\": \"Oliver Saackchs\",\n          \"reason\": \"The candidate misspells the name 'Sacks' as 'Saackchs'.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"in his paper The President's Speech,\",\n          \"hypQuote\": \"in his paper, the president's speech\",\n          \"reason\": \"Candidate uses lowercase and adds a comma after 'paper' instead of before 'The President's Speech'.\"\n        }\n      ]\n    },\n    \"slot-2\": {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.85,\n      \"note\": \"Incorrect conjunction 'and' instead of 'in' and minor capitalization differences.\",\n      \"findings\": [\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"Oliver Sacks, in his paper\",\n          \"hypQuote\": \"Oliver Sachs and his paper\",\n          \"reason\": \"Candidate changes 'in' to 'and', altering the relationship between Oliver Sacks and the paper.\"\n        },\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"Oliver Sacks\",\n          \"hypQuote\": \"Oliver Sachs\",\n          \"reason\": \"Candidate misspells the name 'Sacks' as 'Sachs'.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"The President's Speech\",\n          \"hypQuote\": \"the president's speech\",\n          \"reason\": \"Candidate uses lowercase for the title.\"\n        }\n      ]\n    }\n  }\n}",
+  "providerUsd": 0.0009392,
+  "usage": {
+    "inputTokens": 512,
+    "outputTokens": 459,
+    "providerUsd": 0.0009392,
+    "complete": true
+  },
+  "settledUsd": 0.00103312
+}

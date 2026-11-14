@@ -1,0 +1,66 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate 1 replaces '您的“Sie”' with '零的C', which changes the meaning and introduces an entity difference; also uses '即便' instead of '即使', a minor semantic difference.",
+          "findings": [
+            {
+              "kind": "entity",
+              "refQuote": "您的“Sie”",
+              "hypQuote": "零的C",
+              "reason": "The candidate replaces the phrase '您的“Sie”' with '零的C', changing the referenced entity."
+            },
+            {
+              "kind": "semantic",
+              "refQuote": "即使",
+              "hypQuote": "即便",
+              "reason": "The candidate uses '即便' instead of '即使', which is a slight semantic variation."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.95,
+          "note": "Candidate 2 replaces '您的“Sie”' with '您的 C' (missing quotes), and '大写字母' is written as '大写字幕', which is a format and semantic error; spacing issues present.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "您的“Sie”",
+              "hypQuote": "您的 C",
+              "reason": "The candidate omits the quotes around 'Sie' and adds a space, changing formatting."
+            },
+            {
+              "kind": "semantic",
+              "refQuote": "大写字母",
+              "hypQuote": "大写字幕",
+              "reason": "The candidate uses '字幕' (subtitle) instead of '字母' (letter), changing the meaning."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "大写字母开头，即使在句子中间也应如此。",
+              "hypQuote": "大写字幕开头 ，即便在句子中间也应如此。",
+              "reason": "Extra space before comma and '即便' instead of '即使' are format and minor semantic differences."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

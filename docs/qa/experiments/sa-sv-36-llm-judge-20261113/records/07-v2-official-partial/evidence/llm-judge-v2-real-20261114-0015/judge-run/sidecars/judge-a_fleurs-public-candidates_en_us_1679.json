@@ -1,0 +1,41 @@
+{
+  "httpStatus": 200,
+  "ok": true,
+  "elapsedMs": 2896,
+  "itemId": "fleurs-public-candidates/en_us/1679",
+  "judgeId": "judge-a",
+  "responseModel": "openai/gpt-4.1-mini",
+  "modelSent": "openai/gpt-4.1-mini",
+  "modelMatchesConfig": true,
+  "provider": "OpenAI",
+  "providerHeader": null,
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 691,
+    "completion_tokens": 262,
+    "total_tokens": 953,
+    "cost": 0.0006956,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0006956,
+      "upstream_inference_prompt_cost": 0.0002764,
+      "upstream_inference_completions_cost": 0.0004192
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    },
+    "usd": 0.0006956
+  },
+  "maxTokensSent": 2048,
+  "inputTokens": 691,
+  "outputTokens": 262,
+  "providerUsd": 0.0006956
+}

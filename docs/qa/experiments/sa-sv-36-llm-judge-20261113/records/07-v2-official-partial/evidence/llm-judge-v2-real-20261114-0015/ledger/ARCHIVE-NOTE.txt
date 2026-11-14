@@ -1,0 +1,1 @@
+Evidence archive excludes .venv, node_modules, and AppleDouble. Keys were never written. v1 QA dir was not overwritten.

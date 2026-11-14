@@ -1,0 +1,175 @@
+{
+  "ok": true,
+  "code": "complete",
+  "called": true,
+  "synthetic": true,
+  "productMetric": false,
+  "endToEnd": false,
+  "leaderboard": false,
+  "ranking": false,
+  "editRates": null,
+  "results": [
+    {
+      "id": "fixture-1",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v1",
+          "itemId": "fixture-1",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": true,
+              "confidence": 0.2,
+              "note": "fixture abstain",
+              "findings": []
+            },
+            {
+              "slot": "slot-2",
+              "abstain": true,
+              "confidence": 0.2,
+              "note": "fixture abstain",
+              "findings": []
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v1",
+          "itemId": "fixture-1",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": true,
+              "confidence": 0.2,
+              "note": "fixture abstain",
+              "findings": []
+            },
+            {
+              "slot": "slot-2",
+              "abstain": true,
+              "confidence": 0.2,
+              "note": "fixture abstain",
+              "findings": []
+            }
+          ]
+        }
+      },
+      "complete": true
+    }
+  ],
+  "doubleBlindComplete": true,
+  "semanticHumanReviewCount": 0,
+  "earReviewUsedAsSemanticReview": false,
+  "translationGold": false,
+  "promptTemplateSha256": "a955cddc61e16ef988ee7c4290437218df4653f88ec9a8a45d6cb38adca5bdd6",
+  "asrRubric": "belliedmonkey.llm-judge.asr.v1",
+  "plan": {
+    "schema": "belliedmonkey.llm-judge.plan.v1",
+    "called": false,
+    "synthetic": true,
+    "asrRubric": "belliedmonkey.llm-judge.asr.v1",
+    "promptTemplateSha256": "a955cddc61e16ef988ee7c4290437218df4653f88ec9a8a45d6cb38adca5bdd6",
+    "seed": 7,
+    "temperature": 0,
+    "maxItems": 36,
+    "timeoutMs": 50,
+    "maxRetries": 0,
+    "budgetUsd": 1,
+    "prices": {
+      "source": "FIXTURE_SOURCE_NOT_A_QUOTE",
+      "sourceVersion": "fixture-0",
+      "maxInputTokens": 4000,
+      "maxOutputTokens": 800,
+      "maxTotalTokens": 200000,
+      "maxRequests": 72,
+      "reserveUsd": [
+        {
+          "model": "MODEL_X",
+          "usd": 0.0056,
+          "pricedZero": false
+        },
+        {
+          "model": "MODEL_Y",
+          "usd": 0.0056,
+          "pricedZero": false
+        }
+      ]
+    },
+    "judges": [
+      {
+        "id": "judge-a",
+        "model": "MODEL_X",
+        "called": false
+      },
+      {
+        "id": "judge-b",
+        "model": "MODEL_Y",
+        "called": false
+      }
+    ],
+    "itemIds": [
+      "fixture-1"
+    ],
+    "omittedIds": []
+  },
+  "assignment": {
+    "schema": "belliedmonkey.llm-judge.assignment.v1",
+    "seed": 7,
+    "items": [
+      {
+        "id": "fixture-1",
+        "slots": {
+          "slot-1": "arm-b",
+          "slot-2": "arm-a"
+        }
+      }
+    ],
+    "note": "This mapping stays in the evidence directory. It is not part of the judge request."
+  },
+  "omittedIds": [],
+  "usage": {
+    "calls": [
+      {
+        "judgeId": "judge-a",
+        "itemId": "fixture-1",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0056,
+        "settledUsd": 0.00014,
+        "providerUsd": 0,
+        "inputTokens": 100,
+        "outputTokens": 20,
+        "elapsedMs": 1,
+        "aborted": false,
+        "costUnknown": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fixture-1",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0056,
+        "settledUsd": 0.00014,
+        "providerUsd": 0,
+        "inputTokens": 100,
+        "outputTokens": 20,
+        "elapsedMs": 0,
+        "aborted": false,
+        "costUnknown": false
+      }
+    ],
+    "spentUsd": 0.00028,
+    "settledUsd": 0.00028,
+    "costUnknown": false,
+    "providerUsdIgnored": true
+  },
+  "humanReview": {
+    "schema": "belliedmonkey.llm-judge.human-review.v1",
+    "semanticHumanReviewCount": 0,
+    "earReviewUsedAsSemanticReview": false,
+    "disagreement": [],
+    "sample": [
+      "fixture-1"
+    ],
+    "notAssessed": []
+  }
+}

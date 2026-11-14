@@ -1,0 +1,8 @@
+RUN_CMD /opt/homebrew/bin/node /Users/belliedmonkey/qa/baseline-sa-sv-36-20261113/reviewed-36-runner-aef9aa8f/run-reviewed-36.js --run --backend sa --out /Users/belliedmonkey/qa/baseline-sa-sv-36-20261113/sa-smoke-aef9aa8f-r1 --fleurs-cache /Users/belliedmonkey/qa/baseline-sa-sv-36-20261113/baseline-sa-sv-36-20261113/audio/fleurs --ascend-cache /Users/belliedmonkey/qa/baseline-sa-sv-36-20261113/baseline-sa-sv-36-20261113/audio/ascend
+RUN_START 2026-11-13 16:30:47 +0800
+LOAD_START { 3.45 3.23 3.28 }
+UPTIME_START 16:30  up 3 days, 18:13, 3 users, load averages: 3.45 3.23 3.28
+RUN_END 2026-11-13 16:30:59 +0800
+RUN_EXIT 0
+LOAD_END { 3.68 3.29 3.29 }
+UPTIME_END 16:30  up 3 days, 18:13, 3 users, load averages: 3.68 3.29 3.29

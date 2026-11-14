@@ -1,0 +1,150 @@
+{
+  "schema": "belliedmonkey.qa.v2-semantic-human-review-form.v1",
+  "list": "disagreement",
+  "itemId": "fleurs-public-candidates/en_us/1675",
+  "initialInventoryOnly": true,
+  "mustRefreshAfterBackfill": true,
+  "semanticHumanReviewed": false,
+  "earReviewUsedAsSemanticReview": false,
+  "doNotPreFillJudgment": true,
+  "officialAgentReviewIsNotHumanReview": true,
+  "reference": "All nouns, alongside the word Sie for you, always begin with a capital letter, even in the middle of a sentence.",
+  "slots": {
+    "slot-1": {
+      "text": "All nouns alongside the world safe for you, always begin with a capital letter, even in the middle of a sentence."
+    },
+    "slot-2": {
+      "text": "All nouns alongside the world say for you. always begin with a capital letter, even in the middle of a sentence."
+    }
+  },
+  "officialKindLists": {
+    "judge-a": {
+      "slot-1": [
+        "semantic"
+      ],
+      "slot-2": [
+        "format-only",
+        "semantic"
+      ]
+    },
+    "judge-b": {
+      "slot-1": [
+        "entity",
+        "omission"
+      ],
+      "slot-2": [
+        "addition",
+        "entity",
+        "omission"
+      ]
+    }
+  },
+  "officialVerdicts": {
+    "judge-a": {
+      "model": "openai/gpt-4.1-mini",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "Candidate has a substitution error changing 'word Sie for you' to 'world safe for you', which alters meaning and introduces an incorrect word.",
+        "findings": [
+          {
+            "kind": "semantic",
+            "refQuote": "the word Sie for you",
+            "hypQuote": "the world safe for you",
+            "reason": "The phrase 'the word Sie for you' is changed to 'the world safe for you', which changes the meaning and introduces incorrect words."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.7,
+        "note": "Candidate has a substitution error changing 'word Sie for you' to 'world say for you' and a punctuation error with a period instead of a comma, affecting sentence flow and meaning.",
+        "findings": [
+          {
+            "kind": "semantic",
+            "refQuote": "the word Sie for you",
+            "hypQuote": "the world say for you",
+            "reason": "The phrase 'the word Sie for you' is changed to 'the world say for you', altering the meaning."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": ", always begin",
+            "hypQuote": ". always begin",
+            "reason": "The comma after 'you' is replaced by a period, affecting sentence flow."
+          }
+        ]
+      }
+    },
+    "judge-b": {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "the word Sie",
+            "hypQuote": "the world safe",
+            "reason": "The phrase \"the word Sie\" is incorrectly transcribed as \"the world safe\", introducing a different entity and altering the meaning."
+          },
+          {
+            "kind": "omission",
+            "refQuote": ",",
+            "hypQuote": "",
+            "reason": "The comma after \"nouns\" in the reference is missing in the candidate, affecting punctuation accuracy."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "the word Sie",
+            "hypQuote": "the world say",
+            "reason": "The phrase \"the word Sie\" is incorrectly transcribed as \"the world say\", introducing a different entity and altering the meaning."
+          },
+          {
+            "kind": "omission",
+            "refQuote": ",",
+            "hypQuote": "",
+            "reason": "The comma after \"nouns\" in the reference is missing in the candidate, affecting punctuation accuracy."
+          },
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": ".",
+            "reason": "An extra period appears after \"you\", creating a sentence break not present in the reference."
+          }
+        ]
+      }
+    }
+  },
+  "humanAnnotation": {
+    "reviewerId": "",
+    "reviewedAtAsiaShanghai": "",
+    "slots": {
+      "slot-1": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      },
+      "slot-2": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      }
+    },
+    "overallComment": "",
+    "marksCompleteOnlyAfterUserReview": true
+  }
+}

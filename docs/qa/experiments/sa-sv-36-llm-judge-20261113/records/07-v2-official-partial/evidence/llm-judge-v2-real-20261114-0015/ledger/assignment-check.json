@@ -1,0 +1,6 @@
+{
+  "sha256": "3c54b9c2571ce63b6203d004f3ab2e109da7e7ba39feeda438c88fc8a4e79470",
+  "expected": "3c54b9c2571ce63b6203d004f3ab2e109da7e7ba39feeda438c88fc8a4e79470",
+  "matchesOfficialV1AnonymousAssignment": true,
+  "note": "Same seed and unchanged assign.js must reproduce the frozen v1 assignment. Requests still used the new v2 prompt; no v1 verdicts were mixed in."
+}

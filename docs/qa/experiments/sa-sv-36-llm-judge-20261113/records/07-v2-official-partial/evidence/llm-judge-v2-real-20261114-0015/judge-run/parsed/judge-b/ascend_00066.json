@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "ascend/00066",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "technical",
+            "hypQuote": "technicle",
+            "reason": "The word 'technicle' is a misspelling of 'technical', but phonetically similar and likely a transcription error."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.85,
+        "note": "",
+        "findings": [
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": "的。",
+            "reason": "The candidate adds '的。' at the end, which does not appear in the reference."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "technical",
+            "hypQuote": "technical",
+            "reason": "The word 'technical' is correctly transcribed but followed by additional characters."
+          }
+        ]
+      }
+    ]
+  }
+}

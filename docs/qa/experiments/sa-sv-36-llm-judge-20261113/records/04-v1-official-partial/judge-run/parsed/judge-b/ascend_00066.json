@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "ascend/00066",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "The candidate contains a misspelling of 'technical' as 'technicle', which is a clear deviation from the reference.",
+        "findings": [
+          {
+            "kind": "semantic",
+            "refQuote": "technical",
+            "hypQuote": "technicle",
+            "reason": "The word 'technicle' is a misspelling of 'technical', altering the intended meaning and correctness of the term in the reference."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.7,
+        "note": "The candidate adds the character '的' and a period at the end, which are not present in the reference, introducing both an addition and punctuation difference.",
+        "findings": [
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": "的。",
+            "reason": "The candidate adds '的。' at the end, which does not appear in the reference, introducing extra grammatical structure and punctuation."
+          }
+        ]
+      }
+    ]
+  }
+}

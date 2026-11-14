@@ -1,0 +1,80 @@
+{
+  "schema": "belliedmonkey.fleurs-candidate-ear-review.v1",
+  "reviewer": "ZHAO ZHANG",
+  "reviewedAt": "2026-11-13T11:09+08:00",
+  "timezone": "Asia/Shanghai",
+  "verbatim": "全部人审通过",
+  "verbatimNote": "Overall pass for these six clips. The utterance is not a separate word-by-word answer about the FBI parenthetical. The official Chinese raw keeps (FBI). The official English raw keeps FBI without parentheses. Neither text is rewritten.",
+  "license": "CC-BY-4.0",
+  "revision": "70bb2e84b976b7e960aa89f1c648e09c59f894dd",
+  "humanVerifiedCount": 6,
+  "approvedPlannedSetCount": 0,
+  "items": [
+    {
+      "source": "fleurs-public-candidates",
+      "config": "en_us",
+      "sentenceId": "1671",
+      "audioName": "12784232275162817860.wav",
+      "audioSha256": "d60875a908926028d9f6f6821af974effbf091116400f6d52dc86e2cae96cd25",
+      "bytes": 641338,
+      "raw": "Congress began funding the obscenity initiative in fiscal 2005 and specified that the FBI must devote 10 agents to adult pornography.",
+      "playbackSha256": "4bf19e41281880b51e215819d22a39cbd6006c7c98e68d54b2c40d5891d28641",
+      "playbackRole": "playback-only"
+    },
+    {
+      "source": "fleurs-public-candidates",
+      "config": "cmn_hans_cn",
+      "sentenceId": "1671",
+      "audioName": "17865784740247963652.wav",
+      "audioSha256": "c7719ea621b9262f207178fe430a8625b220127fc19a9d3f5be8577cbfba8caf",
+      "bytes": 660538,
+      "raw": "国会从 2005 财年开始资助该扫黄倡议，并规定联邦调查局 (FBI) 必须指派 10 名探员专门打击成人色情。",
+      "playbackSha256": "c3847710b4bf1efac4f92b7fb1d79229236ed81a3b4b462b4e524686ed08775e",
+      "playbackRole": "playback-only"
+    },
+    {
+      "source": "fleurs-public-candidates",
+      "config": "en_us",
+      "sentenceId": "1672",
+      "audioName": "3337787499768294195.wav",
+      "audioSha256": "cd58bbf4d2aff767cdfb29bc175a4c7ece18c7769248af337f68e6cb645ddc93",
+      "bytes": 650298,
+      "raw": "Be careful not to allow fabric to become too hot (which can cause shrinkage, or in extreme cases, scorch).",
+      "playbackSha256": "5d25e409da4c98fa065015ade796d00e502da931ef3f66fffa83fad34901bad6",
+      "playbackRole": "playback-only"
+    },
+    {
+      "source": "fleurs-public-candidates",
+      "config": "cmn_hans_cn",
+      "sentenceId": "1672",
+      "audioName": "12601036378860326355.wav",
+      "audioSha256": "420a62e5d34c0dde3a8e438bc4ee1249612b5119cbf7758280bf184405e01883",
+      "bytes": 889658,
+      "raw": "小心不要让衣服变得太热（这可能会产生收缩现象，在极端情况下会把衣服烤焦）。",
+      "playbackSha256": "9020920634b82a69b6567002267491cf1b77a5652c0a4e91f79f2dd487eb57c3",
+      "playbackRole": "playback-only"
+    },
+    {
+      "source": "fleurs-public-candidates",
+      "config": "en_us",
+      "sentenceId": "1673",
+      "audioName": "2637301866626572038.wav",
+      "audioSha256": "1518970aa8eb571854f94481fb8bc1056b112ed4724021402ed608e3794a4de3",
+      "bytes": 645178,
+      "raw": "During the Revolutionary War, the thirteen states first formed a weak central government—with the Congress being its only component—under the Articles of Confederation.",
+      "playbackSha256": "09b80e3d54f225d6e501b083dec94e9ec3c876c7ef4b348f4bb92fa669f0a28f",
+      "playbackRole": "playback-only"
+    },
+    {
+      "source": "fleurs-public-candidates",
+      "config": "cmn_hans_cn",
+      "sentenceId": "1673",
+      "audioName": "6897063611136666657.wav",
+      "audioSha256": "0513421059b64bafbb0587fdfa72ac706e4f1e303a79b6d226b2dd9db43b2c41",
+      "bytes": 549178,
+      "raw": "在独立战争期间，十三个州最初根据《联邦条例》组成了弱小的中央政府（国会是其唯一的组成部分）。",
+      "playbackSha256": "8b680ce2552026b35453490c436f3ef11902dde9ab40c0c81a3e5aaa9d58e55b",
+      "playbackRole": "playback-only"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "diagnosticOnly": true,
+  "notForBackfill": true,
+  "mustNotChangeOfficialPartial": true,
+  "judgeId": "judge-b",
+  "itemId": "fleurs-public-candidates/en_us/1672",
+  "officialCode": "bad-json",
+  "classification": "model-invalid-json-extra-closer-after-slot-1",
+  "sidecar": {
+    "finishReason": "stop",
+    "outputTokens": 253,
+    "maxTokensSent": 2048,
+    "inputTokens": 741,
+    "provider": "Parasail",
+    "httpStatus": 200,
+    "providerUsd": 0.00024998,
+    "ok": true
+  },
+  "contentCharLen": 1014,
+  "contentUtf8Bytes": 1014,
+  "contentSha256": "ab4e4aa737d455c667f35d2d015d2e407eb9ca6cabac1991cf297b36c1dc4bc4",
+  "jsonError": {
+    "message": "Expected ',' or ']' after array element in JSON at position 635 (line 1 column 636)",
+    "position": 635,
+    "window": " replaces them with a comma, altering punctuation but not meaning.\"}]}},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.98,\"note\":\"\",\"findin",
+    "windowStart": 565,
+    "pattern": {
+      "extraCloserAfterSlot1": true,
+      "extraCloserIndex": 631,
+      "unquotedReasonKey": false,
+      "unquotedReasonIndex": null,
+      "duplicateSlotKey": false,
+      "duplicateSlotKeyIndex": null
+    },
+    "endDepths": {
+      "brace": -1,
+      "bracket": 0,
+      "inStr": false,
+      "esc": false
+    },
+    "hasFence": false,
+    "invalidEscapeCount": 0,
+    "losslessAttempts": {
+      "strip": false,
+      "firstToLastObject": false
+    }
+  }
+}

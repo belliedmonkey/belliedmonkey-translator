@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/en_us/1676",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 1,
+        "note": "Only difference is capitalization of 'National Parks' vs 'national parks', which is format-only.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "South African National Parks",
+            "hypQuote": "South African national parks",
+            "reason": "Capitalization difference only."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 1,
+        "note": "Only difference is capitalization of 'National Parks' vs 'national parks', which is format-only.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "South African National Parks",
+            "hypQuote": "South African national parks",
+            "reason": "Capitalization difference only."
+          }
+        ]
+      }
+    ]
+  }
+}

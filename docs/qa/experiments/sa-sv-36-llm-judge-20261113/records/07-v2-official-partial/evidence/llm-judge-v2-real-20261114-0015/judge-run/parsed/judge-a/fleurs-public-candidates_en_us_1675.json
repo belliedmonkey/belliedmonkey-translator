@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/en_us/1675",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "Candidate has a substitution error changing 'word Sie for you' to 'world safe for you', which alters meaning and introduces an incorrect word.",
+        "findings": [
+          {
+            "kind": "semantic",
+            "refQuote": "the word Sie for you",
+            "hypQuote": "the world safe for you",
+            "reason": "The phrase 'the word Sie for you' is changed to 'the world safe for you', which changes the meaning and introduces incorrect words."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.7,
+        "note": "Candidate has a substitution error changing 'word Sie for you' to 'world say for you' and a punctuation error with a period instead of a comma, affecting sentence flow and meaning.",
+        "findings": [
+          {
+            "kind": "semantic",
+            "refQuote": "the word Sie for you",
+            "hypQuote": "the world say for you",
+            "reason": "The phrase 'the word Sie for you' is changed to 'the world say for you', altering the meaning."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": ", always begin",
+            "hypQuote": ". always begin",
+            "reason": "The comma after 'you' is replaced by a period, affecting sentence flow."
+          }
+        ]
+      }
+    ]
+  }
+}

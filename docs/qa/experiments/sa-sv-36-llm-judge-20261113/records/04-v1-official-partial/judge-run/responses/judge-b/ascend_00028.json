@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 8373,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"ascend/00028\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.8,\n      \"note\": \"The reference 'ok福建' is likely intended to mean 'OK, Fujian' or 'OK Fujian', where '福建' (Fujian) is a Chinese province. The candidate 'okK附件。' appears to be a mistranscription: 'K' may be a misrecognition of '福建' due to phonetic or acoustic confusion, and '附件' means 'attachment' in Chinese, which is semantically unrelated. The trailing period is punctuation and may be disregarded. The candidate introduces an incorrect entity.\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"福建\",\n          \"hypQuote\": \"附件\",\n          \"reason\": \"The reference contains '福建', referring to the Chinese province Fujian. The candidate contains '附件', which means 'attachment' and is a different entity.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.75,\n      \"note\": \"The candidate 'OK附件。' shares the same issue as slot-1: '附件' is not a correct rendering of '福建'. The capitalization of 'OK' differs slightly from 'ok' but is considered insignificant. The core error remains the substitution of '福建' with '附件', introducing a semantically incorrect term.\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"福建\",\n          \"hypQuote\": \"附件\",\n          \"reason\": \"The reference contains '福建' (Fujian), while the candidate contains '附件' (attachment), which is a different and incorrect entity.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.00036836,
+  "usage": {
+    "inputTokens": 422,
+    "outputTokens": 428,
+    "providerUsd": 0.00036836,
+    "complete": true
+  },
+  "settledUsd": 0.0004268
+}

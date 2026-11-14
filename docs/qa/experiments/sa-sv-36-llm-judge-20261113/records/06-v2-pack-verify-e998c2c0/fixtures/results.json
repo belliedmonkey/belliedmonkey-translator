@@ -1,0 +1,210 @@
+[
+  {
+    "name": "array-example-parses",
+    "expected": "parsed",
+    "got": {
+      "ok": true,
+      "code": "parsed"
+    },
+    "ok": true
+  },
+  {
+    "name": "raw-official-qwen-v1-rejected",
+    "expected": "verdict-schema",
+    "got": {
+      "ok": false,
+      "code": "verdict-schema"
+    },
+    "ok": true
+  },
+  {
+    "name": "raw-official-gpt-v1-object-rejected",
+    "expected": "verdict-schema",
+    "got": {
+      "ok": false,
+      "code": "verdict-schema"
+    },
+    "ok": true
+  },
+  {
+    "name": "raw-official-gpt-00066-still-bad-json",
+    "expected": "bad-json",
+    "got": {
+      "ok": false,
+      "code": "bad-json"
+    },
+    "ok": true
+  },
+  {
+    "name": "v2-schema-copy-gpt-object-still-slots",
+    "expected": "slots",
+    "got": {
+      "ok": false,
+      "code": "slots"
+    },
+    "ok": true
+  },
+  {
+    "name": "v2-schema-copy-qwen-00028-still-note",
+    "expected": "note",
+    "got": {
+      "ok": false,
+      "code": "note"
+    },
+    "ok": true
+  },
+  {
+    "name": "v2-schema-copy-qwen-00055-added-punct-still-quote",
+    "expected": "quote",
+    "got": {
+      "ok": false,
+      "code": "quote"
+    },
+    "ok": true
+  },
+  {
+    "name": "v2-schema-copy-qwen-1680-cross-slot-still-quote",
+    "expected": "quote",
+    "got": {
+      "ok": false,
+      "code": "quote"
+    },
+    "ok": true
+  },
+  {
+    "name": "v2-schema-copy-qwen-1675-invalid-kind-still-finding-kind",
+    "expected": "finding-kind",
+    "got": {
+      "ok": false,
+      "code": "finding-kind"
+    },
+    "ok": true
+  },
+  {
+    "name": "v2-schema-copy-gpt-1681-added-punct-still-quote-after-diag-adapt-only",
+    "expected": "quote",
+    "got": {
+      "ok": false,
+      "code": "quote"
+    },
+    "ok": true,
+    "note": "adapter diagnostic only; official parse of adapted text still quote; not a formal pass"
+  },
+  {
+    "name": "clean-v2-dictionary-rejected-slots",
+    "expected": "slots",
+    "got": {
+      "ok": false,
+      "code": "slots"
+    },
+    "ok": true
+  },
+  {
+    "name": "adapter-on-dict-is-diagnostic-not-official",
+    "ok": true,
+    "expected": "adapted-diagnostic-only",
+    "got": {
+      "ok": true,
+      "code": "adapted",
+      "official": false,
+      "diagnostic": true
+    }
+  },
+  {
+    "name": "parse-of-adapted-dict-text-may-succeed-but-is-not-runner-complete",
+    "expected": "parsed",
+    "got": {
+      "ok": true,
+      "code": "parsed"
+    },
+    "ok": true,
+    "note": "This only shows the lossless shape rewrite can feed parseVerdict. run-judge never calls the adapter; this is not a formal v2 pass and must not be mixed into complete."
+  },
+  {
+    "name": "note-400-accepted",
+    "expected": "parsed",
+    "got": {
+      "ok": true,
+      "code": "parsed"
+    },
+    "ok": true
+  },
+  {
+    "name": "note-401-rejected",
+    "expected": "note",
+    "got": {
+      "ok": false,
+      "code": "note"
+    },
+    "ok": true
+  },
+  {
+    "name": "reason-400-accepted",
+    "expected": "parsed",
+    "got": {
+      "ok": true,
+      "code": "parsed"
+    },
+    "ok": true
+  },
+  {
+    "name": "reason-401-rejected",
+    "expected": "reason",
+    "got": {
+      "ok": false,
+      "code": "reason"
+    },
+    "ok": true
+  },
+  {
+    "name": "invalid-kind-punctuation-rejected",
+    "expected": "finding-kind",
+    "got": {
+      "ok": false,
+      "code": "finding-kind"
+    },
+    "ok": true
+  },
+  {
+    "name": "cross-slot-real-strings-available",
+    "ok": true,
+    "expected": true,
+    "got": true
+  },
+  {
+    "name": "constructed-cross-slot-quote-rejected",
+    "expected": "quote",
+    "got": {
+      "ok": false,
+      "code": "quote"
+    },
+    "ok": true
+  },
+  {
+    "name": "constructed-added-punctuation-quote-rejected",
+    "expected": "quote",
+    "got": {
+      "ok": false,
+      "code": "quote"
+    },
+    "ok": true
+  },
+  {
+    "name": "illegal-json-rejected",
+    "expected": "bad-json",
+    "got": {
+      "ok": false,
+      "code": "bad-json"
+    },
+    "ok": true
+  },
+  {
+    "name": "real-00066-illegal-json-rejected",
+    "expected": "bad-json",
+    "got": {
+      "ok": false,
+      "code": "bad-json"
+    },
+    "ok": true
+  }
+]

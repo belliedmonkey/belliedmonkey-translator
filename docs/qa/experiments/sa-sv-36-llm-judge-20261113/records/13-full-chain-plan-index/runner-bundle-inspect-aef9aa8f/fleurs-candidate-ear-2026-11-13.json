@@ -1,0 +1,65 @@
+{
+  "schema": "belliedmonkey.fleurs-candidate-ear-review.v1",
+  "reviewer": "ZHAO ZHANG",
+  "reviewedAt": "2026-11-13T10:59+08:00",
+  "timezone": "Asia/Shanghai",
+  "verbatim": "前面的都通过。",
+  "verbatimNote": "The user gave one overall pass for the clips already delivered with audio. This record does not add a word-by-word answer or a separate finding about parenthetical names.",
+  "license": "CC-BY-4.0",
+  "revision": "70bb2e84b976b7e960aa89f1c648e09c59f894dd",
+  "humanVerifiedCount": 3,
+  "approvedPlannedSetCount": 0,
+  "scopeNote": "This file records only the 10:59 statement. The ids in notHeard were outside that statement. The 11:03 reply is a separate file and does not change this verbatim.",
+  "notHeard": [
+    {
+      "config": "cmn_hans_cn",
+      "sentenceId": "1669",
+      "reason": "Only the text was sent. No audio was sent, so it is not passed."
+    },
+    {
+      "config": "en_us",
+      "sentenceId": "1670",
+      "reason": "Not sent. USGS is in this item and was not heard."
+    },
+    {
+      "config": "cmn_hans_cn",
+      "sentenceId": "1670",
+      "reason": "Not sent."
+    }
+  ],
+  "items": [
+    {
+      "source": "fleurs-public-candidates",
+      "config": "en_us",
+      "sentenceId": "1668",
+      "audioName": "12519810849995407480.wav",
+      "audioSha256": "d6ab97bb7e3232b60b61910d3ac7e1cf37acbcbfd062773b453c76217682f49e",
+      "bytes": 852538,
+      "raw": "It may also be beneficial for one to buy a Wild Card, which provides entry to either selections of parks in South Africa or all of the South African National Parks.",
+      "playbackSha256": "a79c8854109fff73c5a857a9824acaf8a337e1740a276a13e167eebb24dda56b",
+      "playbackRole": "playback-only"
+    },
+    {
+      "source": "fleurs-public-candidates",
+      "config": "cmn_hans_cn",
+      "sentenceId": "1668",
+      "audioName": "14773716009564433047.wav",
+      "audioSha256": "7b95a45446dc31d99d50232a7a6dbda26cc9c87eb26aec1263f73e7f9dd6405f",
+      "bytes": 560698,
+      "raw": "买一张万能卡（Wild Card）也有不少好处。带着这张卡，你可以进入南非的一些公园或全部的国家公园。",
+      "playbackSha256": "e1e696cdab62f2c8492f1af404c71c8afa9919976d903f97145fdffa76241184",
+      "playbackRole": "playback-only"
+    },
+    {
+      "source": "fleurs-public-candidates",
+      "config": "en_us",
+      "sentenceId": "1669",
+      "audioName": "15618717836108767541.wav",
+      "audioSha256": "40d7e92df0355f4836e2b8fa2a88d7c7e047d0472f0845ca08f0c21257785390",
+      "bytes": 460858,
+      "raw": "Police superintendent Chandra Shekhar Solanki said the accused appeared in court with covered faces.",
+      "playbackSha256": "4094b32e805260f1fddf3e3b4a210648f11388ca8d725c610407770eec108f74",
+      "playbackRole": "playback-only"
+    }
+  ]
+}

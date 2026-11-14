@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 2345,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"fleurs-public-candidates/cmn_hans_cn/1676\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":1,\"note\":\"Candidate exactly matches the reference including punctuation and spacing.\",\"findings\":[]},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.95,\"note\":\"Candidate matches the reference in content but has an extra space before the comma, which is a minor formatting difference.\",\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"一样，\",\"hypQuote\":\"一样 ，\",\"reason\":\"There is an extra space before the comma in the candidate compared to the reference.\"}]}]}",
+  "providerUsd": 0.0005364,
+  "usage": {
+    "inputTokens": 729,
+    "outputTokens": 153,
+    "providerUsd": 0.0005364,
+    "complete": true
+  },
+  "settledUsd": 0.00059004
+}

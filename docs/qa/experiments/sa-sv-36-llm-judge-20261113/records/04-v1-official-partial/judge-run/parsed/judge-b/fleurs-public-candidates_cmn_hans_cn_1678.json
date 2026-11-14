@@ -1,0 +1,50 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1678",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "Candidate contains an addition and a format variation in the name.",
+        "findings": [
+          {
+            "kind": "addition",
+            "refQuote": "奥利弗·萨克斯 (Oliver Sacks)",
+            "hypQuote": "奥里弗萨克斯奥live萨克斯",
+            "reason": "Candidate adds '奥live' which is not present in the reference and combines it with a modified version of the name."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "奥利弗·萨克斯",
+            "hypQuote": "奥里弗萨克斯",
+            "reason": "The name '奥利弗·萨克斯' is written without the middle dot and with a slight variation in the first name ('奥里弗' vs '奥利弗'), which may be a transcription or spelling variation but does not change the referent."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Candidate contains an addition and a truncation in the name.",
+        "findings": [
+          {
+            "kind": "addition",
+            "refQuote": "奥利弗·萨克斯 (Oliver Sacks)",
+            "hypQuote": "奥利弗萨克斯奥萨克",
+            "reason": "Candidate adds '奥萨克' after '奥利弗萨克斯', which is not present in the reference and appears to be a partial repetition or misrendering of the surname."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "奥利弗·萨克斯",
+            "hypQuote": "奥利弗萨克斯",
+            "reason": "The name is written without the middle dot, a surface-level formatting difference that does not alter the identity of the named entity."
+          }
+        ]
+      }
+    ]
+  }
+}

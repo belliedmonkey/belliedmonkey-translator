@@ -1,0 +1,26 @@
+{
+  "schema": "belliedmonkey.qa.verify-e5a17a1c-supplement-gate.v1",
+  "passed": false,
+  "paidRunAuthorizedByThisVerify": false,
+  "createdAtAsiaShanghai": "2026-11-14 10:56 Asia/Shanghai (CST)",
+  "packId": "01M7BZMPXBWB0C6952HYQ3SNY3",
+  "packSha256": "a44cf59f13febe3232519c08314166d9570b753151d85860058cd8031121a4fb",
+  "packBytes": 23824,
+  "priorFailPack75266d0aDoNotUse": true,
+  "promptTemplateSha256": "a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923",
+  "selectionSha256Canonical": "c151018bfda2953d2375f8cfce25580787745f162824b66f2d7eccec641979a4",
+  "assignmentFileSha256": "3c54b9c2571ce63b6203d004f3ab2e109da7e7ba39feeda438c88fc8a4e79470",
+  "assignmentCanonicalSha256": "3cffd11608d4cf4f721ca410cbd93a2a183d1cc7f2f6659e581524e79fb5f52e",
+  "summarySha256": "4744aef13ff5ce3a30680be4fb42604db044073a3e317202c09339d24934365f",
+  "inputSha256": "1a44cca3bf05662c8701d943702a35e7fd1a303f9bcd931764775d9057c795a1",
+  "reserve15": "0.03251712",
+  "budgetUsdDraft": 0.17905768,
+  "criticalFails": [
+    "reject-lock-claiming-success-as-failure-without-origin-parse"
+  ],
+  "checks": {
+    "total": 36,
+    "passed": 35,
+    "failed": 1
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "kind": "speech-analyzer",
+  "source": "eval/baselines/asr/product-asr-mac.swift",
+  "module": "SpeechTranscriber",
+  "reportingOptions": [
+    "volatileResults",
+    "fastResults",
+    "alternativeTranscriptions"
+  ],
+  "attributeOptions": [
+    "audioTimeRange",
+    "transcriptionConfidence"
+  ],
+  "dictationFallback": false,
+  "locale": {
+    "en_us": "en-US",
+    "cmn_hans_cn": "zh-CN",
+    "ascend": "zh-CN",
+    "selection": "explicit",
+    "searched": false,
+    "note": "ASCEND uses zh-CN once. A second locale is not run, and the better of two locales is not chosen."
+  },
+  "platform": "darwin",
+  "obtainedHere": false
+}

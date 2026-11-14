@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/en_us/1672",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "Candidate adds 'All right,' at the beginning and omits the parenthetical structure around 'which can cause shrinkage, or in extreme cases, scorch'.",
+        "findings": [
+          {
+            "kind": "addition",
+            "refQuote": "Be careful not to allow fabric to become too hot (which can cause shrinkage, or in extreme cases, scorch).",
+            "hypQuote": "All right, be careful not to allow fabric to become too hot, which can cause shrinkage, or in extreme cases, scorch.",
+            "reason": "The candidate adds 'All right,' at the start, which is not in the reference."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "(which can cause shrinkage, or in extreme cases, scorch)",
+            "hypQuote": "which can cause shrinkage, or in extreme cases, scorch",
+            "reason": "The parenthesis is removed and replaced by a comma, changing the format but not the content."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Candidate omits the parenthetical structure and the comma before 'or', but otherwise matches the reference content closely.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "(which can cause shrinkage, or in extreme cases, scorch)",
+            "hypQuote": "which can cause shrinkage or in extreme cases, scorch",
+            "reason": "The candidate removes the parentheses and the comma before 'or', changing the format but not the meaning."
+          }
+        ]
+      }
+    ]
+  }
+}

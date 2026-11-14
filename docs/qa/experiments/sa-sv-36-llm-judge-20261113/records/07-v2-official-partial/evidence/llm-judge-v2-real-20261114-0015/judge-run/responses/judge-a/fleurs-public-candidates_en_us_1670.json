@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 6518,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"fleurs-public-candidates/en_us/1670\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.8,\"note\":\"Contains multiple errors including word substitutions and misspellings affecting meaning and clarity.\",\"findings\":[{\"kind\":\"semantic\",\"refQuote\":\"Their thermal behavior\",\"hypQuote\":\"Their formal behavior\",\"reason\":\"The word 'thermal' is incorrectly replaced by 'formal', changing the meaning.\"},{\"kind\":\"number\",\"refQuote\":\"large caves on Earth\",\"hypQuote\":\"large cave on earth\",\"reason\":\"Reference uses plural 'caves' and capitalized 'Earth'; candidate uses singular 'cave' and lowercase 'earth'.\"},{\"kind\":\"entity\",\"refQuote\":\"Glen Cushing\",\"hypQuote\":\"Glen Kshing\",\"reason\":\"The name is misspelled, changing the entity.\"},{\"kind\":\"entity\",\"refQuote\":\"United States Geological Survey (USGS) Astrogeology Team\",\"hypQuote\":\"United States Geological Sury, Astrogeology team\",\"reason\":\"The organization name is misspelled and incomplete.\"},{\"kind\":\"format-only\",\"refQuote\":\"Northern Arizona University located in Flagstaff, Arizona\",\"hypQuote\":\"northern Arizona University located in Flagstaff Arizona\",\"reason\":\"Capitalization and missing comma after 'Flagstaff' differ from reference.\"}]} ,{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.7,\"note\":\"Contains some minor errors and differences in punctuation and phrasing but mostly preserves meaning.\",\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"large caves on Earth\",\"hypQuote\":\"large caves on earth\",\"reason\":\"Lowercase 'earth' instead of capitalized 'Earth'.\"},{\"kind\":\"format-only\",\"refQuote\":\"said Glen Cushing\",\"hypQuote\":\"set Glenn Cushing\",\"reason\":\"The verb 'said' is replaced by 'set' and the name is spelled 'Glenn' instead of 'Glen'.\"},{\"kind\":\"entity\",\"refQuote\":\"United States Geological Survey (USGS) Astrogeology Team\",\"hypQuote\":\"United States geological survey, astrogeology team\",\"reason\":\"Missing capitalization and abbreviation '(USGS)'.\"},{\"kind\":\"format-only\",\"refQuote\":\"located in Flagstaff, Arizona\",\"hypQuote\":\"located in Flagstaff, Arizona\",\"reason\":\"Correct punctuation here, but candidate has inconsistent comma usage elsewhere.\"}]}]}",
+  "providerUsd": 0.0011472,
+  "usage": {
+    "inputTokens": 840,
+    "outputTokens": 507,
+    "providerUsd": 0.0011472,
+    "complete": true
+  },
+  "settledUsd": 0.00126192
+}

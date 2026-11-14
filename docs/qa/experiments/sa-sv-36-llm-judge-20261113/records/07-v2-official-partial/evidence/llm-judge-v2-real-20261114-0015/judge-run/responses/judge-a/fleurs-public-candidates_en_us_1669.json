@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 3783,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"fleurs-public-candidates/en_us/1669\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.8,\"note\":\"Minor spelling errors in the name and omission of 'the' before 'accused'.\",\"findings\":[{\"kind\":\"entity\",\"refQuote\":\"Chandra Shekhar Solanki\",\"hypQuote\":\"Chandra Shikar Solanki\",\"reason\":\"The candidate misspells 'Shekhar' as 'Shikar'.\"},{\"kind\":\"omission\",\"refQuote\":\"the accused\",\"hypQuote\":\"accused\",\"reason\":\"The candidate omits the article 'the' before 'accused'.\"}]},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.7,\"note\":\"Multiple spelling errors in the name but otherwise matches the reference well.\",\"findings\":[{\"kind\":\"entity\",\"refQuote\":\"Chandra Shekhar Solanki\",\"hypQuote\":\"Chandra Shiar Slanki\",\"reason\":\"The candidate misspells 'Shekhar' as 'Shiar' and 'Solanki' as 'Slanki'.\"}]}]}",
+  "providerUsd": 0.0006824,
+  "usage": {
+    "inputTokens": 710,
+    "outputTokens": 249,
+    "providerUsd": 0.0006824,
+    "complete": true
+  },
+  "settledUsd": 0.00075064
+}

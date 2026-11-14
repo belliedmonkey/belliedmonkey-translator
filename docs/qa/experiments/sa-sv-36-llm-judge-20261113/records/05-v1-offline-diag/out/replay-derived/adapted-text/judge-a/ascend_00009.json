@@ -1,0 +1,66 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "ascend/00009",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "ascend/00009",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate has multiple errors including entity and format-only issues.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "i s m",
+              "hypQuote": "ISM",
+              "reason": "Candidate uses uppercase acronym 'ISM' instead of spaced letters 'i s m'."
+            },
+            {
+              "kind": "entity",
+              "refQuote": "information systems management",
+              "hypQuote": "impormation sistancemangement",
+              "reason": "Candidate misspells 'information systems management' as 'impormation sistancemangement'."
+            },
+            {
+              "kind": "semantic",
+              "refQuote": "no我专业是那个",
+              "hypQuote": "那我觉爱是那个",
+              "reason": "Candidate changes 'no我专业是那个' to '那我觉爱是那个', altering meaning."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.95,
+          "note": "Candidate mostly matches reference with minor format-only differences.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "i s m",
+              "hypQuote": "ISM",
+              "reason": "Candidate uses uppercase acronym 'ISM' instead of spaced letters 'i s m'."
+            },
+            {
+              "kind": "semantic",
+              "refQuote": "no我专业是那个",
+              "hypQuote": "那我就按是那个",
+              "reason": "Candidate changes 'no我专业是那个' to '那我就按是那个', which slightly alters meaning."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

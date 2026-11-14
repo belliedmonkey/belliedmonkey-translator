@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 3400,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"fleurs-public-candidates/cmn_hans_cn/1676\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":1,\"note\":\"\",\"findings\":[]},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.95,\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"与所有南非国家公园一样，该公园每天都收取养护费和门票费。\",\"hypQuote\":\"与所有南非国家公园一样 ，该公园每天都收取养护费和门票费。\",\"reason\":\"全角逗号后多了一个空格，属于格式差异，语义相同\"}]}]}",
+  "providerUsd": 0.00016436,
+  "usage": {
+    "inputTokens": 718,
+    "outputTokens": 150,
+    "providerUsd": 0.00016436,
+    "complete": true
+  },
+  "settledUsd": 0.0002636
+}

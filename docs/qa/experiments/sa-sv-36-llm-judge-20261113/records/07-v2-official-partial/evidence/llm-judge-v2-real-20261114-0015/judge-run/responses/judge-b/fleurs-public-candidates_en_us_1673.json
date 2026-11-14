@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 4835,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"fleurs-public-candidates/en_us/1673\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.95,\"note\":\"\",\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"thirteen\",\"hypQuote\":\"13\",\"reason\":\"The word 'thirteen' in the reference is written as the numeral '13' in the candidate, which is a surface-level format difference with no change in meaning.\"},{\"kind\":\"punctuation\",\"refQuote\":\"—with the Congress being its only component—\",\"hypQuote\":\", with the Congress being its only component\",\"reason\":\"The reference uses em dashes to set off the parenthetical, while the candidate uses a comma, altering the punctuation style but not the core meaning.\"}]}},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.85,\"note\":\"\",\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"thirteen\",\"hypQuote\":\"13\",\"reason\":\"The word 'thirteen' in the reference is written as the numeral '13' in the candidate, which is a surface-level format difference with no change in meaning.\"},{\"kind\":\"punctuation\",\"refQuote\":\"—with the Congress being its only component—\",\"hypQuote\":\"with the Congress being its only component\",\"reason\":\"The em dashes in the reference are omitted in the candidate, removing the parenthetical emphasis but not altering factual content.\"},{\"kind\":\"omission\",\"refQuote\":\"—\",\"hypQuote\":\"\",\"reason\":\"The em dashes used in the reference to set off the parenthetical phrase are completely missing in the candidate, resulting in the loss of syntactic structure.\"}]}]}",
+  "providerUsd": 0.0003672,
+  "usage": {
+    "inputTokens": 753,
+    "outputTokens": 361,
+    "providerUsd": 0.0003672,
+    "complete": true
+  },
+  "settledUsd": 0.0004394
+}

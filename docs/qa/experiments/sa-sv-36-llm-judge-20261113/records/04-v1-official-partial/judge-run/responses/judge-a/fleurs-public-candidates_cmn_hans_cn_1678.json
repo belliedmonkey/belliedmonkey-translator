@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 6777,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/cmn_hans_cn/1678\",\n  \"slots\": {\n    \"slot-1\": {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.8,\n      \"note\": \"Candidate 1 has minor format and entity differences in the name and lacks punctuation.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"奥利弗·萨克斯 (Oliver Sacks)\",\n          \"hypQuote\": \"奥里弗萨克斯奥live萨克斯\",\n          \"reason\": \"The candidate merges and partially anglicizes the name, differing in format and spelling.\"\n        },\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"《总统的演讲》中指出，\",\n          \"hypQuote\": \"总统的演讲中指出\",\n          \"reason\": \"Candidate omits the quotation marks around the paper title.\"\n        },\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"那些因为脑损伤而无法理解语言的人仍然能够准确地判断说话人是否有诚意。\",\n          \"hypQuote\": \"那些因为脑损伤而无法理解语言的人仍然能够准确地判断说话人是否有诚意。\",\n          \"reason\": \"No addition found here; this is just to confirm no addition.\"\n        }\n      ]\n    },\n    \"slot-2\": {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.9,\n      \"note\": \"Candidate 2 closely matches the reference with minor punctuation differences and a slight name variation.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"奥利弗·萨克斯 (Oliver Sacks)\",\n          \"hypQuote\": \"奥利弗萨克斯奥萨克\",\n          \"reason\": \"Candidate repeats part of the name and omits the Latin name in parentheses.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"《总统的演讲》中指出，\",\n          \"hypQuote\": \"总统的演讲中指出，那些\",\n          \"reason\": \"Candidate omits the quotation marks around the paper title and adds a comma after '指出'.\"\n        }\n      ]\n    }\n  }\n}",
+  "providerUsd": 0.0010596,
+  "usage": {
+    "inputTokens": 553,
+    "outputTokens": 524,
+    "providerUsd": 0.0010596,
+    "complete": true
+  },
+  "settledUsd": 0.00116556
+}

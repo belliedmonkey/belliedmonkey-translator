@@ -1,0 +1,68 @@
+{
+  "schema": "belliedmonkey.ascend-ear-review.v1",
+  "reviewer": "ZHAO ZHANG",
+  "reviewedAt": "2026-11-13T09:44+08:00",
+  "timezone": "Asia/Shanghai",
+  "dataset": "CAiRE/ASCEND",
+  "cardRevision": "737e9800ae31be9932ba8464c80366559bd28424",
+  "dataSha256": "a4c81d2b5ed6124f052089a695972808c16e0ce0c365ec9773c5d1a8fcf043a7",
+  "license": "CC-BY-SA-4.0",
+  "playback": "original-wav-pcm-s16le-16k-mono",
+  "humanVerifiedCount": 6,
+  "approvedPlannedSetCount": 0,
+  "accent": { "count": 0, "status": "unknown" },
+  "noise": { "count": 0, "status": "unknown" },
+  "continuousDialogue": { "count": 0, "status": "unknown" },
+  "limits": "Six short clips. Not independent speakers and not a continuous session. No significance claim. The 00055 line confirms that wording only; um stays part of that line and is not a broader semantic sample.",
+  "items": [
+    {
+      "id": "00004",
+      "audioSha256": "b1d784c7c355c79febc73733f61a9faa2564c9f07cdf12caa3dd470f381c0149",
+      "transcription": "呃what's the呃",
+      "codeSwitchHeard": true,
+      "transcriptMismatchOrUncertain": false,
+      "conclusion": "确认中英混语，转写相符"
+    },
+    {
+      "id": "00009",
+      "audioSha256": "7317a4752e95039e6f6c345ef5b15fdd18fc7f48353cc893e6f99218a682c9a3",
+      "transcription": "no我专业是那个i s m information systems management",
+      "codeSwitchHeard": true,
+      "transcriptMismatchOrUncertain": false,
+      "conclusion": "确认中英混语，转写相符"
+    },
+    {
+      "id": "00028",
+      "audioSha256": "f790b945050ccc625702f214dc7182c0c0e781a6fd5a82c7d1863c4683414842",
+      "transcription": "ok福建",
+      "codeSwitchHeard": true,
+      "transcriptMismatchOrUncertain": false,
+      "conclusion": "确认中英混语，转写相符"
+    },
+    {
+      "id": "00055",
+      "audioSha256": "866d07fc22025c9450e6e8811cb6b374ab863370182922c054dfa1c1ea46a535",
+      "transcription": "um运动啊男生一般不都喜欢运动",
+      "codeSwitchHeard": true,
+      "transcriptMismatchOrUncertain": false,
+      "conclusion": "确认中英混语，转写相符",
+      "scopeNote": "确认的是这一句原文。um 仍是这句里的填充，不据此说它是充分的语义混语样本。"
+    },
+    {
+      "id": "00066",
+      "audioSha256": "a554fbe3692c170b6aed5a34f34095312fe4b822c1c205eaddf894ee90f21faf",
+      "transcription": "哦这么technical",
+      "codeSwitchHeard": true,
+      "transcriptMismatchOrUncertain": false,
+      "conclusion": "确认中英混语，转写相符"
+    },
+    {
+      "id": "00068",
+      "audioSha256": "ddf1d1241915e223a8f46e6e00e9f5c0b6574add6d6c984fab26ee5508897958",
+      "transcription": "computer languages是",
+      "codeSwitchHeard": true,
+      "transcriptMismatchOrUncertain": false,
+      "conclusion": "确认中英混语，转写相符"
+    }
+  ]
+}

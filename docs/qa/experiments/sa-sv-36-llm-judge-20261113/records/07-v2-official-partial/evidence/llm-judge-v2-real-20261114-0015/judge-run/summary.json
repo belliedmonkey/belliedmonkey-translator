@@ -1,0 +1,4890 @@
+{
+  "ok": false,
+  "code": "partial",
+  "called": true,
+  "synthetic": false,
+  "productMetric": false,
+  "endToEnd": false,
+  "leaderboard": false,
+  "ranking": false,
+  "editRates": null,
+  "results": [
+    {
+      "id": "fleurs-public-candidates/en_us/1668",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1668",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 1,
+              "note": "Differences are only in capitalization of 'Wild Card' and 'National Parks', which are format-only variations.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "Wild Card",
+                  "hypQuote": "wild card",
+                  "reason": "Capitalization difference only."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "South African National Parks",
+                  "hypQuote": "South African national parks",
+                  "reason": "Capitalization difference only."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 1,
+              "note": "Differences are only in capitalization of 'Wild Card' and 'National Parks', which are format-only variations.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "Wild Card",
+                  "hypQuote": "wild card",
+                  "reason": "Capitalization difference only."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "South African National Parks",
+                  "hypQuote": "South African national parks",
+                  "reason": "Capitalization difference only."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1668",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 1,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "Wild Card",
+                  "hypQuote": "wild card",
+                  "reason": "The capitalization differs between the reference and the candidate, but the words are otherwise identical."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "National Parks",
+                  "hypQuote": "national parks",
+                  "reason": "The capitalization differs between the reference and the candidate, but the words are otherwise identical."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 1,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "Wild Card",
+                  "hypQuote": "wild card",
+                  "reason": "The capitalization differs between the reference and the candidate, but the words are otherwise identical."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "National Parks",
+                  "hypQuote": "national parks",
+                  "reason": "The capitalization differs between the reference and the candidate, but the words are otherwise identical."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "complete": true
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1668",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1668",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Candidate 1 omits the parenthetical '（Wild Card）' after '万能卡', and uses '或者' instead of '或', which is a minor format difference. Otherwise, the meaning is preserved.",
+              "findings": [
+                {
+                  "kind": "omission",
+                  "refQuote": "万能卡（Wild Card）",
+                  "hypQuote": "万能卡",
+                  "reason": "Candidate 1 omits the parenthetical '（Wild Card）' present in the reference."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "或",
+                  "hypQuote": "或者",
+                  "reason": "Candidate 1 uses '或者' instead of '或', a format difference without semantic change."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Candidate 2 omits the parenthetical '（Wild Card）' after '万能卡', and uses '或者' instead of '或', which is a minor format difference. Otherwise, the meaning is preserved.",
+              "findings": [
+                {
+                  "kind": "omission",
+                  "refQuote": "万能卡（Wild Card）",
+                  "hypQuote": "万能卡",
+                  "reason": "Candidate 2 omits the parenthetical '（Wild Card）' present in the reference."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "或",
+                  "hypQuote": "或者",
+                  "reason": "Candidate 2 uses '或者' instead of '或', a format difference without semantic change."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1668",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.95,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "omission",
+                  "refQuote": "（Wild Card）",
+                  "hypQuote": "",
+                  "reason": "参考文本中的‘（Wild Card）’在候选文本中缺失"
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.95,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "omission",
+                  "refQuote": "（Wild Card）",
+                  "hypQuote": "",
+                  "reason": "参考文本中的‘（Wild Card）’在候选文本中缺失"
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "。",
+                  "hypQuote": "。",
+                  "reason": "标点符号使用一致，但空格存在差异"
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "，",
+                  "hypQuote": "你可以",
+                  "reason": "‘带着这张卡’后缺少逗号，但语义未变"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "complete": true
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1669",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1669",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.8,
+              "note": "Minor spelling errors in the name and omission of 'the' before 'accused'.",
+              "findings": [
+                {
+                  "kind": "entity",
+                  "refQuote": "Chandra Shekhar Solanki",
+                  "hypQuote": "Chandra Shikar Solanki",
+                  "reason": "The candidate misspells 'Shekhar' as 'Shikar'."
+                },
+                {
+                  "kind": "omission",
+                  "refQuote": "the accused",
+                  "hypQuote": "accused",
+                  "reason": "The candidate omits the article 'the' before 'accused'."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.7,
+              "note": "Multiple spelling errors in the name but otherwise matches the reference well.",
+              "findings": [
+                {
+                  "kind": "entity",
+                  "refQuote": "Chandra Shekhar Solanki",
+                  "hypQuote": "Chandra Shiar Slanki",
+                  "reason": "The candidate misspells 'Shekhar' as 'Shiar' and 'Solanki' as 'Slanki'."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1669",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "entity",
+                  "refQuote": "Chandra Shekhar Solanki",
+                  "hypQuote": "Chandra Shikar Solanki",
+                  "reason": "The name 'Chandra Shekhar Solanki' is incorrectly transcribed as 'Chandra Shikar Solanki', which is a mismatch in the person's name."
+                },
+                {
+                  "kind": "omission",
+                  "refQuote": "the",
+                  "hypQuote": "",
+                  "reason": "The word 'the' before 'accused' is missing in the candidate transcript."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.85,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "entity",
+                  "refQuote": "Chandra Shekhar Solanki",
+                  "hypQuote": "Chandra Shiar Slanki",
+                  "reason": "The name 'Chandra Shekhar Solanki' is incorrectly transcribed as 'Chandra Shiar Slanki', which is a significant error in the person's name."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "complete": true
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1669",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1669",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Missing commas after names reduces clarity but does not change meaning.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "钱德拉·谢卡尔·索兰基",
+                  "hypQuote": "钱德拉谢卡尔索兰基",
+                  "reason": "The candidate omits the middle dots used to separate the parts of the name, which is a formatting difference."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 1,
+              "note": "Matches reference exactly except for one missing middle dot in the name, a minor format difference.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "钱德拉·谢卡尔·索兰基",
+                  "hypQuote": "钱德拉谢卡尔索兰基",
+                  "reason": "The candidate omits the middle dots used to separate the parts of the name, which is a formatting difference."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1669",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.95,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "omission",
+                  "refQuote": "钱德拉·谢卡尔·索兰基",
+                  "hypQuote": "钱德拉谢卡尔索兰基",
+                  "reason": "参考文本中的人名包含间隔号，而候选文本中缺少间隔号，导致人名格式不完整。"
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 1,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "钱德拉·谢卡尔·索兰基",
+                  "hypQuote": "钱德拉谢卡尔索兰基",
+                  "reason": "参考文本中的人名使用间隔号分隔，候选文本中人名连写，属于格式差异，未改变实际指代。"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "complete": true
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1670",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1670",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.8,
+              "note": "Contains multiple errors including word substitutions and misspellings affecting meaning and clarity.",
+              "findings": [
+                {
+                  "kind": "semantic",
+                  "refQuote": "Their thermal behavior",
+                  "hypQuote": "Their formal behavior",
+                  "reason": "The word 'thermal' is incorrectly replaced by 'formal', changing the meaning."
+                },
+                {
+                  "kind": "number",
+                  "refQuote": "large caves on Earth",
+                  "hypQuote": "large cave on earth",
+                  "reason": "Reference uses plural 'caves' and capitalized 'Earth'; candidate uses singular 'cave' and lowercase 'earth'."
+                },
+                {
+                  "kind": "entity",
+                  "refQuote": "Glen Cushing",
+                  "hypQuote": "Glen Kshing",
+                  "reason": "The name is misspelled, changing the entity."
+                },
+                {
+                  "kind": "entity",
+                  "refQuote": "United States Geological Survey (USGS) Astrogeology Team",
+                  "hypQuote": "United States Geological Sury, Astrogeology team",
+                  "reason": "The organization name is misspelled and incomplete."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "Northern Arizona University located in Flagstaff, Arizona",
+                  "hypQuote": "northern Arizona University located in Flagstaff Arizona",
+                  "reason": "Capitalization and missing comma after 'Flagstaff' differ from reference."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.7,
+              "note": "Contains some minor errors and differences in punctuation and phrasing but mostly preserves meaning.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "large caves on Earth",
+                  "hypQuote": "large caves on earth",
+                  "reason": "Lowercase 'earth' instead of capitalized 'Earth'."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "said Glen Cushing",
+                  "hypQuote": "set Glenn Cushing",
+                  "reason": "The verb 'said' is replaced by 'set' and the name is spelled 'Glenn' instead of 'Glen'."
+                },
+                {
+                  "kind": "entity",
+                  "refQuote": "United States Geological Survey (USGS) Astrogeology Team",
+                  "hypQuote": "United States geological survey, astrogeology team",
+                  "reason": "Missing capitalization and abbreviation '(USGS)'."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "located in Flagstaff, Arizona",
+                  "hypQuote": "located in Flagstaff, Arizona",
+                  "reason": "Correct punctuation here, but candidate has inconsistent comma usage elsewhere."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": null
+      },
+      "complete": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1670",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.7,
+              "note": "Candidate 1 has multiple errors including entity and semantic errors, such as '他们' instead of '它们', '地下升雪' instead of '地下深穴', and '亚历桑那州旗甘镇' instead of '亚利桑那州旗杆镇'.",
+              "findings": [
+                {
+                  "kind": "semantic",
+                  "refQuote": "它们的热行为",
+                  "hypQuote": "他们的热行为",
+                  "reason": "The reference uses '它们' (they for objects), but candidate uses '他们' (they for people), changing the meaning."
+                },
+                {
+                  "kind": "semantic",
+                  "refQuote": "地下深穴",
+                  "hypQuote": "地下升雪",
+                  "reason": "The candidate replaces '深穴' (deep caves) with '升雪' (rising snow), which changes the meaning."
+                },
+                {
+                  "kind": "entity",
+                  "refQuote": "亚利桑那州旗杆镇",
+                  "hypQuote": "亚历桑那州旗甘镇",
+                  "reason": "The candidate misspells the place name, changing '旗杆镇' to '旗甘镇'."
+                },
+                {
+                  "kind": "entity",
+                  "refQuote": "格伦·库欣",
+                  "hypQuote": "格伦库星",
+                  "reason": "The candidate misspells the person's name, changing '库欣' to '库星'."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.6,
+              "note": "Candidate 2 has similar errors as candidate 1, including '他们' instead of '它们', '地下升雪' instead of '地下深穴', and misspellings in place and person names. Also, an extraneous comma appears at the end.",
+              "findings": [
+                {
+                  "kind": "semantic",
+                  "refQuote": "它们的热行为",
+                  "hypQuote": "他们的热行为",
+                  "reason": "The reference uses '它们' (they for objects), but candidate uses '他们' (they for people), changing the meaning."
+                },
+                {
+                  "kind": "semantic",
+                  "refQuote": "地下深穴",
+                  "hypQuote": "地下升雪",
+                  "reason": "The candidate replaces '深穴' (deep caves) with '升雪' (rising snow), which changes the meaning."
+                },
+                {
+                  "kind": "entity",
+                  "refQuote": "亚利桑那州旗杆镇",
+                  "hypQuote": "亚利桑那州旗干镇",
+                  "reason": "The candidate misspells the place name, changing '旗杆镇' to '旗干镇'."
+                },
+                {
+                  "kind": "entity",
+                  "refQuote": "格伦·库欣",
+                  "hypQuote": "格伦库辛",
+                  "reason": "The candidate misspells the person's name, changing '库欣' to '库辛'."
+                },
+                {
+                  "kind": "addition",
+                  "refQuote": "格伦·库欣说道。",
+                  "hypQuote": "格伦库辛说道，。",
+                  "reason": "Candidate 2 adds an extraneous comma before the period, which is not present in the reference."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.85,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "omission",
+                  "refQuote": "美国地质调查局 (USGS)",
+                  "hypQuote": "美国地质调查局 USGS",
+                  "reason": "括号缺失，影响格式一致性"
+                },
+                {
+                  "kind": "entity",
+                  "refQuote": "亚利桑那州旗杆镇",
+                  "hypQuote": "亚历桑那州旗甘镇",
+                  "reason": "地名翻译错误，'旗杆镇'被误作'旗甘镇'"
+                },
+                {
+                  "kind": "entity",
+                  "refQuote": "格伦·库欣",
+                  "hypQuote": "格伦库星",
+                  "reason": "人名错误，'格伦·库欣'被误作'格伦库星'"
+                },
+                {
+                  "kind": "semantic",
+                  "refQuote": "地下深穴",
+                  "hypQuote": "地下升雪",
+                  "reason": "'深穴'与'升雪'语义完全不同，属严重语义错误"
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.8,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "omission",
+                  "refQuote": "美国地质调查局 (USGS)",
+                  "hypQuote": "美国地质调查局USGS",
+                  "reason": "括号缺失，影响格式一致性"
+                },
+                {
+                  "kind": "entity",
+                  "refQuote": "亚利桑那州旗杆镇",
+                  "hypQuote": "亚利桑那州旗干镇",
+                  "reason": "地名错误，'旗杆镇'被误作'旗干镇'"
+                },
+                {
+                  "kind": "entity",
+                  "refQuote": "格伦·库欣",
+                  "hypQuote": "格伦库辛",
+                  "reason": "人名错误，'格伦·库欣'被误作'格伦库辛'"
+                },
+                {
+                  "kind": "semantic",
+                  "refQuote": "地下深穴",
+                  "hypQuote": "地下升雪",
+                  "reason": "'深穴'与'升雪'语义完全不同，属严重语义错误"
+                },
+                {
+                  "kind": "addition",
+                  "refQuote": "",
+                  "hypQuote": "，。",
+                  "reason": "句末多出标点符号'，。'"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "complete": true
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1671",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1671",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 1,
+              "note": "Exact match to the reference.",
+              "findings": []
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 1,
+              "note": "Exact match to the reference.",
+              "findings": []
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1671",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 1,
+              "note": "",
+              "findings": []
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 1,
+              "note": "",
+              "findings": []
+            }
+          ]
+        }
+      },
+      "complete": true
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "judges": {
+        "judge-a": null,
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.95,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "2005 财年",
+                  "hypQuote": "2005年才年",
+                  "reason": "The reference uses '2005 财年' to denote the fiscal year, while the candidate says '2005年才年', which is a misrendering but appears to attempt the same concept with incorrect wording."
+                },
+                {
+                  "kind": "entity",
+                  "refQuote": "联邦调查局 (FBI)",
+                  "hypQuote": "联邦调查局",
+                  "reason": "The reference includes the acronym '(FBI)' after '联邦调查局', which is omitted in the candidate, losing specific entity information."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "10 名探员",
+                  "hypQuote": "10名太员",
+                  "reason": "The character '探' (detective) is incorrectly rendered as '太', which is a typographical or recognition error, but the number and role intent are preserved."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.85,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "omission",
+                  "refQuote": "国会从 2005 财年开始资助该扫黄倡议",
+                  "hypQuote": "国会从2005年财年开始资助该小扫黄倡议",
+                  "reason": "The reference states '扫黄倡议' (anti-pornography initiative), while the candidate says '小扫黄倡议', adding '小' (small), which alters the meaning and is not present in the reference."
+                },
+                {
+                  "kind": "number",
+                  "refQuote": "10 名探员",
+                  "hypQuote": "1名太员",
+                  "reason": "The reference specifies 10 detectives, but the candidate states only 1, which is a significant numerical discrepancy."
+                },
+                {
+                  "kind": "entity",
+                  "refQuote": "成人色情",
+                  "hypQuote": "成员色情",
+                  "reason": "The reference refers to '成人色情' (adult pornography), while the candidate says '成员色情' (member pornography), which is a clear entity error changing the meaning."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "探员",
+                  "hypQuote": "太员",
+                  "reason": "The character '探' is again misrendered as '太', likely a transcription error."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "complete": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1672",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1672",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.8,
+              "note": "Candidate adds 'All right,' at the beginning and omits the parenthetical structure around 'which can cause shrinkage, or in extreme cases, scorch'.",
+              "findings": [
+                {
+                  "kind": "addition",
+                  "refQuote": "Be careful not to allow fabric to become too hot (which can cause shrinkage, or in extreme cases, scorch).",
+                  "hypQuote": "All right, be careful not to allow fabric to become too hot, which can cause shrinkage, or in extreme cases, scorch.",
+                  "reason": "The candidate adds 'All right,' at the start, which is not in the reference."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "(which can cause shrinkage, or in extreme cases, scorch)",
+                  "hypQuote": "which can cause shrinkage, or in extreme cases, scorch",
+                  "reason": "The parenthesis is removed and replaced by a comma, changing the format but not the content."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Candidate omits the parenthetical structure and the comma before 'or', but otherwise matches the reference content closely.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "(which can cause shrinkage, or in extreme cases, scorch)",
+                  "hypQuote": "which can cause shrinkage or in extreme cases, scorch",
+                  "reason": "The candidate removes the parentheses and the comma before 'or', changing the format but not the meaning."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": null
+      },
+      "complete": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1672",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1672",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Candidate splits the sentence into two with a period instead of using parentheses, which changes the format but not the meaning.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "（这可能会产生收缩现象，在极端情况下会把衣服烤焦）",
+                  "hypQuote": "这可能会产生收缩现象。在极端情况下会把衣服烤焦。",
+                  "reason": "The candidate replaces the parentheses with a period, splitting the sentence into two separate sentences, which is a format difference."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.95,
+              "note": "Candidate uses commas and spaces instead of parentheses, changing the format but preserving meaning.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "（这可能会产生收缩现象，在极端情况下会把衣服烤焦）",
+                  "hypQuote": "，这可能会产生收缩现象 ，在极端情况下会把衣服烤焦。",
+                  "reason": "The candidate replaces parentheses with commas and spaces, which is a format difference without semantic change."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1672",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 1,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "（这可能会产生收缩现象，在极端情况下会把衣服烤焦）。",
+                  "hypQuote": "，这可能会产生收缩现象。在极端情况下会把衣服烤焦。",
+                  "reason": "括号被移除，句号被插入，改变了标点格式但未改变语义。"
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 1,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "小心不要让衣服变得太热（这可能会产生收缩现象，在极端情况下会把衣服烤焦）。",
+                  "hypQuote": "小心不要让衣服变得太热 ，这可能会产生收缩现象 ，在极端情况下会把衣服烤焦。",
+                  "reason": "括号被空格和顿号替代，标点格式变化但语义一致。"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "complete": true
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1673",
+      "judges": {
+        "judge-a": null,
+        "judge-b": null
+      },
+      "complete": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1673",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Candidate uses '1三个州' instead of '十三个州', which is a number error and addition of an extra character '三'. Also missing '最初' and parentheses around the last part, which is omission and format difference.",
+              "findings": [
+                {
+                  "kind": "number",
+                  "refQuote": "十三个州",
+                  "hypQuote": "1三个州",
+                  "reason": "Candidate incorrectly writes the number as '1三个州' instead of '十三个州'."
+                },
+                {
+                  "kind": "omission",
+                  "refQuote": "最初",
+                  "hypQuote": "",
+                  "reason": "Candidate omits the word '最初' from the reference."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "（国会是其唯一的组成部分）",
+                  "hypQuote": "国会是其唯一的组成部分。",
+                  "reason": "Candidate omits parentheses around '国会是其唯一的组成部分' and ends with a period instead."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.95,
+              "note": "Candidate uses '13个州' instead of '十三个州', which is a format-only difference. Missing '最初' and parentheses around the last part, which is omission and format difference.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "十三个州",
+                  "hypQuote": "13个州",
+                  "reason": "Candidate uses digits '13' instead of Chinese characters '十三' for the number."
+                },
+                {
+                  "kind": "omission",
+                  "refQuote": "最初",
+                  "hypQuote": "",
+                  "reason": "Candidate omits the word '最初' from the reference."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "（国会是其唯一的组成部分）",
+                  "hypQuote": "国会是其唯一的组成部分。",
+                  "reason": "Candidate omits parentheses around '国会是其唯一的组成部分' and ends with a period instead."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": null
+      },
+      "complete": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1674",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1674",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.8,
+              "note": "Candidate adds 'and' and uses 'other' instead of 'others', which changes meaning and introduces a minor grammatical issue.",
+              "findings": [
+                {
+                  "kind": "semantic",
+                  "refQuote": "in others several minutes are needed",
+                  "hypQuote": "and other several minutes are needed",
+                  "reason": "The candidate uses 'and other' instead of 'in others', which changes the meaning and is less clear."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.8,
+              "note": "Candidate omits comma after 'minute' and uses 'other' instead of 'others', changing meaning and causing grammatical issues.",
+              "findings": [
+                {
+                  "kind": "semantic",
+                  "refQuote": "in others several minutes are needed",
+                  "hypQuote": "and other several minutes are needed",
+                  "reason": "The candidate uses 'and other' instead of 'in others', which changes the meaning and is less clear."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1674",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.95,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "omission",
+                  "refQuote": "In some areas boiling water for a minute is enough, in others several minutes are needed.",
+                  "hypQuote": "In some areas, boiling water for a minute is enough, and other several minutes are needed.",
+                  "reason": "The reference uses 'in others' to refer to other areas, while the candidate uses 'and other', which omits the preposition 'in' and results in a grammatical error and reduced clarity."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.95,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "omission",
+                  "refQuote": "In some areas boiling water for a minute is enough, in others several minutes are needed.",
+                  "hypQuote": "In some areas, boiling water for a minute is enough and other several minutes are needed.",
+                  "reason": "The reference uses 'in others' to refer to other areas, while the candidate uses 'and other', which omits the preposition 'in' and results in a grammatical error and reduced clarity."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "complete": true
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1674",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1674",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 1,
+              "note": "Exact match with the reference.",
+              "findings": []
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Uses digit '1' instead of the word '一分钟', a format-only difference.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "一分钟",
+                  "hypQuote": "1分钟",
+                  "reason": "The candidate uses the digit '1' instead of the word '一' for the number of minutes, which is a format-only difference."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": null
+      },
+      "complete": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1675",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1675",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.8,
+              "note": "Candidate has a substitution error changing 'word Sie for you' to 'world safe for you', which alters meaning and introduces an incorrect word.",
+              "findings": [
+                {
+                  "kind": "semantic",
+                  "refQuote": "the word Sie for you",
+                  "hypQuote": "the world safe for you",
+                  "reason": "The phrase 'the word Sie for you' is changed to 'the world safe for you', which changes the meaning and introduces incorrect words."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.7,
+              "note": "Candidate has a substitution error changing 'word Sie for you' to 'world say for you' and a punctuation error with a period instead of a comma, affecting sentence flow and meaning.",
+              "findings": [
+                {
+                  "kind": "semantic",
+                  "refQuote": "the word Sie for you",
+                  "hypQuote": "the world say for you",
+                  "reason": "The phrase 'the word Sie for you' is changed to 'the world say for you', altering the meaning."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": ", always begin",
+                  "hypQuote": ". always begin",
+                  "reason": "The comma after 'you' is replaced by a period, affecting sentence flow."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1675",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.95,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "entity",
+                  "refQuote": "the word Sie",
+                  "hypQuote": "the world safe",
+                  "reason": "The phrase \"the word Sie\" is incorrectly transcribed as \"the world safe\", introducing a different entity and altering the meaning."
+                },
+                {
+                  "kind": "omission",
+                  "refQuote": ",",
+                  "hypQuote": "",
+                  "reason": "The comma after \"nouns\" in the reference is missing in the candidate, affecting punctuation accuracy."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.95,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "entity",
+                  "refQuote": "the word Sie",
+                  "hypQuote": "the world say",
+                  "reason": "The phrase \"the word Sie\" is incorrectly transcribed as \"the world say\", introducing a different entity and altering the meaning."
+                },
+                {
+                  "kind": "omission",
+                  "refQuote": ",",
+                  "hypQuote": "",
+                  "reason": "The comma after \"nouns\" in the reference is missing in the candidate, affecting punctuation accuracy."
+                },
+                {
+                  "kind": "addition",
+                  "refQuote": "",
+                  "hypQuote": ".",
+                  "reason": "An extra period appears after \"you\", creating a sentence break not present in the reference."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "complete": true
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1675",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Candidate replaces '您的“Sie”' with '零的C', which changes the meaning significantly. Also uses '即便' instead of '即使', a minor semantic difference.",
+              "findings": [
+                {
+                  "kind": "semantic",
+                  "refQuote": "表示您的“Sie”",
+                  "hypQuote": "表示零的C",
+                  "reason": "The candidate changes the phrase indicating '您的“Sie”' to '零的C', altering the meaning."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.8,
+              "note": "Candidate changes '您的“Sie”' to '您的 C' and '大写字母' to '大写字幕', which is a format and semantic error. Also uses '即便' instead of '即使'.",
+              "findings": [
+                {
+                  "kind": "semantic",
+                  "refQuote": "表示您的“Sie”",
+                  "hypQuote": "您的 C",
+                  "reason": "The candidate omits the quotation marks and the word 'Sie', changing the meaning."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "大写字母",
+                  "hypQuote": "大写字幕",
+                  "reason": "The candidate uses '字幕' (subtitle) instead of '字母' (letter), which is a format and semantic error."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": null
+      },
+      "complete": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1676",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1676",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 1,
+              "note": "Only difference is capitalization of 'National Parks' vs 'national parks', which is format-only.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "South African National Parks",
+                  "hypQuote": "South African national parks",
+                  "reason": "Capitalization difference only."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 1,
+              "note": "Only difference is capitalization of 'National Parks' vs 'national parks', which is format-only.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "South African National Parks",
+                  "hypQuote": "South African national parks",
+                  "reason": "Capitalization difference only."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1676",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": true,
+              "confidence": 0,
+              "note": "Both candidates are identical to each other and differ from the reference only in capitalization of 'national parks', which is a minor formatting difference and does not affect meaning.",
+              "findings": []
+            },
+            {
+              "slot": "slot-2",
+              "abstain": true,
+              "confidence": 0,
+              "note": "Both candidates are identical to each other and differ from the reference only in capitalization of 'national parks', which is a minor formatting difference and does not affect meaning.",
+              "findings": []
+            }
+          ]
+        }
+      },
+      "complete": true
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1676",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1676",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 1,
+              "note": "Candidate exactly matches the reference including punctuation and spacing.",
+              "findings": []
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.95,
+              "note": "Candidate matches the reference in content but has an extra space before the comma, which is a minor formatting difference.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "一样，",
+                  "hypQuote": "一样 ，",
+                  "reason": "There is an extra space before the comma in the candidate compared to the reference."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": null
+      },
+      "complete": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1677",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1677",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Minor format-only difference in 'dragon flies' vs 'dragonflies'.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "dragon flies",
+                  "hypQuote": "dragonflies",
+                  "reason": "The candidate merges 'dragon flies' into one word 'dragonflies', which is a format-only difference."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.8,
+              "note": "Format-only differences in 'dragon flies' vs 'dragonflies' and 'mayflies' vs 'may flies'.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "dragon flies",
+                  "hypQuote": "dragonflies",
+                  "reason": "The candidate merges 'dragon flies' into one word 'dragonflies', which is a format-only difference."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "mayflies",
+                  "hypQuote": "may flies",
+                  "reason": "The candidate splits 'mayflies' into two words 'may flies', which is a format-only difference."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1677",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.95,
+              "note": "Compound word formatting difference",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "dragon flies",
+                  "hypQuote": "dragonflies",
+                  "reason": "The reference uses two words 'dragon flies' while the candidate uses the compound word 'dragonflies', which is a surface-level formatting difference with no change in meaning."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.95,
+              "note": "Compound word formatting difference",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "mayflies",
+                  "hypQuote": "may flies",
+                  "reason": "The reference uses the compound word 'mayflies' while the candidate uses two words 'may flies', which is a surface-level formatting difference with no change in meaning."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "complete": true
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1677",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Candidate replaces '蜉蝣' with '浮游', which is a different entity and changes the meaning.",
+              "findings": [
+                {
+                  "kind": "entity",
+                  "refQuote": "蜉蝣",
+                  "hypQuote": "浮游",
+                  "reason": "The candidate uses '浮游' instead of '蜉蝣', which are different insects and thus changes the meaning."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Candidate omits the comma after '如今' and replaces '蜉蝣' with '浮游', changing the entity and slightly altering the meaning.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "如今，",
+                  "hypQuote": "如今",
+                  "reason": "The candidate omits the comma after '如今', a minor format difference."
+                },
+                {
+                  "kind": "entity",
+                  "refQuote": "蜉蝣",
+                  "hypQuote": "浮游",
+                  "reason": "The candidate uses '浮游' instead of '蜉蝣', which are different insects and thus changes the meaning."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.95,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "entity",
+                  "refQuote": "蜉蝣",
+                  "hypQuote": "浮游",
+                  "reason": "‘蜉蝣’和‘浮游’是不同的生物，前者是一种昆虫，后者通常指海洋中的浮游生物，语义不同。"
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.85,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "omission",
+                  "refQuote": "，",
+                  "hypQuote": "",
+                  "reason": "参考文本中的逗号在候选文本中被省略，属于标点符号的遗漏。"
+                },
+                {
+                  "kind": "entity",
+                  "refQuote": "蜉蝣",
+                  "hypQuote": "浮游",
+                  "reason": "‘蜉蝣’被误写为‘浮游’，属于实体错误，两者指代不同生物。"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "complete": true
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1678",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1678",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Contains a misspelling of the name 'Oliver Sacks' as 'Oliver Saackchs'. Otherwise matches the reference closely.",
+              "findings": [
+                {
+                  "kind": "entity",
+                  "refQuote": "Oliver Sacks",
+                  "hypQuote": "Oliver Saackchs",
+                  "reason": "The candidate misspells the name 'Oliver Sacks' as 'Oliver Saackchs'."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.95,
+              "note": "Contains a misspelling of the name 'Oliver Sacks' as 'Oliver Sachs' and changes 'in his paper' to 'and his paper', which alters the meaning slightly.",
+              "findings": [
+                {
+                  "kind": "entity",
+                  "refQuote": "Oliver Sacks",
+                  "hypQuote": "Oliver Sachs",
+                  "reason": "The candidate misspells the name 'Oliver Sacks' as 'Oliver Sachs'."
+                },
+                {
+                  "kind": "semantic",
+                  "refQuote": "in his paper",
+                  "hypQuote": "and his paper",
+                  "reason": "The phrase 'in his paper' is changed to 'and his paper', which changes the meaning and connection in the sentence."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1678",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.85,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "entity",
+                  "refQuote": "Oliver Sacks",
+                  "hypQuote": "Oliver Saackchs",
+                  "reason": "The name 'Oliver Sacks' is misspelled as 'Oliver Saackchs' in the candidate."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "The President's Speech",
+                  "hypQuote": "the president's speech",
+                  "reason": "The title 'The President's Speech' differs in capitalization and lacks quotation marks, but refers to the same work."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.8,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "entity",
+                  "refQuote": "Oliver Sacks",
+                  "hypQuote": "Oliver Sachs",
+                  "reason": "The name 'Oliver Sacks' is misspelled as 'Oliver Sachs' in the candidate."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "The President's Speech",
+                  "hypQuote": "the president's speech",
+                  "reason": "The title 'The President's Speech' differs in capitalization and lacks quotation marks, but refers to the same work."
+                },
+                {
+                  "kind": "semantic",
+                  "refQuote": "Oliver Sacks, in his paper",
+                  "hypQuote": "Oliver Sachs and his paper",
+                  "reason": "The phrase 'and his paper' incorrectly suggests that Oliver Sachs is separate from the paper, altering the original meaning that the paper belongs to Sacks."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "complete": true
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1678",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1678",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.7,
+              "note": "Candidate omits parentheses and English name, and misses punctuation; otherwise mostly accurate.",
+              "findings": [
+                {
+                  "kind": "omission",
+                  "refQuote": "(Oliver Sacks)",
+                  "hypQuote": "",
+                  "reason": "Candidate omits the parentheses and the English name 'Oliver Sacks' present in the reference."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "奥利弗·萨克斯",
+                  "hypQuote": "奥里弗萨克斯奥live萨克斯",
+                  "reason": "Candidate shows a mix of Chinese and English letters without proper spacing or punctuation, differing in format from the reference."
+                },
+                {
+                  "kind": "omission",
+                  "refQuote": "，",
+                  "hypQuote": "",
+                  "reason": "Candidate omits the comma after '总统的演讲' present in the reference."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Candidate is very close to the reference with minor format differences and a slight name variation.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "奥利弗·萨克斯",
+                  "hypQuote": "奥利弗萨克斯奥萨克",
+                  "reason": "Candidate merges the name and adds an extra '奥萨克' without punctuation, differing from the reference."
+                },
+                {
+                  "kind": "omission",
+                  "refQuote": "(Oliver Sacks)",
+                  "hypQuote": "",
+                  "reason": "Candidate omits the English name in parentheses present in the reference."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1678",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.85,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "奥利弗·萨克斯 (Oliver Sacks)",
+                  "hypQuote": "奥里弗萨克斯奥live萨克斯",
+                  "reason": "姓名呈现方式不同，参考使用标准中文译名加英文原名括号标注，候选将其混杂且未正确分隔。"
+                },
+                {
+                  "kind": "omission",
+                  "refQuote": "，",
+                  "hypQuote": "",
+                  "reason": "候选缺少逗号，导致句子结构不清晰。"
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "奥利弗·萨克斯 (Oliver Sacks)",
+                  "hypQuote": "奥利弗萨克斯奥萨克",
+                  "reason": "姓名表达不一致，参考使用标准译名和英文原名，候选将名字部分错误拼接且未正确呈现英文名。"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "complete": true
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1679",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1679",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.8,
+              "note": "Candidate uses past perfect 'had canceled' instead of present perfect 'have cancelled', and American spelling 'canceled' instead of British 'cancelled'.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "have cancelled",
+                  "hypQuote": "had canceled",
+                  "reason": "The candidate uses past perfect tense and American spelling, differing from the reference's present perfect and British spelling."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Candidate misspells 'Aerosmith' as 'Arissmith' and uses past perfect 'had canceled' instead of present perfect 'have cancelled'.",
+              "findings": [
+                {
+                  "kind": "entity",
+                  "refQuote": "Aerosmith",
+                  "hypQuote": "Arissmith",
+                  "reason": "The band name is misspelled in the candidate."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "have cancelled",
+                  "hypQuote": "had canceled",
+                  "reason": "The candidate uses past perfect tense and American spelling, differing from the reference's present perfect and British spelling."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1679",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.95,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "have cancelled",
+                  "hypQuote": "had canceled",
+                  "reason": "The verb tense and spelling differ, but the meaning is preserved: 'have cancelled' vs. 'had canceled' (British vs. American spelling and present perfect vs. past perfect, but same event)."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "entity",
+                  "refQuote": "Aerosmith",
+                  "hypQuote": "Arissmith",
+                  "reason": "The band name 'Aerosmith' is misrecognized as 'Arissmith', which is a different entity."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "have cancelled",
+                  "hypQuote": "had canceled",
+                  "reason": "The verb tense and spelling differ: 'have cancelled' vs. 'had canceled', with British vs. American spelling and tense variation, but the core meaning remains."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "complete": true
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1679",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 1,
+              "note": "Candidate exactly matches the reference.",
+              "findings": []
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 1,
+              "note": "Candidate exactly matches the reference.",
+              "findings": []
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": true,
+              "confidence": 0,
+              "note": "Both candidates are identical to the reference and each other.",
+              "findings": []
+            },
+            {
+              "slot": "slot-2",
+              "abstain": true,
+              "confidence": 0,
+              "note": "Both candidates are identical to the reference and each other.",
+              "findings": []
+            }
+          ]
+        }
+      },
+      "complete": true
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1680",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1680",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.8,
+              "note": "Candidate has minor errors: 'well-rounded' vs 'well rounded' is format-only; 'leave' instead of 'leap' is a semantic error; '5' vs 'five' is format-only.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "A well rounded athlete",
+                  "hypQuote": "A well-rounded athlete",
+                  "reason": "Hyphenation difference, same meaning."
+                },
+                {
+                  "kind": "semantic",
+                  "refQuote": "leap great distances",
+                  "hypQuote": "leave great distances",
+                  "reason": "The candidate uses 'leave' which changes the meaning from 'leap'."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "five times",
+                  "hypQuote": "5 times",
+                  "reason": "Digit versus word, same numeric value."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 1,
+              "note": "Candidate matches the reference exactly except for a missing comma after 'climb' which is present in the reference but not in candidate; this is a minor punctuation difference not marked here.",
+              "findings": []
+            }
+          ]
+        },
+        "judge-b": null
+      },
+      "complete": false
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.8,
+              "note": "Candidate 1 has minor format and wording differences but introduces an entity error with '大力石' instead of '大力士' and a number format difference with '5倍' instead of '五倍'. Also, it omits the parentheses around the phrase '虽然攀爬能力不是很强'.",
+              "findings": [
+                {
+                  "kind": "omission",
+                  "refQuote": "（虽然攀爬能力不是很强）",
+                  "hypQuote": "，虽然攀爬能力不是很强，",
+                  "reason": "The candidate removes the parentheses around this phrase, changing the format and possibly the nuance."
+                },
+                {
+                  "kind": "entity",
+                  "refQuote": "大力士",
+                  "hypQuote": "大力石",
+                  "reason": "The candidate miswrites '大力士' (strongman) as '大力石' (strong stone), which is an entity error."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "五倍",
+                  "hypQuote": "5倍",
+                  "reason": "The candidate uses digit '5' instead of the Chinese character '五', a format difference."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.85,
+              "note": "Candidate 2 has similar issues as Candidate 1: entity error with '大力石' instead of '大力士', omission of parentheses, and minor spacing differences. It uses the correct number format '五倍'.",
+              "findings": [
+                {
+                  "kind": "omission",
+                  "refQuote": "（虽然攀爬能力不是很强）",
+                  "hypQuote": "，虽然攀爬能力不是很强 ，",
+                  "reason": "The candidate removes the parentheses around this phrase, changing the format and possibly the nuance."
+                },
+                {
+                  "kind": "entity",
+                  "refQuote": "大力士",
+                  "hypQuote": "大力石",
+                  "reason": "The candidate miswrites '大力士' (strongman) as '大力石' (strong stone), which is an entity error."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": null
+      },
+      "complete": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1681",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1681",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.8,
+              "note": "Slot-1 is mostly accurate but misses a comma after 'hypotheses' and omits a comma after 'hypotheses,' which affects clarity slightly.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "one or more of the possible hypotheses, asking questions",
+                  "hypQuote": "one or more of the possible hypotheses asking questions",
+                  "reason": "Missing comma after 'hypotheses' changes the flow and clarity of the sentence."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Slot-2 introduces a period after 'experimentation' which changes the sentence structure and meaning, splitting the sentence into two. Otherwise, it matches the reference well.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "It isn’t alone though, experimentation, and an experiment is a test",
+                  "hypQuote": "It isn't alone though, experimentation. And an experiment is a test",
+                  "reason": "Period after 'experimentation' changes sentence structure from one sentence to two."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1681",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.95,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "omission",
+                  "refQuote": ", and",
+                  "hypQuote": "",
+                  "reason": "The reference contains ', and' before 'asking questions', but this conjunction is missing in the candidate, causing a run-on structure."
+                },
+                {
+                  "kind": "omission",
+                  "refQuote": ", ",
+                  "hypQuote": "",
+                  "reason": "The candidate omits the comma after 'hypotheses', which is present in the reference and separates coordinated clauses."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "addition",
+                  "refQuote": "",
+                  "hypQuote": ".",
+                  "reason": "The candidate inserts a period after 'experimentation', splitting the sentence, which disrupts the flow and adds punctuation not present in the reference."
+                },
+                {
+                  "kind": "addition",
+                  "refQuote": "",
+                  "hypQuote": "And",
+                  "reason": "The candidate capitalizes 'And' as a new sentence, which is not in the reference and introduces an addition in structure."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "complete": true
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1681",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1681",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.8,
+              "note": "Candidate 1 has a format-only difference with '试验' replaced by '实验' in the first sentence, which is a synonym but changes the exact wording. It also adds a comma after '方法' in the reference that is missing here, and uses '以及' instead of '及' before '进行观察'.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "试验",
+                  "hypQuote": "实验",
+                  "reason": "The reference uses '试验' while the candidate uses '实验' in the phrase describing the experiment, which is a format or synonym difference."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "不过，实验并不是唯一的方法。提出问题及进行观察也可以指导科学研究。",
+                  "hypQuote": "不过，实验并不是唯一的方法提出问题以及进行观察，也可以指导科学研究。",
+                  "reason": "Candidate merges two sentences into one and replaces '及' with '以及', which is a format difference."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.7,
+              "note": "Candidate 2 has the same format-only differences as Candidate 1 but also omits the comma after '不过' and the period after '方法', merging sentences without punctuation.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "试验",
+                  "hypQuote": "实验",
+                  "reason": "The reference uses '试验' while the candidate uses '实验' in the phrase describing the experiment, which is a format or synonym difference."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "不过，实验并不是唯一的方法。提出问题及进行观察也可以指导科学研究。",
+                  "hypQuote": "不过实验并不是唯一的方法提出问题以及进行观察也可以指导科学研究。",
+                  "reason": "Candidate merges sentences without punctuation and replaces '及' with '以及', which is a format difference."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": null
+      },
+      "complete": false
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1682",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1682",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.7,
+              "note": "Candidate has multiple errors including entity and format issues, but retains some structure of the original sentence.",
+              "findings": [
+                {
+                  "kind": "entity",
+                  "refQuote": "who wrote it",
+                  "hypQuote": "for Serenhu Roi",
+                  "reason": "The phrase 'who wrote it' is replaced by 'for Serenhu Roi', which changes the meaning and introduces an incorrect entity."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "(it measures 29¾ inches by 24½ inches)",
+                  "hypQuote": "in Messrs. 29, 3/4 inches by 24 and half inches",
+                  "reason": "The measurement is presented with different formatting and additional words, altering the original parenthetical and numeric style."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.6,
+              "note": "Candidate contains entity, format, and omission errors affecting clarity and accuracy.",
+              "findings": [
+                {
+                  "kind": "entity",
+                  "refQuote": "who wrote it",
+                  "hypQuote": "for Cin who wrote it",
+                  "reason": "The addition of 'for Cin' before 'who wrote it' introduces an incorrect entity not present in the reference."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "(it measures 29¾ inches by 24½ inches)",
+                  "hypQuote": "it measures 29 free4 inches by 24 and half inches",
+                  "reason": "The measurement is distorted with 'free4' instead of '¾' and different wording for '24½', affecting the original format."
+                },
+                {
+                  "kind": "omission",
+                  "refQuote": "was rolled up for storage.",
+                  "hypQuote": "was roll up for storage.",
+                  "reason": "The phrase 'was rolled up for storage' is partially omitted or incorrectly formed as 'was roll up for storage', affecting grammatical correctness and completeness."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/en_us/1682",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.75,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "entity",
+                  "refQuote": "certain who wrote it",
+                  "hypQuote": "Serenhu Roi",
+                  "reason": "The phrase 'Serenhu Roi' replaces 'certain who wrote it', which distorts the original meaning and refers to a non-existent entity."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "29¾ inches",
+                  "hypQuote": "29, 3/4 inches",
+                  "reason": "The measurement '29¾ inches' is expressed differently as '29, 3/4 inches', but represents the same value."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "24½ inches",
+                  "hypQuote": "24 and half inches",
+                  "reason": "The measurement '24½ inches' is expressed as '24 and half inches', which is a verbal equivalent."
+                },
+                {
+                  "kind": "omission",
+                  "refQuote": "the large parchment document (it measures",
+                  "hypQuote": "the large parchment document, in Messrs.",
+                  "reason": "The phrase 'it measures' is omitted and replaced with the unclear 'in Messrs.', which does not convey the same meaning."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.65,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "entity",
+                  "refQuote": "certain who wrote it",
+                  "hypQuote": "Cin who wrote it",
+                  "reason": "'Cin' appears to be a misrecognition or corruption of 'certain', altering the intended entity."
+                },
+                {
+                  "kind": "omission",
+                  "refQuote": "parchment",
+                  "hypQuote": "par",
+                  "reason": "The word 'parchment' is shortened to 'par', omitting critical information."
+                },
+                {
+                  "kind": "number",
+                  "refQuote": "29¾ inches",
+                  "hypQuote": "29 free4 inches",
+                  "reason": "'29 free4 inches' is a misinterpretation of '29¾ inches', resulting in an incorrect numerical expression."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "24½ inches",
+                  "hypQuote": "24 and half inches",
+                  "reason": "'24½ inches' is rendered as '24 and half inches', which is a valid verbal format."
+                },
+                {
+                  "kind": "semantic",
+                  "refQuote": "was rolled up",
+                  "hypQuote": "was roll up",
+                  "reason": "'was roll up' is grammatically incorrect and changes the meaning from past passive tense to an incomplete construction."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "complete": true
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1682",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1682",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.8,
+              "note": "Candidate uses a different phrasing for the dimensions but conveys the same numeric values in a more verbose way; no semantic difference detected.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "29¾ 英寸乘以 24½ 英寸",
+                  "hypQuote": "29又4分之3英寸乘以24又2分之1英寸",
+                  "reason": "The candidate spells out the fractions differently but the numeric values correspond to the reference."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.7,
+              "note": "Candidate uses a different phrasing for the dimensions with slight variation in wording but same numeric values; no semantic difference detected.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "29¾ 英寸乘以 24½ 英寸",
+                  "hypQuote": "29又四分之三英寸乘以 24有二分之一英寸",
+                  "reason": "The candidate spells out the fractions differently but the numeric values correspond to the reference."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "fleurs-public-candidates/cmn_hans_cn/1682",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.95,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "29¾ 英寸乘以 24½ 英寸",
+                  "hypQuote": "29又4分之3英寸乘以24又2分之1英寸",
+                  "reason": "数字表达方式不同，但数值相同，使用汉字分数与阿拉伯数字加分数符号的转换"
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "29¾ 英寸乘以 24½ 英寸",
+                  "hypQuote": "29又四分之三英寸乘以 24有二分之一英寸",
+                  "reason": "数字表达方式不同，但数值相同，使用汉字分数；其中‘有’应为‘又’，属常见同音替代，语义未变"
+                },
+                {
+                  "kind": "omission",
+                  "refQuote": "（尺寸为 29¾ 英寸乘以 24½ 英寸）",
+                  "hypQuote": "尺寸为 29又四分之三英寸乘以 24有二分之一英寸",
+                  "reason": "参考文本中尺寸信息被括号包围，候选文本中括号缺失，导致格式和可能的强调信息丢失"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "complete": true
+    },
+    {
+      "id": "ascend/00004",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "ascend/00004",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Candidate 1 replaces the English phrase with a Chinese phrase and omits the filler '呃' and the English words 'what's the'.",
+              "findings": [
+                {
+                  "kind": "omission",
+                  "refQuote": "呃what's the呃",
+                  "hypQuote": "我so",
+                  "reason": "Candidate 1 omits the entire English phrase and the filler '呃' from the reference."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Candidate 2 includes the filler '呃' but adds '我死的' which is not present in the reference, and omits the English phrase 'what's the'.",
+              "findings": [
+                {
+                  "kind": "omission",
+                  "refQuote": "what's the",
+                  "hypQuote": "呃我死的。",
+                  "reason": "Candidate 2 omits the English phrase 'what's the' from the reference."
+                },
+                {
+                  "kind": "addition",
+                  "refQuote": "呃what's the呃",
+                  "hypQuote": "呃我死的。",
+                  "reason": "Candidate 2 adds '我死的' which is not present in the reference."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "ascend/00004",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": true,
+              "confidence": 0,
+              "note": "Candidate does not contain any recognizable alignment with the reference; '我so' appears to be a mix of Chinese and English with no clear correspondence to '呃what's the呃'.",
+              "findings": []
+            },
+            {
+              "slot": "slot-2",
+              "abstain": true,
+              "confidence": 0,
+              "note": "Candidate '呃我死的。' contains the filler '呃' which matches the reference, but the rest '我死的。' does not align with 'what's the呃'; no clear semantic or phonetic match can be established.",
+              "findings": []
+            }
+          ]
+        }
+      },
+      "complete": true
+    },
+    {
+      "id": "ascend/00009",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "ascend/00009",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.8,
+              "note": "Contains multiple errors in spelling and word form compared to the reference.",
+              "findings": [
+                {
+                  "kind": "entity",
+                  "refQuote": "information systems management",
+                  "hypQuote": "impormation sistancemangement",
+                  "reason": "The candidate misspells 'information systems management' with incorrect words."
+                },
+                {
+                  "kind": "semantic",
+                  "refQuote": "no我专业是那个i s m information systems management",
+                  "hypQuote": "那我觉爱是那个 ISM impormation sistancemangement",
+                  "reason": "The candidate changes 'no我专业是那个' to '那我觉爱是那个', altering the meaning."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.95,
+              "note": "Mostly accurate with minor format differences and a slight wording change.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "no我专业是那个i s m information systems management",
+                  "hypQuote": "那我就按是那个ISM information systems management",
+                  "reason": "The candidate uses '那我就按是那个' instead of 'no我专业是那个' which is a wording difference but the key entity is correct."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": null
+      },
+      "complete": false
+    },
+    {
+      "id": "ascend/00028",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "ascend/00028",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Candidate has an addition and a semantic error: '附件' instead of '福建', and 'okK' instead of 'ok'.",
+              "findings": [
+                {
+                  "kind": "addition",
+                  "refQuote": "ok福建",
+                  "hypQuote": "okK附件",
+                  "reason": "Candidate adds '附件' which is not in the reference."
+                },
+                {
+                  "kind": "semantic",
+                  "refQuote": "福建",
+                  "hypQuote": "附件",
+                  "reason": "Candidate replaces '福建' with '附件', changing the meaning."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Candidate has an addition and a semantic error: '附件' instead of '福建', and 'OK' capitalized instead of 'ok'.",
+              "findings": [
+                {
+                  "kind": "addition",
+                  "refQuote": "ok福建",
+                  "hypQuote": "OK附件",
+                  "reason": "Candidate adds '附件' which is not in the reference."
+                },
+                {
+                  "kind": "semantic",
+                  "refQuote": "福建",
+                  "hypQuote": "附件",
+                  "reason": "Candidate replaces '福建' with '附件', changing the meaning."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "ok",
+                  "hypQuote": "OK",
+                  "reason": "Candidate capitalizes 'ok' to 'OK', a format difference."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": null
+      },
+      "complete": false
+    },
+    {
+      "id": "ascend/00055",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "ascend/00055",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Candidate includes a filler '嗯' similar to 'um' and adds spaces around commas, which is a format-only difference.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "um运动啊男生一般不都喜欢运动",
+                  "hypQuote": "嗯 ，运动啊 ，男生一般不都喜欢运动",
+                  "reason": "The candidate uses '嗯' instead of 'um' and adds spaces and commas, which are formatting differences without semantic change."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.95,
+              "note": "Candidate uses '嗯' instead of 'um' and adds a period at the end, which are format-only differences.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "um运动啊男生一般不都喜欢运动",
+                  "hypQuote": "嗯，运动啊男生一般不都喜欢运动。",
+                  "reason": "The candidate uses '嗯' instead of 'um' and adds a comma and a period, which are formatting differences without semantic change."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": null
+      },
+      "complete": false
+    },
+    {
+      "id": "ascend/00066",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "ascend/00066",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.8,
+              "note": "Candidate has a spelling error 'technicle' instead of 'technical' and an added space before the comma.",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "哦这么technical",
+                  "hypQuote": "哦 ，这么 technicle",
+                  "reason": "The candidate adds a space before the comma and misspells 'technical' as 'technicle'."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Candidate adds the particle '的' at the end, which is an addition not present in the reference.",
+              "findings": [
+                {
+                  "kind": "addition",
+                  "refQuote": "哦这么technical",
+                  "hypQuote": "哦，这么technical的。",
+                  "reason": "The candidate adds '的' at the end, which is not in the reference."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "ascend/00066",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "format-only",
+                  "refQuote": "technical",
+                  "hypQuote": "technicle",
+                  "reason": "The word 'technicle' is a misspelling of 'technical', but phonetically similar and likely a transcription error."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.85,
+              "note": "",
+              "findings": [
+                {
+                  "kind": "addition",
+                  "refQuote": "",
+                  "hypQuote": "的。",
+                  "reason": "The candidate adds '的。' at the end, which does not appear in the reference."
+                },
+                {
+                  "kind": "format-only",
+                  "refQuote": "technical",
+                  "hypQuote": "technical",
+                  "reason": "The word 'technical' is correctly transcribed but followed by additional characters."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "complete": true
+    },
+    {
+      "id": "ascend/00068",
+      "judges": {
+        "judge-a": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "ascend/00068",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.9,
+              "note": "Candidate 1 replaces 'languages是' with '人规' which is a semantic and entity difference and omits the 'languages是' part.",
+              "findings": [
+                {
+                  "kind": "semantic",
+                  "refQuote": "languages是",
+                  "hypQuote": "人规",
+                  "reason": "The candidate replaces 'languages是' with '人规', changing the meaning and entity."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.8,
+              "note": "Candidate 2 omits 'computer' and 'languages是' and adds '可能平时都 anguage', which is an addition and omission with semantic impact.",
+              "findings": [
+                {
+                  "kind": "omission",
+                  "refQuote": "computer languages是",
+                  "hypQuote": "",
+                  "reason": "The candidate omits the entire phrase 'computer languages是'."
+                },
+                {
+                  "kind": "addition",
+                  "refQuote": "computer languages是",
+                  "hypQuote": "可能平时都 anguage",
+                  "reason": "The candidate adds '可能平时都 anguage' which is not present in the reference and changes the meaning."
+                }
+              ]
+            }
+          ]
+        },
+        "judge-b": {
+          "schema": "belliedmonkey.llm-judge.verdict.v2",
+          "itemId": "ascend/00068",
+          "slots": [
+            {
+              "slot": "slot-1",
+              "abstain": false,
+              "confidence": 0.3,
+              "note": "Candidate contains unrelated content and does not match reference.",
+              "findings": [
+                {
+                  "kind": "omission",
+                  "refQuote": "computer languages是",
+                  "hypQuote": "",
+                  "reason": "The reference text 'computer languages是' is completely missing in the candidate."
+                },
+                {
+                  "kind": "addition",
+                  "refQuote": "",
+                  "hypQuote": "computer人规。",
+                  "reason": "The candidate contains 'computer人规。' which does not appear in the reference."
+                }
+              ]
+            },
+            {
+              "slot": "slot-2",
+              "abstain": false,
+              "confidence": 0.2,
+              "note": "Candidate appears to be fragmented and does not align with reference.",
+              "findings": [
+                {
+                  "kind": "omission",
+                  "refQuote": "computer languages是",
+                  "hypQuote": "",
+                  "reason": "The reference text 'computer languages是' is completely missing in the candidate."
+                },
+                {
+                  "kind": "addition",
+                  "refQuote": "",
+                  "hypQuote": "可能平时都 anguage",
+                  "reason": "The candidate contains '可能平时都 anguage' which does not appear in the reference."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "complete": true
+    }
+  ],
+  "doubleBlindComplete": false,
+  "semanticHumanReviewCount": 0,
+  "earReviewUsedAsSemanticReview": false,
+  "translationGold": false,
+  "promptTemplateSha256": "a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923",
+  "asrRubric": "belliedmonkey.llm-judge.asr.v2",
+  "plan": {
+    "schema": "belliedmonkey.llm-judge.plan.v1",
+    "called": false,
+    "synthetic": false,
+    "asrRubric": "belliedmonkey.llm-judge.asr.v2",
+    "promptTemplateSha256": "a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923",
+    "seed": 20261113,
+    "temperature": 0,
+    "maxItems": 36,
+    "timeoutMs": 120000,
+    "maxRetries": 0,
+    "budgetUsd": 0.22429628,
+    "prices": {
+      "source": "https://openrouter.ai/api/v1/models and https://openrouter.ai/api/v1/models/{id}/endpoints",
+      "sourceVersion": "2026-11-13T22:42:19+08:00;catalog_sha256=fab1f1c39a93322b8180e41770c12403986460d9e052874c37cd95b971e0ff1c;gpt-4.1-mini_record_sha256=ef472b851fa2d50167e6d0f9add0f7f9404f4e55d8e7cca75e70b66e86718c93;qwen3-235b-a22b-2507_record_sha256=fa13fb0cd1b89157a5fd9b7d2432e184a97526ed3fc494b7e06e9823e9cd2723;endpoints_gpt_sha256=c55d140b0532c149e47af5263e1aa44e2c708a1866e1b0dc01fef7397ae532d8;endpoints_qwen_sha256=a1437fd63b5fb0182977abad83b74312eea19c9654cf616e3260263fb8599234;rate_basis=conservative_max_listed_provider_envelope",
+      "maxInputTokens": 1152,
+      "maxOutputTokens": 2048,
+      "maxTotalTokens": 230400,
+      "maxRequests": 72,
+      "reserveUsd": [
+        {
+          "model": "openai/gpt-4.1-mini",
+          "usd": 0.0041113600000000005,
+          "pricedZero": false
+        },
+        {
+          "model": "qwen/qwen3-235b-a22b-2507",
+          "usd": 0.0018687999999999999,
+          "pricedZero": false
+        }
+      ]
+    },
+    "judges": [
+      {
+        "id": "judge-a",
+        "model": "openai/gpt-4.1-mini",
+        "called": false
+      },
+      {
+        "id": "judge-b",
+        "model": "qwen/qwen3-235b-a22b-2507",
+        "called": false
+      }
+    ],
+    "itemIds": [
+      "fleurs-public-candidates/en_us/1668",
+      "fleurs-public-candidates/cmn_hans_cn/1668",
+      "fleurs-public-candidates/en_us/1669",
+      "fleurs-public-candidates/cmn_hans_cn/1669",
+      "fleurs-public-candidates/en_us/1670",
+      "fleurs-public-candidates/cmn_hans_cn/1670",
+      "fleurs-public-candidates/en_us/1671",
+      "fleurs-public-candidates/cmn_hans_cn/1671",
+      "fleurs-public-candidates/en_us/1672",
+      "fleurs-public-candidates/cmn_hans_cn/1672",
+      "fleurs-public-candidates/en_us/1673",
+      "fleurs-public-candidates/cmn_hans_cn/1673",
+      "fleurs-public-candidates/en_us/1674",
+      "fleurs-public-candidates/cmn_hans_cn/1674",
+      "fleurs-public-candidates/en_us/1675",
+      "fleurs-public-candidates/cmn_hans_cn/1675",
+      "fleurs-public-candidates/en_us/1676",
+      "fleurs-public-candidates/cmn_hans_cn/1676",
+      "fleurs-public-candidates/en_us/1677",
+      "fleurs-public-candidates/cmn_hans_cn/1677",
+      "fleurs-public-candidates/en_us/1678",
+      "fleurs-public-candidates/cmn_hans_cn/1678",
+      "fleurs-public-candidates/en_us/1679",
+      "fleurs-public-candidates/cmn_hans_cn/1679",
+      "fleurs-public-candidates/en_us/1680",
+      "fleurs-public-candidates/cmn_hans_cn/1680",
+      "fleurs-public-candidates/en_us/1681",
+      "fleurs-public-candidates/cmn_hans_cn/1681",
+      "fleurs-public-candidates/en_us/1682",
+      "fleurs-public-candidates/cmn_hans_cn/1682",
+      "ascend/00004",
+      "ascend/00009",
+      "ascend/00028",
+      "ascend/00055",
+      "ascend/00066",
+      "ascend/00068"
+    ],
+    "omittedIds": [],
+    "maxTokensFieldProviderVerified": false,
+    "inputBound": {
+      "kind": "counter",
+      "exact": false
+    },
+    "reserveTokens": 3200,
+    "inputChecks": [
+      {
+        "id": "fleurs-public-candidates/en_us/1668",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 754,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1668",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 762,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1668",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 759,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1668",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 742,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1669",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 710,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1669",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 722,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1669",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 739,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1669",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 728,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1670",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 840,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1670",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 849,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1670",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 889,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1670",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 873,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1671",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 733,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1671",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 750,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1671",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 776,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1671",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 774,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1672",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 730,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1672",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 741,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1672",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 752,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1672",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 735,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1673",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 743,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1673",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 753,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1673",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 751,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1673",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 744,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1674",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 710,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1674",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 718,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1674",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 730,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1674",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 723,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1675",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 728,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1675",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 736,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1675",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 752,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1675",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 739,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1676",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 712,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1676",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 720,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1676",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 729,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1676",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 718,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1677",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 709,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1677",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 717,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1677",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 735,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1677",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 717,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1678",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 753,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1678",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 764,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1678",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 794,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1678",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 780,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1679",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 691,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1679",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 699,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1679",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 725,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1679",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 712,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1680",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 750,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1680",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 758,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1680",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 787,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1680",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 760,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1681",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 766,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1681",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 776,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1681",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 762,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1681",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 749,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1682",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 787,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1682",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 803,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1682",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 804,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1682",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 811,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "ascend/00004",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 666,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "ascend/00004",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 672,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "ascend/00009",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 689,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "ascend/00009",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 697,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "ascend/00028",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 660,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "ascend/00028",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 669,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "ascend/00055",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 685,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "ascend/00055",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 688,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "ascend/00066",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 665,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "ascend/00066",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 674,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "ascend/00068",
+        "judgeId": "judge-a",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 664,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      },
+      {
+        "id": "ascend/00068",
+        "judgeId": "judge-b",
+        "ok": true,
+        "code": "counted",
+        "declaredTokens": 673,
+        "utf8Bytes": null,
+        "method": "counter",
+        "exact": false
+      }
+    ]
+  },
+  "assignment": {
+    "schema": "belliedmonkey.llm-judge.assignment.v1",
+    "seed": 20261113,
+    "items": [
+      {
+        "id": "fleurs-public-candidates/en_us/1668",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1668",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1669",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1669",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1670",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1670",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1671",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1671",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1672",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1672",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1673",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1673",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1674",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1674",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1675",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1675",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1676",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1676",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1677",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1677",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1678",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1678",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1679",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1679",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1680",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1680",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1681",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1681",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/en_us/1682",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1682",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "ascend/00004",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "ascend/00009",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "ascend/00028",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      },
+      {
+        "id": "ascend/00055",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "ascend/00066",
+        "slots": {
+          "slot-1": "hx9q2w",
+          "slot-2": "jt4m8c"
+        }
+      },
+      {
+        "id": "ascend/00068",
+        "slots": {
+          "slot-1": "jt4m8c",
+          "slot-2": "hx9q2w"
+        }
+      }
+    ],
+    "note": "This mapping stays in the evidence directory. It is not part of the judge request."
+  },
+  "omittedIds": [],
+  "usage": {
+    "calls": [
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/en_us/1668",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00074184,
+        "providerUsd": 0.0006744,
+        "inputTokens": 754,
+        "outputTokens": 233,
+        "elapsedMs": 5569,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/en_us/1668",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0004236,
+        "providerUsd": 0.00037788,
+        "inputTokens": 762,
+        "outputTokens": 339,
+        "elapsedMs": 10275,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1668",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.0009218,
+        "providerUsd": 0.000838,
+        "inputTokens": 759,
+        "outputTokens": 334,
+        "elapsedMs": 4367,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1668",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0003212,
+        "providerUsd": 0.00018558,
+        "inputTokens": 742,
+        "outputTokens": 216,
+        "elapsedMs": 12595,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/en_us/1669",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00075064,
+        "providerUsd": 0.0006824,
+        "inputTokens": 710,
+        "outputTokens": 249,
+        "elapsedMs": 3783,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/en_us/1669",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0004204,
+        "providerUsd": 0.00037708,
+        "inputTokens": 722,
+        "outputTokens": 345,
+        "elapsedMs": 8533,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1669",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00073348,
+        "providerUsd": 0.0006668,
+        "inputTokens": 739,
+        "outputTokens": 232,
+        "elapsedMs": 3424,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1669",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0003712,
+        "providerUsd": 0.0003148,
+        "inputTokens": 728,
+        "outputTokens": 282,
+        "elapsedMs": 3933,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/en_us/1670",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00126192,
+        "providerUsd": 0.0011472,
+        "inputTokens": 840,
+        "outputTokens": 507,
+        "elapsedMs": 6518,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/en_us/1670",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.000617,
+        "providerUsd": 0.00056606,
+        "inputTokens": 849,
+        "outputTokens": 559,
+        "elapsedMs": 13216,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00152108,
+        "providerUsd": 0.0013828,
+        "inputTokens": 889,
+        "outputTokens": 642,
+        "elapsedMs": 7473,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0006818,
+        "providerUsd": 0.000555,
+        "inputTokens": 873,
+        "outputTokens": 634,
+        "elapsedMs": 7955,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/en_us/1671",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00048268,
+        "providerUsd": 0.0004388,
+        "inputTokens": 733,
+        "outputTokens": 91,
+        "elapsedMs": 1777,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/en_us/1671",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0002132,
+        "providerUsd": 0.0001974,
+        "inputTokens": 750,
+        "outputTokens": 79,
+        "elapsedMs": 1246,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.0011352,
+        "providerUsd": 0.001032,
+        "inputTokens": 776,
+        "outputTokens": 451,
+        "elapsedMs": 6040,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0006844,
+        "providerUsd": 0.0005818,
+        "inputTokens": 774,
+        "outputTokens": 662,
+        "elapsedMs": 16049,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/en_us/1672",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00092664,
+        "providerUsd": 0.0008424,
+        "inputTokens": 730,
+        "outputTokens": 344,
+        "elapsedMs": 3429,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/en_us/1672",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0003506,
+        "providerUsd": 0.00024998,
+        "inputTokens": 741,
+        "outputTokens": 253,
+        "elapsedMs": 6930,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1672",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00083072,
+        "providerUsd": 0.0007552,
+        "inputTokens": 752,
+        "outputTokens": 284,
+        "elapsedMs": 3396,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1672",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0003934,
+        "providerUsd": 0.0002382,
+        "inputTokens": 735,
+        "outputTokens": 308,
+        "elapsedMs": 4118,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/en_us/1673",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.0009042,
+        "providerUsd": 0.000822,
+        "inputTokens": 743,
+        "outputTokens": 328,
+        "elapsedMs": 3805,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/en_us/1673",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0004394,
+        "providerUsd": 0.0003672,
+        "inputTokens": 753,
+        "outputTokens": 361,
+        "elapsedMs": 4835,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.001089,
+        "providerUsd": 0.00099,
+        "inputTokens": 751,
+        "outputTokens": 431,
+        "elapsedMs": 4734,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0002584,
+        "providerUsd": 0,
+        "inputTokens": 744,
+        "outputTokens": 137,
+        "elapsedMs": 3364,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/en_us/1674",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00072248,
+        "providerUsd": 0.0006568,
+        "inputTokens": 710,
+        "outputTokens": 233,
+        "elapsedMs": 2569,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/en_us/1674",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0003572,
+        "providerUsd": 0.00025796,
+        "inputTokens": 718,
+        "outputTokens": 267,
+        "elapsedMs": 7661,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1674",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.000594,
+        "providerUsd": 0.00054,
+        "inputTokens": 730,
+        "outputTokens": 155,
+        "elapsedMs": 2293,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1674",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.000287,
+        "providerUsd": 0.0001578,
+        "inputTokens": 723,
+        "outputTokens": 178,
+        "elapsedMs": 2889,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/en_us/1675",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00082896,
+        "providerUsd": 0.0007536,
+        "inputTokens": 728,
+        "outputTokens": 289,
+        "elapsedMs": 3348,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/en_us/1675",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0003736,
+        "providerUsd": 0.0002234,
+        "inputTokens": 736,
+        "outputTokens": 283,
+        "elapsedMs": 5138,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00086944,
+        "providerUsd": 0.0007904,
+        "inputTokens": 752,
+        "outputTokens": 306,
+        "elapsedMs": 3409,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0005118,
+        "providerUsd": 0.0003272,
+        "inputTokens": 739,
+        "outputTokens": 455,
+        "elapsedMs": 6900,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/en_us/1676",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.0006248,
+        "providerUsd": 0.000568,
+        "inputTokens": 712,
+        "outputTokens": 177,
+        "elapsedMs": 2665,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/en_us/1676",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.00026,
+        "providerUsd": 0.0001374,
+        "inputTokens": 720,
+        "outputTokens": 145,
+        "elapsedMs": 2565,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1676",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00059004,
+        "providerUsd": 0.0005364,
+        "inputTokens": 729,
+        "outputTokens": 153,
+        "elapsedMs": 2345,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1676",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0002636,
+        "providerUsd": 0.00016436,
+        "inputTokens": 718,
+        "outputTokens": 150,
+        "elapsedMs": 3400,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/en_us/1677",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00074668,
+        "providerUsd": 0.0006788,
+        "inputTokens": 709,
+        "outputTokens": 247,
+        "elapsedMs": 2693,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/en_us/1677",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0003034,
+        "providerUsd": 0.0001698,
+        "inputTokens": 717,
+        "outputTokens": 200,
+        "elapsedMs": 2036,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00079508,
+        "providerUsd": 0.0007228,
+        "inputTokens": 735,
+        "outputTokens": 268,
+        "elapsedMs": 2865,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0003922,
+        "providerUsd": 0.0002364,
+        "inputTokens": 717,
+        "outputTokens": 311,
+        "elapsedMs": 4754,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/en_us/1678",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00081356,
+        "providerUsd": 0.0007396,
+        "inputTokens": 753,
+        "outputTokens": 274,
+        "elapsedMs": 4275,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/en_us/1678",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.000516,
+        "providerUsd": 0.000414,
+        "inputTokens": 764,
+        "outputTokens": 454,
+        "elapsedMs": 11473,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1678",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00094248,
+        "providerUsd": 0.0008568,
+        "inputTokens": 794,
+        "outputTokens": 337,
+        "elapsedMs": 3482,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1678",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0004272,
+        "providerUsd": 0.00032424,
+        "inputTokens": 780,
+        "outputTokens": 339,
+        "elapsedMs": 8318,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/en_us/1679",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00076516,
+        "providerUsd": 0.0006956,
+        "inputTokens": 691,
+        "outputTokens": 262,
+        "elapsedMs": 2897,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/en_us/1679",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0003334,
+        "providerUsd": 0.00028635,
+        "inputTokens": 699,
+        "outputTokens": 242,
+        "elapsedMs": 28685,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00048444,
+        "providerUsd": 0.0004404,
+        "inputTokens": 725,
+        "outputTokens": 94,
+        "elapsedMs": 1568,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0002608,
+        "providerUsd": 0.00016192,
+        "inputTokens": 712,
+        "outputTokens": 148,
+        "elapsedMs": 3037,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/en_us/1680",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00078584,
+        "providerUsd": 0.0007144,
+        "inputTokens": 750,
+        "outputTokens": 259,
+        "elapsedMs": 2714,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/en_us/1680",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0003876,
+        "providerUsd": 0.00033495,
+        "inputTokens": 758,
+        "outputTokens": 295,
+        "elapsedMs": 25566,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00113476,
+        "providerUsd": 0.0010316,
+        "inputTokens": 787,
+        "outputTokens": 448,
+        "elapsedMs": 4396,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0006872,
+        "providerUsd": 0.00058544,
+        "inputTokens": 760,
+        "outputTokens": 669,
+        "elapsedMs": 16618,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/en_us/1681",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00079464,
+        "providerUsd": 0.0007224,
+        "inputTokens": 766,
+        "outputTokens": 260,
+        "elapsedMs": 3138,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/en_us/1681",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.00044,
+        "providerUsd": 0.0002752,
+        "inputTokens": 776,
+        "outputTokens": 356,
+        "elapsedMs": 5275,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1681",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00109384,
+        "providerUsd": 0.0009944,
+        "inputTokens": 762,
+        "outputTokens": 431,
+        "elapsedMs": 4911,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1681",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0004938,
+        "providerUsd": 0.0003927,
+        "inputTokens": 749,
+        "outputTokens": 430,
+        "elapsedMs": 9999,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/en_us/1682",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00105556,
+        "providerUsd": 0.0009596,
+        "inputTokens": 787,
+        "outputTokens": 403,
+        "elapsedMs": 3982,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/en_us/1682",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0007278,
+        "providerUsd": 0.00062346,
+        "inputTokens": 803,
+        "outputTokens": 709,
+        "elapsedMs": 15836,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1682",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00081136,
+        "providerUsd": 0.0007376,
+        "inputTokens": 804,
+        "outputTokens": 260,
+        "elapsedMs": 5057,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1682",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0004182,
+        "providerUsd": 0.00031338,
+        "inputTokens": 811,
+        "outputTokens": 320,
+        "elapsedMs": 7744,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "ascend/00004",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00078408,
+        "providerUsd": 0.0007128,
+        "inputTokens": 666,
+        "outputTokens": 279,
+        "elapsedMs": 3371,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "ascend/00004",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0002984,
+        "providerUsd": 0.0001662,
+        "inputTokens": 672,
+        "outputTokens": 205,
+        "elapsedMs": 3469,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "ascend/00009",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00079068,
+        "providerUsd": 0.0007188,
+        "inputTokens": 689,
+        "outputTokens": 277,
+        "elapsedMs": 3100,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "ascend/00009",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0004698,
+        "providerUsd": 0.000296,
+        "inputTokens": 697,
+        "outputTokens": 413,
+        "elapsedMs": 4294,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "ascend/00028",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00080432,
+        "providerUsd": 0.0007312,
+        "inputTokens": 660,
+        "outputTokens": 292,
+        "elapsedMs": 8970,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "ascend/00028",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.000401,
+        "providerUsd": 0.0002406,
+        "inputTokens": 669,
+        "outputTokens": 334,
+        "elapsedMs": 6208,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "ascend/00055",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00075372,
+        "providerUsd": 0.0006852,
+        "inputTokens": 685,
+        "outputTokens": 257,
+        "elapsedMs": 4044,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "ascend/00055",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0003848,
+        "providerUsd": 0.0002318,
+        "inputTokens": 688,
+        "outputTokens": 309,
+        "elapsedMs": 8333,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "ascend/00066",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00066044,
+        "providerUsd": 0.0006004,
+        "inputTokens": 665,
+        "outputTokens": 209,
+        "elapsedMs": 2429,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "ascend/00066",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0003628,
+        "providerUsd": 0.00026764,
+        "inputTokens": 674,
+        "outputTokens": 285,
+        "elapsedMs": 18189,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-a",
+        "itemId": "ascend/00068",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0041113600000000005,
+        "settledUsd": 0.00074624,
+        "providerUsd": 0.0006784,
+        "inputTokens": 664,
+        "outputTokens": 258,
+        "elapsedMs": 3164,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "ascend/00068",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0018687999999999999,
+        "settledUsd": 0.0004146,
+        "providerUsd": 0.0003195,
+        "inputTokens": 673,
+        "outputTokens": 350,
+        "elapsedMs": 7807,
+        "aborted": false,
+        "costUnknown": false,
+        "providerExceededDeclaredCap": false,
+        "maxTokensFieldProviderVerified": false
+      }
+    ],
+    "spentUsd": 0.0452386,
+    "settledUsd": 0.0452386,
+    "costUnknown": false,
+    "providerUsdIgnored": true
+  },
+  "humanReview": {
+    "schema": "belliedmonkey.llm-judge.human-review.v1",
+    "semanticHumanReviewCount": 0,
+    "earReviewUsedAsSemanticReview": false,
+    "disagreement": [
+      "fleurs-public-candidates/cmn_hans_cn/1668",
+      "fleurs-public-candidates/cmn_hans_cn/1669",
+      "fleurs-public-candidates/cmn_hans_cn/1670",
+      "fleurs-public-candidates/en_us/1674",
+      "fleurs-public-candidates/en_us/1675",
+      "fleurs-public-candidates/en_us/1676",
+      "fleurs-public-candidates/en_us/1677",
+      "fleurs-public-candidates/cmn_hans_cn/1677",
+      "fleurs-public-candidates/en_us/1678",
+      "fleurs-public-candidates/cmn_hans_cn/1678",
+      "fleurs-public-candidates/cmn_hans_cn/1679",
+      "fleurs-public-candidates/en_us/1681",
+      "fleurs-public-candidates/en_us/1682",
+      "fleurs-public-candidates/cmn_hans_cn/1682",
+      "ascend/00004",
+      "ascend/00066",
+      "ascend/00068"
+    ],
+    "sample": [
+      "fleurs-public-candidates/en_us/1679",
+      "fleurs-public-candidates/en_us/1671",
+      "fleurs-public-candidates/en_us/1669",
+      "fleurs-public-candidates/cmn_hans_cn/1672",
+      "fleurs-public-candidates/en_us/1668"
+    ],
+    "notAssessed": [
+      "fleurs-public-candidates/en_us/1670",
+      "fleurs-public-candidates/cmn_hans_cn/1671",
+      "fleurs-public-candidates/en_us/1672",
+      "fleurs-public-candidates/en_us/1673",
+      "fleurs-public-candidates/cmn_hans_cn/1673",
+      "fleurs-public-candidates/cmn_hans_cn/1674",
+      "fleurs-public-candidates/cmn_hans_cn/1675",
+      "fleurs-public-candidates/cmn_hans_cn/1676",
+      "fleurs-public-candidates/en_us/1680",
+      "fleurs-public-candidates/cmn_hans_cn/1680",
+      "fleurs-public-candidates/cmn_hans_cn/1681",
+      "ascend/00009",
+      "ascend/00028",
+      "ascend/00055"
+    ]
+  }
+}

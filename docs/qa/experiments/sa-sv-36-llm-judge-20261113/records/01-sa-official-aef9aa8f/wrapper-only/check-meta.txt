@@ -1,0 +1,6 @@
+CHECK_CMD /opt/homebrew/bin/node /Users/belliedmonkey/qa/baseline-sa-sv-36-20261113/reviewed-36-runner-aef9aa8f/run-reviewed-36.js --check --out /Users/belliedmonkey/qa/baseline-sa-sv-36-20261113/sa-check-aef9aa8f --fleurs-cache /Users/belliedmonkey/qa/baseline-sa-sv-36-20261113/baseline-sa-sv-36-20261113/audio/fleurs --ascend-cache /Users/belliedmonkey/qa/baseline-sa-sv-36-20261113/baseline-sa-sv-36-20261113/audio/ascend
+CHECK_START 2026-11-13 16:30:34 +0800
+LOAD_START { 3.67 3.26 3.29 }
+CHECK_END 2026-11-13 16:30:34 +0800
+CHECK_EXIT 0
+LOAD_END { 3.67 3.26 3.29 }

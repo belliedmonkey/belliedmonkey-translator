@@ -1,0 +1,5 @@
+REVERIFY FAILED. DO NOT --run. DO NOT pay. DO NOT copy secrets.
+This directory is an independent offline review of pack 01M7BYBRDRFCHNC7FXJJV8A3GE.
+The pack does not fail-closed on: successful origin pairs, missing origin, wrong origin hash, seed/assignment drift, out==origin overwrite, or preexisting out overwrite.
+config/config.supplement-budget-remaining.json and selection/selection-15.json are inspection drafts only, not an approved paid entry.
+Do not overwrite official v2 evidence. Do not treat supplement-complete as singleRunComplete.

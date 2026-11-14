@@ -1,0 +1,108 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate 1 has multiple errors including entity and semantic differences, as well as some format issues.",
+          "findings": [
+            {
+              "kind": "entity",
+              "refQuote": "它们的热行为",
+              "hypQuote": "他们的热行为",
+              "reason": "Pronoun changed from '它们' (they for objects) to '他们' (they for people), which is an entity difference."
+            },
+            {
+              "kind": "semantic",
+              "refQuote": "但它们与地下深穴的情况很相似",
+              "hypQuote": "但它们与地下升雪的情况很相似",
+              "reason": "The phrase '地下深穴' (underground deep caves) is changed to '地下升雪' (underground snow accumulation), which changes the meaning."
+            },
+            {
+              "kind": "entity",
+              "refQuote": "亚利桑那州旗杆镇",
+              "hypQuote": "亚历桑那州旗甘镇",
+              "reason": "Place name is altered from '旗杆镇' to '旗甘镇', which is an entity difference."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "美国地质调查局 (USGS)",
+              "hypQuote": "美国地质调查局 USGS",
+              "reason": "Parentheses around USGS are omitted, a format-only difference."
+            },
+            {
+              "kind": "entity",
+              "refQuote": "格伦·库欣",
+              "hypQuote": "格伦库星",
+              "reason": "Name is changed from '格伦·库欣' to '格伦库星', an entity difference."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "说道。",
+              "hypQuote": "说道。",
+              "reason": "No difference here, included for completeness."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate 2 has similar entity and semantic errors as candidate 1, plus an addition error at the end.",
+          "findings": [
+            {
+              "kind": "entity",
+              "refQuote": "它们的热行为",
+              "hypQuote": "他们的热行为",
+              "reason": "Pronoun changed from '它们' to '他们', an entity difference."
+            },
+            {
+              "kind": "semantic",
+              "refQuote": "但它们与地下深穴的情况很相似",
+              "hypQuote": "但他们与地下升雪的情况很相似",
+              "reason": "Phrase '地下深穴' changed to '地下升雪', changing meaning."
+            },
+            {
+              "kind": "entity",
+              "refQuote": "亚利桑那州旗杆镇",
+              "hypQuote": "亚利桑那州旗干镇",
+              "reason": "Place name changed from '旗杆镇' to '旗干镇', an entity difference."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "美国地质调查局 (USGS)",
+              "hypQuote": "美国地质调查局USGS",
+              "reason": "Parentheses around USGS omitted, a format-only difference."
+            },
+            {
+              "kind": "entity",
+              "refQuote": "格伦·库欣",
+              "hypQuote": "格伦库辛",
+              "reason": "Name changed from '格伦·库欣' to '格伦库辛', an entity difference."
+            },
+            {
+              "kind": "addition",
+              "refQuote": "说道。",
+              "hypQuote": "说道，。",
+              "reason": "Candidate 2 has an extra comma before the period, an addition error."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/en_us/1670",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/en_us/1670",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Candidate 1 contains multiple errors including word substitutions and misspellings that affect meaning and clarity.",
+          "findings": [
+            {
+              "kind": "semantic",
+              "refQuote": "Their thermal behavior",
+              "hypQuote": "Their formal behavior",
+              "reason": "The word 'thermal' is replaced by 'formal', changing the meaning."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "large caves on Earth",
+              "hypQuote": "large cave on earth",
+              "reason": "Singular 'cave' instead of plural 'caves' and lowercase 'earth' instead of 'Earth'."
+            },
+            {
+              "kind": "omission",
+              "refQuote": "that often maintain a fairly constant temperature",
+              "hypQuote": "that often maintain a fairly constant temperature",
+              "reason": "Candidate omits 'that' before 'is consistent' and changes sentence structure, losing clarity."
+            },
+            {
+              "kind": "semantic",
+              "refQuote": "but it is consistent with these being deep holes in the ground",
+              "hypQuote": "but is consistent with these being deep holes in the ground",
+              "reason": "Omission of 'it' affects grammatical correctness and clarity."
+            },
+            {
+              "kind": "entity",
+              "refQuote": "Glen Cushing",
+              "hypQuote": "Glen Kshing",
+              "reason": "Name is misspelled."
+            },
+            {
+              "kind": "entity",
+              "refQuote": "United States Geological Survey (USGS) Astrogeology Team",
+              "hypQuote": "United States Geological Sury, Astrogeology team",
+              "reason": "Misspelling and incomplete organization name."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "Northern Arizona University located in Flagstaff, Arizona",
+              "hypQuote": "northern Arizona University located in Flagstaff Arizona",
+              "reason": "Lowercase 'northern' and missing comma before 'Arizona'."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.85,
+          "note": "Candidate 2 mostly preserves meaning but has minor errors in punctuation, name spelling, and sentence structure.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "large caves on Earth",
+              "hypQuote": "large caves on earth",
+              "reason": "Lowercase 'earth' instead of 'Earth'."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "but it is consistent with these being deep holes in the ground,\" said Glen Cushing",
+              "hypQuote": "But it's consistent with these being deep holes in the ground, set Glenn Cushing",
+              "reason": "Sentence split into two with 'But' capitalized; 'said' replaced by 'set'; 'Glen' spelled as 'Glenn'."
+            },
+            {
+              "kind": "entity",
+              "refQuote": "United States Geological Survey (USGS) Astrogeology Team",
+              "hypQuote": "United States geological survey, astrogeology team",
+              "reason": "Missing capitalization and abbreviation; 'Survey' lowercase and no USGS acronym."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "Northern Arizona University located in Flagstaff, Arizona",
+              "hypQuote": "Northern Arizona University, located in Flagstaff, Arizona",
+              "reason": "Added comma after 'University' which is acceptable punctuation variation."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

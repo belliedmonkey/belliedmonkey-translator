@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 4118,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v2\",\n  \"itemId\": \"fleurs-public-candidates/cmn_hans_cn/1672\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 1,\n      \"note\": \"\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"（这可能会产生收缩现象，在极端情况下会把衣服烤焦）。\",\n          \"hypQuote\": \"，这可能会产生收缩现象。在极端情况下会把衣服烤焦。\",\n          \"reason\": \"括号被移除，句号被插入，改变了标点格式但未改变语义。\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 1,\n      \"note\": \"\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"小心不要让衣服变得太热（这可能会产生收缩现象，在极端情况下会把衣服烤焦）。\",\n          \"hypQuote\": \"小心不要让衣服变得太热 ，这可能会产生收缩现象 ，在极端情况下会把衣服烤焦。\",\n          \"reason\": \"括号被空格和顿号替代，标点格式变化但语义一致。\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.0002382,
+  "usage": {
+    "inputTokens": 735,
+    "outputTokens": 308,
+    "providerUsd": 0.0002382,
+    "complete": true
+  },
+  "settledUsd": 0.0003934
+}

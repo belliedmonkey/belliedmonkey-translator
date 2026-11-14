@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "ascend/00004",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": true,
+        "confidence": 0,
+        "note": "The candidate transcript does not contain any recognizable portion of the reference transcript. The content appears to be entirely different in language and meaning, making reliable comparison impossible without audio context.",
+        "findings": []
+      },
+      {
+        "slot": "slot-2",
+        "abstain": true,
+        "confidence": 0,
+        "note": "The candidate transcript contains Chinese characters and a period, while the reference contains English and fillers. There is no clear alignment between the content of the reference and the candidate, and potential homophonic interpretations (e.g., '我死的' vs. 'what's the') cannot be confirmed without audio.",
+        "findings": []
+      }
+    ]
+  }
+}

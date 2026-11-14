@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 7807,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v2\",\n  \"itemId\": \"ascend/00068\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.3,\n      \"note\": \"Candidate contains unrelated content and does not match reference.\",\n      \"findings\": [\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"computer languages是\",\n          \"hypQuote\": \"\",\n          \"reason\": \"The reference text 'computer languages是' is completely missing in the candidate.\"\n        },\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"\",\n          \"hypQuote\": \"computer人规。\",\n          \"reason\": \"The candidate contains 'computer人规。' which does not appear in the reference.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.2,\n      \"note\": \"Candidate appears to be fragmented and does not align with reference.\",\n      \"findings\": [\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"computer languages是\",\n          \"hypQuote\": \"\",\n          \"reason\": \"The reference text 'computer languages是' is completely missing in the candidate.\"\n        },\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"\",\n          \"hypQuote\": \"可能平时都 anguage\",\n          \"reason\": \"The candidate contains '可能平时都 anguage' which does not appear in the reference.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.0003195,
+  "usage": {
+    "inputTokens": 673,
+    "outputTokens": 350,
+    "providerUsd": 0.0003195,
+    "complete": true
+  },
+  "settledUsd": 0.0004146
+}

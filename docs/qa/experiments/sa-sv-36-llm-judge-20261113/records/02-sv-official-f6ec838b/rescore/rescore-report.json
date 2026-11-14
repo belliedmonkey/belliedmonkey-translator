@@ -1,0 +1,113 @@
+{
+  "scorer": {
+    "scoreJsSha256": "7f94ff101665ad0cb2ac1f551a5ff5b5ccef75ed5d5d0c389afff935790bb3cc",
+    "codeswitchScoreJsSha256": "df82e421cb0609815a6b0a9cea7e9ad5265dc6f5b7ce52ed47e9521a3e0318df",
+    "rules": "v1 frozen; enTokens WER / zhChars CER / mixedTokens MER; ranking false",
+    "diagnosticNormalizerNotUsed": true
+  },
+  "recognitionFailures": 0,
+  "nonemptyHyps": 36,
+  "officialRunnerRates": {
+    "en": {
+      "metric": "wer",
+      "n": 15,
+      "errors": 29,
+      "length": 363,
+      "rate": 0.07988980716253444
+    },
+    "zh": {
+      "metric": "cer",
+      "n": 15,
+      "errors": 57,
+      "length": 624,
+      "rate": 0.09134615384615384
+    },
+    "codeswitch": {
+      "metric": "mer",
+      "n": 6,
+      "errors": 17,
+      "length": 42,
+      "rate": 0.40476190476190477,
+      "ranking": false
+    }
+  },
+  "independentRates": {
+    "en": {
+      "metric": "wer",
+      "n": 15,
+      "errors": 29,
+      "length": 363,
+      "rate": 0.07988980716253444
+    },
+    "zh": {
+      "metric": "cer",
+      "n": 15,
+      "errors": 57,
+      "length": 624,
+      "rate": 0.09134615384615384
+    },
+    "codeswitch": {
+      "metric": "mer",
+      "n": 6,
+      "errors": 17,
+      "length": 42,
+      "rate": 0.40476190476190477,
+      "ranking": false
+    }
+  },
+  "independentMatchesOfficialScoreJson": true,
+  "groups": {
+    "en15": "29/363",
+    "zh15": "57/624",
+    "ASCEND6": "17/42"
+  },
+  "saV1SameRulesNotARanking": {
+    "en": "36/363",
+    "zh": "57/624",
+    "mixed": "24/42"
+  },
+  "ascendItems": [
+    {
+      "id": "ascend/00004",
+      "errors": 4,
+      "length": 5,
+      "rate": 0.8,
+      "hyp": "呃我死的。"
+    },
+    {
+      "id": "ascend/00009",
+      "errors": 6,
+      "length": 13,
+      "rate": 0.46153846153846156,
+      "hyp": "那我就按是那个ISM information systems management。"
+    },
+    {
+      "id": "ascend/00028",
+      "errors": 3,
+      "length": 3,
+      "rate": 1,
+      "hyp": "okK附件。"
+    },
+    {
+      "id": "ascend/00055",
+      "errors": 1,
+      "length": 14,
+      "rate": 0.07142857142857142,
+      "hyp": "嗯，运动啊男生一般不都喜欢运动。"
+    },
+    {
+      "id": "ascend/00066",
+      "errors": 1,
+      "length": 4,
+      "rate": 0.25,
+      "hyp": "哦，这么technical的。"
+    },
+    {
+      "id": "ascend/00068",
+      "errors": 2,
+      "length": 3,
+      "rate": 0.6666666666666666,
+      "hyp": "computer人规。"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+This directory is offline preparation only.
+Do not --run, do not send paid requests, do not copy secrets, do not overwrite official evidence, do not edit the translator repo.
+Wait for the new pack (observability + selection entry), parent-directed independent re-verify, and a fresh authorization to execute.
+Reuse frozen 36-item input and official assignment; send only the 15 allowlist pairs; same $0.28 cumulative pool; maxRetries=0; no automatic extra backfill rounds.
+Do not mark semanticHumanReviewed true in this prep.

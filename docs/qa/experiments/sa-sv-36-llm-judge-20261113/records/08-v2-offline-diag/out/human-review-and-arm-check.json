@@ -1,0 +1,124 @@
+{
+  "arithmetic": {
+    "items": 36,
+    "bothOfficialValid": 22,
+    "officialResultBothOk": 22,
+    "disagreement": 17,
+    "agreed": 5,
+    "sample": 5,
+    "notAssessed": 14,
+    "sampleEqualsAllAgreed": true,
+    "notAssessedEqualsNonBoth": true,
+    "disagreementSubsetOfBoth": true,
+    "armBothParsed": 22,
+    "armBothParsedEquals22": true,
+    "armSa": 4,
+    "armSv": 3,
+    "armTie": 7,
+    "armSplit": 5,
+    "armNotComparable": 17,
+    "armComparableSum": 19,
+    "armTotal": 36,
+    "bothParsedButArmNotComparable": [
+      {
+        "id": "fleurs-public-candidates/en_us/1676",
+        "reason": "at-least-one-judge-abstain-or-missing-contentFindings",
+        "judgeA": {
+          "parsed": true,
+          "prefer": "tie",
+          "contentFindings": {
+            "sa": 0,
+            "sv": 0
+          },
+          "abstain": false
+        },
+        "judgeB": {
+          "parsed": true,
+          "prefer": "not-comparable",
+          "contentFindings": {
+            "sa": null,
+            "sv": null
+          },
+          "abstain": true
+        }
+      },
+      {
+        "id": "fleurs-public-candidates/cmn_hans_cn/1679",
+        "reason": "at-least-one-judge-abstain-or-missing-contentFindings",
+        "judgeA": {
+          "parsed": true,
+          "prefer": "tie",
+          "contentFindings": {
+            "sa": 0,
+            "sv": 0
+          },
+          "abstain": false
+        },
+        "judgeB": {
+          "parsed": true,
+          "prefer": "not-comparable",
+          "contentFindings": {
+            "sa": null,
+            "sv": null
+          },
+          "abstain": true
+        }
+      },
+      {
+        "id": "ascend/00004",
+        "reason": "at-least-one-judge-abstain-or-missing-contentFindings",
+        "judgeA": {
+          "parsed": true,
+          "prefer": "sa",
+          "contentFindings": {
+            "sa": 1,
+            "sv": 2
+          },
+          "abstain": false
+        },
+        "judgeB": {
+          "parsed": true,
+          "prefer": "not-comparable",
+          "contentFindings": {
+            "sa": null,
+            "sv": null
+          },
+          "abstain": true
+        }
+      }
+    ],
+    "notComparableComposition": {
+      "unparsedItems": 14,
+      "bothParsedButNotComparable": 3,
+      "sum": 17,
+      "equalsOfficialNotComparable": true
+    }
+  },
+  "misreadNotes": [
+    "17+5+14 与官方 human-review 文件一致，不是误读：17 为双有效 22 条中的 kind 列表不一致；5 为全部一致项（约定 sampleCount=6，但一致项只有 5，故抽样=全部一致项）；14 为至少一名评委官方无效的条目（36-22），其中 en_us/1673 双评委均失败，故失败判决 15 条对应 14 个 item。",
+    "aux notComparable=17 若被读成「17 条未解析」则是误读。正确组成是 14 条至少一名未官方解析，加上 3 条双解析但至少一名弃权/不可比（en_us/1676、cmn_hans_cn/1679、ascend/00004，均为 judge-b abstain）。4+3+7+5=19 为双解析且可比较的倾向合计，19+3=22。本核验不改原件，也不把倾向当胜者或人审。"
+  ],
+  "agreedIds": [
+    "fleurs-public-candidates/en_us/1668",
+    "fleurs-public-candidates/en_us/1669",
+    "fleurs-public-candidates/en_us/1671",
+    "fleurs-public-candidates/cmn_hans_cn/1672",
+    "fleurs-public-candidates/en_us/1679"
+  ],
+  "notAssessedIds": [
+    "fleurs-public-candidates/en_us/1670",
+    "fleurs-public-candidates/cmn_hans_cn/1671",
+    "fleurs-public-candidates/en_us/1672",
+    "fleurs-public-candidates/en_us/1673",
+    "fleurs-public-candidates/cmn_hans_cn/1673",
+    "fleurs-public-candidates/cmn_hans_cn/1674",
+    "fleurs-public-candidates/cmn_hans_cn/1675",
+    "fleurs-public-candidates/cmn_hans_cn/1676",
+    "fleurs-public-candidates/en_us/1680",
+    "fleurs-public-candidates/cmn_hans_cn/1680",
+    "fleurs-public-candidates/cmn_hans_cn/1681",
+    "ascend/00009",
+    "ascend/00028",
+    "ascend/00055"
+  ]
+}

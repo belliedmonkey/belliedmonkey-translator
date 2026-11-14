@@ -1,0 +1,150 @@
+{
+  "schema": "belliedmonkey.qa.v2-semantic-human-review-form.v1",
+  "list": "disagreement",
+  "itemId": "fleurs-public-candidates/en_us/1678",
+  "initialInventoryOnly": true,
+  "mustRefreshAfterBackfill": true,
+  "semanticHumanReviewed": false,
+  "earReviewUsedAsSemanticReview": false,
+  "doNotPreFillJudgment": true,
+  "officialAgentReviewIsNotHumanReview": true,
+  "reference": "Oliver Sacks, in his paper The President's Speech, indicated how people who are unable to understand speech because of brain damage are nevertheless able to assess sincerity accurately.",
+  "slots": {
+    "slot-1": {
+      "text": "Oliver Saackchs in his paper, the president's speech indicated how people who are unable to understand speech because of brain damage are nevertheless able to assess sincerity accurately."
+    },
+    "slot-2": {
+      "text": "Oliver Sachs and his paper, the president's speech, indicated how people who are unable to understand speech because of brain damage are nevertheless able to assess sincerity accurately."
+    }
+  },
+  "officialKindLists": {
+    "judge-a": {
+      "slot-1": [
+        "entity"
+      ],
+      "slot-2": [
+        "entity",
+        "semantic"
+      ]
+    },
+    "judge-b": {
+      "slot-1": [
+        "entity",
+        "format-only"
+      ],
+      "slot-2": [
+        "entity",
+        "format-only",
+        "semantic"
+      ]
+    }
+  },
+  "officialVerdicts": {
+    "judge-a": {
+      "model": "openai/gpt-4.1-mini",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Contains a misspelling of the name 'Oliver Sacks' as 'Oliver Saackchs'. Otherwise matches the reference closely.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Oliver Sacks",
+            "hypQuote": "Oliver Saackchs",
+            "reason": "The candidate misspells the name 'Oliver Sacks' as 'Oliver Saackchs'."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "Contains a misspelling of the name 'Oliver Sacks' as 'Oliver Sachs' and changes 'in his paper' to 'and his paper', which alters the meaning slightly.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Oliver Sacks",
+            "hypQuote": "Oliver Sachs",
+            "reason": "The candidate misspells the name 'Oliver Sacks' as 'Oliver Sachs'."
+          },
+          {
+            "kind": "semantic",
+            "refQuote": "in his paper",
+            "hypQuote": "and his paper",
+            "reason": "The phrase 'in his paper' is changed to 'and his paper', which changes the meaning and connection in the sentence."
+          }
+        ]
+      }
+    },
+    "judge-b": {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "slot-1": {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.85,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Oliver Sacks",
+            "hypQuote": "Oliver Saackchs",
+            "reason": "The name 'Oliver Sacks' is misspelled as 'Oliver Saackchs' in the candidate."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "The President's Speech",
+            "hypQuote": "the president's speech",
+            "reason": "The title 'The President's Speech' differs in capitalization and lacks quotation marks, but refers to the same work."
+          }
+        ]
+      },
+      "slot-2": {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Oliver Sacks",
+            "hypQuote": "Oliver Sachs",
+            "reason": "The name 'Oliver Sacks' is misspelled as 'Oliver Sachs' in the candidate."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "The President's Speech",
+            "hypQuote": "the president's speech",
+            "reason": "The title 'The President's Speech' differs in capitalization and lacks quotation marks, but refers to the same work."
+          },
+          {
+            "kind": "semantic",
+            "refQuote": "Oliver Sacks, in his paper",
+            "hypQuote": "Oliver Sachs and his paper",
+            "reason": "The phrase 'and his paper' incorrectly suggests that Oliver Sachs is separate from the paper, altering the original meaning that the paper belongs to Sacks."
+          }
+        ]
+      }
+    }
+  },
+  "humanAnnotation": {
+    "reviewerId": "",
+    "reviewedAtAsiaShanghai": "",
+    "slots": {
+      "slot-1": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      },
+      "slot-2": {
+        "agreeJudgeAFindingKinds": null,
+        "agreeJudgeBFindingKinds": null,
+        "comment": "",
+        "ownKindsIfDifferent": []
+      }
+    },
+    "overallComment": "",
+    "marksCompleteOnlyAfterUserReview": true
+  }
+}

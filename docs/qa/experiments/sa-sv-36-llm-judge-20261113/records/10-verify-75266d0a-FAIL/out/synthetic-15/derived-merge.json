@@ -1,0 +1,9 @@
+{
+  "schema": "belliedmonkey.llm-judge.derived-merge.v1",
+  "official": false,
+  "singleRunComplete": false,
+  "supplementComplete": false,
+  "originSummarySha256": "4744aef13ff5ce3a30680be4fb42604db044073a3e317202c09339d24934365f",
+  "selectionSha256": "c151018bfda2953d2375f8cfce25580787745f162824b66f2d7eccec641979a4",
+  "note": "Derived view only. Unselected pairs stay on the origin. A failed supplement pair is not replaced by an older success."
+}

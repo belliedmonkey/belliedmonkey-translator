@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/en_us/1679",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "Candidate uses past perfect 'had canceled' instead of present perfect 'have cancelled', and American spelling 'canceled' instead of British 'cancelled'.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "have cancelled",
+            "hypQuote": "had canceled",
+            "reason": "The candidate uses past perfect tense and American spelling, differing from the reference's present perfect and British spelling."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "Candidate misspells 'Aerosmith' as 'Arissmith' and uses past perfect 'had canceled' instead of present perfect 'have cancelled'.",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "Aerosmith",
+            "hypQuote": "Arissmith",
+            "reason": "The band name is misspelled in the candidate."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "have cancelled",
+            "hypQuote": "had canceled",
+            "reason": "The candidate uses past perfect tense and American spelling, differing from the reference's present perfect and British spelling."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "nCalls": 2,
+  "code": "complete",
+  "call": {
+    "judgeId": "judge-a",
+    "itemId": "fixture-1",
+    "ok": true,
+    "code": null,
+    "reserveUsd": 0.0056,
+    "settledUsd": 0.00014,
+    "providerUsd": 0,
+    "inputTokens": 100,
+    "outputTokens": 20,
+    "elapsedMs": 1,
+    "aborted": false,
+    "costUnknown": false
+  },
+  "usage": {
+    "calls": [
+      {
+        "judgeId": "judge-a",
+        "itemId": "fixture-1",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0056,
+        "settledUsd": 0.00014,
+        "providerUsd": 0,
+        "inputTokens": 100,
+        "outputTokens": 20,
+        "elapsedMs": 1,
+        "aborted": false,
+        "costUnknown": false
+      },
+      {
+        "judgeId": "judge-b",
+        "itemId": "fixture-1",
+        "ok": true,
+        "code": null,
+        "reserveUsd": 0.0056,
+        "settledUsd": 0.00014,
+        "providerUsd": 0,
+        "inputTokens": 100,
+        "outputTokens": 20,
+        "elapsedMs": 0,
+        "aborted": false,
+        "costUnknown": false
+      }
+    ],
+    "spentUsd": 0.00028,
+    "settledUsd": 0.00028,
+    "costUnknown": false,
+    "providerUsdIgnored": true
+  },
+  "expectedSettle": 0.00014,
+  "reqs": [
+    {
+      "maxTokens": 800,
+      "model": "MODEL_X"
+    },
+    {
+      "maxTokens": 800,
+      "model": "MODEL_Y"
+    }
+  ]
+}

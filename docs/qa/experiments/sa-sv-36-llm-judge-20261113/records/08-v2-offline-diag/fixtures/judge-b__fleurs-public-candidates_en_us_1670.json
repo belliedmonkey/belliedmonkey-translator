@@ -1,0 +1,63 @@
+{
+  "diagnosticOnly": true,
+  "notForBackfill": true,
+  "mustNotChangeOfficialPartial": true,
+  "judgeId": "judge-b",
+  "itemId": "fleurs-public-candidates/en_us/1670",
+  "officialCode": "note",
+  "classification": "model-missing-required-note-field",
+  "sidecar": {
+    "finishReason": "stop",
+    "outputTokens": 559,
+    "maxTokensSent": 2048,
+    "inputTokens": 849,
+    "provider": "Parasail",
+    "httpStatus": 200,
+    "providerUsd": 0.00056606,
+    "ok": true
+  },
+  "contentCharLen": 2248,
+  "contentUtf8Bytes": 2248,
+  "contentSha256": "6e4c862fb51df02bf8995038575c7783c1bb4c2c6ac30cf1b7dc8fa23e6704c7",
+  "quoteNote": {
+    "missingNoteSlots": [
+      "slot-2"
+    ],
+    "oversizeNoteSlots": [],
+    "failingQuotes": [],
+    "slotNotes": [
+      {
+        "slot": "slot-1",
+        "keys": [
+          "slot",
+          "abstain",
+          "confidence",
+          "note",
+          "findings"
+        ],
+        "notePresent": true,
+        "noteCharLen": 0,
+        "noteUtf8Bytes": 0,
+        "noteExceeds400": false
+      },
+      {
+        "slot": "slot-2",
+        "keys": [
+          "slot",
+          "abstain",
+          "confidence",
+          "findings"
+        ],
+        "notePresent": false,
+        "noteCharLen": null,
+        "noteUtf8Bytes": null,
+        "noteExceeds400": null
+      }
+    ],
+    "referenceCharLen": 327,
+    "candidateCharLens": {
+      "slot-1": 308,
+      "slot-2": 317
+    }
+  }
+}

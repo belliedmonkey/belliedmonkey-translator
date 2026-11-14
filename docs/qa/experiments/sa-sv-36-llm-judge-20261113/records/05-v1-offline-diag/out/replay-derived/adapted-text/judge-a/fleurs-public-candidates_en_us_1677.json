@@ -1,0 +1,54 @@
+{
+  "label": "post-hoc-format-adaptation-candidate; not frozen original protocol formal pass",
+  "itemId": "fleurs-public-candidates/en_us/1677",
+  "judgeId": "judge-a",
+  "officialCode": "slots",
+  "diagnosticOk": true,
+  "diagnosticCode": "parsed",
+  "insertedSlotIdentity": false,
+  "reversible": true,
+  "adaptedParsed": {
+    "ok": true,
+    "code": "parsed",
+    "verdict": {
+      "schema": "belliedmonkey.llm-judge.verdict.v1",
+      "itemId": "fleurs-public-candidates/en_us/1677",
+      "slots": [
+        {
+          "slot": "slot-1",
+          "abstain": false,
+          "confidence": 0.9,
+          "note": "Minor format-only difference in 'dragon flies' vs 'dragonflies'.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "dragon flies",
+              "hypQuote": "dragonflies",
+              "reason": "Compound word written as one word instead of two."
+            }
+          ]
+        },
+        {
+          "slot": "slot-2",
+          "abstain": false,
+          "confidence": 0.8,
+          "note": "Format-only differences in 'dragon flies' vs 'dragonflies' and 'mayflies' vs 'may flies'.",
+          "findings": [
+            {
+              "kind": "format-only",
+              "refQuote": "dragon flies",
+              "hypQuote": "dragonflies",
+              "reason": "Compound word written as one word instead of two."
+            },
+            {
+              "kind": "format-only",
+              "refQuote": "mayflies",
+              "hypQuote": "may flies",
+              "reason": "Compound word written as two words instead of one."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

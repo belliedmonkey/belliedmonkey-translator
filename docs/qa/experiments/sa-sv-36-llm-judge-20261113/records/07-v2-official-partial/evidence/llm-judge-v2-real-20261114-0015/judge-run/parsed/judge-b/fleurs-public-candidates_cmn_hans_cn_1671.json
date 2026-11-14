@@ -1,0 +1,68 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "2005 财年",
+            "hypQuote": "2005年才年",
+            "reason": "The reference uses '2005 财年' to denote the fiscal year, while the candidate says '2005年才年', which is a misrendering but appears to attempt the same concept with incorrect wording."
+          },
+          {
+            "kind": "entity",
+            "refQuote": "联邦调查局 (FBI)",
+            "hypQuote": "联邦调查局",
+            "reason": "The reference includes the acronym '(FBI)' after '联邦调查局', which is omitted in the candidate, losing specific entity information."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "10 名探员",
+            "hypQuote": "10名太员",
+            "reason": "The character '探' (detective) is incorrectly rendered as '太', which is a typographical or recognition error, but the number and role intent are preserved."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.85,
+        "note": "",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "国会从 2005 财年开始资助该扫黄倡议",
+            "hypQuote": "国会从2005年财年开始资助该小扫黄倡议",
+            "reason": "The reference states '扫黄倡议' (anti-pornography initiative), while the candidate says '小扫黄倡议', adding '小' (small), which alters the meaning and is not present in the reference."
+          },
+          {
+            "kind": "number",
+            "refQuote": "10 名探员",
+            "hypQuote": "1名太员",
+            "reason": "The reference specifies 10 detectives, but the candidate states only 1, which is a significant numerical discrepancy."
+          },
+          {
+            "kind": "entity",
+            "refQuote": "成人色情",
+            "hypQuote": "成员色情",
+            "reason": "The reference refers to '成人色情' (adult pornography), while the candidate says '成员色情' (member pornography), which is a clear entity error changing the meaning."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "探员",
+            "hypQuote": "太员",
+            "reason": "The character '探' is again misrendered as '太', likely a transcription error."
+          }
+        ]
+      }
+    ]
+  }
+}

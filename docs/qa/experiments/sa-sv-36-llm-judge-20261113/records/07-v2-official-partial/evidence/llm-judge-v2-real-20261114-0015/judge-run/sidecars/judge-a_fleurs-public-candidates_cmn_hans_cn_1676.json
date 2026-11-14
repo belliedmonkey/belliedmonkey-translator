@@ -1,0 +1,41 @@
+{
+  "httpStatus": 200,
+  "ok": true,
+  "elapsedMs": 2343,
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1676",
+  "judgeId": "judge-a",
+  "responseModel": "openai/gpt-4.1-mini",
+  "modelSent": "openai/gpt-4.1-mini",
+  "modelMatchesConfig": true,
+  "provider": "OpenAI",
+  "providerHeader": null,
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 729,
+    "completion_tokens": 153,
+    "total_tokens": 882,
+    "cost": 0.0005364,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0005364,
+      "upstream_inference_prompt_cost": 0.0002916,
+      "upstream_inference_completions_cost": 0.0002448
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    },
+    "usd": 0.0005364
+  },
+  "maxTokensSent": 2048,
+  "inputTokens": 729,
+  "outputTokens": 153,
+  "providerUsd": 0.0005364
+}

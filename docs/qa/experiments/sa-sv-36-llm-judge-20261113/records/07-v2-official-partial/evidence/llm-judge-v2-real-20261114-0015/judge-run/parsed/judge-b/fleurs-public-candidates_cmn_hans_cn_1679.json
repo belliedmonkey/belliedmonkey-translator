@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": true,
+        "confidence": 0,
+        "note": "Both candidates are identical to the reference and each other.",
+        "findings": []
+      },
+      {
+        "slot": "slot-2",
+        "abstain": true,
+        "confidence": 0,
+        "note": "Both candidates are identical to the reference and each other.",
+        "findings": []
+      }
+    ]
+  }
+}

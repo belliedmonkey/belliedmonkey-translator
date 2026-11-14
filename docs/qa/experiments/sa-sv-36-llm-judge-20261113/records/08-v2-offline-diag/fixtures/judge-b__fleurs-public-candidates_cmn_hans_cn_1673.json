@@ -1,0 +1,48 @@
+{
+  "diagnosticOnly": true,
+  "notForBackfill": true,
+  "mustNotChangeOfficialPartial": true,
+  "judgeId": "judge-b",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+  "officialCode": "bad-json",
+  "classification": "provider-or-gateway-incomplete",
+  "sidecar": {
+    "finishReason": "error",
+    "outputTokens": 137,
+    "maxTokensSent": 2048,
+    "inputTokens": 744,
+    "provider": "Nebius",
+    "httpStatus": 200,
+    "providerUsd": 0,
+    "ok": true
+  },
+  "contentCharLen": 356,
+  "contentUtf8Bytes": 494,
+  "contentSha256": "b4919f50787055865923c8fd4e1f75c7680dcc3bf207fde6c98c25fc4e034038",
+  "jsonError": {
+    "message": "Unterminated string in JSON at position 356 (line 1 column 357)",
+    "position": 356,
+    "window": "正确阿拉伯数字，造成数量理解错误。\"},{\"kind\":\"omission\",\"refQuote\":\"（国会是其唯一的组成部分）\",\"hyp",
+    "windowStart": 286,
+    "pattern": {
+      "extraCloserAfterSlot1": false,
+      "extraCloserIndex": null,
+      "unquotedReasonKey": false,
+      "unquotedReasonIndex": null,
+      "duplicateSlotKey": false,
+      "duplicateSlotKeyIndex": null
+    },
+    "endDepths": {
+      "brace": 3,
+      "bracket": 2,
+      "inStr": true,
+      "esc": false
+    },
+    "hasFence": false,
+    "invalidEscapeCount": 0,
+    "losslessAttempts": {
+      "strip": false,
+      "firstToLastObject": false
+    }
+  }
+}

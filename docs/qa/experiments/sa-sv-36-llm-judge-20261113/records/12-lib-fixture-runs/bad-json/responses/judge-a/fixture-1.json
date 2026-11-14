@@ -1,0 +1,10 @@
+{
+  "content": "this is not json and also not a verdict",
+  "responseModel": "MODEL_X",
+  "usage": {
+    "inputTokens": null,
+    "outputTokens": null,
+    "usd": 0.02,
+    "costUnknown": false
+  }
+}

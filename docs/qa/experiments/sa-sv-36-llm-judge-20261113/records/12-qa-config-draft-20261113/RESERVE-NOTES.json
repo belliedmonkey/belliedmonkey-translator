@@ -1,0 +1,10 @@
+{
+  "timezone": "Asia/Shanghai (UTC+8)",
+  "notARun": true,
+  "budgetUsdInDraftIsComputedReserveMinimum": 0.21233664,
+  "operatorMustApproveACapBeforePaidRun": true,
+  "creditPurchaseFeeNotInReserve": {
+    "source": "https://openrouter.ai/docs/faq and https://openrouter.ai/pricing",
+    "standard": "5.5% on credit purchase, $0.80 minimum; 5% for crypto. Not charged per inference request. Taxes extra. No inference markup."
+  }
+}

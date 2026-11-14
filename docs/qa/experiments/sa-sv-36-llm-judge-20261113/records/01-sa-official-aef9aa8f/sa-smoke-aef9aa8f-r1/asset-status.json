@@ -1,0 +1,29 @@
+{
+  "arm" : "sa",
+  "component" : "apple-speech-analyzer-file",
+  "downloadBytes" : "unknown",
+  "endToEnd" : false,
+  "hypotheses" : null,
+  "installFlag" : false,
+  "locales" : [
+    {
+      "attempts" : 0,
+      "before" : "installed",
+      "installed" : true,
+      "installRequested" : false,
+      "locale" : "en-US"
+    },
+    {
+      "attempts" : 0,
+      "before" : "installed",
+      "installed" : true,
+      "installRequested" : false,
+      "locale" : "zh-CN"
+    }
+  ],
+  "matchesIntlMacChineseDefaultArm" : false,
+  "permissionPrompt" : "unknown",
+  "productMetric" : false,
+  "sameProductProcess" : false,
+  "state" : "installed"
+}

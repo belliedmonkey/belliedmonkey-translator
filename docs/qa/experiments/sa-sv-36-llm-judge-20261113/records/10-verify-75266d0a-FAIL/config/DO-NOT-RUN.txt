@@ -1,0 +1,1 @@
+This config is an inspection draft written during a FAILED re-verify. Do not --run it on Mac or anywhere else until a later pack pass is independently verified.

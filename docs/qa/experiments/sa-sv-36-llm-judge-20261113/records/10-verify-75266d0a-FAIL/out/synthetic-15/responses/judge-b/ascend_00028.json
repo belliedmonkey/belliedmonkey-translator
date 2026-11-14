@@ -1,0 +1,23 @@
+{
+  "stage": "finished",
+  "transportOk": true,
+  "generationOk": true,
+  "finishReason": "stop",
+  "providerError": false,
+  "usageComplete": true,
+  "parseCode": "bad-json",
+  "modelFormatFault": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 0,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"ascend/00028\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.8,\"note\":\"\",\"findings\":[{\"kind\":\"entity\",\"refQuote\":\"福建\",\"hypQuote\":\"K附件\",\"reason\":\"The reference contains '福建' which refers to the Chinese province Fujian, while the candidate has 'K附件' which does not correspond to the same entity and appears to be a phonetic or typographical error.\"},{\"kind\":\"omission\",\"refQuote\":\"ok\",\"hypQuote\":\"\",\"reason\":\"The candidate includes 'ok' but it is followed by 'K附件' which distorts the intended meaning; the correct interpretation 'ok福建' is not preserved.\"},{\"kind\":\"addition\",\"refQuote\":\"\",\"hypQuote\":\"K\",\"reason\":\"The character 'K' appears in the candidate but not in the reference and has no corresponding element in the original text.\"}]}},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.7,\"note\":\"\",\"findings\":[{\"kind\":\"entity\",\"refQuote\":\"福建\",\"hypQuote\":\"附件\",\"reason\":\"The reference '福建' refers to the Chinese province Fujian, while the candidate uses '附件' which means 'attachment' in Chinese, representing a different entity entirely.\"},{\"kind\":\"omission\",\"refQuote\":\"ok\",\"hypQuote\":\"\",\"reason\":\"The candidate includes 'OK' which matches the 'ok' in case-insensitive comparison, but the rest of the content '附件' does not preserve the intended meaning of '福建'.\"}]}]}",
+  "providerUsd": 0.001,
+  "usage": {
+    "inputTokens": 700,
+    "outputTokens": 120,
+    "providerUsd": 0.001,
+    "complete": true
+  },
+  "settledUsd": 0.000236
+}

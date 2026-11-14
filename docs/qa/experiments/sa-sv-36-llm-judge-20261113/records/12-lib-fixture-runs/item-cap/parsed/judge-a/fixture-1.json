@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fixture-1",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.8,
+        "note": "",
+        "findings": []
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.7,
+        "note": "",
+        "findings": []
+      }
+    ]
+  }
+}

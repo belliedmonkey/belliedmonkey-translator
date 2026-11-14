@@ -1,0 +1,63 @@
+{
+  "schema": "belliedmonkey.qa.experiment-handoff-ledger.v1",
+  "timezone": "Asia/Shanghai (UTC+8)",
+  "planCumulativeUsd": "0.28",
+  "usedPlanUsd": "0.10094232",
+  "remainingPlanUsd": "0.17905768",
+  "source": {
+    "v2ResultSha256": "580da9aaa0107c3ec54939f2e4782334de3da6ca96b0600441235a57896169bc",
+    "v1ResultSha256": "e1496fd413d4057b09ee75346c96d7da7cd85402c2f1a270d2fc40bf6ba5e0b6",
+    "v2UsageSha256": "2c72567b6f04191536f84fdb42dda3971082fcb6bb561c3b53ae184478126da1"
+  },
+  "envelope": {
+    "v1": {
+      "planBudgetUsdThen": null,
+      "reservedProbesUsd": 0.00589824,
+      "judgeHeldUsd": 0.04980548,
+      "planConsumedUsd": 0.05570372,
+      "planRemainingUsdThen": 0.19429628,
+      "ok": false,
+      "code": "partial"
+    },
+    "v2": {
+      "thisRoundBudgetUsd": null,
+      "thisRoundConsumedUsd": 0.0452386,
+      "thisRoundProviderUsd": 0.03845668,
+      "historicalConsumedUsd": 0.05570372,
+      "cumulativeConsumedUsd": 0.10094232,
+      "cumulativePlanUsd": 0.28,
+      "cumulativeRemainingUsd": 0.17905768,
+      "ok": false,
+      "code": "partial"
+    }
+  },
+  "providerActual": {
+    "v1_judgeCalls72_fromUsage": "0.04435536",
+    "v1_probes2_fromProbeJson": "0.00011704",
+    "v1_probes": [
+      {
+        "file": "probe-openai-gpt-4.1-mini.json",
+        "model": "openai/gpt-4.1-mini",
+        "providerUsd": "0.0000808"
+      },
+      {
+        "file": "probe-qwen-qwen3-235b-a22b-2507.json",
+        "model": "qwen/qwen3-235b-a22b-2507",
+        "providerUsd": "0.00003624"
+      }
+    ],
+    "v1_total_judgePlusProbes": "0.04447240",
+    "v1_handoffTarget": "0.04447240",
+    "v1_matchesHandoffTarget": true,
+    "v2_judgeCalls72_fromUsage": "0.03845668",
+    "v2_thisRoundProviderUsd_fromResult": "0.03845668",
+    "v2_matches": true,
+    "note": "v1 的 0.04447240 = 72 次正式调用 usage 合计 0.04435536 + 两次历史 32-token probe（0.0000808 + 0.00003624）。v2 0.03845668 仅为该轮 72 次；probe 复用，本轮未再计 provider。plan used 0.10094232 是信封/预留结算，不是 provider 相加。"
+  },
+  "backfill15ReserveUsd": "0.03251712",
+  "backfill15Executed": false,
+  "backfill15SpentUsd": "0",
+  "remainingAfterReserveIfLaterAuthorized": "0.14654056",
+  "formula": "2 * 0.00411136 + 13 * 0.0018688 = 0.03251712",
+  "thisArchiveDidNotSpend": true
+}

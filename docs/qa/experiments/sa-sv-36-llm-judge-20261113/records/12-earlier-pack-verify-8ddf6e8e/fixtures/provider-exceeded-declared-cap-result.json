@@ -1,0 +1,24 @@
+{
+  "nCalls": 1,
+  "code": "budget-unknown",
+  "costUnknown": true,
+  "spentUsd": 0.002038,
+  "expectedReserve": 0.002038,
+  "call": {
+    "judgeId": "judge-a",
+    "itemId": "fixture-1",
+    "ok": false,
+    "code": null,
+    "reserveUsd": 0.002038,
+    "settledUsd": null,
+    "providerUsd": null,
+    "inputTokens": 488,
+    "outputTokens": 800,
+    "elapsedMs": 0,
+    "aborted": false,
+    "costUnknown": true,
+    "providerExceededDeclaredCap": true,
+    "maxTokensFieldProviderVerified": false
+  },
+  "note": "SYNTHETIC loose counter (400) used only to reach the post-response guard. Not a real tokenizer."
+}

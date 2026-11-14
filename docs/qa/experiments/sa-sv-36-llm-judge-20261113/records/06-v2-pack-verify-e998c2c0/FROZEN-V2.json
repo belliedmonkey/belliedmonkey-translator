@@ -1,0 +1,13 @@
+{
+  "frozen": true,
+  "pack": "01M7ASY5H5YT8XV1NH4Y291ZFP.gz",
+  "sha256": "a81afb949cc3e7ebc807e7ac90e88b6cd520220bd519641ec3051876d3ee3f92",
+  "bytes": 19308,
+  "headStatedByCaller": "e998c2c03f13af0229229405bb1f7b06a3be967b",
+  "promptSha256": "a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923",
+  "asrVersion": "belliedmonkey.llm-judge.asr.v2",
+  "verdictSchema": "belliedmonkey.llm-judge.verdict.v2",
+  "officialV1PackUntouched": "74258e362de80cf39986717b32b65ef6ec9d3719bd60d21b91af54c1d441a9fe",
+  "status": "passed",
+  "note": "Frozen as the v2 pack for a future authorized run. Not a completed 36 double-blind. Adapter is not a formal pass. Old partial is unchanged."
+}

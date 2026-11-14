@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 3203,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v1\",\"itemId\":\"ascend/00028\",\"slots\":{\"slot-1\":{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.9,\"note\":\"Candidate has format and entity differences from the reference.\",\"findings\":[{\"kind\":\"entity\",\"refQuote\":\"福建\",\"hypQuote\":\"K附件\",\"reason\":\"Candidate 1 replaces '福建' with 'K附件', which is a different entity.\"},{\"kind\":\"format-only\",\"refQuote\":\"ok\",\"hypQuote\":\"okK\",\"reason\":\"Candidate 1 adds an extra 'K' after 'ok', changing the format.\"}]},\"slot-2\":{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.9,\"note\":\"Candidate has format and entity differences from the reference.\",\"findings\":[{\"kind\":\"entity\",\"refQuote\":\"福建\",\"hypQuote\":\"附件\",\"reason\":\"Candidate 2 replaces '福建' with '附件', which is a different entity.\"},{\"kind\":\"format-only\",\"refQuote\":\"ok\",\"hypQuote\":\"OK\",\"reason\":\"Candidate 2 uses uppercase 'OK' instead of lowercase 'ok', a format difference.\"}]}}}",
+  "providerUsd": 0.0005676,
+  "usage": {
+    "inputTokens": 419,
+    "outputTokens": 250,
+    "providerUsd": 0.0005676,
+    "complete": true
+  },
+  "settledUsd": 0.00062436
+}

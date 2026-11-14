@@ -1,0 +1,48 @@
+{
+  "nCalls": 0,
+  "code": "tokenizer-unspecified",
+  "called": false,
+  "planExists": true,
+  "inputChecks": [
+    {
+      "id": "fixture-1",
+      "judgeId": "judge-a",
+      "ok": false,
+      "code": "tokenizer-unspecified",
+      "declaredTokens": null,
+      "utf8Bytes": null,
+      "method": null,
+      "exact": false
+    },
+    {
+      "id": "fixture-1",
+      "judgeId": "judge-b",
+      "ok": false,
+      "code": "tokenizer-unspecified",
+      "declaredTokens": null,
+      "utf8Bytes": null,
+      "method": null,
+      "exact": false
+    },
+    {
+      "id": "fixture-2",
+      "judgeId": "judge-a",
+      "ok": false,
+      "code": "tokenizer-unspecified",
+      "declaredTokens": null,
+      "utf8Bytes": null,
+      "method": null,
+      "exact": false
+    },
+    {
+      "id": "fixture-2",
+      "judgeId": "judge-b",
+      "ok": false,
+      "code": "tokenizer-unspecified",
+      "declaredTokens": null,
+      "utf8Bytes": null,
+      "method": null,
+      "exact": false
+    }
+  ]
+}

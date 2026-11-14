@@ -1,0 +1,28 @@
+{
+  "schema": "belliedmonkey.llm-judge.plan.v1",
+  "called": false,
+  "synthetic": true,
+  "asrRubric": "belliedmonkey.llm-judge.asr.v1",
+  "promptTemplateSha256": "7899bec12e0764d4a224c4c1491d5e7ae3147b2e77a5333fa7aee1fedbe29094",
+  "seed": 7,
+  "temperature": 0,
+  "maxItems": 36,
+  "timeoutMs": 20,
+  "maxRetries": 0,
+  "budgetUsd": 1,
+  "judges": [
+    {
+      "id": "judge-a",
+      "model": "MODEL_X",
+      "called": false
+    },
+    {
+      "id": "judge-b",
+      "model": "MODEL_Y",
+      "called": false
+    }
+  ],
+  "itemIds": [
+    "fixture-1"
+  ]
+}

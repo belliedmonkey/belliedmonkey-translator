@@ -1,0 +1,301 @@
+{
+  "schema": "belliedmonkey.llm-judge.pending-human-review.v1",
+  "semanticHumanReviewCount": 0,
+  "earReviewUsedAsSemanticReview": false,
+  "doubleBlindComplete": false,
+  "note": "Pack human-review.json has no per-row semanticHumanReviewed field because no item had two successful parses. This pending list marks every official item. semanticHumanReviewed is false. Old ear review is not semantic human review.",
+  "items": [
+    {
+      "id": "fleurs-public-candidates/en_us/1668",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1668",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1669",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1669",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1670",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1670",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1671",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1672",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1672",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1673",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1673",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1674",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1674",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1675",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "finding-kind"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1675",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1676",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1676",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1677",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1677",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1678",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1678",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1679",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1679",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1680",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "quote"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1681",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1681",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/en_us/1682",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "fleurs-public-candidates/cmn_hans_cn/1682",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "ascend/00004",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "ascend/00009",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    },
+    {
+      "id": "ascend/00028",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "note"
+    },
+    {
+      "id": "ascend/00055",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "quote"
+    },
+    {
+      "id": "ascend/00066",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "bad-json",
+      "judgeB": "ok"
+    },
+    {
+      "id": "ascend/00068",
+      "semanticHumanReviewed": false,
+      "reason": "notAssessed-partial",
+      "judgeA": "slots",
+      "judgeB": "ok"
+    }
+  ],
+  "disagreementFromPack": [],
+  "sampleFromPack": [],
+  "notAssessedFromPack": [
+    "fleurs-public-candidates/en_us/1668",
+    "fleurs-public-candidates/cmn_hans_cn/1668",
+    "fleurs-public-candidates/en_us/1669",
+    "fleurs-public-candidates/cmn_hans_cn/1669",
+    "fleurs-public-candidates/en_us/1670",
+    "fleurs-public-candidates/cmn_hans_cn/1670",
+    "fleurs-public-candidates/en_us/1671",
+    "fleurs-public-candidates/cmn_hans_cn/1671",
+    "fleurs-public-candidates/en_us/1672",
+    "fleurs-public-candidates/cmn_hans_cn/1672",
+    "fleurs-public-candidates/en_us/1673",
+    "fleurs-public-candidates/cmn_hans_cn/1673",
+    "fleurs-public-candidates/en_us/1674",
+    "fleurs-public-candidates/cmn_hans_cn/1674",
+    "fleurs-public-candidates/en_us/1675",
+    "fleurs-public-candidates/cmn_hans_cn/1675",
+    "fleurs-public-candidates/en_us/1676",
+    "fleurs-public-candidates/cmn_hans_cn/1676",
+    "fleurs-public-candidates/en_us/1677",
+    "fleurs-public-candidates/cmn_hans_cn/1677",
+    "fleurs-public-candidates/en_us/1678",
+    "fleurs-public-candidates/cmn_hans_cn/1678",
+    "fleurs-public-candidates/en_us/1679",
+    "fleurs-public-candidates/cmn_hans_cn/1679",
+    "fleurs-public-candidates/en_us/1680",
+    "fleurs-public-candidates/cmn_hans_cn/1680",
+    "fleurs-public-candidates/en_us/1681",
+    "fleurs-public-candidates/cmn_hans_cn/1681",
+    "fleurs-public-candidates/en_us/1682",
+    "fleurs-public-candidates/cmn_hans_cn/1682",
+    "ascend/00004",
+    "ascend/00009",
+    "ascend/00028",
+    "ascend/00055",
+    "ascend/00066",
+    "ascend/00068"
+  ]
+}

@@ -1,0 +1,9 @@
+2026-11-13 22:59:19 CST launching run-official.js
+2026-11-13T14:59:19.304Z start official run in QA dir (no --run yet until probes pass)
+2026-11-13T14:59:19.859Z probe 1: openai/gpt-4.1-mini max_tokens=32 long-output request, reserve=0.00405504
+2026-11-13T14:59:21.145Z probe 1 result code=pass pass=true provider=OpenAI completion=32 finish=length
+2026-11-13T14:59:21.145Z probe 2: qwen/qwen3-235b-a22b-2507 max_tokens=32 long-output request, reserve=0.0018432
+2026-11-13T14:59:22.243Z probe 2 result code=pass pass=true provider=Parasail completion=32 finish=length
+2026-11-13T14:59:22.243Z probes passed, reserved=0.00589824 remaining=0.24410176 need=0.21233664
+2026-11-13T14:59:22.244Z starting formal 72-call blind run with budgetUsd=0.24410176
+2026-11-13T15:09:15.754Z formal run finished code=partial called=true complete=false consumed=0.05570372 remaining=0.19429628

@@ -1,0 +1,20 @@
+{
+  "missingTokensOnly": {
+    "inputTokens": 4,
+    "outputTokens": null,
+    "usd": null,
+    "costUnknown": true
+  },
+  "usdZero": {
+    "inputTokens": null,
+    "outputTokens": null,
+    "usd": 0,
+    "costUnknown": false
+  },
+  "noUsage": {
+    "inputTokens": null,
+    "outputTokens": null,
+    "usd": null,
+    "costUnknown": true
+  }
+}

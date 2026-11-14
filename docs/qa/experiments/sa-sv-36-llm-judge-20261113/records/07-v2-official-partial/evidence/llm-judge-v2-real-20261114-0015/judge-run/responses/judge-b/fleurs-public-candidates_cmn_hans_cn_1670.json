@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 7955,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v2\",\n  \"itemId\": \"fleurs-public-candidates/cmn_hans_cn/1670\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.85,\n      \"note\": \"\",\n      \"findings\": [\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"美国地质调查局 (USGS)\",\n          \"hypQuote\": \"美国地质调查局 USGS\",\n          \"reason\": \"括号缺失，影响格式一致性\"\n        },\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"亚利桑那州旗杆镇\",\n          \"hypQuote\": \"亚历桑那州旗甘镇\",\n          \"reason\": \"地名翻译错误，'旗杆镇'被误作'旗甘镇'\"\n        },\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"格伦·库欣\",\n          \"hypQuote\": \"格伦库星\",\n          \"reason\": \"人名错误，'格伦·库欣'被误作'格伦库星'\"\n        },\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"地下深穴\",\n          \"hypQuote\": \"地下升雪\",\n          \"reason\": \"'深穴'与'升雪'语义完全不同，属严重语义错误\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.8,\n      \"note\": \"\",\n      \"findings\": [\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"美国地质调查局 (USGS)\",\n          \"hypQuote\": \"美国地质调查局USGS\",\n          \"reason\": \"括号缺失，影响格式一致性\"\n        },\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"亚利桑那州旗杆镇\",\n          \"hypQuote\": \"亚利桑那州旗干镇\",\n          \"reason\": \"地名错误，'旗杆镇'被误作'旗干镇'\"\n        },\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"格伦·库欣\",\n          \"hypQuote\": \"格伦库辛\",\n          \"reason\": \"人名错误，'格伦·库欣'被误作'格伦库辛'\"\n        },\n        {\n          \"kind\": \"semantic\",\n          \"refQuote\": \"地下深穴\",\n          \"hypQuote\": \"地下升雪\",\n          \"reason\": \"'深穴'与'升雪'语义完全不同，属严重语义错误\"\n        },\n        {\n          \"kind\": \"addition\",\n          \"refQuote\": \"\",\n          \"hypQuote\": \"，。\",\n          \"reason\": \"句末多出标点符号'，。'\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.000555,
+  "usage": {
+    "inputTokens": 873,
+    "outputTokens": 634,
+    "providerUsd": 0.000555,
+    "complete": true
+  },
+  "settledUsd": 0.0006818
+}

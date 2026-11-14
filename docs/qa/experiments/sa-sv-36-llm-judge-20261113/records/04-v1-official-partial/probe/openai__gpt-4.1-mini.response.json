@@ -1,0 +1,47 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "elapsedMs": 1284,
+  "content": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n",
+  "provider": "OpenAI",
+  "responseModel": "openai/gpt-4.1-mini",
+  "finishReason": "length",
+  "usage": {
+    "prompt_tokens": 74,
+    "completion_tokens": 32,
+    "total_tokens": 106,
+    "cost": 0.0000808,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0000808,
+      "upstream_inference_prompt_cost": 0.0000296,
+      "upstream_inference_completions_cost": 0.0000512
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    },
+    "usd": 0.0000808
+  },
+  "providerUsd": 0.0000808,
+  "verdict": {
+    "pass": true,
+    "code": "pass",
+    "promptTokens": 74,
+    "completionTokens": 32,
+    "finishReason": "length",
+    "maxTokensSent": 32,
+    "honorsDeclaredCap": true,
+    "demonstratedLengthLimit": true,
+    "responseModel": "openai/gpt-4.1-mini",
+    "provider": "OpenAI"
+  },
+  "authorization": "redacted"
+}

@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 13616,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"ascend/00009\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.3,\n      \"note\": \"Multiple phonetic and spelling errors affect accuracy, but core terms are partially present.\",\n      \"findings\": [\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"no我专业是那个\",\n          \"hypQuote\": \"那我觉爱是那个\",\n          \"reason\": \"The reference starts with 'no我专业是那个' indicating 'no my major is that', while the candidate starts with '那我觉爱是那个' which translates to 'then I feel love is that', omitting the correct subject and intent.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"i s m\",\n          \"hypQuote\": \"ISM\",\n          \"reason\": \"The reference uses spaced letters 'i s m' while the candidate uses uppercase 'ISM'; this is a surface-level formatting difference.\"\n        },\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"information systems management\",\n          \"hypQuote\": \"impormation sistancemangement\",\n          \"reason\": \"The candidate misrepresents 'information systems management' as 'impormation sistancemangement', which contains phonetic misspellings and distorts the intended entity.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.6,\n      \"note\": \"Minor initial deviation but correct technical term with proper formatting.\",\n      \"findings\": [\n        {\n          \"kind\": \"omission\",\n          \"refQuote\": \"no我专业是那个\",\n          \"hypQuote\": \"那我就按是那个\",\n          \"reason\": \"The reference begins with 'no我专业是那个' meaning 'no my major is that', while the candidate says '那我就按是那个' which means 'then I just follow that', altering the original meaning and omitting the correct subject.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"i s m\",\n          \"hypQuote\": \"ISM\",\n          \"reason\": \"The reference writes 'i s m' with spaces, while the candidate uses 'ISM' in uppercase; this is a surface formatting difference.\"\n        },\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"information systems management\",\n          \"hypQuote\": \"information systems management\",\n          \"reason\": \"The technical phrase is correctly transcribed in the candidate, matching the reference exactly in content and spelling.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.00050428,
+  "usage": {
+    "inputTokens": 450,
+    "outputTokens": 593,
+    "providerUsd": 0.00050428,
+    "complete": true
+  },
+  "settledUsd": 0.0005644
+}

@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 8832,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/cmn_hans_cn/1672\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"The candidate splits the parenthetical clause into two sentences, altering the structure but preserving all content and meaning.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"（这可能会产生收缩现象，在极端情况下会把衣服烤焦）\",\n          \"hypQuote\": \"这可能会产生收缩现象。在极端情况下会把衣服烤焦。\",\n          \"reason\": \"The reference uses parentheses to embed a clarifying clause, while the candidate removes parentheses and splits the content into two sentences. The semantic content is preserved, but formatting and punctuation differ.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.98,\n      \"note\": \"The candidate matches the reference in content and meaning, with only minor punctuation differences involving full-width spaces.\",\n      \"findings\": [\n        {\n          \"kind\": \"format-only\",\n          \"refQuote\": \"小心不要让衣服变得太热（这可能会产生收缩现象，在极端情况下会把衣服烤焦）。\",\n          \"hypQuote\": \"小心不要让衣服变得太热 ，这可能会产生收缩现象 ，在极端情况下会把衣服烤焦。\",\n          \"reason\": \"The candidate replaces the parentheses with full-width spaces and adds spaces around the clauses, but retains all semantic content. This is a typographic variation with no change in meaning.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.0003416,
+  "usage": {
+    "inputTokens": 488,
+    "outputTokens": 383,
+    "providerUsd": 0.0003416,
+    "complete": true
+  },
+  "settledUsd": 0.000404
+}

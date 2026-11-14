@@ -1,0 +1,24 @@
+{
+  "schema": "belliedmonkey.qa.v2-backfill-prep.v1",
+  "authorizedBy": "pt57u",
+  "createdAtAsiaShanghai": "2026-11-14 10:24:35 Asia/Shanghai (CST)",
+  "offlineOnly": true,
+  "notForPaidRunNow": true,
+  "officialEvidenceUnchanged": true,
+  "allowlistPairs": 15,
+  "uniqueItems": 14,
+  "budget": {
+    "formulaTotal": "0.03251712",
+    "cumulativeRemainingUsd": "0.17905768",
+    "remainingAfterReserve": "0.14654056",
+    "enoughReserve": true
+  },
+  "humanForms": {
+    "disagreement": 17,
+    "sample": 5,
+    "pendingNotForReviewNow": 14,
+    "semanticHumanReviewCountStill": 0
+  },
+  "assignmentUnchanged": true,
+  "promptAllV2": true
+}

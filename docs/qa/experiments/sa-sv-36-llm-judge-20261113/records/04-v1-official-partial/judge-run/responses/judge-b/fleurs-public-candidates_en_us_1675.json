@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 9209,
+  "aborted": false,
+  "content": "{\n  \"schema\": \"belliedmonkey.llm-judge.verdict.v1\",\n  \"itemId\": \"fleurs-public-candidates/en_us/1675\",\n  \"slots\": [\n    {\n      \"slot\": \"slot-1\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"The candidate contains an error in the phrase 'the world safe' which should be 'the word Sie'.\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"the word Sie\",\n          \"hypQuote\": \"the world safe\",\n          \"reason\": \"The reference specifies 'the word Sie', which refers to the formal 'you' in German, while the candidate incorrectly states 'the world safe', which changes the meaning and refers to a completely different concept.\"\n        }\n      ]\n    },\n    {\n      \"slot\": \"slot-2\",\n      \"abstain\": false,\n      \"confidence\": 0.95,\n      \"note\": \"The candidate contains an error in the phrase 'the world say' which should be 'the word Sie'.\",\n      \"findings\": [\n        {\n          \"kind\": \"entity\",\n          \"refQuote\": \"the word Sie\",\n          \"hypQuote\": \"the world say\",\n          \"reason\": \"The reference specifies 'the word Sie', referring to the formal 'you' in German, while the candidate incorrectly states 'the world say', which alters the meaning and introduces an unrelated phrase.\"\n        },\n        {\n          \"kind\": \"punctuation\",\n          \"refQuote\": \".\",\n          \"hypQuote\": \".\",\n          \"reason\": \"The candidate incorrectly places a period after 'you', creating a sentence break not present in the reference, which affects grammatical structure.\"\n        }\n      ]\n    }\n  ]\n}",
+  "providerUsd": 0.0003419,
+  "usage": {
+    "inputTokens": 489,
+    "outputTokens": 385,
+    "providerUsd": 0.0003419,
+    "complete": true
+  },
+  "settledUsd": 0.0004058
+}

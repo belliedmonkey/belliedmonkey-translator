@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v1",
+    "itemId": "fleurs-public-candidates/en_us/1673",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "The candidate uses '13' instead of 'thirteen', which is a format-only difference. The rest of the content matches the reference in meaning and structure.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "thirteen",
+            "hypQuote": "13",
+            "reason": "The word 'thirteen' in the reference is written as the numeral '13' in the candidate, which is a surface-level format difference with no change in meaning."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "The candidate uses '13' instead of 'thirteen', which is a format-only difference. The rest of the content matches the reference in meaning and structure.",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "thirteen",
+            "hypQuote": "13",
+            "reason": "The word 'thirteen' in the reference is written as the numeral '13' in the candidate, which is a surface-level format difference with no change in meaning."
+          }
+        ]
+      }
+    ]
+  }
+}

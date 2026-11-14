@@ -1,0 +1,17 @@
+{
+  "stage": "finished",
+  "ok": true,
+  "code": null,
+  "status": null,
+  "elapsedMs": 2693,
+  "aborted": false,
+  "content": "{\"schema\":\"belliedmonkey.llm-judge.verdict.v2\",\"itemId\":\"fleurs-public-candidates/en_us/1677\",\"slots\":[{\"slot\":\"slot-1\",\"abstain\":false,\"confidence\":0.9,\"note\":\"Minor format-only difference in 'dragon flies' vs 'dragonflies'.\",\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"dragon flies\",\"hypQuote\":\"dragonflies\",\"reason\":\"The candidate merges 'dragon flies' into one word 'dragonflies', which is a format-only difference.\"}]},{\"slot\":\"slot-2\",\"abstain\":false,\"confidence\":0.8,\"note\":\"Format-only differences in 'dragon flies' vs 'dragonflies' and 'mayflies' vs 'may flies'.\",\"findings\":[{\"kind\":\"format-only\",\"refQuote\":\"dragon flies\",\"hypQuote\":\"dragonflies\",\"reason\":\"The candidate merges 'dragon flies' into one word 'dragonflies', which is a format-only difference.\"},{\"kind\":\"format-only\",\"refQuote\":\"mayflies\",\"hypQuote\":\"may flies\",\"reason\":\"The candidate splits 'mayflies' into two words 'may flies', which is a format-only difference.\"}]}]}",
+  "providerUsd": 0.0006788,
+  "usage": {
+    "inputTokens": 709,
+    "outputTokens": 247,
+    "providerUsd": 0.0006788,
+    "complete": true
+  },
+  "settledUsd": 0.00074668
+}
