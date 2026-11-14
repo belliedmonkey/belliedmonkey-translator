@@ -115,7 +115,14 @@
         "doc",
         "quick"
       ],
-      "ms": "int"
+      "ms": "int",
+      "surface": [
+        "listen",
+        "live_caption",
+        "quick",
+        "doc",
+        "web_caption"
+      ]
     },
     "translate_fail": {
       "provider": "id",
@@ -225,7 +232,8 @@
         "live_caption",
         "quick",
         "doc",
-        "web_caption"
+        "web_caption",
+        "login"
       ],
       "provider": [
         "apple",
@@ -237,7 +245,8 @@
       "method": [
         "signup",
         "signin"
-      ]
+      ],
+      "launch_id": "id"
     },
     "live_gate": {
       "surface": [
@@ -248,6 +257,40 @@
         "web_caption"
       ],
       "ok": [
+        "true",
+        "false"
+      ],
+      "result": [
+        "script_missing",
+        "channel_missing",
+        "os_below_min",
+        "no_transcriber",
+        "locale_unsupported",
+        "probe_timeout",
+        "ok"
+      ],
+      "os_version": "id",
+      "os_meets_min": [
+        "true",
+        "false"
+      ],
+      "probe_locale": "id",
+      "reason_copy_class": [
+        "need_os",
+        "switch_locale",
+        "other"
+      ],
+      "window": [
+        "main",
+        "quick",
+        "other"
+      ],
+      "launch_id": "id",
+      "first_refresh": [
+        "true",
+        "false"
+      ],
+      "reused_prior_state": [
         "true",
         "false"
       ]
@@ -268,6 +311,21 @@
         "invalid",
         "model",
         "busy"
+      ],
+      "reason": [
+        "network",
+        "busy",
+        "server",
+        "revoked",
+        "other"
+      ],
+      "copy_class": [
+        "revoked",
+        "retryable"
+      ],
+      "path": [
+        "silent",
+        "manual"
       ]
     },
     "pack_download_start": {
@@ -372,7 +430,9 @@
         "notice",
         "pill",
         "app_home",
-        "popup_app_row"
+        "popup_app_row",
+        "listen",
+        "live_caption"
       ],
       "result": [
         "started",
