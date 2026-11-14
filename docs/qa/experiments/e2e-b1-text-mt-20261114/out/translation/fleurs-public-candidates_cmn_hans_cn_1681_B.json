@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1681|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1681",
+  "condition": "B",
+  "sourceKind": "sa_hypothesis",
+  "targetLang": "en",
+  "source": "实验是一种用来消除一个或多个可能性假设的实验。不过实验并不是唯一的方法提出问题以及进行观察也可以指导科学研究。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "An experiment is a procedure used to eliminate one or more possible hypotheses. However, experimentation is not the only method; posing questions and making observations can also guide scientific research.",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 145,
+    "total_tokens": 762,
+    "completion_tokens": 617,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 145
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 580,
+      "text_tokens": 617
+    }
+  },
+  "error": null
+}

@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1668|B",
+  "itemId": "fleurs-public-candidates/en_us/1668",
+  "condition": "B",
+  "sourceKind": "sa_hypothesis",
+  "targetLang": "zh-CN",
+  "source": "It may also be beneficial for one to buy a wild card, which provides entry to either selections of parks in South Africa or all of the South African national parks.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "购买一张Wild Card也可能大有裨益，凭此卡可进入南非的部分精选公园或所有南非国家公园。",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 156,
+    "total_tokens": 843,
+    "completion_tokens": 687,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 156
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 660,
+      "text_tokens": 687
+    }
+  },
+  "error": null
+}

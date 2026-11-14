@@ -1,0 +1,68 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1677|A",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+  "condition": "A",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys that dragonflies and mayflies are the only insects unable to fold their wings backward."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "'蜻蜓' as 'dragonflies' and '蜉蝣' as 'mayflies' are correctly rendered."
+      },
+      "negation": {
+        "pass": true,
+        "note": "The negation 'cannot' correctly reflects '不能' in the source."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No meaningful content is omitted from the source."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No information is added beyond the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Technical terms like 'fold their wings backward' are appropriately used."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The sentence is natural and fluent in English."
+      }
+    },
+    "findings": []
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 391,
+    "completion_tokens": 192,
+    "total_tokens": 583,
+    "cost": 0.00020402,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00020402,
+      "upstream_inference_prompt_cost": 0.00005042,
+      "upstream_inference_completions_cost": 0.0001536
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00020402
+}

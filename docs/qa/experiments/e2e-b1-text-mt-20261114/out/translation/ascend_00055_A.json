@@ -1,0 +1,28 @@
+{
+  "pairId": "ascend/00055|A",
+  "itemId": "ascend/00055",
+  "condition": "A",
+  "sourceKind": "reference",
+  "targetLang": "en",
+  "source": "um运动啊男生一般不都喜欢运动",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "Um, sports... don't guys usually like sports?",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 130,
+    "total_tokens": 559,
+    "completion_tokens": 429,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 130
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 415,
+      "text_tokens": 429
+    }
+  },
+  "error": null
+}

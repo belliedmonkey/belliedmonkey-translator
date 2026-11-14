@@ -1,0 +1,68 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1675|A",
+  "itemId": "fleurs-public-candidates/en_us/1675",
+  "condition": "A",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "准确传达了名词和'Sie'在句中也大写的规则"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "'Sie'作为专有形式正确保留"
+      },
+      "negation": {
+        "pass": true,
+        "note": "无否定结构，原意完整保留"
+      },
+      "omission": {
+        "pass": true,
+        "note": "未遗漏任何关键信息"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "未添加原文未提及内容"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "'Sie'和'首字母大写'术语使用准确"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "中文表达自然流畅"
+      }
+    },
+    "findings": []
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 407,
+    "completion_tokens": 152,
+    "total_tokens": 559,
+    "cost": 0.00017426,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00017426,
+      "upstream_inference_prompt_cost": 0.00005266,
+      "upstream_inference_completions_cost": 0.0001216
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00017426
+}

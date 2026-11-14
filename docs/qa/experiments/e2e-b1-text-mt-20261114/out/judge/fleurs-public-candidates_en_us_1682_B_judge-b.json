@@ -1,0 +1,87 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1682|B",
+  "itemId": "fleurs-public-candidates/en_us/1682",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate incorrectly introduces '塞伦胡·罗伊' as a person, fundamentally altering the meaning."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "'Serenhu Roi' is a misrecognition of 'for certain who wrote it' and wrongly rendered as a name."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation issues present."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omissions from the source."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The translation invents a person '塞伦胡·罗伊' not present or implied in the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Domain terms like '羊皮纸文书' and '尺寸' are appropriate."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The Chinese reads naturally despite the errors."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "While no one knows for certain who wrote it",
+        "targetQuote": "尽管无人知晓塞伦胡·罗伊的详情",
+        "reason": "The source expresses uncertainty about authorship; the target falsely claims knowledge about a person named '塞伦胡·罗伊', inverting the meaning."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "for certain who wrote it",
+        "targetQuote": "塞伦胡·罗伊",
+        "reason": "'Serenhu Roi' is a mishearing of 'for certain who wrote it' and incorrectly translated as a proper name."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "While no one knows for certain who wrote it",
+        "targetQuote": "尽管无人知晓塞伦胡·罗伊的详情",
+        "reason": "The name '塞伦胡·罗伊' is a hallucinated entity with no basis in the original text."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 535,
+    "completion_tokens": 381,
+    "total_tokens": 916,
+    "cost": 0.00037538,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00037538,
+      "upstream_inference_prompt_cost": 0.00007058,
+      "upstream_inference_completions_cost": 0.0003048
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00037538
+}

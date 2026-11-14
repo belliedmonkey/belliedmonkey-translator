@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1671|A",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+  "condition": "A",
+  "sourceKind": "reference",
+  "targetLang": "en",
+  "source": "国会从 2005 财年开始资助该扫黄倡议，并规定联邦调查局 (FBI) 必须指派 10 名探员专门打击成人色情。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "Congress began funding the anti-pornography initiative in fiscal year 2005 and mandated that the Federal Bureau of Investigation (FBI) assign 10 agents exclusively to combat adult pornography.",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 162,
+    "total_tokens": 851,
+    "completion_tokens": 689,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 162
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 646,
+      "text_tokens": 689
+    }
+  },
+  "error": null
+}

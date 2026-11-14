@@ -1,0 +1,68 @@
+{
+  "pairId": "ascend/00009|A",
+  "itemId": "ascend/00009",
+  "condition": "A",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "meaning preserved"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "entities preserved"
+      },
+      "negation": {
+        "pass": true,
+        "note": "negation preserved"
+      },
+      "omission": {
+        "pass": true,
+        "note": "no omission"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "no hallucination"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "terminology correct"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "fluent and natural"
+      }
+    },
+    "findings": []
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 384,
+    "completion_tokens": 118,
+    "total_tokens": 502,
+    "cost": 0.0003424,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0003424,
+      "upstream_inference_prompt_cost": 0.0001536,
+      "upstream_inference_completions_cost": 0.0001888
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0003424
+}

@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1679|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+  "condition": "B",
+  "sourceKind": "sa_hypothesis",
+  "targetLang": "en",
+  "source": "空中铁匠乐队已经取消了他们巡回演唱会的剩余场次。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "Aerosmith has canceled the remaining dates of their tour.",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 135,
+    "total_tokens": 525,
+    "completion_tokens": 390,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 135
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 375,
+      "text_tokens": 390
+    }
+  },
+  "error": null
+}

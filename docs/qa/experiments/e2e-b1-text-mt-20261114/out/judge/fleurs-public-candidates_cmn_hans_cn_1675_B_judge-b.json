@@ -1,0 +1,87 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1675|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate incorrectly retains 'C' instead of 'Sie', altering the core meaning."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "'C' is a misrendering of 'Sie', a key entity in the source."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation issues."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omissions."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No hallucinations beyond ASR error propagation."
+      },
+      "terminology": {
+        "pass": false,
+        "note": "'C' is incorrect terminology for the formal 'you' in German."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The sentence is fluent in English."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "除去表示您的“Sie”之外的所有名词",
+        "targetQuote": "All nouns except the \"C\" representing \"you\"",
+        "reason": "The source refers to the German formal pronoun \"Sie\", which the candidate mistranslates as \"C\", likely due to ASR error, fundamentally changing the meaning."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "“Sie”",
+        "targetQuote": "\"C\"",
+        "reason": "\"Sie\" is a specific German pronoun and must not be rendered as \"C\", which is not a valid linguistic entity in this context."
+      },
+      {
+        "dimension": "terminology",
+        "sourceQuote": "表示您的“Sie”",
+        "targetQuote": "representing \"you\"",
+        "reason": "While \"you\" is correct, pairing it with \"C\" instead of \"Sie\" misrepresents the linguistic term, leading to incorrect terminology."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 464,
+    "completion_tokens": 346,
+    "total_tokens": 810,
+    "cost": 0.00033456,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 80,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00033456,
+      "upstream_inference_prompt_cost": 0.00005776,
+      "upstream_inference_completions_cost": 0.0002768
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00033456
+}

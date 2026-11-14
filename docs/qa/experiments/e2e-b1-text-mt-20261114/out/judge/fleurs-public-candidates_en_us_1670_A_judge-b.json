@@ -1,0 +1,68 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1670|A",
+  "itemId": "fleurs-public-candidates/en_us/1670",
+  "condition": "A",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys the original meaning regarding thermal behavior, comparison with Earth's caves, and the interpretation as deep holes."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All proper nouns (Glen Cushing, United States Geological Survey, USGS, Astrogeology Team, Northern Arizona University, Flagstaff, Arizona) are correctly rendered or appropriately localized."
+      },
+      "negation": {
+        "pass": true,
+        "note": "The negation 'not as steady as' is correctly rendered as '不如...那样稳定', preserving the intended contrast."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material content is omitted; all clauses and ideas from the source are present in the translation."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No information is added that is not in the source text."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Technical terms like 'thermal behavior', 'constant temperature', and 'deep holes' are translated appropriately and consistently."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The Chinese translation reads naturally and idiomatically to a native speaker."
+      }
+    },
+    "findings": []
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 497,
+    "completion_tokens": 247,
+    "total_tokens": 744,
+    "cost": 0.00026286,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00026286,
+      "upstream_inference_prompt_cost": 0.00006526,
+      "upstream_inference_completions_cost": 0.0001976
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00026286
+}

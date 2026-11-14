@@ -1,0 +1,68 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1676|A",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1676",
+  "condition": "A",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys the daily fees for conservation and entrance as in the source."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "'South African national parks' correctly renders '南非国家公园' with no entity or number issues."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation in source; translation correctly preserves affirmative meaning."
+      },
+      "omission": {
+        "pass": true,
+        "note": "All elements—daily fee, conservation fee, entrance fee, and reference to all parks—are present."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No invented content; all translated elements are grounded in the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "'conservation fee' and 'entrance fee' are standard and accurate terms."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The sentence reads naturally in English."
+      }
+    },
+    "findings": []
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 393,
+    "completion_tokens": 199,
+    "total_tokens": 592,
+    "cost": 0.00014482,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00014482,
+      "upstream_inference_prompt_cost": 0.00003537,
+      "upstream_inference_completions_cost": 0.00010945
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00014482
+}

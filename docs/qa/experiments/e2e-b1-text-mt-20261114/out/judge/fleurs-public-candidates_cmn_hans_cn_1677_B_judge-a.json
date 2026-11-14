@@ -1,0 +1,75 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1677|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate translation correctly conveys the meaning of the authoritative source, but the ASR output contains an error ('浮游' instead of '蜉蝣'), which the candidate translation corrects."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "Entities 'dragonflies' and 'mayflies' correspond correctly to '蜻蜓' and '蜉蝣'."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation is preserved correctly."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omission."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No hallucination present."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is consistent and sensible."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "Fluent and natural English."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "蜉蝣",
+        "targetQuote": "mayflies",
+        "reason": "The ASR output misrecognized '蜉蝣' as '浮游', but the candidate translation correctly translates '蜉蝣' as 'mayflies', preserving the original meaning."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 463,
+    "completion_tokens": 248,
+    "total_tokens": 711,
+    "cost": 0.000582,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.000582,
+      "upstream_inference_prompt_cost": 0.0001852,
+      "upstream_inference_completions_cost": 0.0003968
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.000582
+}

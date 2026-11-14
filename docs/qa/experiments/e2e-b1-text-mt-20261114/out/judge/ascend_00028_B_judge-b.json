@@ -1,0 +1,87 @@
+{
+  "pairId": "ascend/00028|B",
+  "itemId": "ascend/00028",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "short"
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "short"
+      },
+      "negation": {
+        "pass": true,
+        "note": "short"
+      },
+      "omission": {
+        "pass": true,
+        "note": "short"
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "short"
+      },
+      "terminology": {
+        "pass": false,
+        "note": "short"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "short"
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "福建",
+        "targetQuote": "attachment",
+        "reason": "The source refers to 'Fujian', a Chinese province, while the translation incorrectly renders it as 'attachment', which is a completely different concept and changes the meaning."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "福建",
+        "targetQuote": "attachment",
+        "reason": "'福建' (Fujian) is a proper geographical entity that was not preserved; instead, it was mistranslated as 'attachment', which is neither a correct name nor a valid rendering."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "福建",
+        "targetQuote": "attachment",
+        "reason": "The term 'attachment' is invented and not supported by the source, which mentions 'Fujian'—this introduces false information."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 400,
+    "completion_tokens": 255,
+    "total_tokens": 655,
+    "cost": 0.00025568,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00025568,
+      "upstream_inference_prompt_cost": 0.00005168,
+      "upstream_inference_completions_cost": 0.000204
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00025568
+}

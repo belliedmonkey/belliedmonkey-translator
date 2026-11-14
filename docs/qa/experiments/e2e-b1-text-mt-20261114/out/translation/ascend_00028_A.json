@@ -1,0 +1,28 @@
+{
+  "pairId": "ascend/00028|A",
+  "itemId": "ascend/00028",
+  "condition": "A",
+  "sourceKind": "reference",
+  "targetLang": "en",
+  "source": "ok福建",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "OK, Fujian",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 124,
+    "total_tokens": 421,
+    "completion_tokens": 297,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 124
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 290,
+      "text_tokens": 297
+    }
+  },
+  "error": null
+}

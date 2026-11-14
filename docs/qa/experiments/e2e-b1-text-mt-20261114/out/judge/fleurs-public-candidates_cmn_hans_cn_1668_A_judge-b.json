@@ -1,0 +1,68 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1668|A",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1668",
+  "condition": "A",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys the benefits of purchasing a Wild Card and access to parks in South Africa."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "'Wild Card' and 'South Africa' are correctly preserved."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation is present; polarity is correctly maintained."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information is omitted from the source."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No content is invented beyond the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "'Wild Card', 'parks', and 'national parks' are appropriately translated."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in English."
+      }
+    },
+    "findings": []
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 418,
+    "completion_tokens": 178,
+    "total_tokens": 596,
+    "cost": 0.0001966,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0001966,
+      "upstream_inference_prompt_cost": 0.0000542,
+      "upstream_inference_completions_cost": 0.0001424
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0001966
+}

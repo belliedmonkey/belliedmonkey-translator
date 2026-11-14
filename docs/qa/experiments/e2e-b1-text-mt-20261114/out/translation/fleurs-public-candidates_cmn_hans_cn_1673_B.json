@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1673|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+  "condition": "B",
+  "sourceKind": "sa_hypothesis",
+  "targetLang": "en",
+  "source": "在独立战争期间 ，13个州根据联邦条例组成了弱小的中央政府国会是其唯一的组成部分。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "During the Revolutionary War, the 13 states formed a weak central government under the Articles of Confederation, with Congress as its sole component.",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 144,
+    "total_tokens": 630,
+    "completion_tokens": 486,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 144
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 454,
+      "text_tokens": 486
+    }
+  },
+  "error": null
+}

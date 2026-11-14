@@ -1,0 +1,68 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1679|A",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+  "condition": "A",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The cancellation of the remaining tour dates is accurately conveyed."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "The band name and the concept of remaining tour dates are preserved."
+      },
+      "negation": {
+        "pass": true,
+        "note": "The negation of not continuing the tour is preserved."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information is omitted."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No information is added beyond the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology such as 'canceled' and 'tour' is appropriate."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The sentence reads naturally in English."
+      }
+    },
+    "findings": []
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 394,
+    "completion_tokens": 164,
+    "total_tokens": 558,
+    "cost": 0.00042,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00042,
+      "upstream_inference_prompt_cost": 0.0001576,
+      "upstream_inference_completions_cost": 0.0002624
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00042
+}

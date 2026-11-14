@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1674|B",
+  "itemId": "fleurs-public-candidates/en_us/1674",
+  "condition": "B",
+  "sourceKind": "sa_hypothesis",
+  "targetLang": "zh-CN",
+  "source": "In some areas, boiling water for a minute is enough, and other several minutes are needed.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "在某些地区，水煮沸一分钟即可，而在其他地区则需要煮沸数分钟。",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 142,
+    "total_tokens": 607,
+    "completion_tokens": 465,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 142
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 447,
+      "text_tokens": 465
+    }
+  },
+  "error": null
+}

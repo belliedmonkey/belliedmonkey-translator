@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1678|A",
+  "itemId": "fleurs-public-candidates/en_us/1678",
+  "condition": "A",
+  "sourceKind": "reference",
+  "targetLang": "zh-CN",
+  "source": "Oliver Sacks, in his paper The President's Speech, indicated how people who are unable to understand speech because of brain damage are nevertheless able to assess sincerity accurately.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "奥利弗·萨克斯在其论文《总统的演讲》中指出，那些因脑损伤而无法理解言语的人，却依然能够准确地判断他人是否真诚。",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 157,
+    "total_tokens": 734,
+    "completion_tokens": 577,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 157
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 543,
+      "text_tokens": 577
+    }
+  },
+  "error": null
+}

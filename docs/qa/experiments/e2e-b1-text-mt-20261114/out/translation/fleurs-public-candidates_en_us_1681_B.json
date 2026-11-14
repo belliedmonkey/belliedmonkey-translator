@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1681|B",
+  "itemId": "fleurs-public-candidates/en_us/1681",
+  "condition": "B",
+  "sourceKind": "sa_hypothesis",
+  "targetLang": "zh-CN",
+  "source": "It isn't alone though, experimentation. And an experiment is a test that is used to eliminate one or more of the possible hypotheses, asking questions, and making observations also guide scientific research.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "不过，实验并非唯一的手段。实验是一种旨在排除一种或多种可能假设的测试，而提出问题和进行观察也同样指引着科学研究。",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 161,
+    "total_tokens": 763,
+    "completion_tokens": 602,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 161
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 570,
+      "text_tokens": 602
+    }
+  },
+  "error": null
+}

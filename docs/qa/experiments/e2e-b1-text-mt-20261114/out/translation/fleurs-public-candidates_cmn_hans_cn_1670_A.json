@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1670|A",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+  "condition": "A",
+  "sourceKind": "reference",
+  "targetLang": "en",
+  "source": "“它们的热行为不像地球上的大型洞穴那么稳定，这些大型洞穴通常会保持相当恒定的温度，但它们与地下深穴的情况很相似，”亚利桑那州旗杆镇美国地质调查局 (USGS) 太空地质团队和北亚利桑那大学的格伦·库欣说道。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "\"Their thermal behavior is not as stable as that of large caves on Earth, which typically maintain a fairly constant temperature, but they closely resemble conditions in deep subterranean pits,\" said Glenn Cushing of the USGS Astrogeology Team in Flagstaff, Arizona, and Northern Arizona University.",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 188,
+    "total_tokens": 1150,
+    "completion_tokens": 962,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 188
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 900,
+      "text_tokens": 962
+    }
+  },
+  "error": null
+}

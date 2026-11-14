@@ -1,0 +1,28 @@
+{
+  "pairId": "ascend/00066|B",
+  "itemId": "ascend/00066",
+  "condition": "B",
+  "sourceKind": "sa_hypothesis",
+  "targetLang": "en",
+  "source": "哦 ，这么 technicle",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "Oh, so technical.",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 127,
+    "total_tokens": 449,
+    "completion_tokens": 322,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 127
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 314,
+      "text_tokens": 322
+    }
+  },
+  "error": null
+}

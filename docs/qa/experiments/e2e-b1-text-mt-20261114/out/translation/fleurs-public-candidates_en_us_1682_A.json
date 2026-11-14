@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1682|A",
+  "itemId": "fleurs-public-candidates/en_us/1682",
+  "condition": "A",
+  "sourceKind": "reference",
+  "targetLang": "zh-CN",
+  "source": "While no one knows for certain who wrote it, it is known that early in its life, the large parchment document (it measures 29¾ inches by 24½ inches) was rolled up for storage.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "尽管无人确切知晓其作者是谁，但可以确定的是，在其诞生之初，这份大幅羊皮纸文献（尺寸为29¾英寸乘24½英寸）曾被卷起存放。",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 167,
+    "total_tokens": 927,
+    "completion_tokens": 760,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 167
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 718,
+      "text_tokens": 760
+    }
+  },
+  "error": null
+}

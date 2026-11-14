@@ -1,0 +1,68 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1674|A",
+  "itemId": "fleurs-public-candidates/en_us/1674",
+  "condition": "A",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys the conditional time variation for boiling water across regions."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "'a minute' and 'several minutes' are correctly rendered as '一分钟' and '数分钟'."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation present; polarity is preserved."
+      },
+      "omission": {
+        "pass": true,
+        "note": "All key elements from the source are included in the translation."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No invented content; everything is supported by the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Domain terms like 'boiling water' are appropriately translated."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in Chinese."
+      }
+    },
+    "findings": []
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 395,
+    "completion_tokens": 182,
+    "total_tokens": 577,
+    "cost": 0.00019658,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00019658,
+      "upstream_inference_prompt_cost": 0.00005098,
+      "upstream_inference_completions_cost": 0.0001456
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00019658
+}

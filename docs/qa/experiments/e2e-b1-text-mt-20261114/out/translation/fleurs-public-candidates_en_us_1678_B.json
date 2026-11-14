@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1678|B",
+  "itemId": "fleurs-public-candidates/en_us/1678",
+  "condition": "B",
+  "sourceKind": "sa_hypothesis",
+  "targetLang": "zh-CN",
+  "source": "Oliver Sachs and his paper, the president's speech, indicated how people who are unable to understand speech because of brain damage are nevertheless able to assess sincerity accurately.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "奥利弗·萨克斯在其论文《总统的演讲》中揭示了这样一个现象：因脑损伤而丧失语言理解能力的人，却依然能够准确地判断他人的真诚程度。",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 156,
+    "total_tokens": 742,
+    "completion_tokens": 586,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 156
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 548,
+      "text_tokens": 586
+    }
+  },
+  "error": null
+}

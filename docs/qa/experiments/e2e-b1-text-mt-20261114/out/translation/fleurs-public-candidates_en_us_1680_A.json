@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1680|A",
+  "itemId": "fleurs-public-candidates/en_us/1680",
+  "condition": "A",
+  "sourceKind": "reference",
+  "targetLang": "zh-CN",
+  "source": "A well rounded athlete, the tiger can climb (though not well), swim, leap great distances and pull with five times the force of a strong human.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "老虎堪称全能运动健将，它能攀爬（尽管并不十分擅长）、游泳、跃出极远距离，其拉力可达强壮人类力量的五倍。",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 154,
+    "total_tokens": 1101,
+    "completion_tokens": 947,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 154
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 913,
+      "text_tokens": 947
+    }
+  },
+  "error": null
+}

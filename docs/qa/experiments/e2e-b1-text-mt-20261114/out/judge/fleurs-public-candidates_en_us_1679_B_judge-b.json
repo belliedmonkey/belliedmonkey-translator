@@ -1,0 +1,75 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1679|B",
+  "itemId": "fleurs-public-candidates/en_us/1679",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The source uses 'have cancelled' (present perfect, ongoing relevance), while the ASR output and candidate translation inherit 'had canceled' (past perfect), which alters the temporal meaning and impli"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "Aerosmith and tour-related terms are correctly rendered."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation issues present."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omissions from the source."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "Nothing invented beyond the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is appropriate and consistent."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The Chinese translation reads naturally."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "Aerosmith have cancelled their remaining concerts on their tour.",
+        "targetQuote": "Aerosmith已取消了其巡演剩余的演唱会。",
+        "reason": "The use of 'have cancelled' (present perfect) in the source indicates a current, relevant action, while the candidate reflects 'had canceled' (past perfect) from the ASR, implying an action completed prior to another past event, thus distorting the temporal meaning."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 428,
+    "completion_tokens": 285,
+    "total_tokens": 713,
+    "cost": 0.0002836,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0002836,
+      "upstream_inference_prompt_cost": 0.0000556,
+      "upstream_inference_completions_cost": 0.000228
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0002836
+}

@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1678|A",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1678",
+  "condition": "A",
+  "sourceKind": "reference",
+  "targetLang": "en",
+  "source": "奥利弗·萨克斯 (Oliver Sacks) 在他的论文《总统的演讲》中指出，那些因为脑损伤而无法理解语言的人仍然能够准确地判断说话人是否有诚意。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "In his essay \"The President's Speech,\" Oliver Sacks points out that individuals unable to comprehend language due to brain damage are still able to accurately judge whether a speaker is sincere.",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 160,
+    "total_tokens": 902,
+    "completion_tokens": 742,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 160
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 703,
+      "text_tokens": 742
+    }
+  },
+  "error": null
+}

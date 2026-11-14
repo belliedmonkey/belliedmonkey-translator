@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1673|A",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+  "condition": "A",
+  "sourceKind": "reference",
+  "targetLang": "en",
+  "source": "在独立战争期间，十三个州最初根据《联邦条例》组成了弱小的中央政府（国会是其唯一的组成部分）。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "During the Revolutionary War, the thirteen states initially formed a weak central government under the Articles of Confederation (with Congress as its sole component).",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 147,
+    "total_tokens": 747,
+    "completion_tokens": 600,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 147
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 569,
+      "text_tokens": 600
+    }
+  },
+  "error": null
+}

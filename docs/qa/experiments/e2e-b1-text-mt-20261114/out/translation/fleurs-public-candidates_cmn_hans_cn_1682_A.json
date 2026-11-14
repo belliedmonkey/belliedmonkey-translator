@@ -1,0 +1,28 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1682|A",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1682",
+  "condition": "A",
+  "sourceKind": "reference",
+  "targetLang": "en",
+  "source": "虽然没有人能确定作者是谁，但这个大型羊皮纸文档（尺寸为 29¾ 英寸乘以 24½ 英寸）据称在刚写成的时候是卷起来存放的。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "Although no one can definitively identify the author, this large parchment document (measuring 29¾ by 24½ inches) is said to have been stored rolled up when it was first completed.",
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 164,
+    "total_tokens": 1029,
+    "completion_tokens": 865,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 164
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 820,
+      "text_tokens": 865
+    }
+  },
+  "error": null
+}

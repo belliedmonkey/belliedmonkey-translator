@@ -1,0 +1,81 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1675|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate mistranslates 'Sie' as 'C', altering the meaning."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "The entity 'Sie' is incorrectly rendered as 'C'."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation is preserved."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omission."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No hallucination present."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is consistent."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "Fluent English."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "表示您的“Sie”",
+        "targetQuote": "\"C\" representing \"you\"",
+        "reason": "The candidate replaces 'Sie' with 'C', which changes the meaning and confuses the reference."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "“Sie”",
+        "targetQuote": "\"C\"",
+        "reason": "The entity 'Sie' is incorrectly transcribed as 'C', which is inaccurate."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 482,
+    "completion_tokens": 232,
+    "total_tokens": 714,
+    "cost": 0.000564,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.000564,
+      "upstream_inference_prompt_cost": 0.0001928,
+      "upstream_inference_completions_cost": 0.0003712
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.000564
+}

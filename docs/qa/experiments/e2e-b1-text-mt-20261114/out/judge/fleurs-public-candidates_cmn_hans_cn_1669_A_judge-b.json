@@ -1,0 +1,68 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1669|A",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1669",
+  "condition": "A",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation conveys the same core message: defendants appeared in court with covered faces as stated by Police Chief Chandra Shekhar Solanki."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "'Chandra Shekhar Solanki' is correctly rendered; no other entities or numbers present."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation present; polarity is preserved."
+      },
+      "omission": {
+        "pass": true,
+        "note": "All key elements from the source are included in the translation."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "Nothing is added that is not in the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "'Police Chief', 'defendants', 'appeared in court', and 'faces covered' are appropriate and consistent."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The sentence reads naturally in English."
+      }
+    },
+    "findings": []
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 400,
+    "completion_tokens": 205,
+    "total_tokens": 605,
+    "cost": 0.00014875,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00014875,
+      "upstream_inference_prompt_cost": 0.000036,
+      "upstream_inference_completions_cost": 0.00011275
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00014875
+}

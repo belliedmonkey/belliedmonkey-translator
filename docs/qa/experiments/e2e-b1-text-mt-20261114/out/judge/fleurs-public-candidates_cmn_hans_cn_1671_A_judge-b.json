@@ -1,0 +1,68 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1671|A",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+  "condition": "A",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys the funding start year, the initiative, and the FBI mandate."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "'2005 fiscal year', '10', and 'Federal Bureau of Investigation (FBI)' are correctly rendered."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation present; polarity is correctly maintained."
+      },
+      "omission": {
+        "pass": true,
+        "note": "All key elements from the source are included in the translation."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No invented information; all content is supported by the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "'anti-pornography initiative' and 'combat adult pornography' are appropriate and consistent."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The sentence reads naturally in English."
+      }
+    },
+    "findings": []
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 437,
+    "completion_tokens": 195,
+    "total_tokens": 632,
+    "cost": 0.00021286,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00021286,
+      "upstream_inference_prompt_cost": 0.00005686,
+      "upstream_inference_completions_cost": 0.000156
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00021286
+}

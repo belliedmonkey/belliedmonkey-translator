@@ -1,0 +1,87 @@
+{
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1670|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate mistranslates '地下深穴' as 'subsurface snow accumulation', changing the meaning."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "Flagstaff is mistranslated as '旗甘镇' in ASR and 'Flagstaff' is correct in candidate, but the ASR errors affect entity recognition."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation is preserved."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omission."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The candidate introduces 'subsurface snow accumulation' which is not in the source."
+      },
+      "terminology": {
+        "pass": false,
+        "note": "'地下深穴' should be 'deep underground caves' or similar, not 'subsurface snow accumulation'."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The candidate reads naturally."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "它们与地下深穴的情况很相似",
+        "targetQuote": "they closely resemble the conditions of subsurface snow accumulation",
+        "reason": "The candidate mistranslates '地下深穴' (deep underground caves) as 'subsurface snow accumulation', altering the meaning."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "地下深穴",
+        "targetQuote": "subsurface snow accumulation",
+        "reason": "The candidate invents 'subsurface snow accumulation' which is unsupported by the source."
+      },
+      {
+        "dimension": "terminology",
+        "sourceQuote": "地下深穴",
+        "targetQuote": "subsurface snow accumulation",
+        "reason": "Incorrect translation of a domain term changes the technical meaning."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 607,
+    "completion_tokens": 339,
+    "total_tokens": 946,
+    "cost": 0.0007852,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0007852,
+      "upstream_inference_prompt_cost": 0.0002428,
+      "upstream_inference_completions_cost": 0.0005424
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0007852
+}

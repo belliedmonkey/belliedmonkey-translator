@@ -1,0 +1,68 @@
+{
+  "pairId": "ascend/00066|B",
+  "itemId": "ascend/00066",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "short"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "short"
+      },
+      "negation": {
+        "pass": true,
+        "note": "short"
+      },
+      "omission": {
+        "pass": true,
+        "note": "short"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "short"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "short"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "short"
+      }
+    },
+    "findings": []
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 405,
+    "completion_tokens": 100,
+    "total_tokens": 505,
+    "cost": 0.00013575,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00013575,
+      "upstream_inference_prompt_cost": 0.00006075,
+      "upstream_inference_completions_cost": 0.000075
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00013575
+}

@@ -1,0 +1,87 @@
+{
+  "pairId": "fleurs-public-candidates/en_us/1675|B",
+  "itemId": "fleurs-public-candidates/en_us/1675",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate translates 'Sie' as '安全' (safe), which is a critical meaning error."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "'Sie' is a formal pronoun meaning 'you', not a word meaning 'safe'; this entity is completely misrepresented."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation in source or translation."
+      },
+      "omission": {
+        "pass": false,
+        "note": "The correct term 'Sie' (you) is omitted and replaced with an incorrect word."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The translation introduces '安全' (safe), which is not present or implied in the source."
+      },
+      "terminology": {
+        "pass": false,
+        "note": "'Sie' is a standard grammatical term in German; translating it as '安全' shows incorrect terminology handling."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The Chinese sentence is fluent and grammatically correct."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "the word Sie for you",
+        "targetQuote": "“安全”一词，对你而言",
+        "reason": "'Sie' is incorrectly translated as '安全' (safe), distorting the entire meaning. 'Sie' means 'you' (formal) and is unrelated to 'safe'."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "Sie",
+        "targetQuote": "安全",
+        "reason": "'Sie' is a pronoun and proper linguistic term; rendering it as '安全' falsely presents it as a common noun meaning 'safety'."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "Sie",
+        "targetQuote": "安全",
+        "reason": "The term '安全' is invented and not supported by the source, which refers to the pronoun 'Sie'."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 465,
+    "completion_tokens": 373,
+    "total_tokens": 838,
+    "cost": 0.00035918,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00035918,
+      "upstream_inference_prompt_cost": 0.00006078,
+      "upstream_inference_completions_cost": 0.0002984
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00035918
+}
