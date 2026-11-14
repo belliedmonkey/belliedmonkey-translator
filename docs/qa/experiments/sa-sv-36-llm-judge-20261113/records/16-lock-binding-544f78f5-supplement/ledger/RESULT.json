@@ -1,0 +1,22 @@
+{
+  "ok": false,
+  "code": "supplement-partial",
+  "called": true,
+  "synthetic": false,
+  "supplementComplete": false,
+  "singleRunComplete": false,
+  "doubleBlindComplete": false,
+  "thisRoundProviderUsd": 0.00638081,
+  "thisRoundSettledUsd": 0.00780564,
+  "callCount": 15,
+  "maxRequests": 15,
+  "maxTotalTokens": 48000,
+  "maxRetries": 0,
+  "budgetUsd": 0.17905768,
+  "originSummarySha256": "4744aef13ff5ce3a30680be4fb42604db044073a3e317202c09339d24934365f",
+  "inputSha256": "1a44cca3bf05662c8701d943702a35e7fd1a303f9bcd931764775d9057c795a1",
+  "selectionSha256": "55978cec4c045e7e606559af713a68260ea41aae1c686f2934d3a807876e1135",
+  "lockSha256": "1abc0d51af3b5e7fc99ac52a93dfdd01c43b86a44921440e3da180fa720a325e",
+  "promptTemplateSha256": "a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923",
+  "asrRubric": "belliedmonkey.llm-judge.asr.v2"
+}

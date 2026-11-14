@@ -1,0 +1,45 @@
+{
+  "schema": "belliedmonkey.qa.experiment-record.v1",
+  "record": "16-lock-binding-544f78f5-supplement",
+  "date": "2026-11-14",
+  "authorization": "user approved the merge of #669 and the 15-pair supplement",
+  "head": "544f78f563e16e02c0ae214352597b804e8406e1",
+  "pullRequest": 669,
+  "pack": {
+    "id": "01-PACK-LOCK-BINDING-544f78f5",
+    "builtLocally": true,
+    "serverPackId": null,
+    "sha256": "d5ebe767adf4b29349f92ec84f9f97b4298c5216bfe4fc5948e6859ad6a27297",
+    "bytes": 24313,
+    "runJudgeJsSha256": "c8180376c3c35ac3dbf358a03c5f70675443a3a282773864c7c8db8f1e2a9b74"
+  },
+  "verify": {
+    "checks": 41,
+    "passed": 41
+  },
+  "result": {
+    "code": "supplement-partial",
+    "calls": 15,
+    "parsed": 10,
+    "null": 5
+  },
+  "coverage": {
+    "validPairs": 67,
+    "totalPairs": 72,
+    "itemsBothValid": 31,
+    "itemsSingleArm": 5,
+    "itemsNone": 0
+  },
+  "money": {
+    "providerActualUsd": 0.00638081,
+    "settledUsd": 0.00780564,
+    "remainingUsd": 0.17125204
+  },
+  "unchanged": {
+    "officialV2ResultSha256": "580da9aaa0107c3ec54939f2e4782334de3da6ca96b0600441235a57896169bc",
+    "originSummarySha256": "4744aef13ff5ce3a30680be4fb42604db044073a3e317202c09339d24934365f",
+    "sa": "en 36/363, zh 57/624, codeswitch 24/42 ranking=false",
+    "sv": "en 29/363, zh 57/624, codeswitch 17/42 ranking=false",
+    "semanticHumanReviewCount": 0
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "schema": "belliedmonkey.llm-judge.human-review-pending.v1",
+  "note": "Only these five pairs still have no valid verdict after the frozen 15-pair supplement. They are the only reviewable objects; earlier 14-item list is superseded. Human semantic review count is still 0. Ear listen is not semantic review. This file carries no arm mapping.",
+  "pairs": [
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "judgeId": "judge-a",
+      "parseCode": "bad-json"
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1674",
+      "judgeId": "judge-b",
+      "parseCode": "note"
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "judgeId": "judge-b",
+      "parseCode": "quote"
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1670",
+      "judgeId": "judge-b",
+      "parseCode": "quote"
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1680",
+      "judgeId": "judge-b",
+      "parseCode": "bad-json"
+    }
+  ],
+  "count": 5
+}

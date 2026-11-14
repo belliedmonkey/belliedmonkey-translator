@@ -56,8 +56,26 @@
   },
   "backfill15ReserveUsd": "0.03251712",
   "backfill15Executed": false,
-  "backfill15SpentUsd": "0",
-  "remainingAfterReserveIfLaterAuthorized": "0.14654056",
+  "backfill15SpentUsd": "0.00780564",
+  "remainingAfterReserveIfLaterAuthorized": "0.17125204",
   "formula": "2 * 0.00411136 + 13 * 0.0018688 = 0.03251712",
-  "thisArchiveDidNotSpend": true
+  "thisArchiveDidNotSpend": false,
+  "backfill15ExecutedAt": "2026-11-14T12:12:06+08:00",
+  "backfill15": {
+    "executed": true,
+    "calls": 15,
+    "parsed": 10,
+    "null": 5,
+    "code": "supplement-partial",
+    "providerActualUsd": "0.00638081",
+    "envelopeSettledUsd": "0.00780564",
+    "reserveUsd": "0.03251712",
+    "reserveUnusedUsd": "0.02471148",
+    "record": "records/16-lock-binding-544f78f5-supplement",
+    "packSha256": "d5ebe767adf4b29349f92ec84f9f97b4298c5216bfe4fc5948e6859ad6a27297",
+    "head": "544f78f563e16e02c0ae214352597b804e8406e1",
+    "note": "预算口径按信封结算：本轮把 0.00780564 计入已用，剩余 0.17125204。provider actual 0.00638081 只作对照，不用它改 plan used。"
+  },
+  "usedPlanUsdAfterBackfill": "0.10874796",
+  "remainingPlanUsdAfterBackfill": "0.17125204"
 }

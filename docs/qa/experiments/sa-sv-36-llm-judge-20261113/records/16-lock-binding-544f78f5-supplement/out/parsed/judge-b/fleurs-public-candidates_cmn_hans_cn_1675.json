@@ -1,0 +1,66 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "您的“Sie”",
+            "hypQuote": "零的C",
+            "reason": "'您的“Sie”' 是德语尊称形式的翻译，而 '零的C' 是完全不同的实体，语义错误"
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "大写字母",
+            "hypQuote": "大写",
+            "reason": "'大写字母' 与 '大写' 在此上下文中表达相同意思，属于格式简化但未改变语义"
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "",
+        "findings": [
+          {
+            "kind": "entity",
+            "refQuote": "您的“Sie”",
+            "hypQuote": "您的 C",
+            "reason": "'您的“Sie”' 被错误转录为 '您的 C'，'C' 不是原词的正确表示，实体错误"
+          },
+          {
+            "kind": "omission",
+            "refQuote": "大写字母",
+            "hypQuote": "大写",
+            "reason": "'大写字母' 被简化为 '大写'，遗漏了 '字母' 一词，构成内容缺失"
+          },
+          {
+            "kind": "addition",
+            "refQuote": "",
+            "hypQuote": " ",
+            "reason": "在 '开头' 后多出一个空格，属于额外添加的空白字符"
+          }
+        ]
+      }
+    ]
+  },
+  "observation": {
+    "transportOk": true,
+    "generationOk": true,
+    "finishReason": "stop",
+    "providerError": false,
+    "usageComplete": true,
+    "parseOk": true,
+    "parseCode": "parsed",
+    "modelFormatFault": false
+  }
+}

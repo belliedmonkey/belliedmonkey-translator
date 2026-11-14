@@ -1,0 +1,72 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "ascend/00009",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.3,
+        "note": "Multiple phonetic and spelling errors affect accuracy.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "no我专业是",
+            "hypQuote": "那我觉爱是",
+            "reason": "The candidate omits the initial 'no' and changes '我专业是' to '我觉爱是', which is both a semantic and phonetic distortion."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "i s m",
+            "hypQuote": "ISM",
+            "reason": "The spacing and capitalization differ, but the acronym refers to the same entity."
+          },
+          {
+            "kind": "entity",
+            "refQuote": "information systems management",
+            "hypQuote": "impormation sistancemangement",
+            "reason": "The term 'information systems management' is misrendered as 'impormation sistancemangement', introducing spelling errors that change the recognized entity."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.7,
+        "note": "Minor phonetic variation but preserves key terms accurately.",
+        "findings": [
+          {
+            "kind": "omission",
+            "refQuote": "no我专业是",
+            "hypQuote": "那我就按是",
+            "reason": "The candidate omits 'no' and alters '我专业是' to '那我就按是', which is a phonetic approximation with slight semantic drift."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "i s m",
+            "hypQuote": "ISM",
+            "reason": "Differing spacing and capitalization, but refers to the same acronym."
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "information systems management",
+            "hypQuote": "information systems management",
+            "reason": "Exact match in content despite surrounding phonetic variations."
+          }
+        ]
+      }
+    ]
+  },
+  "observation": {
+    "transportOk": true,
+    "generationOk": true,
+    "finishReason": "stop",
+    "providerError": false,
+    "usageComplete": true,
+    "parseOk": true,
+    "parseCode": "parsed",
+    "modelFormatFault": false
+  }
+}

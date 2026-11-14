@@ -1,0 +1,9 @@
+{
+  "originKept": 57,
+  "supplementRequested": 15,
+  "supplementParsed": 10,
+  "supplementNull": 5,
+  "unselectedFailed": 0,
+  "cherryPick": false,
+  "derivedCoverageComplete": false
+}

@@ -1,0 +1,66 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1681",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "试验",
+            "hypQuote": "实验",
+            "reason": "The reference uses '试验' while the candidate uses '实验', which are synonymous in this context and represent the same concept with different wording."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "，",
+            "hypQuote": "",
+            "reason": "The reference includes a comma after '方法' to separate clauses, but the candidate omits this punctuation, leading to a run-on sentence."
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.9,
+        "note": "",
+        "findings": [
+          {
+            "kind": "format-only",
+            "refQuote": "试验",
+            "hypQuote": "实验",
+            "reason": "The reference uses '试验' while the candidate uses '实验', which are synonymous in this context and represent the same concept with different wording."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "，",
+            "hypQuote": "",
+            "reason": "The candidate omits commas after '方法' and '观察', which are present in the reference and necessary for proper clause separation."
+          },
+          {
+            "kind": "omission",
+            "refQuote": "不过，",
+            "hypQuote": "不过",
+            "reason": "The reference includes a comma after '不过' for pause and clarity, but the candidate omits it."
+          }
+        ]
+      }
+    ]
+  },
+  "observation": {
+    "transportOk": true,
+    "generationOk": true,
+    "finishReason": "stop",
+    "providerError": false,
+    "usageComplete": true,
+    "parseOk": true,
+    "parseCode": "parsed",
+    "modelFormatFault": false
+  }
+}

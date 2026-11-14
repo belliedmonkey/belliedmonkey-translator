@@ -1,0 +1,66 @@
+{
+  "ok": true,
+  "code": "parsed",
+  "verdict": {
+    "schema": "belliedmonkey.llm-judge.verdict.v2",
+    "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+    "slots": [
+      {
+        "slot": "slot-1",
+        "abstain": false,
+        "confidence": 0.85,
+        "note": "",
+        "findings": [
+          {
+            "kind": "number",
+            "refQuote": "十三个州",
+            "hypQuote": "1三个州",
+            "reason": "数字'十三'被错误转录为'1三个'，数字表达错误且语义不完整。"
+          },
+          {
+            "kind": "omission",
+            "refQuote": "（国会是其唯一的组成部分）",
+            "hypQuote": "国会是其唯一的组成部分",
+            "reason": "缺少括号，但更关键的是缺少对‘国会是其唯一的组成部分’这一补充说明的标点隔离，导致结构信息丢失。"
+          }
+        ]
+      },
+      {
+        "slot": "slot-2",
+        "abstain": false,
+        "confidence": 0.95,
+        "note": "",
+        "findings": [
+          {
+            "kind": "number",
+            "refQuote": "十三个州",
+            "hypQuote": "13个州",
+            "reason": "'十三'被转为阿拉伯数字'13'，属于数字格式转换，但数值正确，语义一致。"
+          },
+          {
+            "kind": "omission",
+            "refQuote": "（国会是其唯一的组成部分）",
+            "hypQuote": "国会是其唯一的组成部分",
+            "reason": "缺少括号，遗漏了标点符号，导致补充说明的结构信息减弱。"
+          },
+          {
+            "kind": "format-only",
+            "refQuote": "《联邦条例》",
+            "hypQuote": "联邦条例",
+            "reason": "书名号缺失，但文字内容一致，属于格式差异。"
+          }
+        ]
+      }
+    ]
+  },
+  "observation": {
+    "transportOk": true,
+    "generationOk": true,
+    "finishReason": "stop",
+    "providerError": false,
+    "usageComplete": true,
+    "parseOk": true,
+    "parseCode": "parsed",
+    "modelFormatFault": false
+  }
+}

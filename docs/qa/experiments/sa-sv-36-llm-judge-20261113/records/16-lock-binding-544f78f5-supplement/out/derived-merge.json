@@ -1,0 +1,1002 @@
+{
+  "schema": "belliedmonkey.llm-judge.derived-merge.v1",
+  "official": false,
+  "singleRunComplete": false,
+  "originSingleRunComplete": false,
+  "supplementComplete": false,
+  "doubleBlindComplete": false,
+  "originSummarySha256": "4744aef13ff5ce3a30680be4fb42604db044073a3e317202c09339d24934365f",
+  "selectionSha256": "c151018bfda2953d2375f8cfce25580787745f162824b66f2d7eccec641979a4",
+  "note": "Origin-valid pairs stay a reference to the origin file. Selected failures use only this request. An invalid parse stays null.",
+  "pairs": [
+    {
+      "itemId": "ascend/00004",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "ascend/00009",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "ascend/00028",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "ascend/00055",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "ascend/00066",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "ascend/00068",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1668",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1669",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "judgeId": "judge-a",
+      "source": "supplement",
+      "originKept": false,
+      "verdict": null,
+      "parseCode": "bad-json"
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1672",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1674",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1676",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1678",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1681",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1682",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1668",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1669",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1670",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1671",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1672",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1673",
+      "judgeId": "judge-a",
+      "source": "supplement",
+      "originKept": false,
+      "verdict": {
+        "schema": "belliedmonkey.llm-judge.verdict.v2",
+        "itemId": "fleurs-public-candidates/en_us/1673",
+        "slots": [
+          {
+            "slot": "slot-1",
+            "abstain": false,
+            "confidence": 0.9,
+            "note": "Uses digits '13' instead of words 'thirteen' and replaces an em dash with a comma, but meaning is preserved.",
+            "findings": [
+              {
+                "kind": "format-only",
+                "refQuote": "the thirteen states",
+                "hypQuote": "the 13 states",
+                "reason": "Digits used instead of words for the number thirteen."
+              },
+              {
+                "kind": "format-only",
+                "refQuote": "—with the Congress being its only component—",
+                "hypQuote": ", with the Congress being its only component",
+                "reason": "Em dash replaced by a comma and no closing dash, changing punctuation format."
+              }
+            ]
+          },
+          {
+            "slot": "slot-2",
+            "abstain": false,
+            "confidence": 0.95,
+            "note": "Uses digits '13' instead of words 'thirteen' and omits a comma after 'government'; also omits the em dash punctuation, but meaning is preserved.",
+            "findings": [
+              {
+                "kind": "format-only",
+                "refQuote": "the thirteen states",
+                "hypQuote": "the 13 states",
+                "reason": "Digits used instead of words for the number thirteen."
+              },
+              {
+                "kind": "format-only",
+                "refQuote": "—with the Congress being its only component—",
+                "hypQuote": "with the Congress being its only component",
+                "reason": "Em dash punctuation omitted entirely."
+              },
+              {
+                "kind": "format-only",
+                "refQuote": "a weak central government—with the Congress",
+                "hypQuote": "a weak central government with the Congress",
+                "reason": "Comma after 'government' omitted, changing punctuation."
+              }
+            ]
+          }
+        ]
+      },
+      "parseCode": "parsed"
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1674",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1675",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1676",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1677",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1678",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1679",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1680",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1681",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1682",
+      "judgeId": "judge-a",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "ascend/00004",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "ascend/00009",
+      "judgeId": "judge-b",
+      "source": "supplement",
+      "originKept": false,
+      "verdict": {
+        "schema": "belliedmonkey.llm-judge.verdict.v2",
+        "itemId": "ascend/00009",
+        "slots": [
+          {
+            "slot": "slot-1",
+            "abstain": false,
+            "confidence": 0.3,
+            "note": "Multiple phonetic and spelling errors affect accuracy.",
+            "findings": [
+              {
+                "kind": "omission",
+                "refQuote": "no我专业是",
+                "hypQuote": "那我觉爱是",
+                "reason": "The candidate omits the initial 'no' and changes '我专业是' to '我觉爱是', which is both a semantic and phonetic distortion."
+              },
+              {
+                "kind": "format-only",
+                "refQuote": "i s m",
+                "hypQuote": "ISM",
+                "reason": "The spacing and capitalization differ, but the acronym refers to the same entity."
+              },
+              {
+                "kind": "entity",
+                "refQuote": "information systems management",
+                "hypQuote": "impormation sistancemangement",
+                "reason": "The term 'information systems management' is misrendered as 'impormation sistancemangement', introducing spelling errors that change the recognized entity."
+              }
+            ]
+          },
+          {
+            "slot": "slot-2",
+            "abstain": false,
+            "confidence": 0.7,
+            "note": "Minor phonetic variation but preserves key terms accurately.",
+            "findings": [
+              {
+                "kind": "omission",
+                "refQuote": "no我专业是",
+                "hypQuote": "那我就按是",
+                "reason": "The candidate omits 'no' and alters '我专业是' to '那我就按是', which is a phonetic approximation with slight semantic drift."
+              },
+              {
+                "kind": "format-only",
+                "refQuote": "i s m",
+                "hypQuote": "ISM",
+                "reason": "Differing spacing and capitalization, but refers to the same acronym."
+              },
+              {
+                "kind": "format-only",
+                "refQuote": "information systems management",
+                "hypQuote": "information systems management",
+                "reason": "Exact match in content despite surrounding phonetic variations."
+              }
+            ]
+          }
+        ]
+      },
+      "parseCode": "parsed"
+    },
+    {
+      "itemId": "ascend/00028",
+      "judgeId": "judge-b",
+      "source": "supplement",
+      "originKept": false,
+      "verdict": {
+        "schema": "belliedmonkey.llm-judge.verdict.v2",
+        "itemId": "ascend/00028",
+        "slots": [
+          {
+            "slot": "slot-1",
+            "abstain": false,
+            "confidence": 0.9,
+            "note": "",
+            "findings": [
+              {
+                "kind": "entity",
+                "refQuote": "福建",
+                "hypQuote": "K附件",
+                "reason": "The reference contains '福建', which refers to the Chinese province Fujian, while the candidate has 'K附件', which is a mix of an English letter and a Chinese word meaning 'attachment'. These are different entities."
+              },
+              {
+                "kind": "omission",
+                "refQuote": "福建",
+                "hypQuote": "",
+                "reason": "The candidate does not include the correct term '福建' as in the reference."
+              },
+              {
+                "kind": "addition",
+                "refQuote": "",
+                "hypQuote": "K",
+                "reason": "The candidate includes an extra letter 'K' not present in the reference."
+              }
+            ]
+          },
+          {
+            "slot": "slot-2",
+            "abstain": false,
+            "confidence": 0.85,
+            "note": "",
+            "findings": [
+              {
+                "kind": "entity",
+                "refQuote": "福建",
+                "hypQuote": "附件",
+                "reason": "The reference mentions '福建' (Fujian), a Chinese province, while the candidate says '附件', which means 'attachment' in Chinese. These are semantically different entities."
+              },
+              {
+                "kind": "omission",
+                "refQuote": "福建",
+                "hypQuote": "",
+                "reason": "The term '福建' from the reference is missing in the candidate."
+              },
+              {
+                "kind": "addition",
+                "refQuote": "",
+                "hypQuote": "附件",
+                "reason": "The candidate includes '附件' (attachment), which is not present in the reference."
+              }
+            ]
+          }
+        ]
+      },
+      "parseCode": "parsed"
+    },
+    {
+      "itemId": "ascend/00055",
+      "judgeId": "judge-b",
+      "source": "supplement",
+      "originKept": false,
+      "verdict": {
+        "schema": "belliedmonkey.llm-judge.verdict.v2",
+        "itemId": "ascend/00055",
+        "slots": [
+          {
+            "slot": "slot-1",
+            "abstain": false,
+            "confidence": 0.95,
+            "note": "The candidate includes a comma and extra spaces not in the reference, but these are formatting differences that do not affect meaning.",
+            "findings": [
+              {
+                "kind": "format-only",
+                "refQuote": "um",
+                "hypQuote": "嗯",
+                "reason": "The spoken filler 'um' in the reference is transcribed as '嗯' in the candidate, which is a common Mandarin equivalent; this is a surface-level difference in representation."
+              },
+              {
+                "kind": "format-only",
+                "refQuote": "运动啊男生",
+                "hypQuote": "运动啊 ，男生",
+                "reason": "The candidate inserts a comma and extra space between '运动啊' and '男生', which is a punctuation and spacing difference, not a semantic change."
+              }
+            ]
+          },
+          {
+            "slot": "slot-2",
+            "abstain": false,
+            "confidence": 0.95,
+            "note": "The candidate ends with a period not present in the reference, and omits the initial 'um' filler.",
+            "findings": [
+              {
+                "kind": "omission",
+                "refQuote": "um",
+                "hypQuote": "",
+                "reason": "The reference begins with 'um', a spoken filler, which is missing in the candidate."
+              },
+              {
+                "kind": "format-only",
+                "refQuote": "运动啊男生",
+                "hypQuote": "运动啊男生",
+                "reason": "The text is identical in this segment; the candidate adds a period at the end, which is a minor punctuation difference."
+              }
+            ]
+          }
+        ]
+      },
+      "parseCode": "parsed"
+    },
+    {
+      "itemId": "ascend/00066",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "ascend/00068",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1668",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1669",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1672",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+      "judgeId": "judge-b",
+      "source": "supplement",
+      "originKept": false,
+      "verdict": {
+        "schema": "belliedmonkey.llm-judge.verdict.v2",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+        "slots": [
+          {
+            "slot": "slot-1",
+            "abstain": false,
+            "confidence": 0.85,
+            "note": "",
+            "findings": [
+              {
+                "kind": "number",
+                "refQuote": "十三个州",
+                "hypQuote": "1三个州",
+                "reason": "数字'十三'被错误转录为'1三个'，数字表达错误且语义不完整。"
+              },
+              {
+                "kind": "omission",
+                "refQuote": "（国会是其唯一的组成部分）",
+                "hypQuote": "国会是其唯一的组成部分",
+                "reason": "缺少括号，但更关键的是缺少对‘国会是其唯一的组成部分’这一补充说明的标点隔离，导致结构信息丢失。"
+              }
+            ]
+          },
+          {
+            "slot": "slot-2",
+            "abstain": false,
+            "confidence": 0.95,
+            "note": "",
+            "findings": [
+              {
+                "kind": "number",
+                "refQuote": "十三个州",
+                "hypQuote": "13个州",
+                "reason": "'十三'被转为阿拉伯数字'13'，属于数字格式转换，但数值正确，语义一致。"
+              },
+              {
+                "kind": "omission",
+                "refQuote": "（国会是其唯一的组成部分）",
+                "hypQuote": "国会是其唯一的组成部分",
+                "reason": "缺少括号，遗漏了标点符号，导致补充说明的结构信息减弱。"
+              },
+              {
+                "kind": "format-only",
+                "refQuote": "《联邦条例》",
+                "hypQuote": "联邦条例",
+                "reason": "书名号缺失，但文字内容一致，属于格式差异。"
+              }
+            ]
+          }
+        ]
+      },
+      "parseCode": "parsed"
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1674",
+      "judgeId": "judge-b",
+      "source": "supplement",
+      "originKept": false,
+      "verdict": null,
+      "parseCode": "note"
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+      "judgeId": "judge-b",
+      "source": "supplement",
+      "originKept": false,
+      "verdict": {
+        "schema": "belliedmonkey.llm-judge.verdict.v2",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+        "slots": [
+          {
+            "slot": "slot-1",
+            "abstain": false,
+            "confidence": 0.95,
+            "note": "",
+            "findings": [
+              {
+                "kind": "entity",
+                "refQuote": "您的“Sie”",
+                "hypQuote": "零的C",
+                "reason": "'您的“Sie”' 是德语尊称形式的翻译，而 '零的C' 是完全不同的实体，语义错误"
+              },
+              {
+                "kind": "format-only",
+                "refQuote": "大写字母",
+                "hypQuote": "大写",
+                "reason": "'大写字母' 与 '大写' 在此上下文中表达相同意思，属于格式简化但未改变语义"
+              }
+            ]
+          },
+          {
+            "slot": "slot-2",
+            "abstain": false,
+            "confidence": 0.9,
+            "note": "",
+            "findings": [
+              {
+                "kind": "entity",
+                "refQuote": "您的“Sie”",
+                "hypQuote": "您的 C",
+                "reason": "'您的“Sie”' 被错误转录为 '您的 C'，'C' 不是原词的正确表示，实体错误"
+              },
+              {
+                "kind": "omission",
+                "refQuote": "大写字母",
+                "hypQuote": "大写",
+                "reason": "'大写字母' 被简化为 '大写'，遗漏了 '字母' 一词，构成内容缺失"
+              },
+              {
+                "kind": "addition",
+                "refQuote": "",
+                "hypQuote": " ",
+                "reason": "在 '开头' 后多出一个空格，属于额外添加的空白字符"
+              }
+            ]
+          }
+        ]
+      },
+      "parseCode": "parsed"
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1676",
+      "judgeId": "judge-b",
+      "source": "supplement",
+      "originKept": false,
+      "verdict": {
+        "schema": "belliedmonkey.llm-judge.verdict.v2",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1676",
+        "slots": [
+          {
+            "slot": "slot-1",
+            "abstain": false,
+            "confidence": 1,
+            "note": "",
+            "findings": []
+          },
+          {
+            "slot": "slot-2",
+            "abstain": false,
+            "confidence": 0.9,
+            "note": "",
+            "findings": [
+              {
+                "kind": "format-only",
+                "refQuote": "与所有南非国家公园一样，该公园每天都收取养护费和门票费。",
+                "hypQuote": "与所有南非国家公园一样 ，该公园每天都收取养护费和门票费。",
+                "reason": "唯一的差异是标点空格：参考文本中是全角逗号后紧跟汉字，而候选文本在逗号后有一个空格。这属于格式差异，不影响语义。"
+              }
+            ]
+          }
+        ]
+      },
+      "parseCode": "parsed"
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1678",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "judgeId": "judge-b",
+      "source": "supplement",
+      "originKept": false,
+      "verdict": null,
+      "parseCode": "quote"
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1681",
+      "judgeId": "judge-b",
+      "source": "supplement",
+      "originKept": false,
+      "verdict": {
+        "schema": "belliedmonkey.llm-judge.verdict.v2",
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1681",
+        "slots": [
+          {
+            "slot": "slot-1",
+            "abstain": false,
+            "confidence": 0.95,
+            "note": "",
+            "findings": [
+              {
+                "kind": "format-only",
+                "refQuote": "试验",
+                "hypQuote": "实验",
+                "reason": "The reference uses '试验' while the candidate uses '实验', which are synonymous in this context and represent the same concept with different wording."
+              },
+              {
+                "kind": "omission",
+                "refQuote": "，",
+                "hypQuote": "",
+                "reason": "The reference includes a comma after '方法' to separate clauses, but the candidate omits this punctuation, leading to a run-on sentence."
+              }
+            ]
+          },
+          {
+            "slot": "slot-2",
+            "abstain": false,
+            "confidence": 0.9,
+            "note": "",
+            "findings": [
+              {
+                "kind": "format-only",
+                "refQuote": "试验",
+                "hypQuote": "实验",
+                "reason": "The reference uses '试验' while the candidate uses '实验', which are synonymous in this context and represent the same concept with different wording."
+              },
+              {
+                "kind": "omission",
+                "refQuote": "，",
+                "hypQuote": "",
+                "reason": "The candidate omits commas after '方法' and '观察', which are present in the reference and necessary for proper clause separation."
+              },
+              {
+                "kind": "omission",
+                "refQuote": "不过，",
+                "hypQuote": "不过",
+                "reason": "The reference includes a comma after '不过' for pause and clarity, but the candidate omits it."
+              }
+            ]
+          }
+        ]
+      },
+      "parseCode": "parsed"
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1682",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1668",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1669",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1670",
+      "judgeId": "judge-b",
+      "source": "supplement",
+      "originKept": false,
+      "verdict": null,
+      "parseCode": "quote"
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1671",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1672",
+      "judgeId": "judge-b",
+      "source": "supplement",
+      "originKept": false,
+      "verdict": {
+        "schema": "belliedmonkey.llm-judge.verdict.v2",
+        "itemId": "fleurs-public-candidates/en_us/1672",
+        "slots": [
+          {
+            "slot": "slot-1",
+            "abstain": false,
+            "confidence": 0.95,
+            "note": "",
+            "findings": [
+              {
+                "kind": "addition",
+                "refQuote": "Be careful not to allow fabric to become too hot",
+                "hypQuote": "All right, be careful not to allow fabric to become too hot",
+                "reason": "The phrase 'All right,' is present in the candidate but not in the reference, making it an addition."
+              },
+              {
+                "kind": "format-only",
+                "refQuote": "(which can cause shrinkage, or in extreme cases, scorch)",
+                "hypQuote": "which can cause shrinkage, or in extreme cases, scorch",
+                "reason": "The reference includes parentheses around the clause, while the candidate omits them; the content and meaning remain the same."
+              }
+            ]
+          },
+          {
+            "slot": "slot-2",
+            "abstain": false,
+            "confidence": 0.98,
+            "note": "",
+            "findings": [
+              {
+                "kind": "format-only",
+                "refQuote": "(which can cause shrinkage, or in extreme cases, scorch)",
+                "hypQuote": "which can cause shrinkage or in extreme cases, scorch",
+                "reason": "The candidate omits both the parentheses and the comma after 'shrinkage' present in the reference, but the meaning is preserved; this is a minor formatting difference."
+              }
+            ]
+          }
+        ]
+      },
+      "parseCode": "parsed"
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1673",
+      "judgeId": "judge-b",
+      "source": "supplement",
+      "originKept": false,
+      "verdict": {
+        "schema": "belliedmonkey.llm-judge.verdict.v2",
+        "itemId": "fleurs-public-candidates/en_us/1673",
+        "slots": [
+          {
+            "slot": "slot-1",
+            "abstain": false,
+            "confidence": 0.95,
+            "note": "",
+            "findings": [
+              {
+                "kind": "format-only",
+                "refQuote": "thirteen",
+                "hypQuote": "13",
+                "reason": "The word 'thirteen' in the reference is written as the numeral '13' in the candidate, which is a surface-level format difference with no change in meaning."
+              }
+            ]
+          },
+          {
+            "slot": "slot-2",
+            "abstain": false,
+            "confidence": 0.95,
+            "note": "",
+            "findings": [
+              {
+                "kind": "format-only",
+                "refQuote": "thirteen",
+                "hypQuote": "13",
+                "reason": "The word 'thirteen' in the reference is written as the numeral '13' in the candidate, which is a surface-level format difference with no change in meaning."
+              }
+            ]
+          }
+        ]
+      },
+      "parseCode": "parsed"
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1674",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1675",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1676",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1677",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1678",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1679",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1680",
+      "judgeId": "judge-b",
+      "source": "supplement",
+      "originKept": false,
+      "verdict": null,
+      "parseCode": "bad-json"
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1681",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1682",
+      "judgeId": "judge-b",
+      "source": "origin",
+      "originKept": true,
+      "verdict": null
+    }
+  ],
+  "coverage": {
+    "originKept": 57,
+    "supplementRequested": 15,
+    "supplementParsed": 10,
+    "supplementNull": 5,
+    "unselectedFailed": 0,
+    "cherryPick": false,
+    "derivedCoverageComplete": false
+  }
+}
