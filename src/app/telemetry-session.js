@@ -305,12 +305,15 @@ export function appOpen() {
 }
 
 // ── auth_ok：登录成功后的匿名事件 + 第一方窄口 ─────────────────────────────
-// method 的判定：注册表只给 signup / signin，而 GoTrue 的会话对象没有可靠的
-// 「这次是新建还是登录」字段（bt-auth-ok 的实现注释也明说不要拿时间差猜）。
-// App 里「登录即注册」（邮箱验证码 create_user）与 Apple / Google / 密码登录都会
-// 产生会话，所以本模块用**本机首次见到的账号**作 signup：同一台设备第一次成功登录
-// 这个 userId ⇒ signup，之后再登 ⇒ signin。它是本机口径，不是服务端出生证明 ——
-// 换设备的第一次登录会记成 signup（缺口如实写进 RESULT）。
+// method 的判定分三层（BEL-223 2026-11-14 产品口径）：
+//   1. 调用方在登录响应里用 GoTrue 的 created_at / last_sign_in_at 当场判出了
+//      signup / signin（src.method）→ 直接用；
+//   2. 调用方明确说「判过了」（src.methodResolved === true）但 method 为空
+//      （时间戳缺失/不可解析）→ **不猜**，method 留空；
+//   3. 老调用方既没 method 也没 methodResolved → 才走下面的本机首见启发式兜底。
+// 兜底口径只为本机旧调用方保留：同一台设备第一次成功登录这个 userId ⇒ signup，
+// 之后再登 ⇒ signin。它是本机口径，不是服务端出生证明 —— 换设备的第一次登录会
+// 记成 signup（缺口如实写进 RESULT）。
 async function classifyMethod(userId) {
   if (!userId) return 'signin';
   try {
@@ -351,7 +354,8 @@ async function reportAuthOk(o) {
   if (installId) headers['x-mt-install-id'] = installId;
   const body = {
     install_id: installId,
-    method: o.method,
+    // bt_auth_ok.method 是 not null default ''：空串是「不知道」，不是省略。
+    method: String(o.method || ''),
     host: 'app',
     flavor: flavor(),
     provider: o.provider,
@@ -383,13 +387,25 @@ export function noteAuthOk(o) {
     // 两条路共用同一个开关：关掉时必须**两条都不做** —— 不记匿名 auth_ok，也不写
     // 第一方 bt-auth-ok（否则「关了还留着账号关联」就是假话）。开关状态现读，不缓存。
     if (!(await telemetryOn())) return false;
-    const method = src.method === 'signup' || src.method === 'signin'
-      ? src.method : await classifyMethod(src.userId);
+    let method;
+    if (src.method === 'signup' || src.method === 'signin') {
+      method = src.method;
+    } else if (src.methodResolved === true) {
+      // 登录回执已经判过：时间戳缺失/不可解析就是「不知道」，宁可留空也不拿
+      // 本机历史猜。空串不在注册表枚举里，所以下面发事件时整个 method 键省略。
+      method = '';
+    } else {
+      method = await classifyMethod(src.userId);
+    }
     // BEL-223：登录成功发生在登录面 —— surface 钉成 login，不再沿用「上次功能面」。
     // launch_id 与同一次冷启的其他事件共用一个 32-hex id（installLaunchId 也会补，
     // 这里显式带上是让发送口自身完整、可单测）。
-    track('auth_ok', { surface: 'login', provider, method, launch_id: LAUNCH_ID });
-    // 开关打开时才写第一方窄口；与上面的匿名事件同进同退。
+    const event = { surface: 'login', provider, launch_id: LAUNCH_ID };
+    // auth_ok.method 只收 signup / signin；空串不在枚举里，会被服务端整条拒收。
+    if (method) event.method = method;
+    track('auth_ok', event);
+    // 开关打开时才写第一方窄口；与上面的匿名事件同进同退。bt_auth_ok.method 是
+    // not null default ''，所以这边空值传空串（不是省略）。
     return reportAuthOk({ accessToken: src.accessToken, provider, method });
   })().catch(() => false);
 }
