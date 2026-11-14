@@ -43,6 +43,17 @@ const PACK_KINDS = ['asr', 'tts', 'lid', 'vad'];
 const PACK_SOURCES = ['system', 'github', 'modelscope', 'other'];
 const PACK_FAIL_REASONS = ['network', 'timeout', 'disk', 'hash', 'unsupported', 'other'];
 
+// BEL-225（2026-11-14）：`app_open.surface` 换成「打开时落在哪一屏」，不是功能面。
+//   login     = 面对登录墙（auth_state=signed_out）
+//   packs     = 已登录，但首启包屏还没走完（FirstRun.step === 'packs'）
+//   app_home  = 已登录且包屏已过 / 已就绪
+// `unknown` 与 quick 面板**不带**这个键（不猜屏）。
+//
+// 这里保留旧五面做**联合枚举**：1.23.3 老客户端仍会发 listen / live_caption / quick /
+// doc / web_caption，删掉会让这些历史行与老包整条被白名单拒收；新客户端只发上面三个
+// 屏值。`auth_ok` / `live_gate` 仍用 SURFACES，本票不动。
+const APP_OPEN_SURFACES = SURFACES.concat(['login', 'packs', 'app_home']);
+
 // BEL-247（2026-11-13）：translate_ok 与 translate_fail 共用的**同一个** kind 枚举。
 // 以前只有 ok 有 kind，失败那条无法按功能面拆成功率；复制一份枚举就是下一次漂移的起点，
 // 所以抽成常量、两边引用。加一个值 = 改这里 + docs/telemetry-design.md §3。
@@ -166,7 +177,9 @@ const EVENTS = {
   // `entry_kind` **没有约定 ⇒ 不加**（研发令明确：没约定就不带）。
   app_open: {
     launch_id: 'id',
-    surface: SURFACES,                 // home / 登录墙这种不在这五面时**不带这个键**（props 可缺）
+    // 屏幕值 login / packs / app_home；旧五面保留收 1.23.3 老客户端（见 APP_OPEN_SURFACES）。
+    // unknown 与 quick 面板**不带这个键**（props 可缺）。
+    surface: APP_OPEN_SURFACES,
     auth_state: ['signed_in', 'signed_out', 'unknown'],
   },
   // 登录成功（BEL-223）。P3 要求「signup / signin 各一次」⇒ method 必须能分开这两种；
