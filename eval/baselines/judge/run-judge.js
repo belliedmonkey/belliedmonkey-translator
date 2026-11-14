@@ -257,6 +257,112 @@ function validateSelection(doc, items, judges) {
   };
 }
 
+function assignmentCanonical(seed, items) {
+  return JSON.stringify({ schema: 'belliedmonkey.llm-judge.assignment.v1', seed: seed, items: items });
+}
+
+function assignmentDigest(seed, items) {
+  return crypto.createHash('sha256').update(assignmentCanonical(seed, items), 'utf8').digest('hex');
+}
+
+function pairKey(pair) {
+  return pair.judgeId + '\n' + pair.itemId;
+}
+
+function resolvedDir(dirPath) {
+  const abs = path.resolve(dirPath);
+  if (fs.existsSync(abs)) return fs.realpathSync(abs);
+  const parent = path.dirname(abs);
+  if (!fs.existsSync(parent)) return null;
+  return path.join(fs.realpathSync(parent), path.basename(abs));
+}
+
+function nested(parent, child) {
+  return child === parent || child.startsWith(parent + path.sep);
+}
+
+function gateSupplement(opts, config, selected, assignmentItems) {
+  if (!selected.list) return { ok: true };
+  if (!opts.origin) return { ok: false, code: 'origin-required' };
+  if (!opts.originLock) return { ok: false, code: 'origin-lock-required' };
+  if (opts.run && !opts.out) return { ok: false, code: 'out-required' };
+  const lock = opts.originLock;
+  if (!lock || typeof lock !== 'object' || Array.isArray(lock)) return { ok: false, code: 'origin-lock' };
+  const allow = ['schema', 'summarySha256', 'assignmentSha256', 'inputSha256', 'promptTemplateSha256', 'seed', 'models', 'failedPairs', 'succeededPairs'];
+  const extra = Object.keys(lock).filter((key) => allow.indexOf(key) === -1);
+  if (extra.length || lock.schema !== 'belliedmonkey.llm-judge.origin-lock.v1') return { ok: false, code: 'origin-lock' };
+  if (typeof lock.summarySha256 !== 'string' || typeof lock.assignmentSha256 !== 'string') return { ok: false, code: 'origin-lock' };
+  if (typeof lock.inputSha256 !== 'string' || typeof lock.promptTemplateSha256 !== 'string') return { ok: false, code: 'origin-lock' };
+  if (lock.seed !== config.seed) return { ok: false, code: 'seed-mismatch' };
+  if (lock.promptTemplateSha256 !== promptTemplateSha256()) return { ok: false, code: 'prompt-mismatch' };
+  if (opts.inputSha256 !== lock.inputSha256) return { ok: false, code: 'input-mismatch' };
+  if (assignmentDigest(config.seed, assignmentItems) !== lock.assignmentSha256) return { ok: false, code: 'assignment-mismatch' };
+  if (!lock.models || typeof lock.models !== 'object' || Array.isArray(lock.models)) return { ok: false, code: 'origin-lock' };
+  if (Object.keys(lock.models).length !== config.judges.length) return { ok: false, code: 'model-mismatch' };
+  for (let i = 0; i < config.judges.length; i++) {
+    const judge = config.judges[i];
+    if (lock.models[judge.id] !== judge.model) return { ok: false, code: 'model-mismatch' };
+  }
+  if (!Array.isArray(lock.failedPairs) || !Array.isArray(lock.succeededPairs)) return { ok: false, code: 'origin-lock' };
+  const failed = {};
+  const succeeded = {};
+  for (let i = 0; i < lock.failedPairs.length; i++) {
+    const pair = lock.failedPairs[i];
+    if (!pair || typeof pair.itemId !== 'string' || typeof pair.judgeId !== 'string') return { ok: false, code: 'origin-lock' };
+    failed[pairKey(pair)] = true;
+  }
+  for (let i = 0; i < lock.succeededPairs.length; i++) {
+    const pair = lock.succeededPairs[i];
+    if (!pair || typeof pair.itemId !== 'string' || typeof pair.judgeId !== 'string') return { ok: false, code: 'origin-lock' };
+    const key = pairKey(pair);
+    if (failed[key]) return { ok: false, code: 'origin-lock' };
+    succeeded[key] = true;
+  }
+  for (let i = 0; i < selected.list.length; i++) {
+    const key = pairKey(selected.list[i]);
+    if (!failed[key] || succeeded[key]) return { ok: false, code: 'selection-not-failed' };
+  }
+  const originAbs = path.resolve(opts.origin);
+  if (!fs.existsSync(originAbs)) return { ok: false, code: 'origin-missing' };
+  const originReal = fs.realpathSync(originAbs);
+  const originFile = path.join(originReal, 'summary.json');
+  if (!fs.existsSync(originFile)) return { ok: false, code: 'origin-missing' };
+  const summaryBytes = fs.readFileSync(originFile);
+  const summaryHash = crypto.createHash('sha256').update(summaryBytes).digest('hex');
+  if (summaryHash !== lock.summarySha256) return { ok: false, code: 'origin-hash' };
+  let summary = null;
+  try { summary = JSON.parse(summaryBytes.toString('utf8')); } catch (_) { summary = null; }
+  if (!summary || summary.code === 'complete' || summary.code === 'supplement-complete' || summary.doubleBlindComplete === true || summary.singleRunComplete === true) {
+    return { ok: false, code: 'origin-not-partial' };
+  }
+  if (opts.out) {
+    const outReal = resolvedDir(opts.out);
+    if (!outReal) return { ok: false, code: 'out-parent' };
+    if (nested(originReal, outReal) || nested(outReal, originReal)) return { ok: false, code: 'out-is-origin' };
+    if (fs.existsSync(path.resolve(opts.out))) {
+      let names = null;
+      try { names = fs.readdirSync(outReal); } catch (_) { names = null; }
+      if (!names || names.length) return { ok: false, code: 'out-not-empty' };
+    }
+  }
+  const tokenReserve = selected.list.length * (config.prices.maxInputTokens + config.prices.maxOutputTokens);
+  if (tokenReserve > config.prices.maxTotalTokens || selected.list.length > config.prices.maxRequests) {
+    return { ok: false, code: 'request-cap' };
+  }
+  let reserveSum = 0;
+  for (let i = 0; i < selected.list.length; i++) {
+    const judge = config.judges.filter((row) => row.id === selected.list[i].judgeId)[0];
+    reserveSum += reserveFor(config.prices, judge.model);
+  }
+  if (money(reserveSum) > config.budgetUsd) return { ok: false, code: 'budget-blocked' };
+  return {
+    ok: true,
+    summaryHash: summaryHash,
+    succeededPairs: lock.succeededPairs,
+    failedPairs: lock.failedPairs,
+  };
+}
+
 function money(n) {
   return Math.round(n * 1e9) / 1e9;
 }
@@ -381,7 +487,21 @@ async function runJudge(opts) {
     }
   }
   plan.inputChecks = inputChecks;
-  if (plan.omittedIds.length) {
+  const supplement = gateSupplement(opts, config, selected, assignment);
+  if (!supplement.ok) {
+    return base({
+      code: supplement.code,
+      called: false,
+      synthetic: synthetic,
+      plan: plan,
+      assignment: evidenceAssignment,
+      humanReview: notYet,
+      singleRunComplete: false,
+      doubleBlindComplete: false,
+      supplementComplete: false,
+    });
+  }
+  if (plan.omittedIds.length && !selected.list) {
     return persist(base({
       code: 'item-cap',
       called: false,
@@ -429,8 +549,8 @@ async function runJudge(opts) {
       }));
     }
   }
-  let originSummarySha256 = null;
-  if (opts.origin) {
+  let originSummarySha256 = selected.list ? supplement.summaryHash : null;
+  if (opts.origin && !selected.list) {
     const originFile = path.join(opts.origin, 'summary.json');
     if (!fs.existsSync(originFile)) {
       return persist(base({
@@ -637,33 +757,38 @@ async function runJudge(opts) {
       official: false,
       singleRunComplete: false,
       originSummarySha256: originSummarySha256,
+      originLockSchema: 'belliedmonkey.llm-judge.origin-lock.v1',
+      assignmentSha256: assignmentDigest(config.seed, assignment),
+      inputSha256: opts.inputSha256,
       selectionSha256: selected.hash,
       promptTemplateSha256: promptTemplateSha256(),
       seed: config.seed,
     } : null,
   });
   if (opts.out && selected.list) {
+    const derived = derivedTable(supplement.succeededPairs, supplement.failedPairs, selected.list, parsed, code === 'supplement-complete');
     writeJson(opts.out, 'supplement.json', {
       schema: 'belliedmonkey.llm-judge.supplement.v1',
       official: false,
       singleRunComplete: false,
       supplementComplete: code === 'supplement-complete',
+      doubleBlindComplete: false,
       originSummarySha256: originSummarySha256,
       selectionSha256: selected.hash,
       pairs: selected.list,
-      note: 'This supplement does not overwrite the origin partial and does not pick a best response.',
+      note: 'One authorized request per selected failure. This file does not change the origin partial.',
     });
-    if (originSummarySha256) {
-      writeJson(opts.out, 'derived-merge.json', {
-        schema: 'belliedmonkey.llm-judge.derived-merge.v1',
-        official: false,
-        singleRunComplete: false,
-        supplementComplete: code === 'supplement-complete',
-        originSummarySha256: originSummarySha256,
-        selectionSha256: selected.hash,
-        note: 'Derived view only. Unselected pairs stay on the origin. A failed supplement pair is not replaced by an older success.',
-      });
-    }
+    writeJson(opts.out, 'derived-merge.json', Object.assign({
+      schema: 'belliedmonkey.llm-judge.derived-merge.v1',
+      official: false,
+      singleRunComplete: false,
+      originSingleRunComplete: false,
+      supplementComplete: code === 'supplement-complete',
+      doubleBlindComplete: false,
+      originSummarySha256: originSummarySha256,
+      selectionSha256: selected.hash,
+      note: 'Origin-valid pairs stay a reference to the origin file. Selected failures use only this request. An invalid parse stays null.',
+    }, derived));
   }
   if (opts.out) {
     writeJson(opts.out, 'plan.json', plan);
@@ -690,16 +815,22 @@ async function main(argv, env, transport) {
     else if (token === '--out') args.out = argv[++i];
     else if (token === '--select') args.select = argv[++i];
     else if (token === '--origin') args.origin = argv[++i];
+    else if (token === '--origin-lock') args.originLock = argv[++i];
     else return base({ code: 'usage' });
   }
   if (!args.input || !args.config || !args.out) return base({ code: 'usage' });
   let input;
   let config;
   let selection = null;
+  let originLock = null;
+  let inputSha256 = null;
   try {
-    input = readJson(args.input);
+    const inputBytes = fs.readFileSync(args.input);
+    inputSha256 = crypto.createHash('sha256').update(inputBytes).digest('hex');
+    input = JSON.parse(inputBytes.toString('utf8'));
     config = readJson(args.config);
     if (args.select) selection = readJson(args.select);
+    if (args.originLock) originLock = readJson(args.originLock);
   } catch (_) {
     return base({ code: 'unreadable', synthetic: args.synthetic });
   }
@@ -708,6 +839,8 @@ async function main(argv, env, transport) {
     config: config,
     selection: selection,
     origin: args.origin,
+    originLock: originLock,
+    inputSha256: inputSha256,
     out: args.out,
     run: args.run,
     synthetic: args.synthetic,
@@ -727,4 +860,59 @@ if (require.main === module) {
   });
 }
 
-module.exports = { runJudge, main, usageOf };
+function derivedTable(succeededPairs, failedPairs, selectedPairs, parsed, supplementComplete) {
+  const selectedKeys = {};
+  for (let i = 0; i < selectedPairs.length; i++) selectedKeys[pairKey(selectedPairs[i])] = true;
+  let unselectedFailed = 0;
+  for (let i = 0; i < failedPairs.length; i++) {
+    if (!selectedKeys[pairKey(failedPairs[i])]) unselectedFailed += 1;
+  }
+  const rows = [];
+  for (let i = 0; i < succeededPairs.length; i++) {
+    const pair = succeededPairs[i];
+    rows.push({
+      itemId: pair.itemId,
+      judgeId: pair.judgeId,
+      source: 'origin',
+      originKept: true,
+      verdict: null,
+    });
+  }
+  let supplementParsed = 0;
+  for (let i = 0; i < selectedPairs.length; i++) {
+    const pair = selectedPairs[i];
+    const one = parsed.get(pair.judgeId + ':' + pair.itemId);
+    const ok = !!(one && one.ok === true && one.verdict);
+    if (ok) supplementParsed += 1;
+    rows.push({
+      itemId: pair.itemId,
+      judgeId: pair.judgeId,
+      source: 'supplement',
+      originKept: false,
+      verdict: ok ? one.verdict : null,
+      parseCode: one && one.code ? one.code : null,
+    });
+  }
+  rows.sort((a, b) => {
+    if (a.judgeId < b.judgeId) return -1;
+    if (a.judgeId > b.judgeId) return 1;
+    if (a.itemId < b.itemId) return -1;
+    if (a.itemId > b.itemId) return 1;
+    return 0;
+  });
+  const supplementNull = selectedPairs.length - supplementParsed;
+  return {
+    pairs: rows,
+    coverage: {
+      originKept: succeededPairs.length,
+      supplementRequested: selectedPairs.length,
+      supplementParsed: supplementParsed,
+      supplementNull: supplementNull,
+      unselectedFailed: unselectedFailed,
+      cherryPick: false,
+      derivedCoverageComplete: supplementComplete === true && supplementNull === 0 && unselectedFailed === 0,
+    },
+  };
+}
+
+module.exports = { runJudge, main, usageOf, assignmentDigest };

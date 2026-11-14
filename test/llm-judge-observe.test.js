@@ -5,7 +5,7 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const { describe, test, eq } = require('./harness');
-const { runJudge } = require('../eval/baselines/judge/run-judge.js');
+const { runJudge, assignmentDigest } = require('../eval/baselines/judge/run-judge.js');
 const { promptTemplateSha256, FROZEN_V1_SHA256 } = require('../eval/baselines/judge/rubric.js');
 
 function item(id, reference, aText, bText) {
@@ -186,6 +186,22 @@ describe('llm judge error observation and supplement selection', () => {
     const originDir = fs.mkdtempSync(path.join(os.tmpdir(), 'judge-origin-'));
     fs.writeFileSync(path.join(originDir, 'summary.json'), JSON.stringify({ code: 'partial', official: true }) + '\n');
     const originBefore = crypto.createHash('sha256').update(fs.readFileSync(path.join(originDir, 'summary.json'))).digest('hex');
+    const inputSha = crypto.createHash('sha256').update(JSON.stringify(input()), 'utf8').digest('hex');
+    const originLock = {
+      schema: 'belliedmonkey.llm-judge.origin-lock.v1',
+      summarySha256: originBefore,
+      assignmentSha256: assignmentDigest(11, full.assignment.items),
+      inputSha256: inputSha,
+      promptTemplateSha256: promptTemplateSha256(),
+      seed: 11,
+      models: { 'judge-a': 'model-alpha', 'judge-b': 'model-beta' },
+      failedPairs: [{ itemId: 'cmn_hans_cn/1673', judgeId: 'judge-b' }],
+      succeededPairs: [
+        { itemId: 'en_us/1668', judgeId: 'judge-a' },
+        { itemId: 'en_us/1668', judgeId: 'judge-b' },
+        { itemId: 'cmn_hans_cn/1673', judgeId: 'judge-a' },
+      ],
+    };
     const out = fs.mkdtempSync(path.join(os.tmpdir(), 'judge-supp-'));
     let calls = 0;
     const summary = await runJudge({
@@ -195,6 +211,8 @@ describe('llm judge error observation and supplement selection', () => {
       config: config(),
       selection: selection,
       origin: originDir,
+      originLock: originLock,
+      inputSha256: inputSha,
       out: out,
       env: env(),
       transport: async (req) => {
@@ -219,6 +237,12 @@ describe('llm judge error observation and supplement selection', () => {
     eq(supplement.pairs.length, 1);
     const derived = JSON.parse(fs.readFileSync(path.join(out, 'derived-merge.json'), 'utf8'));
     eq(derived.singleRunComplete, false);
+    eq(derived.originSingleRunComplete, false);
     eq(derived.supplementComplete, true);
+    eq(derived.doubleBlindComplete, false);
+    eq(derived.pairs.length, 4);
+    eq(derived.pairs.filter((row) => row.source === 'origin').length, 3);
+    eq(derived.pairs.filter((row) => row.source === 'supplement' && row.verdict).length, 1);
+    eq(derived.coverage.cherryPick, false);
   });
 });

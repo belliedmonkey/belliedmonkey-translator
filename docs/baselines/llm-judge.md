@@ -50,11 +50,22 @@ v2 的新判断必须两只评委都用这份新提示重跑。不能把修提�
 
 `usageComplete` 只表示 token 字段齐全。`generationOk` 只在 `finish_reason` 为 `stop` 或 `length`、且没有供应商错误时为 true。二者都不是判决成功。`finish_reason=stop` 且正文不是合法判决时，`modelFormatFault` 为 true，解析码仍是原来的 `bad-json`。`finish_reason=error` 即使正文不闭合，也不是模型格式过错。没有完整 token 用量时费用仍是未知，预留留下，后续调用停止，并且不自动重试。缺 `note`、精确引用失败、`length` 都各自留在 `parseCode` 或 `finishReason` 里。
 
-父侧 v2 首轮仍是 partial。本仓库不回填那次 run。定点补评用 `--select`，输入仍是原来的 36 条，seed 和 assignment 不变。allowlist 只决定哪几个 `itemId` 加 `judgeId` 会发出。成功项不重跑，失败项也不从多条成功里挑一条。新目录写 `supplement.json`。给了 `--origin` 才另外写 `derived-merge.json`。`supplement-complete` 不是原来的 `singleRunComplete`。人审不在这个入口里。
+父侧 v2 首轮仍是 partial。本仓库不回填那次 run。观察包 `75266d0a`（归档 sha256 `89a6a263dfff22fb0415f30de43e5e26dfc51f92a6e1be4896aa799678179ee4`）的离线复验没有通过，也没有付费。那一版会在六种情况下仍然发出或覆盖目录：selection 里夹着 origin 已成功的 pair；`--run --select` 没有 `--origin`；任意 `summary.json` 都被当成 origin；seed 或 assignment 槽位变了仍发；`--out` 等于 origin；`--out` 里已经有文件。这六种现在都在任何请求之前拒绝，并且不写 origin，也不改非空的 out。
+
+定点补评仍然只重跑 origin 里明确失败的 pair。成功项留在原件上，失败项也不从多条结果里挑一条。`--run` 加上 `--select` 必须同时有 `--origin`、`--origin-lock` 和一个空的新 `--out`。lock 是外部文件，schema 是 `belliedmonkey.llm-judge.origin-lock.v1`。旧 run 缺字段时，由父侧按已经冻结的文件生成这份 lock，不改原 run。
+
+lock 要钉住这些字节：`summarySha256` 是 origin 目录里 `summary.json` 的原始字节；`inputSha256` 是 `--input` 文件的原始字节；`promptTemplateSha256` 必须等于当前 v2 模板 `a2e82f866445b73f2956011c4ff27ce7ff9b233d2aa2c5c5c9d2b7fa9d220923`；`seed` 和 `models` 必须等于当次配置；`assignmentSha256` 是 `JSON.stringify({ schema: 'belliedmonkey.llm-judge.assignment.v1', seed, items })` 的 sha256，`items` 只取 assignment 的 `id` 和 `slots`，不含说明文字。`failedPairs` 只列 origin 明确失败的 `{itemId, judgeId}`，`succeededPairs` 列仍然有效的 pair。selection 的每一对都必须落在 `failedPairs` 里，并且不能落在 `succeededPairs` 里。selection 的 schema 仍是 `belliedmonkey.llm-judge.selection.v1`。父侧那份 15 对 selection 的 sha256 是 `c151018bfda2953d2375f8cfce25580787745f162824b66f2d7eccec641979a4`，只作为他们自己的 lock 可以钉的值，本仓库不把这份名单写进代码。
+
+origin 的 `summary.json` 若写成 `code` 为 `complete`，或 `singleRunComplete` / `doubleBlindComplete` 为 true，直接拒绝。一份任意摘要不能变成完整双盲。
+
+派生表写在新目录的 `derived-merge.json`。有效 pair 的 `source` 是 `origin`，`verdict` 保持 null，只表示原件引用。选中的失败 pair 的 `source` 是 `supplement`，只用这一次请求的解析结果；解析无效就是 null。`singleRunComplete` 和 `originSingleRunComplete` 保持 false。`supplementComplete` 与 `coverage` 分开记。`coverage.cherryPick` 是 false。人审不在这个入口里。
 
 ```bash
-node run-judge.js --run --input full-input.json --config config.json \
-  --select selection.json --origin /path/to/origin-run --out /tmp/judge-supplement
+node eval/baselines/judge/run-judge.js --run \
+  --input full-input.json --config config.json \
+  --select selection.json --origin /path/to/origin-run \
+  --origin-lock /path/to/origin-lock.json \
+  --out /tmp/judge-supplement-empty
 ```
 
 评委没有听过音频。不能用常识把听到的内容改对，不能删掉括注里的拉丁字母，也不能把 `um` 从参考里拿掉。原始编辑率不由这个入口重算，`editRates` 保持 null。
