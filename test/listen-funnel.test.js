@@ -51,6 +51,7 @@ function boot() {
   const clk = fakeClock();
   const NativeAudio = {
     available: () => true, suspends: () => false, audioCaps: () => ({ system: 'ok', sources: ['mic', 'system'] }),
+    capsProbe: async () => ({ system: 'ok', sources: ['mic', 'system'] }),
     micStart: (_rate, h) => { captured.h = h; return true; }, micStop: () => {}, recordMode: () => {},
     sessionStart: () => {}, sessionStop: () => {},
     onEvent: (fn) => { captured.native = fn; }, onTick: () => {},
@@ -59,7 +60,8 @@ function boot() {
     subtitleShow: () => {}, subtitleState: () => {}, subtitleConfig: () => {}, subtitleHide: () => {}, subtitleFloat: () => {},
   };
   const sb = {
-    window: { addEventListener() {}, removeEventListener() {} },
+    window: { addEventListener() {}, removeEventListener() {},
+      MT_TELEMETRY: { spec: { common: cfg.COMMON, events: cfg.EVENTS, limits: cfg.LIMITS } } },
     document: {
       getElementById: () => mkEl(), querySelector: () => mkEl(), querySelectorAll: () => [],
       addEventListener() {}, createElement: () => mkEl(), body: mkEl(), documentElement: mkEl(),
@@ -167,16 +169,38 @@ test('打开听译页只发 asr_entry；开麦才发 asr_start；权限按状态
   captured.native({ type: 'mic-perm', state: 'not_determined', kind: 'mic' });
   eq(names(tracked, 'mic_permission').length, 1, '同一状态不重发');
   eq(names(tracked, 'mic_permission')[0][1].permission_state, 'not_determined');
+  eq(names(tracked, 'mic_permission')[0][1].surface, 'listen', '权限读数带功能面');
 
   A.open('conv');
   await clk.runTo(0);
   eq(names(tracked, 'asr_entry').length, 1);
   eq(names(tracked, 'asr_entry')[0][1].result, 'started');
+  eq(names(tracked, 'asr_entry')[0][1].surface, 'listen', '对话页打开记 listen');
   eq(names(tracked, 'asr_start').length, 0, '只打开页面不算开麦');
 
   A.open('subtitle');
   await clk.runTo(0);
+  eq(names(tracked, 'asr_entry').length, 2);
+  eq(names(tracked, 'asr_entry')[1][1].surface, 'live_caption', '字幕页打开记 live_caption');
   eq(names(tracked, 'asr_start').length, 0, '字幕页停在准备态，还没点开始');
+});
+
+test('首页入口判定发 live_gate：成功也记 ok，两个入口分开 surface', async () => {
+  const { A, tracked, clk } = boot();
+  A.wire();
+  await clk.runTo(0);
+  const gates = names(tracked, 'live_gate');
+  ok(gates.length >= 2, '对话与实时字幕两个入口各一条，实际 ' + gates.length);
+  const listen = gates.find((e) => e[1].surface === 'listen');
+  const sub = gates.find((e) => e[1].surface === 'live_caption');
+  ok(listen && sub, '两个 surface 都要有');
+  eq(listen[1].result, 'ok', '探测成功也要记 result=ok');
+  eq(listen[1].ok, 'true');
+  eq(listen[1].window, 'main');
+  eq(listen[1].first_refresh, 'true');
+  eq(listen[1].reused_prior_state, 'false');
+  eq(listen[1].reason_copy_class, 'other');
+  eq(sub[1].result, 'ok');
 });
 
 test('开麦之后：granted、asr_start、失败短码、翻译开始', async () => {
@@ -190,6 +214,7 @@ test('开麦之后：granted、asr_start、失败短码、翻译开始', async (
   ok(toggled !== false, '点了听译键却没接上');
   ok(names(tracked, 'asr_start').length >= 1, '开麦没发 asr_start，已有事件 ' + tracked.slice(before).map((e) => e[0]).join(','));
   const startProps = names(tracked, 'asr_start')[0][1];
+  eq(startProps.surface, 'listen', '开麦是 listen 面');
   if (startProps.engine) ok(/^[a-z0-9_-]{1,32}$/.test(startProps.engine), startProps.engine);
   if (startProps.locale_pair) ok(/^[a-z0-9_-]{1,32}$/.test(startProps.locale_pair), startProps.locale_pair);
 
@@ -206,6 +231,19 @@ test('开麦之后：granted、asr_start、失败短码、翻译开始', async (
   eq(fails.length, 1, JSON.stringify(fails));
   eq(fails[0][1].fail_reason, 'capture');
   ok(!/Domain|locales|Error/.test(JSON.stringify(fails[0][1])), JSON.stringify(fails[0][1]));
+});
+
+test('麦克风权限按功能面分开去重：字幕页同一状态另记一条 live_caption', async () => {
+  const { A, tracked, captured, clk } = boot();
+  A.wire();
+  captured.native({ type: 'mic-perm', state: 'granted', kind: 'mic' });
+  await clk.runTo(0);
+  A.open('subtitle');
+  await clk.runTo(0);
+  captured.native({ type: 'mic-perm', state: 'granted', kind: 'mic' });
+  const perms = names(tracked, 'mic_permission');
+  eq(perms.filter((e) => e[1].surface === 'listen').length, 1);
+  eq(perms.filter((e) => e[1].surface === 'live_caption').length, 1, '字幕页的同一状态不能被 listen 的去重吞掉');
 });
 
 test('权限拒绝记 permission，不把系统文案写进事件', async () => {
@@ -240,5 +278,10 @@ test('听出字并且翻译请求发出去 ⇒ translate_start，每场一次', 
   ok(starts.length === 1, 'translate_start 条数 ' + starts.length
     + ' 事件 ' + tracked.map((e) => e[0]).join(',')
     + ' phase ' + d.phase + ' rows ' + d.rows.length + ' seg ' + JSON.stringify(d.seg && { route: d.seg.route, calls: d.seg.calls }));
-  eq(names(tracked, 'translate_ok').length <= 1, true);
+  const oks = names(tracked, 'translate_ok');
+  eq(oks.length <= 1, true);
+  if (oks.length) {
+    eq(oks[0][1].surface, 'listen', 'translate_ok 要能分开 listen / live_caption');
+    eq(oks[0][1].kind, 'subtitle', '旧 kind 保留');
+  }
 });
