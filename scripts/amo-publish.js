@@ -22,7 +22,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { execSync } = require('child_process');
-const { assertVersionIntegrity, versionInZip } = require('./lib/release-gate.js');
+const { assertVersionIntegrity, versionInZip, assertBackendInjected } = require('./lib/release-gate.js');
 
 const ROOT = path.join(__dirname, '..');
 const KEYS = path.join(ROOT, '.local', 'keys.md');
@@ -129,6 +129,11 @@ async function api(method, url, body, headers) {
   // 这两个参数，另外两条一旦 HEAD 往前走就只剩 --allow-dirty 或者不停补 `-storeN` tag，
   // 两个都是噪声：前者丢掉溯源，后者让 tag 变成一次性用品。2026-09-03 当天撞到。
   assertVersionIntegrity({ version: xpiVersion, what: '这个包', allowDirty: argv.includes('--allow-dirty'), tag: opt('--tag'), cwd: opt('--worktree') });
+
+  // BEL-259：上传前读**包内**的 MT_BACKEND。占位后端（.invalid / 占位 key /
+  // 错 flavor 的 host）在这里硬拦 —— 版本完整性门看不到后端，预览产物的
+  // MT_ALLOW_PLACEHOLDER_BACKEND 也在这里不被承认。
+  assertBackendInjected({ artifact: XPI, flavor: 'intl' });
 
   // ── 上传 ────────────────────────────────────────────────────────────────
   const fd = new FormData();

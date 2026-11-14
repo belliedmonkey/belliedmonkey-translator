@@ -267,6 +267,17 @@ codesign -dv --verbose=2 <app>      # Authority 必须是 Apple Distribution，�
                                     # version / build 必须是你以为的那个
 ```
 
+**后端注入断言（BEL-259，导出后、上传前的手工硬步骤）。** ASC 的 `altool` / Organizer 上传没有脚本
+钩子，所以这一步只能写在这里，不能只靠 `build.js` 的构建门：
+
+```bash
+node scripts/verify-backend-injected.js <导出的 .app 或 .ipa> --flavor global   # 或 --flavor china
+```
+
+它读包内 `Script.js` 的 `MT_BACKEND`，断言 `url` 非空、不是 `.invalid`、host 与 flavor 一致，
+`anonKey` 不是占位常量。非 0 就**不要上传**。同一道断言也已接在 `amo-publish.js` / `cws-publish.js` /
+`gh-release.js` 的上传之前；它不认 `MT_ALLOW_PLACEHOLDER_BACKEND`。
+
 ### 上传需要凭证 —— 这台机器上一个都没有
 
 `xcrun altool` / `xcodebuild` 上传需要二者之一：

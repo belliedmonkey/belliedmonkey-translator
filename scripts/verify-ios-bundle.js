@@ -12,13 +12,29 @@
 // makes forgetting loud instead of silent.
 //
 //   npm run verify:ios -- [/path/to/DerivedData]
+//   npm run verify:ios -- [/path/to/DerivedData] --flavor china
+//
+// The flavor selects which dist tree the .appex is compared against and which
+// `.not-shippable` markers are checked (BEL-259 writes them into dist* AND dist-app*).
 
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
-const dd = process.argv[2] || '/tmp/bt-dd';
+const ARGV = process.argv.slice(2);
+let FLAVOR = 'global';
+const POSITIONAL = [];
+for (let i = 0; i < ARGV.length; i++) {
+  if (ARGV[i] === '--flavor') {
+    FLAVOR = ARGV[++i] === 'china' ? 'china' : 'global';
+    continue;
+  }
+  if (!ARGV[i].startsWith('--')) POSITIONAL.push(ARGV[i]);
+}
+const DIST_NAME = FLAVOR === 'china' ? 'dist-china' : 'dist';
+const APP_OUT_NAME = FLAVOR === 'china' ? 'dist-app-china' : 'dist-app';
+const dd = POSITIONAL[0] || '/tmp/bt-dd';
 
 function walk(dir, base = dir, out = new Set()) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -212,18 +228,22 @@ function checkBundleSymlinks(app) {
 
 function main() {
   // Gate B's "you cannot ship it" must hold for the iOS path too: SKIP_ZIP builds
-  // (e.g. MT_SYNC_E2E) leave a .not-shippable marker in dist/, and the Xcode
-  // project reads dist/ directly — so this check is the archive path's zip-refusal.
-  const marker = path.join(ROOT, 'dist', '.not-shippable');
-  if (fs.existsSync(marker)) {
-    console.log('✗ dist/ 带 .not-shippable 标记（' + fs.readFileSync(marker, 'utf8').trim() + '）');
-    console.log('  这是一个不可发布的构建 —— 归档/上传前先用正常参数重跑 node build.js。');
-    process.exit(1);
+  // (e.g. MT_SYNC_E2E or BEL-259's MT_ALLOW_PLACEHOLDER_BACKEND) leave a
+  // .not-shippable marker in the emission directories, and the Xcode project reads
+  // dist/ directly — so this check is the archive path's zip-refusal. BEL-259 also
+  // writes the marker into dist-app* (the host app), so check both trees.
+  for (const name of [DIST_NAME, APP_OUT_NAME]) {
+    const marker = path.join(ROOT, name, '.not-shippable');
+    if (fs.existsSync(marker)) {
+      console.log(`✗ ${name}/ 带 .not-shippable 标记（${fs.readFileSync(marker, 'utf8').trim()}）`);
+      console.log('  这是一个不可发布的构建 —— 归档/上传前先用正常参数重跑 node build.js。');
+      process.exit(1);
+    }
   }
 
-  const distDir = path.join(ROOT, 'dist');
+  const distDir = path.join(ROOT, DIST_NAME);
   if (!fs.existsSync(distDir)) {
-    console.error('✗ no dist/ — run `node build.js` first');
+    console.error(`✗ no ${DIST_NAME}/ — run \`node build.js${FLAVOR === 'china' ? ' --flavor china' : ''}\` first`);
     process.exit(1);
   }
   const appex = findAppex(dd);

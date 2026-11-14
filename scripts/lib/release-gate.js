@@ -13,7 +13,11 @@
 // 所以现在只有这一份，三条路都调它。抄第四份的那天，就是它再次失效的那天。
 'use strict';
 
-const { execSync } = require('child_process');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { execSync, execFileSync } = require('child_process');
+const { SENTINEL, jwtPayload, sha8, hostOf } = require('../../build/backend-inject.js');
 
 const gitIn = (cwd) => (cmd) => {
   try { return execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], cwd }).trim(); }
@@ -89,4 +93,188 @@ function versionInZip(zipPath) {
   } catch (_) { return null; }
 }
 
-module.exports = { assertVersionIntegrity, versionInZip, SHIPPING_PATHS };
+// ─── BEL-259: backend-injected artifact gate ───────────────────────────────
+//
+// The build gate stops a placeholder build from being written; this gate stops a
+// stale/wrong artifact from being uploaded. It is deliberately independent of
+// MT_ALLOW_PLACEHOLDER_BACKEND: a preview artifact that was produced with the
+// escape hatch must still fail here.
+//
+// Input is the exported artifact (ipa / pkg / zip / xpi) or a dist directory.
+// It reads the `MT_BACKEND` block from `learn/backend.config.js` (extension) and
+// from the host app's `Script.js`. Only the ACTIVE `url` / `anonKey` are checked:
+// `previousUrl` is the BEL-260 sentinel (`.invalid`), compared but never requested,
+// and is printed as a host for diagnosis only. It is never a pass/fail criterion.
+
+function normalizeBackendFlavor(flavor) {
+  const f = String(flavor || 'intl').toLowerCase();
+  if (f === 'intl' || f === 'global') return 'intl';
+  if (f === 'china' || f === 'cn') return 'china';
+  throw new Error(`unknown flavor ${JSON.stringify(flavor)} (want intl|global|china|cn)`);
+}
+
+function walkArtifactFiles(dir, out = []) {
+  let entries;
+  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return out; }
+  for (const e of entries) {
+    const p = path.join(dir, e.name);
+    if (e.isSymbolicLink()) continue;
+    if (e.isDirectory()) walkArtifactFiles(p, out);
+    else out.push(p);
+  }
+  return out;
+}
+
+function parseBackendBlock(text) {
+  // The source and the bundled Script.js both carry `var MT_BACKEND = { ... };`.
+  // Slice that block so a nested object or a later string cannot be mistaken for
+  // the top-level url/anonKey.
+  const m = /(?:var|const|let)\s+MT_BACKEND\s*=\s*\{/.exec(text);
+  let block = text;
+  if (m) {
+    const end = text.indexOf('\n};', m.index);
+    if (end > m.index) block = text.slice(m.index, end + 3);
+  }
+  const url = (/^ {2}url: '([^']*)',/m.exec(block) || [])[1];
+  const anonKey = (/^ {2}anonKey: '([^']*)',/m.exec(block) || [])[1];
+  const previousUrl = (/^ {2}previousUrl: '([^']*)',/m.exec(block) || [])[1];
+  if (url === undefined && anonKey === undefined) return null;
+  return { url: url || '', anonKey: anonKey || '', previousUrl: previousUrl || '' };
+}
+
+function collectBackendTargets(dir) {
+  const targets = [];
+  for (const file of walkArtifactFiles(dir)) {
+    const base = path.basename(file);
+    const rel = path.relative(dir, file);
+    const isLearnConfig = base === 'backend.config.js' && /(^|[/\\])learn[/\\]/.test(rel);
+    if (!isLearnConfig && base !== 'Script.js') continue;
+    const parsed = parseBackendBlock(fs.readFileSync(file, 'utf8'));
+    if (parsed) targets.push(Object.assign({ file: rel }, parsed));
+  }
+  return targets;
+}
+
+function extractArtifact(artifact) {
+  const ext = path.extname(artifact).toLowerCase();
+  // `pkgutil --expand-full` refuses an existing destination, so always expand into
+  // a fresh child. The returned `root` is what the caller removes.
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-backend-injected-'));
+  const out = path.join(root, 'expanded');
+  try {
+    if (ext === '.pkg') {
+      try {
+        execFileSync('pkgutil', ['--expand-full', artifact, out], { stdio: 'pipe' });
+      } catch (_) {
+        fs.mkdirSync(out, { recursive: true });
+        execFileSync('xar', ['-xf', artifact, '-C', out], { stdio: 'pipe' });
+      }
+    } else if (ext === '.zip' || ext === '.xpi' || ext === '.ipa') {
+      execFileSync('unzip', ['-qq', '-o', artifact, '-d', out], { stdio: 'pipe' });
+    } else {
+      throw new Error(`unsupported artifact type ${ext || '(none)'} — want .ipa / .pkg / .zip / .xpi or --dist`);
+    }
+    return { root, dir: out };
+  } catch (e) {
+    fs.rmSync(root, { recursive: true, force: true });
+    throw e;
+  }
+}
+
+function checkBackendTarget(t, flavor, expectHost) {
+  const violations = [];
+  const url = String(t.url || '').trim();
+  const key = String(t.anonKey || '').trim();
+  let host = '';
+
+  if (!url) violations.push('url is empty');
+  else {
+    try { host = new URL(url).hostname.toLowerCase(); } catch (_) { violations.push('url is not a valid URL'); }
+  }
+  if (host && /\.invalid$/i.test(host)) violations.push(`url still points at .invalid (${host})`);
+  if (host && flavor === 'china' && /(^|\.)supabase\.co$/i.test(host)) {
+    violations.push(`china url is a *.supabase.co host (${host})`);
+  }
+  if (host && flavor === 'intl' && !/(^|\.)supabase\.co$/i.test(host) && !expectHost) {
+    violations.push(`intl url is not a *.supabase.co host (${host})`);
+  }
+  if (expectHost && host && host !== String(expectHost).toLowerCase()) {
+    violations.push(`url host ${host} != expected ${String(expectHost).toLowerCase()}`);
+  }
+  if (!key) violations.push('anonKey is empty');
+  else if (Object.values(SENTINEL).includes(key)) violations.push('anonKey equals a build placeholder constant');
+
+  // Same origin rule as the build gate. `previousUrl` is never inspected here.
+  if (host && key && !Object.values(SENTINEL).includes(key)) {
+    const payload = jwtPayload(key);
+    if (flavor === 'intl' && /(^|\.)supabase\.co$/i.test(host)) {
+      const ref = host.split('.')[0];
+      if (!payload) violations.push(`anonKey is not a JWT — cannot prove it belongs to ${ref}`);
+      else if (!payload.ref) violations.push(`anonKey has no JWT ref — expected ${ref}`);
+      else if (payload.ref !== ref) violations.push(`anonKey JWT ref ${payload.ref} != supabase project ${ref}`);
+    } else if (flavor === 'china' && payload && payload.ref) {
+      violations.push(`china anonKey carries a supabase JWT ref (${payload.ref})`);
+    }
+  }
+
+  return {
+    file: t.file,
+    host,
+    anonKeySha8: key ? sha8(key) : 'none',
+    previousHost: t.previousUrl ? hostOf(t.previousUrl) : '',
+    violations,
+  };
+}
+
+function checkBackendInjected({ artifact, dist, flavor = 'intl', expectHost, cwd } = {}) {
+  const fl = normalizeBackendFlavor(flavor);
+  const base = cwd || process.cwd();
+  let dir = null;
+  let extracted = null;
+
+  if (dist) {
+    dir = path.resolve(base, dist);
+    if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) throw new Error(`--dist is not a directory: ${dir}`);
+  } else {
+    if (!artifact) throw new Error('checkBackendInjected: need an artifact or --dist');
+    const abs = path.resolve(base, artifact);
+    if (!fs.existsSync(abs)) throw new Error(`artifact not found: ${abs}`);
+    if (fs.statSync(abs).isDirectory()) dir = abs;
+    else { extracted = extractArtifact(abs); dir = extracted.dir; }
+  }
+
+  try {
+    const targets = collectBackendTargets(dir).map((t) => checkBackendTarget(t, fl, expectHost));
+    const violations = [];
+    if (!targets.length) violations.push('no MT_BACKEND found (learn/backend.config.js or Script.js)');
+    for (const t of targets) for (const v of t.violations) violations.push(`${t.file}: ${v}`);
+    return { ok: violations.length === 0, flavor: fl, targets, violations };
+  } finally {
+    if (extracted) fs.rmSync(extracted.root, { recursive: true, force: true });
+  }
+}
+
+// CLI/publish-path wrapper. Always refuses placeholders: this gate is the last
+// line before an upload, so it never reads MT_ALLOW_PLACEHOLDER_BACKEND.
+function assertBackendInjected(opts = {}) {
+  const result = checkBackendInjected(opts);
+  for (const t of result.targets) {
+    console.log(`  ${t.file}: host=${t.host || '(none)'} anonKey=sha256:${t.anonKeySha8}`
+      + (t.previousHost ? ` previousUrl=${t.previousHost}` : ''));
+  }
+  if (!result.ok) {
+    console.error(`✗ backend-injected gate: ${result.violations.length} violation(s) (flavor=${result.flavor})`);
+    for (const v of result.violations.slice(0, 30)) console.error('  ' + v);
+    process.exit(1);
+  }
+  console.log(`✓ backend-injected gate: ${result.targets.length} target(s) look shippable (flavor=${result.flavor})`);
+  return result;
+}
+
+module.exports = {
+  assertVersionIntegrity,
+  versionInZip,
+  checkBackendInjected,
+  assertBackendInjected,
+  SHIPPING_PATHS,
+};
