@@ -23,7 +23,8 @@ const TARGET = argv.includes('firefox') ? 'firefox' : 'chrome';
 // into the placeholder gate so a runner without backend secrets can exercise
 // the manifest / compliance gates. It is never shippable: the build forces
 // SKIP_ZIP and writes .not-shippable into dist and dist-app*.
-// releaseReason() is deliberately unchanged — it still refuses CI on its own.
+// releaseReason() still refuses a plain CI build; the raw-exact ci-package-smoke
+// context is the only CI allowance it carries.
 const CI_PACKAGE_SMOKE = argv.includes('--ci-package-smoke');
 
 function envTruthy(v) {
