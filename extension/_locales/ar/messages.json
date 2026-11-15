@@ -4379,5 +4379,21 @@
   },
   "packs_pending_tts": {
     "message": "القراءة بصوت عالٍ دون اتصال (TTS الجهاز) غير متاحة: حزم اللغات غير جاهزة"
+  },
+  "listen_perm_explain_title": {
+    "message": "يلزم استخدام الميكروفون",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_explain_body": {
+    "message": "ترسل الترجمة الفورية صوت الميكروفون إلى نقطة النسخ النصي التي أعددتها. سيظهر بعد ذلك طلب إذن النظام — اختر «السماح» للبدء.",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_title": {
+    "message": "إذن الميكروفون غير مفعّل",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_body": {
+    "message": "فعّل «الميكروفون» في إعدادات النظام، ثم عد إلى هنا واضغط «إعادة المحاولة» — لا حاجة لإعادة تشغيل التطبيق.",
+    "description": "BEL-273 microphone permission gate"
   }
 }

@@ -654,6 +654,10 @@ describe('sync-app-assets: audio bridge block (§9.5)', () => {
         '"platform"', '"suspends"', '"ios"', '"macos"',
         '"record-mode"', '"on"',   // §9.6 实时听译：可录音的音频会话请求
         '"mic-start"', '"mic-stop"', '"mic-pcm"', '"mic-state"', '"mic-perm"', '"mic-perm-read"', '"kind"',
+        // BEL-273：拒绝卡的「去设置」与采集链有界错误码（domain:code；不含系统长文）。
+        '"mic-perm-open-settings"', '"native"', '"native_code"', '":"',
+        '"AVAudioEngine:input-format"', '"AVAudioEngine:converter"',
+        '"x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"',
         '"prompted"', '"restricted"', '"not_determined"',
         '"rate"', '"b64"', '"state"',   // §9.6 原生采集
         '"deliver"', '"level"', '"mic-level"', '"rms"',   // §9.6.1 本机路：PCM 留在原生，只过电平

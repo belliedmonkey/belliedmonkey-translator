@@ -4379,5 +4379,21 @@
   },
   "packs_pending_tts": {
     "message": "Vorlesen offline (Geräte-TTS) nicht verfügbar: Sprachpakete sind noch nicht bereit"
+  },
+  "listen_perm_explain_title": {
+    "message": "Mikrofon erforderlich",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_explain_body": {
+    "message": "Beim Dolmetschen wird Mikrofon-Audio an den von dir eingerichteten Transkriptions-Endpunkt gesendet. Als Nächstes erscheint die Systemabfrage — wähle „Erlauben“, um zu starten.",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_title": {
+    "message": "Mikrofonzugriff ist aus",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_body": {
+    "message": "Aktiviere „Mikrofon“ in den Systemeinstellungen und tippe hier anschließend auf „Erneut versuchen“ — die App muss nicht neu gestartet werden.",
+    "description": "BEL-273 microphone permission gate"
   }
 }

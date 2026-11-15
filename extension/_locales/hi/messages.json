@@ -4212,5 +4212,21 @@
   },
   "packs_pending_tts": {
     "message": "ऑफ़लाइन पढ़कर सुनाना (डिवाइस TTS) उपलब्ध नहीं: भाषा पैक तैयार नहीं हैं"
+  },
+  "listen_perm_explain_title": {
+    "message": "माइक्रोफ़ोन चाहिए",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_explain_body": {
+    "message": "लाइव अनुवाद आपके द्वारा सेट किए गए ट्रांसक्रिप्शन एंडपॉइंट पर माइक्रोफ़ोन की आवाज़ भेजता है। अगले चरण में सिस्टम अनुमति का संदेश आएगा — शुरू करने के लिए «अनुमति दें» चुनें।",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_title": {
+    "message": "माइक्रोफ़ोन की अनुमति बंद है",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_body": {
+    "message": "सिस्टम सेटिंग में «माइक्रोफ़ोन» चालू करें, यहाँ वापस आकर «फिर कोशिश करें» दबाएँ — ऐप को फिर से शुरू करने की ज़रूरत नहीं।",
+    "description": "BEL-273 microphone permission gate"
   }
 }

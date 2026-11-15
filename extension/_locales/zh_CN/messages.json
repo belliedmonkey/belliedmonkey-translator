@@ -4380,5 +4380,21 @@
   },
   "packs_pending_tts": {
     "message": "离线朗读（设备 TTS）不可用：语言包未就绪"
+  },
+  "listen_perm_explain_title": {
+    "message": "需要使用麦克风",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_explain_body": {
+    "message": "听译要把麦克风的声音送到你设置的转写端点。下一步会弹出系统授权框，点「允许」即可开始。",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_title": {
+    "message": "麦克风权限未开启",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_body": {
+    "message": "在系统设置里打开「麦克风」权限，回到这里点「重试」就能开始，不用重开 App。",
+    "description": "BEL-273 microphone permission gate"
   }
 }

@@ -4379,5 +4379,21 @@
   },
   "packs_pending_tts": {
     "message": "Офлайн-озвучивание (TTS устройства) недоступно: языковые пакеты не готовы"
+  },
+  "listen_perm_explain_title": {
+    "message": "Нужен микрофон",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_explain_body": {
+    "message": "При синхронном переводе звук с микрофона отправляется на настроенную вами конечную точку транскрипции. Далее появится системный запрос — выберите «Разрешить», чтобы начать.",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_title": {
+    "message": "Доступ к микрофону выключен",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_body": {
+    "message": "Включите «Микрофон» в системных настройках, вернитесь сюда и нажмите «Повторить» — перезапускать приложение не нужно.",
+    "description": "BEL-273 microphone permission gate"
   }
 }
