@@ -356,7 +356,7 @@ export function grantClaimCode(code) {
   if (raw === 'grant_misconfigured' || raw === 'no_host' || raw === 'no host') return 'misconfigured';
   if (raw === 'signed_out' || raw === 'auth' || raw === '401' || raw === '403') return 'revoked';
   if (raw === 'model_not_allowed' || raw.indexOf('model') === 0) return 'model';
-  if (raw === 'invalid' || raw === 'bad_request' || raw === '400') return 'invalid';
+  if (raw === 'invalid' || raw === 'grant_invalid' || raw === 'bad_request' || raw === '400') return 'invalid';
   if (raw === 'busy' || raw === 'rate_limited' || raw === '429') return 'busy';
   return 'unavailable';
 }
