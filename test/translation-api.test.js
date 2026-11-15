@@ -7,6 +7,7 @@ const { makeChrome, makeFetch } = require('./stubs');
 // The transports resolve their endpoint through this shared pure module; it is a
 // dependency, not a stub, so the real one is injected rather than faked.
 const WireFormat = require('../extension/content/wire-format.js');
+const { makeTelemetry, expectAttribution, deriveGrantEvent } = require('./attrib-headers-fixture');
 
 // The transport reads the provider registry off `window.MT_PROVIDERS`, which the
 // build generates per flavor into providers.gen.js. Load that real (global-flavor)
@@ -19,13 +20,13 @@ function loadRegistry() {
   return window;
 }
 
-function loadAPI(program, chromeOpts = {}, flavor) {
+function loadAPI(program, chromeOpts = {}, flavor, extra = {}) {
   const chrome = makeChrome(chromeOpts);
   const fetch = makeFetch(program);
   const window = loadRegistry();
   if (flavor) window.MT_FLAVOR = flavor;
   const ctx = loadModule(['engine-state.js', 'request-shape.js', 'translation-api.js'],
-    { fetch, chrome, AbortController, URLSearchParams, window, WireFormat });
+    Object.assign({ fetch, chrome, AbortController, URLSearchParams, window, WireFormat }, extra));
   return { API: ctx.TranslationAPI, fetch, chrome };
 }
 
@@ -623,6 +624,87 @@ describe('TranslationAPI — retry & fallback', () => {
 // translateBatch 的三条用例随函数一起删除（2026-08-22）：它没有任何调用方，而它的
 // `provider === 'google'` 分支直接调 translateGoogleBatch，绕过 callProvider —— 未知
 // 引擎守卫管不到它。「已删除」本身由上面那条 typeof 断言守着。
+
+// BEL-224：relay 的 grant_debited 认 header `x-mt-install-id`；客户端只在自家 relay
+// URL 上补这一个头。vendor 请求一个字节都不许带 —— 这条断言就是隐私边界本身。
+describe('TranslationAPI — relay 请求带 install_id，vendor 不带（BEL-224）', () => {
+  const INSTALL = '11111111-1111-4111-8111-111111111111';
+  const RELAY = 'https://backend.example/functions/v1/bt-relay/chat/completions';
+  const VENDOR = 'https://api.openai.com/v1/chat/completions';
+  const okChat = () => okJson({ choices: [{ message: { content: '你好' } }] });
+  const telemetry = (seen) => ({
+    relayHeaders: async (url) => {
+      seen.push(url);
+      return /\/bt-relay(?:\/|$)/i.test(String(url || '')) ? { 'x-mt-install-id': INSTALL } : {};
+    },
+  });
+
+  test('直连：relay 带 x-mt-install-id，vendor 不带', async () => {
+    const seen = [];
+    const { API, fetch } = loadAPI([okChat(), okChat()], {}, null, { MTTelemetry: telemetry(seen) });
+    eq(await API.translate('hello', 'zh-CN', 'openai', 'KEY', RELAY), '你好');
+    eq(fetch.calls[0].opts.headers['x-mt-install-id'], INSTALL);
+    eq(await API.translate('hello', 'zh-CN', 'openai', 'KEY', VENDOR), '你好');
+    ok(!('x-mt-install-id' in fetch.calls[1].opts.headers), 'vendor 请求绝不能带 install_id');
+    deepEq(seen, [RELAY, VENDOR], '两条路都问过 relayHeaders，判定在它自己手里');
+  });
+
+  test('proxy（Firefox）通路同样带 —— header 在选路之前合并', async () => {
+    const proxied = [];
+    const seen = [];
+    const { API } = loadAPI([], {
+      extensionOrigin: 'moz-extension://uuid/',
+      onMessage: (m) => {
+        proxied.push(m);
+        return m.action === 'ping' ? { ok: true }
+          : { ok: true, status: 200, text: JSON.stringify({ choices: [{ message: { content: '你好' } }] }) };
+      },
+    }, null, { MTTelemetry: telemetry(seen) });
+    eq(await API.translate('hello', 'zh-CN', 'openai', 'KEY', RELAY), '你好');
+    const real = proxied.find((m) => m.action === 'proxyFetch');
+    ok(real, '应当走后台代理');
+    eq(real.init.headers['x-mt-install-id'], INSTALL);
+  });
+
+  test('relayHeaders 抛错 ⇒ 请求照常，且没有 header（归因不能挡住翻译）', async () => {
+    const { API, fetch } = loadAPI([okChat()], {}, null, {
+      MTTelemetry: { relayHeaders: async () => { throw new Error('boom'); } },
+    });
+    eq(await API.translate('hello', 'zh-CN', 'openai', 'KEY', RELAY), '你好');
+    ok(!('x-mt-install-id' in fetch.calls[0].opts.headers));
+  });
+
+  // BEL-267：真实 MTTelemetry（不是桩）跑一遍，断言 fetch 真正收到的头。
+  // 页面翻译没有枚举 surface（relay 的 SURFACES 不含 'page'），默认必须省略；
+  // 调用方明确给了 opts.surface='web_caption' 才带。
+  test('BEL-267：relay 请求带齐归因头；surface 只在 opts.surface 合法时出现', async () => {
+    const fx = makeTelemetry();
+    const { API, fetch } = loadAPI([okChat(), okChat(), okChat()], {}, null, { MTTelemetry: fx.T });
+
+    // 1) 默认（页面翻译）：六个归因头齐，surface 整个键缺席。
+    eq(await API.translate('hello default', 'zh-CN', 'openai', 'KEY', RELAY), '你好');
+    const plain = fetch.calls[0].opts.headers;
+    expectAttribution(plain, fx.headers);
+    ok(!('surface' in fetch.calls[0].opts), 'surface 不是 RequestInit 的一部分，不能漏给 fetch');
+    const plainEvent = deriveGrantEvent(plain, 'chat');
+    eq(plainEvent.v, '1.23.4'); eq(plainEvent.host, 'safari');
+    ok(!Object.prototype.hasOwnProperty.call(plainEvent.props, 'surface'), '未传 surface 时事件 props 不能有 surface 键');
+
+    // 2) caller 明确知道这次是字幕（web_caption）⇒ 头出现，镜像事件也带 surface。
+    eq(await API.translate('hello caption', 'zh-CN', 'openai', 'KEY', RELAY, undefined,
+      { surface: 'web_caption' }), '你好');
+    const caption = fetch.calls[1].opts.headers;
+    expectAttribution(caption, fx.headers, 'web_caption');
+    eq(deriveGrantEvent(caption, 'chat').props.surface, 'web_caption');
+
+    // 3) 'page' 不是 relay 枚举值 —— 即使 caller 传了也不许发明。
+    eq(await API.translate('hello page', 'zh-CN', 'openai', 'KEY', RELAY, undefined,
+      { surface: 'page' }), '你好');
+    const page = fetch.calls[2].opts.headers;
+    expectAttribution(page, fx.headers);
+    ok(!Object.prototype.hasOwnProperty.call(deriveGrantEvent(page, 'chat').props, 'surface'));
+  });
+});
 
 // ─── domain-design §5.4: Firefox routes through the background ────────────────
 // Firefox applies the HOST PAGE's CSP to a content script's fetch; Chrome and WebKit
