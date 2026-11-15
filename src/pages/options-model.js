@@ -13,6 +13,8 @@
 // 事故（test/grant.test.js）的守卫面，test/options-model.test.js 对着 schema
 // 把差集钉死，谁一边改了另一边没改就红。
 
+import { ownerFor } from '../shared/owner.js';
+
 // saveNow() 实写的全部键（原 saveAll 映射表的键域，33 个）。顺序无语义，集合
 // 才有 —— 单测拿它对账 schema。
 export const SAVE_KEYS = [
@@ -24,6 +26,45 @@ export const SAVE_KEYS = [
   'reqTemperature', 'reqMaxTokens', 'reqTimeoutSec', 'reqConcurrency',
   'sttEngine', 'sttApiKey', 'sttBaseUrl', 'sttModel',
 ];
+
+// ── key 输入的保存面（BEL-266）─────────────────────────────────────────
+// 四个 key 输入框 → 「key + owner」的一笔 patch。owner 的判定在 shared/owner.js，
+// 这里只做 options 特有的两件事：
+//   1. 输入框 id / 存储键 / 槽位的对应表；
+//   2. `bmg_` **手填**一律拒绝（owner=null）—— 令牌是登录后系统发的，粘贴进来只
+//      会配出一个「key 与引擎都是额度、但 grantTail 对不上」的半状态。
+// 非 bmg_ 的 owner 只认调用点传进来的显式 vendor；传空就是空串，不读存储、不猜。
+export const OWNER_KEY_FOR = {
+  apiKey: 'apiKeyOwner', ttsApiKey: 'ttsKeyOwner',
+  sttApiKey: 'sttKeyOwner', notesApiKey: 'notesKeyOwner',
+};
+export const OWNER_SLOT_FOR = {
+  apiKey: 'chat', ttsApiKey: 'tts', sttApiKey: 'stt', notesApiKey: 'notes',
+};
+
+export function keyOwnerPatch(key, value, explicitVendor) {
+  const ownerKey = OWNER_KEY_FOR[key];
+  if (!ownerKey) return {};
+  const v = String(value == null ? '' : value).trim();
+  // 清空输入框 = 清 owner。空 key 没有归属可谈，保留旧 owner 会让下一次粘贴
+  // 之前的窗口期继续拿上一家的名字。
+  if (!v) return { [ownerKey]: '' };
+  // bmg_ 只能从「领取」进来：那里走 QuickSetup.plan，不经过这个输入框路径。
+  if (/^bmg_/i.test(v)) return null;
+  return { [ownerKey]: ownerFor(OWNER_SLOT_FOR[key], v, explicitVendor) };
+}
+
+// 真正的落盘动作（options 的 change / blur 路径）。store 注入让单测用「真
+// SettingsStore + 测试存储 shim」走同一条写路径，而不是再抄一份 setMany。
+// 写失败返回 {ok:false} 时必须抛出去 —— 界面不能在同一秒说「已保存」。
+export async function saveKeyField(store, key, value, explicitVendor) {
+  const owner = keyOwnerPatch(key, value, explicitVendor);
+  if (owner === null) return null;
+  const v = String(value == null ? '' : value).trim();
+  const r = await store.setMany(Object.assign({ [key]: v }, owner));
+  if (r && r.ok === false) throw new Error(r.error || 'settings write failed');
+  return owner;
+}
 
 // 字号档位（原 SCALE_OPTS）。存量里出现的任何其它值（旧版写过的）一律落 1.0。
 export const SCALE_OPTS = ['0.8', '0.9', '1.0', '1.1', '1.25'];

@@ -228,6 +228,23 @@ async function syncLiveTts(settings) {
   return true;
 }
 
+// BEL-266：一键卡（QuickSetup.plan）除了 writes 还给 marks —— 四把 *KeyOwner 是
+// [flow] 元数据，不在 SAVE_KEYS 里，所以不能混进普通保存。write 与 owner 必须是
+// **一笔**写：拆开会在中间留下「key 写了、owner 还是上一家」的窗口，下一次请求
+// 就会被 key_owner_mismatch 拦下。这里只放行 owner 键，grantTail / grant 等仍归
+// 领取路径自己写。
+const OWNER_MARK_KEYS = ['apiKeyOwner', 'ttsKeyOwner', 'sttKeyOwner', 'notesKeyOwner'];
+
+async function applyQuickSetup(plan) {
+  const patch = Object.assign({}, (plan && plan.writes) || {});
+  const marks = (plan && plan.marks) || {};
+  for (const k of OWNER_MARK_KEYS) if (k in marks) patch[k] = marks[k];
+  if (!Object.keys(patch).length) return;
+  // 写失败必须抛出去：quick-setup-view 的 catch 会把槽标红并保留按钮；
+  // 在这里吞掉 = 界面继续跑自检、最后说「配好了」，而 owner 根本没落盘。
+  await set(patch);
+}
+
 // `engineChosen` 此前**在 App 里一处都没写**（只有扩展设置页与扩展引导页写过），
 // 而 `EngineState.needsSetup` 要读它：于是在 App 里选了一个不需要 key 的引擎之后，
 // 界面仍然说「还没配过翻译引擎」。写入点跟着「真的写了 provider」走。
@@ -493,7 +510,7 @@ function writeStoredDetail(on) {
 export default {
   KEYS, DETAIL_KEY, get, set, ensureDefaults, engineById, sttSupportedBases, myLangOf,
   priceText, tallyText, writeRules, liveTtsConfigure, syncLiveTts, markEngineChosen, trackEngineSet,
-  claimAndApply, classifyGrantFailure, grantFailureView,
+  claimAndApply, classifyGrantFailure, grantFailureView, applyQuickSetup,
   bumpAccountEpoch, currentAccountEpoch,
   bind, hooks, notifySettingsShown, onSettingsShown, currentSession,
   requestDetail, onDetailRequest, readStoredDetail, writeStoredDetail,

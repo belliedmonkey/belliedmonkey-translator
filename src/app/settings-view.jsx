@@ -745,7 +745,9 @@ export default function SettingsView() {
   // 组件只返回 patch，写盘归本页 —— 与扩展设置页同一条分工。写完重画：一键配好的
   // 三组必须在「详细」里立刻看得见，否则用户下一次改任何一个字段都会用旧 DOM 覆盖回去。
   async function applyQuickSetup(plan, session, say) {
-    if (plan && plan.writes && Object.keys(plan.writes).length) await settingsModel.set(plan.writes);
+    // BEL-266：writes 与 plan.marks 里的 owner 键由 model 一笔落盘；写失败会抛，
+    // 交给 quick-setup-view 的 catch（槽标红、按钮恢复），不在这里吞成成功。
+    await settingsModel.applyQuickSetup(plan);
     await settingsModel.markEngineChosen(plan);
     await paintNow();
     try { await paintGrant(session); } catch (_) {}   // 同扩展设置页：一键卡写完后重画额度卡（F07）
