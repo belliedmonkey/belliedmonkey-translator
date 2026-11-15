@@ -1,8 +1,8 @@
 // test/n26-fail-halt.test.js — extension N26 fail-halt.
 //
 // Port of the Safari-extension halt on mobiletranslator main b0ddea77
-// (PR#16 tip c9a51503). The pump stops for four immediate codes and for a
-// timeout streak of 5. http / network / 429 stay on the row.
+// (PR#16 tip c9a51503). The pump stops for five immediate codes (BEL-274 added
+// no_base) and for a timeout streak of 5. http / network / 429 stay on the row.
 const { describe, test, eq, ok, loadModule } = require('./harness');
 const { makeChrome } = require('./stubs');
 
@@ -17,13 +17,13 @@ function load() {
   return { TC: ctx.TranslationCore, FS: ctx.FailSurface, window };
 }
 
-const FOUR = ['credit_exhausted', 'grant_unavailable', 'model_not_allowed', 'auth'];
+const FIVE = ['credit_exhausted', 'no_base', 'grant_unavailable', 'model_not_allowed', 'auth'];
 
 describe('N26 classifyFail — 封闭码表，不另造 translate_fail 码', () => {
   const { TC } = load();
 
-  test('HALT_IMMEDIATE 含四码，且是 FAIL_CODES 的子集', () => {
-    for (const code of FOUR) {
+  test('HALT_IMMEDIATE 含五码，且是 FAIL_CODES 的子集', () => {
+    for (const code of FIVE) {
       ok(TC.HALT_IMMEDIATE.indexOf(code) >= 0, code);
       ok(TC.FAIL_CODES.indexOf(code) >= 0, code + ' 不在封闭表里');
     }
@@ -82,7 +82,7 @@ describe('N26 引擎停泵', () => {
     for (let i = 0; i < (cap || 20) && !pred(); i++) { eng.pump(); await settle(); }
   }
 
-  for (const code of FOUR) {
+  for (const code of FIVE) {
     test(code + ' 一次即停，之后 pump 不再发请求', async () => {
       let calls = 0;
       const seen = [];
@@ -207,7 +207,7 @@ describe('N26 引擎停泵', () => {
 });
 
 describe('N26 fail-surface — 下一步锚点', () => {
-  test('即停四码去设置页，超时是重试，都不自动再请求', () => {
+  test('即停五码去设置页，超时是重试，都不自动再请求', () => {
     const { FS } = load();
     const credit = FS.surface('credit_exhausted');
     eq(credit.halt, true);
@@ -216,6 +216,13 @@ describe('N26 fail-surface — 下一步锚点', () => {
     eq(credit.primary.action, 'open');
     eq(FS.surface('grant_unavailable').anchor, '#grant');
     eq(FS.surface('model_not_allowed').anchor, '#grant');
+    const noBase = FS.surface('no_base');
+    eq(noBase.halt, true);
+    eq(noBase.anchor, '#engine');
+    eq(noBase.showAutoRetry, false);
+    eq(noBase.primary.action, 'open');
+    eq(FS.row('no_base').retry, false);
+    eq(FS.row('no_base').anchor, '#engine');
     const auth = FS.surface('auth');
     eq(auth.anchor, '#engine');
     eq(auth.primary.anchor, '#engine');
