@@ -16,6 +16,7 @@ const fs = require('fs');
 const path = require('path');
 const { describe, test, ok, eq, deepEq, loadSrc, rejects, tick } = require('./harness');
 const cfg = require('../build/telemetry.config.js');
+const { bootApp } = require('./lib/app-boot');
 
 const ROOT = path.join(__dirname, '..');
 const SHELL = 'src/app/AppShell.jsx';
@@ -668,7 +669,7 @@ describe('BEL-269 · 首启包失败：自动重试一次 + 可继续进入', ()
     ok(/PACK_AUTO_RETRY_DELAY_MS/.test(run), 'runFirstRunPacks 没把退避时间传给重试');
   });
 
-  test('A2 · 两次失败后重试与跳过都可达；跳过进首页并落 listenPacksDone', async () => {
+  test('A2 · 两次失败后重试与跳过都可达（落盘/冷启由 B5–B7 真跑）', () => {
     deepEq(Shell.packsFailureActions({ failed: true, busy: false, manage: false, phase: 'pick' }),
       { retry: true, skip: true }, '第二次失败后两个出口必须同时可达');
     for (const s of [
@@ -680,38 +681,9 @@ describe('BEL-269 · 首启包失败：自动重试一次 + 可继续进入', ()
       deepEq(Shell.packsFailureActions(s), { retry: false, skip: false },
         `这些状态不许露失败出口：${JSON.stringify(s)}`);
     }
-
-    const store = {};
-    const order = [];
-    const r = await Shell.skipPacksToHome({
-      persist: async () => { order.push('persist'); store[Shell.PACKS_DONE_KEY] = 1; return true; },
-      enterHome: async () => { order.push('home'); },
-    });
-    eq(r.persisted, true, '跳过必须报告已落盘');
-    deepEq(order, ['persist', 'home'], '必须先落 skip 再进首页 —— 先离开会把「下次不再拦」丢掉');
-    eq(store[Shell.PACKS_DONE_KEY], 1, 'skip 没写 listenPacksDone');
-    eq(Shell.PACKS_DONE_KEY, 'listenPacksDone', 'skip 的持久化键必须与成功/冷启动同一个');
-    eq(FR.step({
-      loggedIn: true, packsDone: !!store[Shell.PACKS_DONE_KEY],
-      asrPack: false, ttsPack: false, basePack: false, onboardingSeen: true,
-    }), 'home', '落盘后下一次 FirstRun.step 仍回 packs —— 跳过等于没跳');
-
-    const shellSrc = read(SHELL);
-    const model = stripComments(read(MODEL));
-    ok(/\$\('packs-skip'\)\.addEventListener\('click'/.test(model), '#packs-skip 没接点击');
-    const skipFn = model.slice(model.indexOf('async function onPacksSkip'), model.indexOf('async function packFailCode'));
-    ok(/skipPacksToHome\(/.test(skipFn) && /writePacksDone/.test(skipFn),
-      'onPacksSkip 没走同一个持久化 helper（writePacksDone）');
-    ok(/dismissPacksAfterDone\(\)/.test(skipFn), 'onPacksSkip 没进首页');
-    ok(/id="packs-skip"/.test(shellSrc), 'AppShell 里缺 #packs-skip');
-
-    // app_open / heartbeat：skip 写入的键正是 telemetry 的 app_home 判据。
-    const tel = loadTelemetry(store);
-    await tel.TS.appOpen();
-    eq(tel.events.length, 1, 'skip 后冷启的 app_open 没有发出');
-    eq(tel.events[0].name, 'app_open');
-    eq(tel.events[0].props.surface, 'app_home', 'skip 后 app_open 仍判 packs —— 首启死循环');
-    ok(/deviceBridgeHost\.boot\(\)/.test(model), '设备桥 heartbeat 的 boot 不见了');
+    // 这里以前用假的 persist 自证「会落盘」，再 grep 源码补一层形状。两者在
+    // `writePacksDone` 的 storage.set 被删掉时都还是绿的（2026-11-15 质量变异）。
+    // 真实点击 #packs-skip、真实冷启分流写在 B5–B7；A2 只保留出口可达性。
   });
 
   test('A3 · 成功路径不变：1 次尝试、不退避、不露失败出口', async () => {
@@ -815,15 +787,11 @@ describe('BEL-269 延伸 · 首页不假装包已就绪 + 路由/重试去重', 
       'packs-pending-go', 'packs-pending-why', 'packs-pending-tts']) {
       ok(shellSrc.includes(`id="${id}"`), `AppShell 缺 #${id}`);
     }
-    ok(/\$\('packs-pending-go'\)\.addEventListener\('click', \(\) => \{ openPackManager\(\); \}\)/.test(model),
-      '横幅的「去下载语言包」没接 openPackManager');
     ok(/\$\('set-pack-manage'\)\.addEventListener\('click', \(\) => \{ openPackManager\(\); \}\)/.test(model),
       '设置页的「管理」没接包流程');
-    ok(/persist: \(\) => writePacksDone\(\{ skipped: true \}\)/.test(model),
-      '跳过没把 listenPacksSkipped 落盘 —— 冷启后首页横幅与 app_open 都看不见');
     ok(/function paintPacksPending\(\)/.test(model), '没有画横幅的函数');
-    ok(/paintPacksPending\(\)/.test(model.slice(model.indexOf('function paintFirstRun'), model.indexOf('async function loadPackSelection'))),
-      'paintFirstRun 不在每次判定后重画横幅 —— 重绘会把它丢掉');
+    // 「去下载语言包」的接线、skip 的落盘、横幅的重画都由 B5–B7 真跑一遍，
+    // 这里不再 grep 调用形状（删掉 storage.set 时那些断言仍是绿的）。
   });
 
   test('B2 · 听译/实时字幕入口在包未就绪时明确不可用并给原因（不是静默/空转）', async () => {
@@ -1037,5 +1005,99 @@ describe('BEL-269 延伸 · 首页不假装包已就绪 + 路由/重试去重', 
     eq(events.filter((x) => x === 'fail').length, 1, 'fail 条数不等于失败次数');
     eq(events.filter((x) => x === 'ok').length, 1, 'ok 条数不等于成功次数');
     eq(events.indexOf('packs_ready'), -1, '单语言成功被记成了 packs_ready');
+  });
+
+  // ── BEL-269 行为门（2026-11-15）：真 boot + 真 chrome.storage + 真点击 ─────────
+  // 这一组不喂假 persist、不 grep writePacksDone 的调用形状。启动的是生产
+  // bootShell()，点的是它接的 #packs-skip，下一次冷启读的是这一次真的写下的字节。
+  // 质量变异：删掉 writePacksDone 里的 chrome.storage.local.set，B5 起必红。
+
+  // 一次真实的「冷启落在包屏 → 点击 #packs-skip」。返回点击后的 storage 与 DOM。
+  async function realSkip() {
+    const app = bootApp({ store: { onboardSeen: 1 }, ready: false });
+    app.boot();
+    const onPacks = await app.waitForScreen('packs');
+    // 等 boot 把包屏画完（#packs-skip 的 click 处理器在 boot 同步段就接好了）。
+    await tick(20);
+    app.el('packs-skip').click();
+    const wrote = await app.waitFor(() => (
+      app.store[Shell.PACKS_DONE_KEY] === 1 && app.store[Shell.PACKS_SKIPPED_KEY] === 1
+    ), 500);
+    await app.waitForScreen('home');
+    return { app, store: app.store, onPacks, wrote };
+  }
+
+  test('B5 · 真实 #packs-skip 点击把 listenPacksDone/listenPacksSkipped 落成 1', async () => {
+    const { app, store, onPacks, wrote } = await realSkip();
+    ok(onPacks, `冷启没落到包屏（实际 ${app.screen()}）—— 没有可点的跳过出口`);
+    ok(wrote, '点击 #packs-skip 后存储里没有 listenPacksDone=1 / listenPacksSkipped=1'
+      + `（实际 ${JSON.stringify({ done: store[Shell.PACKS_DONE_KEY], skipped: store[Shell.PACKS_SKIPPED_KEY] })}）`);
+    // 键名不发明：就是 App 的 listenPacksDone / listenPacksSkipped 两个导出常量，
+    // 值与成功路径/冷启读取同形（数字 1，不是 true / 字符串）。
+    eq(Shell.PACKS_DONE_KEY, 'listenPacksDone', '跳过的 done 键不再是 App 读的那个');
+    eq(Shell.PACKS_SKIPPED_KEY, 'listenPacksSkipped', '跳过的 skipped 键不再是 App 读的那个');
+    eq(store[Shell.PACKS_DONE_KEY], 1, '真实 skip 没把 listenPacksDone=1 落盘');
+    eq(store[Shell.PACKS_SKIPPED_KEY], 1, '真实 skip 没把 listenPacksSkipped=1 落盘');
+    eq(typeof store[Shell.PACKS_DONE_KEY], 'number', 'listenPacksDone 不是数字 1 的形状');
+    eq(typeof store[Shell.PACKS_SKIPPED_KEY], 'number', 'listenPacksSkipped 不是数字 1 的形状');
+    // 同一帧里已经进首页，且包未齐的横幅真的画出来了。
+    eq(app.el('firstrun-packs').hidden, true, '跳过之后包屏还露着');
+    eq(app.el('signed-in').hidden, false, '跳过之后首页没露');
+    eq(app.el('packs-pending').hidden, false, '跳过进首页后「语言包未就绪」横幅没露');
+    eq(app.el('packs-pending-title').textContent, '语言包未就绪', '横幅标题不是产品文案');
+  });
+
+  test('B6 · 下次冷启只按落盘的 skip 键分流：有 skip → home+横幅；无 skip → 包屏', async () => {
+    const { store: skippedStore, onPacks, wrote } = await realSkip();
+    ok(onPacks && wrote, '准备阶段：真实 skip 没有落盘，无法比较下一次冷启');
+    // 两个 case 的存储只差 skip 写下的那两个键；包探针、会话、其它字节完全相同。
+    const withSkip = Object.assign({}, skippedStore);
+    const withoutSkip = Object.assign({}, skippedStore);
+    delete withoutSkip[Shell.PACKS_DONE_KEY];
+    delete withoutSkip[Shell.PACKS_SKIPPED_KEY];
+
+    const homeApp = bootApp({ store: withSkip, ready: false });
+    homeApp.boot();
+    ok(await homeApp.waitForScreen('home'),
+      `有 skip 的下一次冷启没进首页（实际 ${homeApp.screen()}）—— 用户会被按回包屏`);
+    eq(homeApp.el('firstrun-packs').hidden, true, '有 skip 的冷启仍露着包屏');
+    eq(homeApp.el('packs-pending').hidden, false, '有 skip 的冷启首页没挂「语言包未就绪」横幅');
+    eq(homeApp.el('packs-pending-title').textContent, '语言包未就绪', '冷启横幅标题不是产品文案');
+
+    const packsApp = bootApp({ store: withoutSkip, ready: false });
+    packsApp.boot();
+    ok(await packsApp.waitForScreen('packs'),
+      `同样的包缺失、只是没有 skip 键，冷启却没回包屏（实际 ${packsApp.screen()}）—— skip 键没被读`);
+    eq(packsApp.el('firstrun-packs').hidden, false, '没有 skip 的冷启包屏没露');
+    eq(packsApp.el('signed-in').hidden, true, '没有 skip 的冷启把首页也露出来了 —— 硬门被绕开');
+    eq(packsApp.el('packs-pending').hidden, true, '没有 skip 的冷启却挂了首页横幅');
+  });
+
+  test('B7 · 探针三样齐了横幅自动收起', async () => {
+    const { store: skippedStore, onPacks, wrote } = await realSkip();
+    ok(onPacks && wrote, '准备阶段：真实 skip 没有落盘，无法验证就绪后收横幅');
+
+    // 冷启时探针已经全齐：同一个 skip 存储，横幅不该出现。
+    const readyApp = bootApp({ store: Object.assign({}, skippedStore), ready: true });
+    readyApp.boot();
+    ok(await readyApp.waitForScreen('home'), `三样都齐的冷启没进首页（实际 ${readyApp.screen()}）`);
+    eq(readyApp.el('packs-pending').hidden, true, '探针三样都齐了，横幅还挂着');
+
+    // 运行中由探针「缺 → 齐」：走 App 自己的回包页再返回，paintFirstRun 会重探；
+    // 齐了之后 skip 旗收回、横幅消失，不需要重启。
+    const app = bootApp({ store: Object.assign({}, skippedStore), ready: false });
+    app.boot();
+    ok(await app.waitForScreen('home'), `skip 后的冷启没进首页（实际 ${app.screen()}）`);
+    eq(app.el('packs-pending').hidden, false, '准备阶段：包未齐时横幅没露');
+    app.probe.ready = true;                      // 系统把三样包自己下齐了
+    app.el('packs-pending-go').click();          // 生产路径：重探包
+    ok(await app.waitFor(() => app.el('firstrun-packs').hidden === false, 600),
+      '重探包之后没有回到包页（无法验证收横幅）');
+    ok(await app.waitFor(() => app.store[Shell.PACKS_SKIPPED_KEY] === 0, 500),
+      '三样包齐了，listenPacksSkipped 没有收回 0');
+    app.el('packs-manage-back').click();         // 生产路径：从包页返回首页
+    ok(await app.waitFor(() => app.el('packs-pending').hidden === true, 500),
+      '包齐了之后横幅还挂着 —— 用户看到的是过期的「未就绪」');
+    eq(app.el('firstrun-packs').hidden, true, '收横幅后包屏还露着');
   });
 });
