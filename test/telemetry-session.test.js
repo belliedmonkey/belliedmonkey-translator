@@ -640,6 +640,45 @@ describe('BEL-226 pack_download_* / packs_ready', () => {
     eq(events[events.length - 1].props.code, 'download_tts');
   });
 
+  test('BEL-268：结构化 status:503（无 message/body）→ network，不从自由文本猜状态；status 不是事件属性', async () => {
+    const gen = require('../supabase/functions/bt-ingest/events.gen.json');
+    // e.status / e.statusCode / e.response.status / e.httpStatus 都是调用方可能给出的
+    // 结构化形状；它们都必须映射成同一个六值，而不是落到 other。
+    const cases = [
+      [{ status: 503 }, 'network'],
+      [{ statusCode: 503 }, 'network'],
+      [{ response: { status: 503 } }, 'network'],
+      [{ httpStatus: 503 }, 'network'],
+      // 408/504 是 timeout；其余 4xx 默认 other。
+      [{ status: 408 }, 'timeout'],
+      [{ status: 504 }, 'timeout'],
+      [{ status: 404 }, 'other'],
+      [{ status: 429 }, 'other'],
+      // 既有优先级不被状态改写。
+      [{ status: 503, mtSttTimeout: true }, 'timeout'],
+      [{ status: 503, cancelled: true }, 'other'],
+      // 4xx 仍可落到更具体的既有原因。
+      [{ status: 400, reason: 'hash' }, 'hash'],
+      // 自由文本里的 "503" 不是结构化状态，不参与映射。
+      [{ message: 'request failed with 503' }, 'other'],
+    ];
+    for (const [err, want] of cases) eq(load().TS.packFailReason(err), want, JSON.stringify(err));
+
+    const { TS, events } = load();
+    const tok = await TS.packStart({ pack_kind: 'asr', pack_id: 'asr_zh', locale: 'zh', surface: 'first_run_packs', source: 'system' });
+    await TS.packFail(tok, { status: 503 }, 'download_asr');
+    const p = events[events.length - 1].props;
+    eq(events[events.length - 1].name, 'pack_download_fail');
+    eq(p.reason, 'network', '503 无文本必须是 network，不能是 other');
+    eq(p.code, 'download_asr', '状态映射不能改写 BEL-268 的 code 后缀');
+    ok(!('status' in p), 'status 不是 pack_download_fail 的事件属性');
+    ok(!('status' in gen.events.pack_download_fail), 'events.gen 白名单没有 status');
+    for (const k of Object.keys(p)) {
+      ok(Object.keys(gen.common).concat(Object.keys(gen.events.pack_download_fail)).indexOf(k) >= 0,
+        'pack_download_fail 出现未登记属性：' + k);
+    }
+  });
+
   test('packs_ready 只在整套齐时发一次；重复探/跨启动不发；再变齐可再发', async () => {
     const s = store();
     const ready = packState();

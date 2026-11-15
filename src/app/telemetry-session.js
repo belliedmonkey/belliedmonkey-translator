@@ -779,9 +779,29 @@ export async function packOk(token) {
   } catch (_) { return ''; }
 }
 
-// 六值归一化。只看错误对象里的结构化取消/超时标志与 reason/code/why/name/message，
-// **不**把原始报错或 URL 发出去。
-// 顺序：显式取消/中止 → timeout → hash → disk → network → unsupported → other。
+// HTTP 状态只从**结构化字段**读，不扫 message/why/body 等自由文本（那里出现 "503"
+// 也不猜）。当前调用链里可能出现的形状：
+//   fetch 包装 / URLSession 包装 → e.status
+//   Node/Chromium 的 http 错误   → e.statusCode
+//   带响应对象的错误             → e.response.status
+//   其它调用方                   → e.httpStatus
+// 原生 ensureAssets 目前仍只 reject {reason}（协议码），所以这条链上没有数字状态；
+// 保留这几种形状是给真正带 HTTP 响应的调用方用的，不把 reason 再当状态猜一遍。
+function packFailStatus(e) {
+  const vals = [e.status, e.statusCode, e.response && e.response.status, e.httpStatus];
+  for (const v of vals) {
+    let n = 0;
+    if (typeof v === 'number') n = v;
+    else if (typeof v === 'string' && /^\d{3}$/.test(v.trim())) n = Number(v);
+    if (Number.isInteger(n) && n >= 100 && n <= 599) return n;
+  }
+  return 0;
+}
+
+// 六值归一化。只看错误对象里的结构化取消/超时标志、结构化 HTTP 状态与
+// reason/code/why/name/message，**不**把原始报错或 URL 发出去。
+// 顺序：显式取消/中止 → timeout(含 408/504) → 5xx → hash → disk → network →
+// unsupported → other(4xx 没有更具体原因时也落这里)。
 // 显式取消必须最先判：取消串里常带 connect/network，不能把「用户取消」记成网络失败。
 export function packFailReason(err) {
   const e = (err && typeof err === 'object') ? err : { message: String(err || '') };
@@ -790,12 +810,17 @@ export function packFailReason(err) {
   const isCancelWord = (v) => /^(cancelled|canceled|abort)$/.test(lower(v));
   const raw = [e.reason, e.code, e.why, e.name, e.message].filter(Boolean).join(' ').toLowerCase();
   const timeout = !!e.mtSttTimeout || /timeout|timed[ _-]?out|stt-timeout/.test(raw);
+  const status = packFailStatus(e);
   // 显式取消一律 other（六值里没有 cancelled）：即使 message 里带 connect/timeout，
   // 也不能记成 network/timeout。AbortError 只在没有 timeout 标志时才算取消。
   if (e.cancelled === true || e.canceled === true || e.mtCancelled === true ||
       isCancelWord(e.reason) || isCancelWord(e.code) ||
       (lower(e.name) === 'aborterror' && !timeout)) return 'other';
-  if (timeout) return 'timeout';
+  // 408 是请求超时；504 是网关等上游超时。它们必须先于 5xx/4xx 的默认映射。
+  if (timeout || status === 408 || status === 504) return 'timeout';
+  // 5xx = 传输/服务端失败；六值里没有 server，按既有语义记 network。
+  if (status >= 500 && status <= 599) return 'network';
+  // 4xx 默认 other，但继续走下面已有的具体原因（hash/disk/network/unsupported）。
   if (/sha|hash|checksum|integrity|mismatch/.test(raw)) return 'hash';
   if (/disk|enospc|no[ _-]?space|storage[ _-]?full|quota/.test(raw)) return 'disk';
   if (/offline|network|http|dns|connect|socket|unreachable|not connected|econn|fetch/.test(raw)) return 'network';
