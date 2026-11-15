@@ -78,7 +78,9 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
     // 允许的只有**登录这一件事**的元素：Apple / Google / 邮箱那一步，以及邮箱表单
     // 展开后的两步（验证码、密码），它们都是登录流程内部。
     const allowed = new Set(['btn-apple', 'btn-google', 'btn-signin', 'xb-check',
-      'send', 'verify', 'resend', 'back', 'app-pw-login', 'app-pw-back', 'app-use-pw']);
+      'send', 'verify', 'resend', 'back', 'app-pw-login', 'app-pw-back', 'app-use-pw',
+      // BEL-272：Apple 原生失败卡上的两个出口，仍是登录流程内部（默认 hidden）。
+      'btn-apple-retry', 'btn-apple-other']);
     const extra = buttonIds(signedOut).filter((x) => !allowed.has(x));
     deepEq(extra, [], '未登录首屏出现了登录以外的可点元素');
   });

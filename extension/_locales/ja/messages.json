@@ -2158,6 +2158,22 @@
     "message": "Apple ログインを完了できませんでした。下のメールまたは電話番号をお使いください。",
     "description": "Native Apple sign-in failed (not user cancel)"
   },
+  "app_apple_no_credential": {
+    "message": "Apple の認証情報を取得できませんでした。Apple サインインを再試行するか、メール / Google をお使いください。",
+    "description": "Native Apple sign-in returned no credential; offers retry and alternate sign-in"
+  },
+  "app_apple_retry": {
+    "message": "Apple サインインを再試行",
+    "description": "Button: retry native Apple sign-in after a failure"
+  },
+  "app_apple_other": {
+    "message": "メール / Google を使う",
+    "description": "Button: switch away from Apple to email or Google"
+  },
+  "app_apple_canceled": {
+    "message": "Apple サインインはキャンセルされました。もう一度お試しください。",
+    "description": "Neutral copy after the user cancels the Apple sheet (not a failure)"
+  },
   "learn_empty_other_account": {
     "message": "この端末には別のアカウントの学習素材もあります。いまは別のアカウントでログイン中です — 失われてはいません。元のアカウントでログインすれば戻ります。",
     "description": "Empty review page while signed in as a different account than the one owning this device corpus"

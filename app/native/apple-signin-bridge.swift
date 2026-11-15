@@ -66,10 +66,19 @@ final class MTAppleSignIn: NSObject, ASAuthorizationControllerDelegate,
     func authorizationController(controller: ASAuthorizationController,
                                  didCompleteWithError error: Error) {
         self.controller = nil
+        // BEL-272：把 ASAuthorizationError 的 code/domain 原样带回页面 —— 页面只把它们
+        // 编码进已有的 auth_fail.code（不新增事件属性），这样 18×「apple_failed」才能
+        // 拆成 1000/1002/1004/1005 等真正的断点。
+        let ns = error as NSError
+        let code = ns.code
+        let domain = ns.domain
         // 用户自己取消**不是错误**，别把它画成失败 —— 那会让人以为登录坏了。
-        let code = (error as NSError).code
-        if code == ASAuthorizationError.canceled.rawValue { deliver(error: "canceled"); return }
-        deliver(error: "apple_failed")
+        // 判据保持原来的 code（老系统/旧宿主只有这个），domain 一并回传但不改变语义。
+        if code == ASAuthorizationError.canceled.rawValue {
+            deliver(error: "canceled", errorCode: code, errorDomain: domain)
+            return
+        }
+        deliver(error: "apple_failed", errorCode: code, errorDomain: domain)
     }
 
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
@@ -82,11 +91,16 @@ final class MTAppleSignIn: NSObject, ASAuthorizationControllerDelegate,
 
     // MARK: - 交给页面
 
-    private func deliver(token: String? = nil, nonce: String? = nil, error: String? = nil) {
+    private func deliver(token: String? = nil, nonce: String? = nil, error: String? = nil,
+                         errorCode: Int? = nil, errorDomain: String? = nil) {
         var payload: [String: Any] = [:]
         if let t = token { payload["idToken"] = t }
         if let n = nonce { payload["nonce"] = n }
         if let e = error { payload["error"] = e }
+        // 可选：只有 didCompleteWithError 那条路带。no_identity_token 的回调形状保持不变
+        // （不传这两个参数 ⇒ payload 里仍然只有 error）。
+        if let c = errorCode { payload["errorCode"] = c }
+        if let d = errorDomain { payload["errorDomain"] = d }
         let data = try? JSONSerialization.data(withJSONObject: [payload], options: [])
         let arg = data.flatMap { String(data: $0, encoding: .utf8) } ?? "[{\"error\":\"encode\"}]"
         // 与 deeplink 同一个形状：页面没准备好就存 pending，两边都兜住。
