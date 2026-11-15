@@ -4385,5 +4385,21 @@
   },
   "packs_pending_tts": {
     "message": "オフライン読み上げ（デバイス TTS）は利用できません：言語パックが未準備です"
+  },
+  "listen_perm_explain_title": {
+    "message": "マイクが必要です",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_explain_body": {
+    "message": "通訳ではマイクの音声を、設定した文字起こしエンドポイントに送信します。次にシステムの許可ダイアログが表示されるので、「許可」を選ぶと開始できます。",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_title": {
+    "message": "マイクの権限がオフです",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_body": {
+    "message": "システム設定で「マイク」をオンにし、ここに戻って「再試行」をタップすれば開始できます。アプリの再起動は不要です。",
+    "description": "BEL-273 microphone permission gate"
   }
 }

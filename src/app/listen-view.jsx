@@ -300,6 +300,7 @@ export function ListenView() {
   const pv = listenModel.pttView();
   const meter = listenModel.meterView();
   const fail = listenModel.failView();
+  const perm = listenModel.permView();
   const stage = mv.sub ? subtitleStageLines(nv, hv) : null;
   // 字幕进行中/已暂停：有会话且未 ended ⇒ 露出「暂停/继续 + 停止」双钮（batch3 Duo-05）
   const subSessionOn = !!(mv.sub && !tv.ended && tv.endHidden === false);
@@ -360,6 +361,17 @@ export function ListenView() {
           <span className="listen-meter-label" id="app-listen-meter-label">{meter.label}</span>
           <span className="listen-meter-value" id="app-listen-meter-value">{meter.text}</span>
         </p>
+        <div className="listen-fail" id="app-listen-perm" hidden={!perm.shown}>
+          <p className="listen-fail-title" id="app-listen-perm-title">{perm.title}</p>
+          <p className="note" id="app-listen-perm-next">{perm.next}</p>
+          <div className="listen-fail-acts">
+            <button type="button" id="app-listen-perm-primary" hidden={!(perm.primary && perm.primary.label)}
+              onClick={() => listenModel.permAct('primary')}>{perm.primary ? perm.primary.label : ''}</button>
+            <button type="button" className="secondary" id="app-listen-perm-secondary"
+              hidden={!(perm.secondary && perm.secondary.label)}
+              onClick={() => listenModel.permAct('secondary')}>{perm.secondary ? perm.secondary.label : ''}</button>
+          </div>
+        </div>
         <div className="listen-fail" id="app-listen-fail" hidden={!fail.shown}>
           <p className="listen-fail-title" id="app-listen-fail-title">{fail.title}</p>
           <p className="note" id="app-listen-fail-next">{fail.next}</p>

@@ -146,6 +146,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
                                         system: (body["source"] as? String) == "system")
         case "mic-stop":       micStop()
         case "mic-perm-read":  emitMicPerm(micAuthState(), kind: "mic")
+        case "mic-perm-open-settings": micOpenSettings()
         // 实时字幕（learning-design §9.8）。Mac：系统声音 + 悬浮字幕条。iOS 在一期（画中画字幕窗）落地之前
         // 不回 caps-probe ⇒ 页面按老壳处理、iPhone 上入口不显示（§9.8 协议补充决定 3、11）。
         case "caps-probe":      capsProbe()
@@ -313,6 +314,31 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         emit(["type": "mic-perm", "state": state, "kind": kind])
     }
 
+    /// BEL-273：采集链失败只回有界的 `domain:code`。系统长文（NSError localizedDescription）
+    /// 不送进 JS，更不会进遥测；JS 侧再按白名单正则收一次。
+    private func emitMicFailure(_ error: Error) {
+        let ns = error as NSError
+        let domain = String(ns.domain.prefix(32))
+        emit(["type": "mic-state", "state": "failed", "reason": "native",
+              "native_code": domain + ":" + String(ns.code)])
+    }
+
+    /// BEL-273：从拒绝卡直接落到系统里本 App 的麦克风开关。
+    /// iOS 用 openSettingsURLString（本 App 设置页）；macOS 用隐私与安全性里的麦克风面板。
+    private func micOpenSettings() {
+#if os(iOS)
+        DispatchQueue.main.async {
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url)
+            }
+        }
+#else
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
+            NSWorkspace.shared.open(url)
+        }
+#endif
+    }
+
     private func requestMicPermission(_ done: @escaping (Bool) -> Void) {
         let before = micAuthState()
         if before == "not_determined" { emitMicPerm("prompted", kind: "mic") }
@@ -346,7 +372,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
             try session.setCategory(.playAndRecord, mode: .default, options: recordOptions)
             try session.setActive(true)
         } catch {
-            emit(["type": "mic-state", "state": "failed", "reason": String(describing: error)])
+            emitMicFailure(error)
             return
         }
 #endif
@@ -354,12 +380,14 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         let input = engine.inputNode
         let inFormat = input.outputFormat(forBus: 0)
         guard inFormat.sampleRate > 0, inFormat.channelCount > 0 else {
-            emit(["type": "mic-state", "state": "failed", "reason": "input-format"])
+            emit(["type": "mic-state", "state": "failed", "reason": "native",
+                  "native_code": "AVAudioEngine:input-format"])
             return
         }
         guard let outFormat = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: rate, channels: 1, interleaved: true),
               let converter = AVAudioConverter(from: inFormat, to: outFormat) else {
-            emit(["type": "mic-state", "state": "failed", "reason": "converter"])
+            emit(["type": "mic-state", "state": "failed", "reason": "native",
+                  "native_code": "AVAudioEngine:converter"])
             return
         }
         resetPreRoll()
@@ -376,7 +404,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         } catch {
             input.removeTap(onBus: 0)
             micEngine = nil; micConverter = nil; micConverterIn = nil; micOutFormat = nil
-            emit(["type": "mic-state", "state": "failed", "reason": String(describing: error)])
+            emitMicFailure(error)
             return
         }
         emit(["type": "mic-state", "state": "granted"])

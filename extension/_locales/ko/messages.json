@@ -4385,5 +4385,21 @@
   },
   "packs_pending_tts": {
     "message": "오프라인 읽어 주기(기기 TTS)를 사용할 수 없습니다: 언어 팩이 준비되지 않았습니다"
+  },
+  "listen_perm_explain_title": {
+    "message": "마이크가 필요합니다",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_explain_body": {
+    "message": "통역은 마이크 소리를 설정한 전사 엔드포인트로 보냅니다. 다음에 시스템 권한 창이 뜨면 「허용」을 선택하면 시작됩니다.",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_title": {
+    "message": "마이크 권한이 꺼져 있습니다",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_body": {
+    "message": "시스템 설정에서 「마이크」를 켜고 여기로 돌아와 「다시 시도」를 누르면 시작됩니다. 앱을 다시 시작할 필요는 없습니다.",
+    "description": "BEL-273 microphone permission gate"
   }
 }
