@@ -4396,5 +4396,21 @@
   },
   "packs_pending_tts": {
     "message": "離線朗讀（裝置 TTS）無法使用：語言包未就緒"
+  },
+  "listen_perm_explain_title": {
+    "message": "需要使用麥克風",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_explain_body": {
+    "message": "聽譯要把麥克風的聲音送到你設定的轉寫端點。下一步會跳出系統授權框，點「允許」即可開始。",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_title": {
+    "message": "麥克風權限未開啟",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_body": {
+    "message": "在系統設定裡開啟「麥克風」權限，回到這裡點「重試」就能開始，不用重開 App。",
+    "description": "BEL-273 microphone permission gate"
   }
 }

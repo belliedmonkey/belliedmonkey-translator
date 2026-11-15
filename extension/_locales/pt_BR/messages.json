@@ -4395,5 +4395,21 @@
   },
   "packs_pending_tts": {
     "message": "Leitura em voz alta offline (TTS do dispositivo) indisponível: os pacotes de idiomas não estão prontos"
+  },
+  "listen_perm_explain_title": {
+    "message": "Microfone necessário",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_explain_body": {
+    "message": "A interpretação envia o áudio do microfone para o endpoint de transcrição que você configurou. A permissão do sistema aparece em seguida — escolha “Permitir” para começar.",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_title": {
+    "message": "Acesso ao microfone desativado",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_body": {
+    "message": "Ative “Microfone” nos ajustes do sistema, volte aqui e toque em “Tentar de novo” — não precisa reiniciar o app.",
+    "description": "BEL-273 microphone permission gate"
   }
 }
