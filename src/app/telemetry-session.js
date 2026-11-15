@@ -779,9 +779,42 @@ export async function packOk(token) {
   } catch (_) { return ''; }
 }
 
-// 六值归一化。只看错误对象里的结构化取消/超时标志与 reason/code/why/name/message，
-// **不**把原始报错或 URL 发出去。
-// 顺序：显式取消/中止 → timeout → hash → disk → network → unsupported → other。
+// HTTP 状态只从**结构化字段**读，不扫 message/why/body 等自由文本（那里出现 "503"
+// 也不猜）。当前调用链里可能出现的形状：
+//   fetch 包装 / URLSession 包装 → e.status
+//   Node/Chromium 的 http 错误   → e.statusCode
+//   带响应对象的错误             → e.response.status
+//   其它调用方                   → e.httpStatus
+// 原生 ensureAssets 目前仍只 reject {reason}（协议码），所以这条链上没有数字状态；
+// 保留这几种形状是给真正带 HTTP 响应的调用方用的，不把 reason 再当状态猜一遍。
+function packFailStatus(e) {
+  const vals = [e.status, e.statusCode, e.response && e.response.status, e.httpStatus];
+  for (const v of vals) {
+    let n = 0;
+    if (typeof v === 'number') n = v;
+    else if (typeof v === 'string' && /^\d{3}$/.test(v.trim())) n = Number(v);
+    if (Number.isInteger(n) && n >= 100 && n <= 599) return n;
+  }
+  return 0;
+}
+
+// 六值里的具体原因（hash/disk/network/unsupported）。noGenericHttp：4xx 下只看真正
+// 指向失败原因的词；单独一个 "http" 只是协议名，不能把 404 记成 network。
+function packFailTextReason(raw, noGenericHttp) {
+  if (/sha|hash|checksum|integrity|mismatch/.test(raw)) return 'hash';
+  if (/disk|enospc|no[ _-]?space|storage[ _-]?full|quota/.test(raw)) return 'disk';
+  const net = noGenericHttp
+    ? /offline|network|dns|connect|socket|unreachable|not connected|econn|fetch/
+    : /offline|network|http|dns|connect|socket|unreachable|not connected|econn|fetch/;
+  if (net.test(raw)) return 'network';
+  if (/unsupported|no[ _-]?bridge|not[ _-]?supported|not[ _-]?device|^locale$|^os$|\blocale\b/.test(raw)) return 'unsupported';
+  return '';
+}
+
+// 六值归一化。只看错误对象里的结构化取消/超时标志、结构化 HTTP 状态与
+// reason/code/why/name/message，**不**把原始报错或 URL 发出去。
+// 顺序：显式取消/中止 → timeout(含 408/504) → 5xx → hash → disk → network →
+// unsupported → other(4xx 没有更具体原因时也落这里)。
 // 显式取消必须最先判：取消串里常带 connect/network，不能把「用户取消」记成网络失败。
 export function packFailReason(err) {
   const e = (err && typeof err === 'object') ? err : { message: String(err || '') };
@@ -790,18 +823,21 @@ export function packFailReason(err) {
   const isCancelWord = (v) => /^(cancelled|canceled|abort)$/.test(lower(v));
   const raw = [e.reason, e.code, e.why, e.name, e.message].filter(Boolean).join(' ').toLowerCase();
   const timeout = !!e.mtSttTimeout || /timeout|timed[ _-]?out|stt-timeout/.test(raw);
+  const status = packFailStatus(e);
   // 显式取消一律 other（六值里没有 cancelled）：即使 message 里带 connect/timeout，
   // 也不能记成 network/timeout。AbortError 只在没有 timeout 标志时才算取消。
   if (e.cancelled === true || e.canceled === true || e.mtCancelled === true ||
       isCancelWord(e.reason) || isCancelWord(e.code) ||
       (lower(e.name) === 'aborterror' && !timeout)) return 'other';
-  if (timeout) return 'timeout';
-  if (/sha|hash|checksum|integrity|mismatch/.test(raw)) return 'hash';
-  if (/disk|enospc|no[ _-]?space|storage[ _-]?full|quota/.test(raw)) return 'disk';
-  if (/offline|network|http|dns|connect|socket|unreachable|not connected|econn|fetch/.test(raw)) return 'network';
-  if (/unsupported|no[ _-]?bridge|not[ _-]?supported|not[ _-]?device|^locale$|^os$|\blocale\b/.test(raw)) return 'unsupported';
+  // 408 是请求超时；504 是网关等上游超时。它们必须先于 5xx/4xx 的默认映射。
+  if (timeout || status === 408 || status === 504) return 'timeout';
+  // 5xx = 传输/服务端失败；六值里没有 server，按既有语义记 network。
+  if (status >= 500 && status <= 599) return 'network';
+  // 4xx 默认 other，但错误自己带了更具体的既有原因（hash/disk/network/unsupported）
+  // 时保留；4xx 下单独的 "http" 不算具体原因，避免 404 被文本猜成 network。
+  const is4xx = status >= 400 && status <= 499;
   // 缺资产（assets / download / load / failed）是下载没成，不是「系统不支持」。
-  return 'other';
+  return packFailTextReason(raw, is4xx) || 'other';
 }
 function failReasonValue(reason) {
   if (PACK_FAIL_REASONS.indexOf(reason) >= 0) return reason;
@@ -821,7 +857,9 @@ function legacyCode(code, fallback) {
 
 /**
  * 失败。token 来自 packStart；也接受旧调用 packFail(surface, reason, code)（会现造 token）。
- * `reason` 是本轮六值；`code` 是旧 P0 的 id 型码，过渡期同发。
+ * `reason` 可以是原始错误对象（带 mtSttTimeout / mtTtsFailed 等优先级标志），也可以只是
+ * 原生 reject 的 `e.reason` 字符串；两种形状都归一成下方六值。`code` 是旧 P0 的 id 型码，
+ * 过渡期同发；BEL-268 的下载阶段已编码进这个 code（download_asr 等），不另发属性。
  */
 export async function packFail(token, reason, code) {
   try {
@@ -832,7 +870,8 @@ export async function packFail(token, reason, code) {
     if (!attempt) {
       try { attempt = await nextAttempt(setup, i.pack_id); } catch (_) { attempt = 0; }
     }
-    const r = failReasonValue(reason);
+    // 对象优先：超时/取消标志参与判断，e.reason 也在这张表里映射；字符串按 e.reason 处理。
+    const r = failReasonValue((reason && typeof reason === 'object') ? reason : { reason });
     const c = legacyCode(code, r);
     const p = packFields(i, setup, download_id, attempt);
     p.reason = r;

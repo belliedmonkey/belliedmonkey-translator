@@ -603,6 +603,85 @@ describe('BEL-226 pack_download_* / packs_ready', () => {
     eq(events.length, 2, '失败只发一条 fail（不再补一条整批的）');
   });
 
+  test('BEL-268：e.reason 进六值；stage 只进既有 code，不新增属性（events.gen 白名单）', async () => {
+    const gen = require('../supabase/functions/bt-ingest/events.gen.json');
+    const allowed = new Set(
+      Object.keys(gen.common).concat(Object.keys(gen.events.pack_download_fail)),
+    );
+    const { TS, events } = load();
+    const unit = { pack_kind: 'asr', pack_id: 'asr_zh', locale: 'zh', surface: 'first_run_packs', source: 'system' };
+    const cases = [
+      // ensureAssets 现在只 reject {reason}；stage 由 runPackUnit 编码进 code 后缀。
+      [{ reason: 'hash', stage: 'asr' }, 'download_asr', 'hash'],
+      [{ reason: 'network' }, 'download', 'network'],
+      // 旧路径：没有 reason 的普通 Error 仍是 other / download。
+      [new Error('download failed'), 'download', 'other'],
+      // 既有优先级：超时 / TTS / base 的旧 code 不被 stage 改写。
+      [{ mtSttTimeout: true, reason: 'timeout' }, 'timeout', 'timeout'],
+      [{ mtTtsFailed: true, reason: 'network' }, 'tts_failed', 'network'],
+      [{ mtBaseFailed: true, reason: 'disk' }, 'base_failed', 'disk'],
+    ];
+    for (const [err, code, want] of cases) {
+      const tok = await TS.packStart(unit);
+      await TS.packFail(tok, err, code);
+      const p = events[events.length - 1].props;
+      eq(events[events.length - 1].name, 'pack_download_fail');
+      eq(p.reason, want, JSON.stringify(err) + ' 的 reason');
+      eq(p.code, code, JSON.stringify(err) + ' 的 code');
+      ok(!('stage' in p), '不得新增 stage 属性：白名单没有它，bt-ingest 会整条拒收');
+      for (const k of Object.keys(p)) {
+        ok(allowed.has(k), 'pack_download_fail 出现未登记属性：' + k);
+      }
+    }
+    // 直接传 e.reason 字符串也走同一张六值表（调用方不必构造错误对象）。
+    const tok = await TS.packStart(unit);
+    await TS.packFail(tok, 'disk', 'download_tts');
+    eq(events[events.length - 1].props.reason, 'disk');
+    eq(events[events.length - 1].props.code, 'download_tts');
+  });
+
+  test('BEL-268：结构化 status:503（无 message/body）→ network，不从自由文本猜状态；status 不是事件属性', async () => {
+    const gen = require('../supabase/functions/bt-ingest/events.gen.json');
+    // e.status / e.statusCode / e.response.status / e.httpStatus 都是调用方可能给出的
+    // 结构化形状；它们都必须映射成同一个六值，而不是落到 other。
+    const cases = [
+      [{ status: 503 }, 'network'],
+      [{ statusCode: 503 }, 'network'],
+      [{ response: { status: 503 } }, 'network'],
+      [{ httpStatus: 503 }, 'network'],
+      // 408/504 是 timeout；其余 4xx 默认 other。
+      [{ status: 408 }, 'timeout'],
+      [{ status: 504 }, 'timeout'],
+      [{ status: 404 }, 'other'],
+      [{ status: 429 }, 'other'],
+      // 既有优先级不被状态改写。
+      [{ status: 503, mtSttTimeout: true }, 'timeout'],
+      [{ status: 503, cancelled: true }, 'other'],
+      // 4xx 仍可落到更具体的既有原因；但单独的 "http" 只是协议名，不是 404 的原因。
+      [{ status: 400, reason: 'hash' }, 'hash'],
+      [{ status: 400, message: 'sha256 mismatch' }, 'hash'],
+      [{ status: 404, message: 'HTTP 404' }, 'other'],
+      [{ status: 401, code: 'http' }, 'other'],
+      // 自由文本里的 "503" 不是结构化状态，不参与映射。
+      [{ message: 'request failed with 503' }, 'other'],
+    ];
+    for (const [err, want] of cases) eq(load().TS.packFailReason(err), want, JSON.stringify(err));
+
+    const { TS, events } = load();
+    const tok = await TS.packStart({ pack_kind: 'asr', pack_id: 'asr_zh', locale: 'zh', surface: 'first_run_packs', source: 'system' });
+    await TS.packFail(tok, { status: 503 }, 'download_asr');
+    const p = events[events.length - 1].props;
+    eq(events[events.length - 1].name, 'pack_download_fail');
+    eq(p.reason, 'network', '503 无文本必须是 network，不能是 other');
+    eq(p.code, 'download_asr', '状态映射不能改写 BEL-268 的 code 后缀');
+    ok(!('status' in p), 'status 不是 pack_download_fail 的事件属性');
+    ok(!('status' in gen.events.pack_download_fail), 'events.gen 白名单没有 status');
+    for (const k of Object.keys(p)) {
+      ok(Object.keys(gen.common).concat(Object.keys(gen.events.pack_download_fail)).indexOf(k) >= 0,
+        'pack_download_fail 出现未登记属性：' + k);
+    }
+  });
+
   test('packs_ready 只在整套齐时发一次；重复探/跨启动不发；再变齐可再发', async () => {
     const s = store();
     const ready = packState();

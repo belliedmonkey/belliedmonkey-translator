@@ -2154,10 +2154,14 @@ export function bootShell() {
 
   // BEL-226：一次真实下载单元 = 一条 start → ok/fail。token 里的 download_id 串起三态；
   // ok 只在这个 await 正常返回（原生已安装/校验通过）之后发 —— 进度 100% 不触发。
-  function runPackUnit(info, fn) {
-    // 单次尝试仍是一条 start → ok/fail；BEL-269 的自动重试是**再调用一次**这里，
-    // 所以两次都失败时 start/fail 各 2 条，且不会凭空发 ok。
-    return reportPackUnit(TelemetrySession, info, fn, packFailCode);
+  // BEL-269：单次尝试仍是一条 start → ok/fail；自动重试是**再调用一次**这里，
+  // 所以两次都失败时 start/fail 各 2 条，且不会凭空发 ok。
+  // BEL-268：`stage` 是这次失败所属的下载阶段（base/asr/tts/vad）。它只编码进既有
+  // `code` 的 id 串（如 download_asr），不新增事件属性 —— 白名单没有 `stage`，
+  // 多一个键会让 bt-ingest 整条拒收（HTTP 200 静默丢）。失败 reason 仍走
+  // TelemetrySession.packFail 的六值归一（e.reason 在那里读）。
+  function runPackUnit(info, fn, stage) {
+    return reportPackUnit(TelemetrySession, info, fn, (e) => packFailCode(e, stage));
   }
 
   async function downloadBase() {
@@ -2174,7 +2178,7 @@ export function bootShell() {
         await runPackUnit({
           pack_kind: 'vad', pack_id: 'vad', surface: packSurfaceNow(),
           source: packSourceFromSpec(vad),
-        }, () => NativeSpeech.ensureVad(vad, onProg));
+        }, () => NativeSpeech.ensureVad(vad, onProg), 'vad');
       }
       packVadReady = true;
     }
@@ -2191,7 +2195,7 @@ export function bootShell() {
           } else {
             await NativeSpeech.ensureLid(lid, onProg);
           }
-        });
+        }, 'base');
       }
       packLidReady = true;
     }
@@ -2237,7 +2241,7 @@ export function bootShell() {
           throw Object.assign(new Error(why), { mtTtsFailed: true, why });
         }
         return r;
-      });
+      }, 'tts');
       for (const c of u.langs) if (packTtsLangs.indexOf(FirstRun.baseCode(c)) < 0) packTtsLangs.push(FirstRun.baseCode(c));
       setRow(rowId, { phase: 'ready', pct: 100 });
     }
@@ -2301,7 +2305,8 @@ export function bootShell() {
             if (el) el.textContent = named.name + ' ' + pct + '%';
           }), timeout]);
         } finally { clearTimeout(timer); }
-      });
+      }, 'asr');
+      // BEL-269：重试幂等键用 baseCode；BEL-268 只改 code 后缀，不改这个键。
       packAsrByLang[code] = true;
       setRow('asr:' + loc, { phase: 'ready', pct: 100, name: endonym(loc) });
     }
@@ -2353,13 +2358,29 @@ export function bootShell() {
 
   // 下载 → 重新探 → 齐态自动进首页/回来源（D-03）。失败留在这一屏，不跳。
   // BEL-226：pack_download_fail 的 code 只发 id 型（注册表 'id'）。不塞系统长文/路径。
-  function packFailCode(e) {
+  // BEL-268：原生 ensureAssets / ensureDeviceReady 失败只带 `{reason}`（没有 e.code），
+  // 所以以前每条都是 code=download。这里把失败阶段作为**既有 code 的后缀**发出去：
+  //   download + asr → download_asr（base/tts/vad 同理）。
+  // 仍以 `download` 开头 ⇒ 老看板按前缀统计不换口径；阶段未知/不认识时退回 `download`。
+  // 不新增 `stage` 属性：events.gen.json 没有这个键，bt-ingest 会整条拒收（HTTP 200）。
+  // mtSttTimeout / mtTtsFailed / mtBaseFailed 的旧 code 优先，保持现有看板兼容。
+  function packFailCode(e, stage) {
     if (!e) return 'download';
     if (e.mtSttTimeout) return 'timeout';
     if (e.mtTtsFailed) return 'tts_failed';
     if (e.mtBaseFailed) return 'base_failed';
     const code = String(e.code || '').toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 32);
-    return /^[a-z0-9_-]+$/.test(code) ? code : 'download';
+    const base = /^[a-z0-9_-]+$/.test(code) ? code : 'download';
+    const stages = ['base', 'asr', 'tts', 'vad'];
+    // 显式 e.stage 优先（原生/调用方若已标注）；它不认识时再退回本次 runPackUnit 的阶段。
+    const explicit = String(e.stage || '').toLowerCase();
+    const fallback = String(stage || '').toLowerCase();
+    const st = stages.indexOf(explicit) >= 0 ? explicit
+      : (stages.indexOf(fallback) >= 0 ? fallback : '');
+    // 只在兜底码 `download` 上加后缀：旧 code（timeout/tts_failed/自定义 id）原样保留，
+    // 不让这次增强改变既有看板的口径。
+    if (!st || base !== 'download') return base;
+    return (base + '_' + st).slice(0, 32);
   }
 
   async function runFirstRunPacks(source) {

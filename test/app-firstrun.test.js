@@ -1101,3 +1101,81 @@ describe('BEL-269 延伸 · 首页不假装包已就绪 + 路由/重试去重', 
     eq(app.el('firstrun-packs').hidden, true, '收横幅后包屏还露着');
   });
 });
+
+// BEL-268：pack_download_fail 以前只读 e.code，而 NativeSpeech.ensureAssets 只 reject
+// {reason}（没有 code），所以 116 行全是 code=download。这里钉住两件事：
+//   ① 失败阶段只编码进既有 code（download_asr 等），不新增 stage 属性；
+//   ② reason 六值仍由 TelemetrySession.packFailReason 从 e.reason 映射。
+describe('BEL-268 pack_download_fail 的 reason / 阶段后缀', () => {
+  // packFailCode 在 shell-model 的闭包里；npm test 没有 DOM，所以像本文件其它用例一样
+  // 从源码里取出这个纯函数按真值表跑（不是复制一份实现）。
+  function packFailCodeFn() {
+    const src = stripComments(read('src/app/shell-model.js'));
+    const start = src.indexOf('function packFailCode(');
+    ok(start >= 0, 'shell-model.js 里找不到 packFailCode()');
+    let depth = 0;
+    for (let i = src.indexOf('{', start); i < src.length; i++) {
+      if (src[i] === '{') depth++;
+      else if (src[i] === '}') {
+        depth--;
+        if (depth === 0) {
+          const body = src.slice(start, i + 1);
+          return new Function(body + '; return packFailCode;')();
+        }
+      }
+    }
+    throw new Error('packFailCode() 源码括号不配对');
+  }
+
+  test('阶段编码进 code 后缀；未知阶段退回 download；旧 code 不被改写', () => {
+    const packFailCode = packFailCodeFn();
+    const cases = [
+      // 原生 ensureAssets reject 的形状：只有 reason，阶段由 runPackUnit 的第三个参数给。
+      [{ reason: 'hash', stage: 'asr' }, undefined, 'download_asr'],
+      [{ reason: 'network' }, undefined, 'download'],
+      [{ reason: 'hash' }, 'asr', 'download_asr'],
+      [{ reason: 'network' }, 'base', 'download_base'],
+      [{ reason: 'disk' }, 'tts', 'download_tts'],
+      [{ reason: 'unsupported' }, 'vad', 'download_vad'],
+      // e.stage 显式且合法时优先；不合法时退回调用方阶段。
+      [{ reason: 'hash', stage: 'tts' }, 'asr', 'download_tts'],
+      [{ reason: 'hash', stage: 'wat' }, 'asr', 'download_asr'],
+      [{ reason: 'hash' }, 'wat', 'download'],
+      // 旧路径与既有优先级：普通 Error / 超时 / TTS / base。
+      [new Error('download failed'), undefined, 'download'],
+      [{ mtSttTimeout: true, reason: 'timeout' }, 'asr', 'timeout'],
+      [{ mtTtsFailed: true, reason: 'network' }, 'tts', 'tts_failed'],
+      [{ mtBaseFailed: true, reason: 'disk' }, 'base', 'base_failed'],
+      // 旧的自定义 id 原样保留，不让这次增强改变既有看板口径。
+      [{ code: 'econnreset' }, 'asr', 'econnreset'],
+      [{ code: 'download' }, 'asr', 'download_asr'],
+    ];
+    for (const [err, stage, want] of cases) {
+      eq(packFailCode(err, stage), want, JSON.stringify(err) + ' / stage=' + stage);
+    }
+  });
+
+  test('runPackUnit 把阶段传到 packFailCode；四个下载单元各自标注', () => {
+    const src = stripComments(read('src/app/shell-model.js'));
+    // BEL-269 之后 runPackUnit 只是 reportPackUnit 的薄包装；268 的 stage 必须闭包
+    // 进 failCode 回调，由 269 的 reportPackUnit 在唯一失败出口交给 packFail。
+    ok(/function runPackUnit\(info, fn, stage\)/.test(src),
+      'runPackUnit 没有接 stage —— 失败时不知道断在哪一阶段');
+    ok(/reportPackUnit\(TelemetrySession, info, fn, \(e\) => packFailCode\(e, stage\)\)/.test(src),
+      'runPackUnit 没把 stage 经 reportPackUnit 交给 packFailCode');
+    ok(/packFail\(token, e, failCode\(e\)\)/.test(src),
+      'reportPackUnit 没把 failCode 的结果交给 packFail');
+    const segments = [
+      ['vad', /}, \(\) => NativeSpeech\.ensureVad\(vad, onProg\), 'vad'\);/],
+      ['base', /}, 'base'\);/],
+      ['tts', /}, 'tts'\);/],
+      ['asr', /}, 'asr'\);/],
+    ];
+    for (const [name, re] of segments) {
+      ok(re.test(src), name + ' 下载单元没把阶段交给 runPackUnit');
+    }
+    // 事件字段不允许出现 stage（白名单没有这个键）。
+    ok(!/packFields[\s\S]{0,800}\bstage\s*:/.test(src),
+      'pack_download_fail 的字段里出现了 stage —— 未知属性会让 bt-ingest 整条拒收');
+  });
+});
