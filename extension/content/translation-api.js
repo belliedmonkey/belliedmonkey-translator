@@ -333,7 +333,17 @@ Rules:
       // 不可重试：额度用完了重试多少次都一样，只会把停机推迟到更晚、更混乱的时刻。
       const gcode = (typeof WireFormat !== 'undefined' && WireFormat.grantError)
         ? WireFormat.grantError(resp.status, raw) : '';
-      if (gcode) { e.code = gcode; e.grant = true; e.retryable = false; e.url = url; e.serverMessage = said; e.route = usedRoute; throw e; }
+      // BEL-270 A completion: the relay's named errors predate this ticket, but four of
+      // them are not in the DEPLOYED translate_fail enum. Map them here, at the source,
+      // so every caller — not just the engine's classifyFail — hands on a code the
+      // backend accepts. The three names that already are enum values pass through.
+      if (gcode) {
+        e.code = relayGrantCode(gcode);
+        // `busy` is the relay's 429; keep the retry-after semantics of that status
+        // even if a relay/proxy wrapper ever reports it with a different status code.
+        if (gcode === 'busy') e.status = 429;
+        e.grant = true; e.retryable = false; e.url = url; e.serverMessage = said; e.route = usedRoute; throw e;
+      }
       // key 被服务商拒绝（2026-09-10，第八期）：401/403 且请求带了用户自己的 key。与额度
       // 用完同一套停机 —— 5 天里 308 条 401 来自同一台机器，每个段落砸一次，界面上没有
       // 一个「key 被拒了」的出口。`halt` 是引擎停机位，`grant` 仍只给额度那一族。
@@ -614,6 +624,25 @@ Rules:
       const reason = d && typeof d === 'object' && typeof d.reason === 'string' ? d.reason : '';
       return RELAY_BAD_REASONS[reason] || '';
     } catch (_) { return ''; }
+  }
+
+  // BEL-270 A completion: the relay's named errors are a closed set, and only names
+  // already in the deployed translate_fail enum may leave apiFetch. `grant_revoked`
+  // and `grant_invalid` are the existing `auth` family; a relay misconfiguration is
+  // the pool-unavailable family; `busy` is the existing `http` + status 429. The
+  // remaining three are already enum values and stay byte-identical. Unknown names
+  // fall back to `http` rather than leaking a name the backend would reject.
+  const RELAY_GRANT_CODES = Object.freeze({
+    credit_exhausted: 'credit_exhausted',
+    grant_unavailable: 'grant_unavailable',
+    model_not_allowed: 'model_not_allowed',
+    grant_revoked: 'auth',
+    grant_invalid: 'auth',
+    grant_misconfigured: 'grant_unavailable',
+    busy: 'http',
+  });
+  function relayGrantCode(name) {
+    return RELAY_GRANT_CODES[name] || 'http';
   }
 
   // ─── Public translate (uniform retry: backoff honors Retry-After + jitter;
