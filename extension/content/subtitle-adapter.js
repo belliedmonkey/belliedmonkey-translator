@@ -151,15 +151,8 @@ var SubtitleAdapter = (() => {
         if (!(typeof MTTelemetry !== 'undefined')) return;
         // §3.11 A：`ms` 是**这一次请求**的耗时，由 translation-api 的 apiFetch 挂上来。
         // 读不到就不发这个字段 —— 退回去发一个会话年龄，等于把一个看不出错的错数入库。
-        const fail = {
-          provider: String((settings && settings.provider) || ''),
-          kind: 'subtitle',
-          code: (e && typeof e.code === 'string') ? e.code : 'network',
-          status: Number.isInteger(e && e.status) ? e.status : 0,
-          route: (e && e.route === 'proxy') ? 'proxy' : ((e && e.route === 'direct') ? 'direct' : ''),
-        };
-        if (Number.isInteger(e && e.ms)) fail.ms = e.ms;
-        MTTelemetry.track('translate_fail', fail);
+        // 属性由 failProps 统一收口，服务端原话/正文永远不进事件。
+        MTTelemetry.track('translate_fail', TranslationCore.failProps(e, (settings && settings.provider), 'subtitle'));
       },
       translate: (text) => spec.translate(text, settings), // harness owns settings; backend reads it
       // Cues already in the target language are skipped before the request, so a

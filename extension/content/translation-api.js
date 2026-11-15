@@ -333,7 +333,13 @@ Rules:
       // 不可重试：额度用完了重试多少次都一样，只会把停机推迟到更晚、更混乱的时刻。
       const gcode = (typeof WireFormat !== 'undefined' && WireFormat.grantError)
         ? WireFormat.grantError(resp.status, raw) : '';
-      if (gcode) { e.code = gcode; e.grant = true; e.retryable = false; e.url = url; e.serverMessage = said; e.route = usedRoute; throw e; }
+      // BEL-270 option B: the relay's named errors are a closed set, and only names
+      // already in the deployed translate_fail enum may leave this function. Token
+      // revocation / an unrecognised token are the existing `auth` family (the
+      // relay's `grant_revoked` / `grant_invalid` are NOT enum values and must
+      // never be emitted); a relay misconfiguration lands on the pool-unavailable
+      // family; `busy` stays the existing `http` + status 429, not a new code.
+      if (gcode) { e.code = relayFailCode(gcode); e.grant = true; e.retryable = false; e.url = url; e.serverMessage = safeServerMessage(said); e.route = usedRoute; throw e; }
       // key 被服务商拒绝（2026-09-10，第八期）：401/403 且请求带了用户自己的 key。与额度
       // 用完同一套停机 —— 5 天里 308 条 401 来自同一台机器，每个段落砸一次，界面上没有
       // 一个「key 被拒了」的出口。`halt` 是引擎停机位，`grant` 仍只给额度那一族。
@@ -344,13 +350,12 @@ Rules:
       // fell through to the raw message, so a 404 never got the "the endpoint URL or
       // the model name is wrong" hint the learning engines already had.
       //
-      // BEL-270: a relay 400 with a known `reason` gets its own code so the failure is
-      // countable; a 400 without one stays `http`. Either way the error keeps status
-      // 400 and is non-retryable — resending the same segment cannot fix a bad shape.
-      // Deliberately NOT halt-worthy: one bad segment must not stop the page/document/
-      // subtitle run, so these codes stay out of HALT_IMMEDIATE and carry no halt bit.
-      const relayCode = resp.status === 400 ? relayBadCode(raw) : '';
-      e.code = relayCode || 'http';
+      // BEL-270 option B: there is no new contract and no new enum. A relay 400 —
+      // including one that happens to carry `reason` / a response body — is the
+      // existing generic `http` with status 400. It is non-retryable (resending the
+      // same shape cannot fix it) and deliberately NOT halt-worthy: one bad segment
+      // must not stop the page / document / subtitle run.
+      e.code = 'http';
       if (resp.status === 400) e.retryable = false;
       e.url = url;
       // The server's OWN sentence, kept separate from `message` so the UI can show it
@@ -359,7 +364,7 @@ Rules:
       // naming the exact parameter, and we replaced
       // that with 「服务端拒绝了这次请求」—— which sends the user hunting the URL and
       // the key, the two things that were already right (2026-08-18 真机).
-      e.serverMessage = said;
+      e.serverMessage = safeServerMessage(said);
       e.route = usedRoute;
       e.retryAfter = parseRetryAfter(resp.headers.get('retry-after'));
       throw e;
@@ -598,22 +603,43 @@ Rules:
     }
   }
 
-  // BEL-270: the relay answers a request-shape failure with 400 and keeps
-  // `error: 'bad_request'` exactly as before; it adds a machine `reason`. Only these
-  // four values name a translate_fail code. Anything else (absent reason, older relay,
-  // a gateway's own 400) keeps the existing generic `http` + status 400 path.
-  const RELAY_BAD_REASONS = Object.freeze({
-    json_syntax: 'relay_bad_json',
-    messages_json: 'relay_bad_messages',
-    audio_decode: 'relay_bad_audio',
-    input_invalid: 'relay_bad_input',
+  // BEL-270 option B: the relay's named errors predate this ticket and are a closed
+  // set. Map each one onto a code the DEPLOYED translate_fail enum already contains —
+  // no new values, no reason/body propagation. Unknown names fall back to `http`.
+  //   model_not_allowed / grant_unavailable / credit_exhausted → itself
+  //   grant_revoked / grant_invalid                          → auth
+  //   grant_misconfigured                                    → grant_unavailable
+  //   busy                                                    → http (+ status 429)
+  const RELAY_FAIL_CODES = Object.freeze({
+    model_not_allowed: 'model_not_allowed',
+    grant_unavailable: 'grant_unavailable',
+    credit_exhausted: 'credit_exhausted',
+    grant_revoked: 'auth',
+    grant_invalid: 'auth',
+    grant_misconfigured: 'grant_unavailable',
+    busy: 'http',
   });
-  function relayBadCode(raw) {
-    try {
-      const d = JSON.parse(String(raw == null ? '' : raw));
-      const reason = d && typeof d === 'object' && typeof d.reason === 'string' ? d.reason : '';
-      return RELAY_BAD_REASONS[reason] || '';
-    } catch (_) { return ''; }
+  function relayFailCode(name) {
+    return Object.prototype.hasOwnProperty.call(RELAY_FAIL_CODES, name)
+      ? RELAY_FAIL_CODES[name] : 'http';
+  }
+
+  // UI only: the server's own sentence, sanitized before it is shown. The event
+  // never carries it (see TranslationCore.failProps). Strip URLs / e-mails /
+  // tokens and cap at 200 characters, because a relay error body is attacker- and
+  // PII-shaped input, not our copy.
+  const SERVER_UI_MAX = 200;
+  const URL_RE = /\b(?:https?:\/\/|www\.)[^\s<>"']+/gi;
+  const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+  const TOKEN_RE = /\b(?:sk|rk|pk|bmg|xai|ghp|gho|ghu|ghs|github_pat|glpat)[-_][A-Za-z0-9_-]{6,}\b/g;
+  const JWT_RE = /\beyJ[A-Za-z0-9_-]{4,}(?:\.[A-Za-z0-9_-]{4,}){1,2}\b/g;
+  const OPAQUE_RE = /\b[A-Za-z0-9_-]{32,}\b/g;
+  function safeServerMessage(text) {
+    let s = String(text == null ? '' : text);
+    s = s.replace(URL_RE, '[url]').replace(EMAIL_RE, '[email]')
+      .replace(JWT_RE, '[token]').replace(TOKEN_RE, '[token]').replace(OPAQUE_RE, '[token]');
+    s = s.replace(/\s+/g, ' ').trim();
+    return s.length > SERVER_UI_MAX ? s.slice(0, SERVER_UI_MAX - 1) + '…' : s;
   }
 
   // ─── Public translate (uniform retry: backoff honors Retry-After + jitter;
@@ -776,5 +802,5 @@ Rules:
     });
   }
 
-  return { translate, ocr, listenPass, detectLanguage, parseLangCode, DETECT_SYSTEM, defaultProvider, resolveProvider, needsKey, serverSays, sentRealKey, LANG_NAMES, OCR_SYSTEM };
+  return { translate, ocr, listenPass, detectLanguage, parseLangCode, DETECT_SYSTEM, defaultProvider, resolveProvider, needsKey, serverSays, safeServerMessage, relayFailCode, RELAY_FAIL_CODES, sentRealKey, LANG_NAMES, OCR_SYSTEM };
 })();

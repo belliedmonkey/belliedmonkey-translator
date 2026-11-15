@@ -53,21 +53,13 @@ var WebpageTranslator = (() => {
         MTTelemetry.track('translate_ok', { provider: String(settings.provider || ''), kind: 'page', ms: Date.now() - enabledAt });
       },
       onFail: (e) => {
-        // 停机文案读 engine.haltCode（渲染时），这里只发遥测。码已经过 classifyFail，
-        // 不在 translate_fail 封闭表里的名字（busy / grant_invalid）不会原样出去。
+        // 停机文案读 engine.haltCode（渲染时），这里只发遥测。属性由
+        // TranslationCore.failProps 统一收口：只有 code / status / route / ms，
+        // 服务端原话永远不进事件（表外键会让整条被 bt-ingest 拒收）。
         if (!(typeof MTTelemetry !== 'undefined')) return;
         // §3.11 A：`ms` 是**这一次请求**的耗时，由 translation-api 的 apiFetch 挂上来。
         // 读不到就不发这个字段 —— 退回去发一个会话年龄，等于把一个看不出错的错数入库。
-        const fail = {
-          provider: String(settings.provider || ''),
-          // BEL-247：失败也带 kind，才能和 translate_ok 的 page 成功率对齐。
-          kind: 'page',
-          code: (e && typeof e.code === 'string') ? e.code : 'network',
-          status: Number.isInteger(e && e.status) ? e.status : 0,
-          route: (e && e.route === 'proxy') ? 'proxy' : ((e && e.route === 'direct') ? 'direct' : ''),
-        };
-        if (Number.isInteger(e && e.ms)) fail.ms = e.ms;
-        MTTelemetry.track('translate_fail', fail);
+        MTTelemetry.track('translate_fail', TranslationCore.failProps(e, settings.provider, 'page'));
       },
       translate: (text) => TranslationAPI.translate(
         text, settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,

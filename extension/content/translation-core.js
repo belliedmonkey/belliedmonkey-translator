@@ -40,9 +40,6 @@ var TranslationCore = (() => {
     // 单单元卡死（BEL-247）：120 s 不落地，与 timeout 分开记 —— 「一个 promise 不
     // 落地」和「请求超时」不是同一件事，混在一列里会让熔断与用户重试都读错。
     'stalled',
-    // 中继的 400 请求形状错误（BEL-270）：`error` 仍是 bad_request，`reason` 只做
-    // 机器分类。这四个都只让**这一段**失败，不进 HALT_IMMEDIATE（不停止整页）。
-    'relay_bad_json', 'relay_bad_messages', 'relay_bad_audio', 'relay_bad_input',
   ]);
   const FAIL_CODE_SET = new Set(FAIL_CODES);
   // 一次失败就停泵。timeout 不在这里 —— 它要连续 TIMEOUT_STREAK_MAX 次单元级失败。
@@ -67,6 +64,25 @@ var TranslationCore = (() => {
     if (err.name === 'TypeError' || /failed to fetch|network/i.test(String(err.message || ''))) return 'network';
     if (err.status) return 'http';
     return '';
+  }
+
+  // translate_fail props are an ALLOWLIST, never a spread of the error. The relay's
+  // response text / reason / body may sit on `e` for the UI, but they must never
+  // reach the event: bt-ingest rejects the whole row on any extra key, and response
+  // text is content we promised not to collect. Every emitted code is first forced
+  // into FAIL_CODES so a future name cannot silently leave the enum.
+  function failProps(e, provider, kind) {
+    const raw = e && typeof e.code === 'string' ? e.code : '';
+    const code = FAIL_CODE_SET.has(raw) ? raw : ((e && e.status) ? 'http' : 'network');
+    const props = {
+      provider: String(provider || ''),
+      kind: String(kind || ''),
+      code,
+      status: Number.isInteger(e && e.status) ? e.status : 0,
+      route: (e && e.route === 'proxy') ? 'proxy' : ((e && e.route === 'direct') ? 'direct' : ''),
+    };
+    if (Number.isInteger(e && e.ms)) props.ms = e.ms;
+    return props;
   }
 
   // i18n: read a localized UI string with a Chinese fallback so a missing key never
@@ -712,7 +728,7 @@ var TranslationCore = (() => {
 
   return {
     grantHaltMessage, haltMessage, haltAnchor,
-    FAIL_CODES, HALT_IMMEDIATE, TIMEOUT_STREAK_MAX, classifyFail,
+    FAIL_CODES, HALT_IMMEDIATE, TIMEOUT_STREAK_MAX, classifyFail, failProps,
     DEFAULT_TARGET_LANG, WINDOW, MERGE, MSG, t: i18n,
     isTranslated, isAlreadyTargetLanguage, isScriptDecidableTarget, detectorSaysTargetLanguage,
     looksLikeCode, endsSentence, joinCue, wordBreakIndex,
