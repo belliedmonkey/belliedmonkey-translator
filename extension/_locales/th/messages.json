@@ -1994,6 +1994,22 @@
   "app_apple_failed": {
     "message": "การลงชื่อเข้าใช้ด้วย Apple ไม่สำเร็จ คุณสามารถใช้อีเมลหรือเบอร์โทรศัพท์ด้านล่างแทนได้"
   },
+  "app_apple_no_credential": {
+    "message": "Apple ไม่ได้ส่งข้อมูลรับรองกลับมา ลองลงชื่อเข้าใช้ด้วย Apple อีกครั้ง หรือใช้อีเมล / Google",
+    "description": "Native Apple sign-in returned no credential; offers retry and alternate sign-in"
+  },
+  "app_apple_retry": {
+    "message": "ลองลงชื่อเข้าใช้ด้วย Apple อีกครั้ง",
+    "description": "Button: retry native Apple sign-in after a failure"
+  },
+  "app_apple_other": {
+    "message": "ใช้อีเมล / Google",
+    "description": "Button: switch away from Apple to email or Google"
+  },
+  "app_apple_canceled": {
+    "message": "ยกเลิกการลงชื่อเข้าใช้ด้วย Apple แล้ว ลองอีกครั้งได้",
+    "description": "Neutral copy after the user cancels the Apple sheet (not a failure)"
+  },
   "learn_empty_other_account": {
     "message": "อุปกรณ์นี้ยังมีเนื้อหาของบัญชีอื่นอยู่ด้วย ตอนนี้คุณลงชื่อเข้าใช้เป็นบัญชีอื่นอยู่ — ไม่มีอะไรสูญหาย ลงชื่อเข้าใช้ด้วยบัญชีเดิมแล้วเนื้อหาจะกลับมา"
   },

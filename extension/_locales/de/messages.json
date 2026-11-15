@@ -2158,6 +2158,22 @@
     "message": "Die Apple-Anmeldung wurde nicht abgeschlossen. Nutze stattdessen unten E-Mail oder Telefon.",
     "description": "Native Apple sign-in failed (not user cancel)"
   },
+  "app_apple_no_credential": {
+    "message": "Apple hat keine Anmeldedaten zurückgegeben. Versuche die Apple-Anmeldung erneut oder nutze E-Mail / Google.",
+    "description": "Native Apple sign-in returned no credential; offers retry and alternate sign-in"
+  },
+  "app_apple_retry": {
+    "message": "Apple-Anmeldung erneut versuchen",
+    "description": "Button: retry native Apple sign-in after a failure"
+  },
+  "app_apple_other": {
+    "message": "Stattdessen E-Mail / Google verwenden",
+    "description": "Button: switch away from Apple to email or Google"
+  },
+  "app_apple_canceled": {
+    "message": "Apple-Anmeldung abgebrochen. Du kannst es erneut versuchen.",
+    "description": "Neutral copy after the user cancels the Apple sheet (not a failure)"
+  },
   "learn_empty_other_account": {
     "message": "Auf diesem Gerät liegt auch das Material eines anderen Kontos. Du bist gerade mit einem anderen Konto angemeldet — nichts ist weg; melde dich wieder mit dem ursprünglichen Konto an, dann ist es zurück.",
     "description": "Empty review page while signed in as a different account than the one owning this device corpus"

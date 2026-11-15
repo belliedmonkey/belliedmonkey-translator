@@ -1262,10 +1262,16 @@ app 最大卡点」。
 - 中国版与国际版**逐条同构**，只有引擎来源与出境同意那一条不同（`learning-design.md` §8.10.1）。
 
 **六条红线**（判据原文见 `design/firstrun-3step/firstrun-spec.html`）：① 未登录首屏只有登录
-（可点击元素 ⊆ {Apple, Google, 邮箱}，实心按钮 == 1）② 屏序可达且屏 2 无跳过、屏 3 有跳过
+（可点击元素 ⊆ {Apple, Google, 邮箱}，外加失败卡的两个出口；实心按钮 == 1）② 屏序可达且屏 2 无跳过、屏 3 有跳过
 ③ 就绪判据覆盖且不含扩展（32 组布尔组合逐一断言；2026-10-11 起第五个输入是基础组件）④ 两 flavor 同构（DOM 快照对比，差异白名单 =
 出境同意条 / 额度来源行 / 引擎标识）⑤ 旧承诺防复活（「不登录也能完整使用」一类，含 12 语种）
 ⑥ 一屏一填色 + AA + 文案齐。
+
+- **屏 1 · 原生 Apple 失败出口（BEL-272）**：`didCompleteWithError` 没拿到凭据时，登录卡内出现
+  **重试 Apple 登录** 与 **改用邮箱/Google** 两个出口；文案说明「没有拿到 Apple 凭据，可以重试」。
+  重试必须重新走同一个 Apple 启动路径（桥里新建 `ASAuthorizationController` 并 `performRequests()`，
+  系统面板可以再次出现）。`ASAuthorizationError.canceled` 不算失败：不显示失败卡，用中性的取消文案，
+  事件码沿用 `canceled`，永不写成 `apple_failed`。
 
 ## 首次运行引导（App 侧）— 2026-09-01 补记
 
