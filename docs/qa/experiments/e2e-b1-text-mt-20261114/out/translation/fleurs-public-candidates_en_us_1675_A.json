@@ -7,21 +7,20 @@
   "source": "All nouns, alongside the word Sie for you, always begin with a capital letter, even in the middle of a sentence.",
   "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
   "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
   "httpStatus": 200,
   "ok": true,
-  "translation": "所有名词以及表示“您”的“Sie”一词，即使位于句中，也一律首字母大写。",
+  "translation": "所有名词，以及表示“您”的单词 Sie，始终以大写字母开头，即使出现在句子中间也是如此。",
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 148,
-    "total_tokens": 766,
-    "completion_tokens": 618,
+    "prompt_tokens": 150,
+    "total_tokens": 174,
+    "completion_tokens": 24,
     "prompt_tokens_details": {
       "cached_tokens": 0,
-      "text_tokens": 148
-    },
-    "completion_tokens_details": {
-      "reasoning_tokens": 592,
-      "text_tokens": 618
+      "text_tokens": 150
     }
   },
   "error": null

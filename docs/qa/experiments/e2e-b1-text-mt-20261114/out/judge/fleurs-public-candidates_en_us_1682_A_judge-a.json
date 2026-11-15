@@ -23,7 +23,7 @@
       },
       "omission": {
         "pass": true,
-        "note": "no material omission"
+        "note": "no omission"
       },
       "hallucination": {
         "pass": true,
@@ -42,10 +42,10 @@
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 454,
-    "completion_tokens": 122,
-    "total_tokens": 576,
-    "cost": 0.0003768,
+    "prompt_tokens": 448,
+    "completion_tokens": 121,
+    "total_tokens": 569,
+    "cost": 0.0003728,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +54,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0003768,
-      "upstream_inference_prompt_cost": 0.0001816,
-      "upstream_inference_completions_cost": 0.0001952
+      "upstream_inference_cost": 0.0003728,
+      "upstream_inference_prompt_cost": 0.0001792,
+      "upstream_inference_completions_cost": 0.0001936
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0003768
+  "providerUsd": 0.0003728
 }

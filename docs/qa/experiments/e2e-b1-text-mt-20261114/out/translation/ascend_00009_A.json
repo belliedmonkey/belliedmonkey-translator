@@ -7,21 +7,20 @@
   "source": "no我专业是那个i s m information systems management",
   "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
   "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
   "httpStatus": 200,
   "ok": true,
   "translation": "No, my major is ISM, Information Systems Management.",
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 133,
-    "total_tokens": 654,
-    "completion_tokens": 521,
+    "prompt_tokens": 135,
+    "total_tokens": 147,
+    "completion_tokens": 12,
     "prompt_tokens_details": {
       "cached_tokens": 0,
-      "text_tokens": 133
-    },
-    "completion_tokens_details": {
-      "reasoning_tokens": 506,
-      "text_tokens": 521
+      "text_tokens": 135
     }
   },
   "error": null

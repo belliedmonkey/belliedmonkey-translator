@@ -11,11 +11,11 @@
     "dimensions": {
       "meaning": {
         "pass": false,
-        "note": "The candidate mistranslates 'Sie' as 'C', altering the meaning."
+        "note": "The candidate translation incorrectly renders 'Sie' as 'the letter C representing you', which changes the meaning."
       },
       "entities_numbers": {
         "pass": false,
-        "note": "The entity 'Sie' is incorrectly rendered as 'C'."
+        "note": "The original 'Sie' is mistranslated as 'the letter C'."
       },
       "negation": {
         "pass": true,
@@ -26,8 +26,8 @@
         "note": "No material omission."
       },
       "hallucination": {
-        "pass": true,
-        "note": "No hallucination present."
+        "pass": false,
+        "note": "The candidate invents 'the letter C' which is not in the source."
       },
       "terminology": {
         "pass": true,
@@ -35,30 +35,36 @@
       },
       "fluency": {
         "pass": true,
-        "note": "Fluent English."
+        "note": "The sentence reads naturally."
       }
     },
     "findings": [
       {
         "dimension": "meaning",
         "sourceQuote": "表示您的“Sie”",
-        "targetQuote": "\"C\" representing \"you\"",
-        "reason": "The candidate replaces 'Sie' with 'C', which changes the meaning and confuses the reference."
+        "targetQuote": "the letter C representing you",
+        "reason": "The candidate mistranslates 'Sie' as 'the letter C', altering the meaning."
       },
       {
         "dimension": "entities_numbers",
         "sourceQuote": "“Sie”",
-        "targetQuote": "\"C\"",
-        "reason": "The entity 'Sie' is incorrectly transcribed as 'C', which is inaccurate."
+        "targetQuote": "the letter C",
+        "reason": "The proper noun 'Sie' is incorrectly rendered as 'the letter C'."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "除去表示您的“Sie”之外的所有名词",
+        "targetQuote": "except for the letter C representing you",
+        "reason": "The candidate invents 'the letter C' which is not present in the source."
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
     "prompt_tokens": 482,
-    "completion_tokens": 232,
-    "total_tokens": 714,
-    "cost": 0.000564,
+    "completion_tokens": 300,
+    "total_tokens": 782,
+    "cost": 0.0006728,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -67,9 +73,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.000564,
+      "upstream_inference_cost": 0.0006728,
       "upstream_inference_prompt_cost": 0.0001928,
-      "upstream_inference_completions_cost": 0.0003712
+      "upstream_inference_completions_cost": 0.00048
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -77,5 +83,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.000564
+  "providerUsd": 0.0006728
 }

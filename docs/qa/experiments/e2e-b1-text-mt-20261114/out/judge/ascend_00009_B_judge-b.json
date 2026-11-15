@@ -11,60 +11,54 @@
     "dimensions": {
       "meaning": {
         "pass": false,
-        "note": "The candidate incorrectly renders 'my major is' as 'I think it's', changing the meaning from a statement of fact to an opinion."
+        "note": "The candidate incorrectly renders 'my major' as 'I think love', introducing a completely different meaning."
       },
       "entities_numbers": {
-        "pass": false,
-        "note": "'information systems management' is inaccurately rendered as 'sistancemangement' in the ASR input, and the candidate fails to correct it to the correct term."
+        "pass": true,
+        "note": "ISM and information systems management are present, despite misrecognition."
       },
       "negation": {
         "pass": true,
         "note": "No negation in source or translation."
       },
       "omission": {
-        "pass": false,
-        "note": "The word 'no' at the beginning of the source is omitted in the candidate translation, altering the intended meaning."
+        "pass": true,
+        "note": "No material omission beyond recognition errors."
       },
       "hallucination": {
-        "pass": true,
-        "note": "No hallucinated content beyond ASR errors."
+        "pass": false,
+        "note": "The phrase 'I think love' is a hallucination not supported by the source, which refers to a major/field of study."
       },
       "terminology": {
-        "pass": false,
-        "note": "'information systems management' is a key term that is misrepresented due to ASR error, and the candidate does not recover the correct term."
+        "pass": true,
+        "note": "'information systems management' is correctly rendered despite misheard input."
       },
       "fluency": {
         "pass": true,
-        "note": "The sentence is fluent despite inaccuracies."
+        "note": "The sentence is fluent in English."
       }
     },
     "findings": [
       {
         "dimension": "meaning",
-        "sourceQuote": "no我专业是那个i s m information systems management",
-        "targetQuote": "Then I think it's that ISM",
-        "reason": "The candidate translates a declarative statement about the speaker's major as a personal opinion, distorting the original meaning."
+        "sourceQuote": "我专业是那个i s m information systems management",
+        "targetQuote": "Then I think love is that ISM",
+        "reason": "The source states the speaker's major is ISM, but the translation incorrectly interprets it as a personal opinion about love, fundamentally altering the meaning."
       },
       {
-        "dimension": "omission",
-        "sourceQuote": "no",
-        "targetQuote": "",
-        "reason": "The negation 'no' at the start of the source is completely omitted, potentially indicating correction or rejection of a prior statement, which is lost in translation."
-      },
-      {
-        "dimension": "terminology",
-        "sourceQuote": "information systems management",
-        "targetQuote": "sistancemangement",
-        "reason": "The domain-specific term 'information systems management' is corrupted in ASR and not corrected in the translation, leading to a significant terminology error."
+        "dimension": "hallucination",
+        "sourceQuote": "我专业是那个",
+        "targetQuote": "I think love",
+        "reason": "The phrase 'I think love' does not appear in and is not supported by the source, which refers to a field of study."
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 430,
-    "completion_tokens": 387,
-    "total_tokens": 817,
-    "cost": 0.00036548,
+    "prompt_tokens": 431,
+    "completion_tokens": 302,
+    "total_tokens": 733,
+    "cost": 0.00029762,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 48,
@@ -73,9 +67,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.00036548,
-      "upstream_inference_prompt_cost": 0.00005588,
-      "upstream_inference_completions_cost": 0.0003096
+      "upstream_inference_cost": 0.00029762,
+      "upstream_inference_prompt_cost": 0.00005602,
+      "upstream_inference_completions_cost": 0.0002416
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -83,5 +77,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.00036548
+  "providerUsd": 0.00029762
 }

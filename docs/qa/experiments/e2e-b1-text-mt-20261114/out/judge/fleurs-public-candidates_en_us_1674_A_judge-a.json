@@ -11,41 +11,41 @@
     "dimensions": {
       "meaning": {
         "pass": true,
-        "note": "The meaning is fully preserved."
+        "note": "meaning preserved"
       },
       "entities_numbers": {
         "pass": true,
-        "note": "Numbers and entities are correctly rendered."
+        "note": "numbers correctly rendered"
       },
       "negation": {
         "pass": true,
-        "note": "Negation and polarity are preserved."
+        "note": "negation preserved"
       },
       "omission": {
         "pass": true,
-        "note": "No material omission."
+        "note": "no omission"
       },
       "hallucination": {
         "pass": true,
-        "note": "No hallucination present."
+        "note": "no hallucination"
       },
       "terminology": {
         "pass": true,
-        "note": "Terminology is appropriate and consistent."
+        "note": "terminology appropriate"
       },
       "fluency": {
         "pass": true,
-        "note": "Fluent and natural Chinese."
+        "note": "natural and fluent"
       }
     },
     "findings": []
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 405,
-    "completion_tokens": 135,
-    "total_tokens": 540,
-    "cost": 0.000378,
+    "prompt_tokens": 404,
+    "completion_tokens": 119,
+    "total_tokens": 523,
+    "cost": 0.000352,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +54,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.000378,
-      "upstream_inference_prompt_cost": 0.000162,
-      "upstream_inference_completions_cost": 0.000216
+      "upstream_inference_cost": 0.000352,
+      "upstream_inference_prompt_cost": 0.0001616,
+      "upstream_inference_completions_cost": 0.0001904
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.000378
+  "providerUsd": 0.000352
 }

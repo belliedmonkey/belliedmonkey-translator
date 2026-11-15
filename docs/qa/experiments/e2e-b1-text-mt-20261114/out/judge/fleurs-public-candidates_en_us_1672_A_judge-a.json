@@ -11,41 +11,41 @@
     "dimensions": {
       "meaning": {
         "pass": true,
-        "note": "meaning preserved"
+        "note": "The caution about fabric overheating causing shrinkage or scorch is preserved."
       },
       "entities_numbers": {
         "pass": true,
-        "note": "no entities or numbers"
+        "note": "No entities or numbers to verify."
       },
       "negation": {
         "pass": true,
-        "note": "negation preserved"
+        "note": "Negation is correctly preserved ('not to allow')."
       },
       "omission": {
         "pass": true,
-        "note": "no omission"
+        "note": "No material information omitted."
       },
       "hallucination": {
         "pass": true,
-        "note": "no hallucination"
+        "note": "No added information beyond the source."
       },
       "terminology": {
         "pass": true,
-        "note": "terminology appropriate"
+        "note": "Terms like 'fabric', 'shrinkage', and 'scorch' are correctly translated."
       },
       "fluency": {
         "pass": true,
-        "note": "natural and fluent"
+        "note": "The translation reads naturally in Chinese."
       }
     },
     "findings": []
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 410,
-    "completion_tokens": 120,
-    "total_tokens": 530,
-    "cost": 0.000356,
+    "prompt_tokens": 408,
+    "completion_tokens": 162,
+    "total_tokens": 570,
+    "cost": 0.0004224,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +54,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.000356,
-      "upstream_inference_prompt_cost": 0.000164,
-      "upstream_inference_completions_cost": 0.000192
+      "upstream_inference_cost": 0.0004224,
+      "upstream_inference_prompt_cost": 0.0001632,
+      "upstream_inference_completions_cost": 0.0002592
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.000356
+  "providerUsd": 0.0004224
 }

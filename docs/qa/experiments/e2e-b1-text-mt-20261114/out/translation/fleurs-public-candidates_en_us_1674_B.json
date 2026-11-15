@@ -7,21 +7,20 @@
   "source": "In some areas, boiling water for a minute is enough, and other several minutes are needed.",
   "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
   "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
   "httpStatus": 200,
   "ok": true,
-  "translation": "在某些地区，水煮沸一分钟即可，而在其他地区则需要煮沸数分钟。",
+  "translation": "在某些地区，将水煮沸一分钟就足够了，而在其他地区则需要更长时间。",
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 142,
-    "total_tokens": 607,
-    "completion_tokens": 465,
+    "prompt_tokens": 144,
+    "total_tokens": 160,
+    "completion_tokens": 16,
     "prompt_tokens_details": {
       "cached_tokens": 0,
-      "text_tokens": 142
-    },
-    "completion_tokens_details": {
-      "reasoning_tokens": 447,
-      "text_tokens": 465
+      "text_tokens": 144
     }
   },
   "error": null

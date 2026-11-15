@@ -11,60 +11,54 @@
     "dimensions": {
       "meaning": {
         "pass": false,
-        "note": "Candidate adds meaning not present in source."
+        "note": "The candidate adds 'I am' which is not present in the source, changing the meaning."
       },
       "entities_numbers": {
         "pass": true,
-        "note": "No entities or numbers involved."
+        "note": "No entities or numbers present."
       },
       "negation": {
         "pass": true,
-        "note": "No negation present."
+        "note": "No negation present in source or target."
       },
       "omission": {
-        "pass": false,
-        "note": "Candidate omits the 'what's the' part."
+        "pass": true,
+        "note": "No material omitted given the short source."
       },
       "hallucination": {
         "pass": false,
-        "note": "Candidate adds 'I'm' which is not supported by source."
+        "note": "The candidate adds 'I am' which is not supported by the source."
       },
       "terminology": {
         "pass": true,
-        "note": "No domain-specific terminology."
+        "note": "No domain-specific terminology present."
       },
       "fluency": {
         "pass": true,
-        "note": "Fluent English."
+        "note": "The candidate reads naturally."
       }
     },
     "findings": [
       {
         "dimension": "meaning",
         "sourceQuote": "呃what's the呃",
-        "targetQuote": "I'm so...",
-        "reason": "The candidate translation introduces 'I'm' and 'so' which are not present in the source, changing the meaning."
-      },
-      {
-        "dimension": "omission",
-        "sourceQuote": "呃what's the呃",
-        "targetQuote": "I'm so...",
-        "reason": "The candidate omits the interrogative 'what's the' present in the source."
+        "targetQuote": "I am so",
+        "reason": "The candidate adds 'I am' which is not present in the source, changing the meaning."
       },
       {
         "dimension": "hallucination",
         "sourceQuote": "呃what's the呃",
-        "targetQuote": "I'm so...",
-        "reason": "The candidate adds 'I'm' which is not supported by the source or ASR output."
+        "targetQuote": "I am so",
+        "reason": "The candidate invents 'I am' which is not supported by the source."
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 408,
-    "completion_tokens": 281,
-    "total_tokens": 689,
-    "cost": 0.0006128,
+    "prompt_tokens": 409,
+    "completion_tokens": 249,
+    "total_tokens": 658,
+    "cost": 0.000562,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -73,9 +67,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0006128,
-      "upstream_inference_prompt_cost": 0.0001632,
-      "upstream_inference_completions_cost": 0.0004496
+      "upstream_inference_cost": 0.000562,
+      "upstream_inference_prompt_cost": 0.0001636,
+      "upstream_inference_completions_cost": 0.0003984
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -83,5 +77,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0006128
+  "providerUsd": 0.000562
 }

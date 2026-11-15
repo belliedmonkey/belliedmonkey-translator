@@ -11,71 +11,71 @@
     "dimensions": {
       "meaning": {
         "pass": false,
-        "note": "The candidate translates 'Sie' as '安全' (safe), which is a critical meaning error."
+        "note": "The candidate misrepresents 'the word Sie for you' as 'your world safe', introducing a completely different meaning."
       },
       "entities_numbers": {
         "pass": false,
-        "note": "'Sie' is a formal pronoun meaning 'you', not a word meaning 'safe'; this entity is completely misrepresented."
+        "note": "'Sie' is a formal pronoun in German and is misrepresented as 'world safe', distorting the original entity."
       },
       "negation": {
         "pass": true,
-        "note": "No negation in source or translation."
+        "note": "No negation errors present."
       },
       "omission": {
         "pass": false,
-        "note": "The correct term 'Sie' (you) is omitted and replaced with an incorrect word."
+        "note": "The phrase 'alongside the word Sie for you' is omitted and replaced with unrelated content."
       },
       "hallucination": {
         "pass": false,
-        "note": "The translation introduces '安全' (safe), which is not present or implied in the source."
+        "note": "The phrase '与你世界安全' (related to your world safety) is a hallucination not present in the source."
       },
       "terminology": {
         "pass": false,
-        "note": "'Sie' is a standard grammatical term in German; translating it as '安全' shows incorrect terminology handling."
+        "note": "'Sie' is a key grammatical term in German and must be preserved; translating it as 'safe' is incorrect."
       },
       "fluency": {
         "pass": true,
-        "note": "The Chinese sentence is fluent and grammatically correct."
+        "note": "The Chinese sentence is grammatically fluent and natural."
       }
     },
     "findings": [
       {
         "dimension": "meaning",
         "sourceQuote": "the word Sie for you",
-        "targetQuote": "“安全”一词，对你而言",
-        "reason": "'Sie' is incorrectly translated as '安全' (safe), distorting the entire meaning. 'Sie' means 'you' (formal) and is unrelated to 'safe'."
+        "targetQuote": "与你世界安全",
+        "reason": "The source refers to the German pronoun 'Sie' meaning 'you' (formal), but the translation incorrectly renders it as 'world safe', completely altering the meaning."
       },
       {
-        "dimension": "entities_numbers",
-        "sourceQuote": "Sie",
-        "targetQuote": "安全",
-        "reason": "'Sie' is a pronoun and proper linguistic term; rendering it as '安全' falsely presents it as a common noun meaning 'safety'."
+        "dimension": "omission",
+        "sourceQuote": "All nouns, alongside the word Sie for you, always begin with a capital letter",
+        "targetQuote": "所有与你世界安全相关的名词",
+        "reason": "The key element 'the word Sie for you' is omitted and replaced with unrelated content, leading to a loss of the original instruction about German capitalization rules."
       },
       {
         "dimension": "hallucination",
-        "sourceQuote": "Sie",
-        "targetQuote": "安全",
-        "reason": "The term '安全' is invented and not supported by the source, which refers to the pronoun 'Sie'."
+        "sourceQuote": "the word Sie for you",
+        "targetQuote": "与你世界安全",
+        "reason": "The translation invents a concept of 'world safety' which is not present in the source, constituting a hallucination."
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 465,
-    "completion_tokens": 373,
-    "total_tokens": 838,
-    "cost": 0.00035918,
+    "prompt_tokens": 461,
+    "completion_tokens": 407,
+    "total_tokens": 868,
+    "cost": 0.00026534,
     "is_byok": false,
     "prompt_tokens_details": {
-      "cached_tokens": 48,
+      "cached_tokens": 0,
       "cache_write_tokens": 0,
       "audio_tokens": 0,
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.00035918,
-      "upstream_inference_prompt_cost": 0.00006078,
-      "upstream_inference_completions_cost": 0.0002984
+      "upstream_inference_cost": 0.00026534,
+      "upstream_inference_prompt_cost": 0.00004149,
+      "upstream_inference_completions_cost": 0.00022385
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -83,5 +83,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.00035918
+  "providerUsd": 0.00026534
 }

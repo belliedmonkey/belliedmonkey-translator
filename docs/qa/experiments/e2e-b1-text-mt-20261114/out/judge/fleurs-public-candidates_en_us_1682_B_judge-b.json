@@ -11,15 +11,15 @@
     "dimensions": {
       "meaning": {
         "pass": false,
-        "note": "The candidate incorrectly introduces '塞伦胡·罗伊' as a person, fundamentally altering the meaning."
+        "note": "The candidate incorrectly translates 'who wrote it' as 'Serenhu Roi', which is a misinterpretation of the ASR error and distorts the core meaning."
       },
       "entities_numbers": {
         "pass": false,
-        "note": "'Serenhu Roi' is a misrecognition of 'for certain who wrote it' and wrongly rendered as a name."
+        "note": "'Serenhu Roi' is a false rendering of 'for certain', introducing a non-existent entity; dimensions are mostly correct but '24 and half inches' is inaccurately rendered as '24.5 inches' instead of '24½"
       },
       "negation": {
         "pass": true,
-        "note": "No negation issues present."
+        "note": "Negation structure is preserved appropriately."
       },
       "omission": {
         "pass": true,
@@ -27,44 +27,44 @@
       },
       "hallucination": {
         "pass": false,
-        "note": "The translation invents a person '塞伦胡·罗伊' not present or implied in the source."
+        "note": "The name 'Serenhu Roi' is a hallucinated entity not present or implied in the authoritative source."
       },
       "terminology": {
         "pass": true,
-        "note": "Domain terms like '羊皮纸文书' and '尺寸' are appropriate."
+        "note": "Domain terms like 'parchment document' and 'rolled up for storage' are appropriately translated."
       },
       "fluency": {
         "pass": true,
-        "note": "The Chinese reads naturally despite the errors."
+        "note": "The target sentence reads naturally in Chinese."
       }
     },
     "findings": [
       {
         "dimension": "meaning",
         "sourceQuote": "While no one knows for certain who wrote it",
-        "targetQuote": "尽管无人知晓塞伦胡·罗伊的详情",
-        "reason": "The source expresses uncertainty about authorship; the target falsely claims knowledge about a person named '塞伦胡·罗伊', inverting the meaning."
+        "targetQuote": "虽然无人知晓Serenhu Roi的情况",
+        "reason": "The source expresses uncertainty about authorship; the target incorrectly shifts focus to an unknown entity 'Serenhu Roi', fundamentally altering the meaning."
       },
       {
         "dimension": "entities_numbers",
-        "sourceQuote": "for certain who wrote it",
-        "targetQuote": "塞伦胡·罗伊",
-        "reason": "'Serenhu Roi' is a mishearing of 'for certain who wrote it' and incorrectly translated as a proper name."
+        "sourceQuote": "29¾ inches by 24½ inches",
+        "targetQuote": "29又3/4英寸×24.5英寸",
+        "reason": "'24½ inches' is rendered as '24.5 inches'—a decimal approximation that, while close, does not precisely preserve the fractional form of the original."
       },
       {
         "dimension": "hallucination",
-        "sourceQuote": "While no one knows for certain who wrote it",
-        "targetQuote": "尽管无人知晓塞伦胡·罗伊的详情",
-        "reason": "The name '塞伦胡·罗伊' is a hallucinated entity with no basis in the original text."
+        "sourceQuote": "for certain",
+        "targetQuote": "Serenhu Roi",
+        "reason": "'Serenhu Roi' is a fabricated proper noun resulting from misreading the ASR error, with no basis in the authoritative source."
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
     "prompt_tokens": 535,
-    "completion_tokens": 381,
-    "total_tokens": 916,
-    "cost": 0.00037538,
+    "completion_tokens": 439,
+    "total_tokens": 974,
+    "cost": 0.00042178,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 48,
@@ -73,9 +73,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.00037538,
+      "upstream_inference_cost": 0.00042178,
       "upstream_inference_prompt_cost": 0.00007058,
-      "upstream_inference_completions_cost": 0.0003048
+      "upstream_inference_completions_cost": 0.0003512
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -83,5 +83,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.00037538
+  "providerUsd": 0.00042178
 }

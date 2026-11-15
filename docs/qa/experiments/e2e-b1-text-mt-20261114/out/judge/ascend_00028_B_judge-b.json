@@ -22,7 +22,7 @@
         "note": "short"
       },
       "omission": {
-        "pass": true,
+        "pass": false,
         "note": "short"
       },
       "hallucination": {
@@ -43,28 +43,28 @@
         "dimension": "meaning",
         "sourceQuote": "福建",
         "targetQuote": "attachment",
-        "reason": "The source refers to 'Fujian', a Chinese province, while the translation incorrectly renders it as 'attachment', which is a completely different concept and changes the meaning."
+        "reason": "The source refers to 'Fujian', a Chinese province, while the translation incorrectly renders it as 'attachment', which is a complete semantic mismatch."
       },
       {
         "dimension": "entities_numbers",
         "sourceQuote": "福建",
         "targetQuote": "attachment",
-        "reason": "'福建' (Fujian) is a proper geographical entity that was not preserved; instead, it was mistranslated as 'attachment', which is neither a correct name nor a valid rendering."
+        "reason": "'福建' (Fujian) is a proper geographical entity that was not preserved; instead, it was mistranslated as 'attachment'."
       },
       {
-        "dimension": "hallucination",
+        "dimension": "omission",
         "sourceQuote": "福建",
         "targetQuote": "attachment",
-        "reason": "The term 'attachment' is invented and not supported by the source, which mentions 'Fujian'—this introduces false information."
+        "reason": "The actual place name 'Fujian' is omitted and replaced with an unrelated term 'attachment', leading to loss of original information."
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
     "prompt_tokens": 400,
-    "completion_tokens": 255,
-    "total_tokens": 655,
-    "cost": 0.00025568,
+    "completion_tokens": 240,
+    "total_tokens": 640,
+    "cost": 0.00024368,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 48,
@@ -73,9 +73,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.00025568,
+      "upstream_inference_cost": 0.00024368,
       "upstream_inference_prompt_cost": 0.00005168,
-      "upstream_inference_completions_cost": 0.000204
+      "upstream_inference_completions_cost": 0.000192
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -83,5 +83,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.00025568
+  "providerUsd": 0.00024368
 }

@@ -10,60 +10,72 @@
   "verdict": {
     "dimensions": {
       "meaning": {
-        "pass": true,
-        "note": "The translation accurately conveys the core message about brain-damaged individuals retaining the ability to assess sincerity despite speech comprehension loss."
+        "pass": false,
+        "note": "The candidate misrepresents the relationship between Oliver Sacks, his paper, and the content."
       },
       "entities_numbers": {
         "pass": false,
-        "note": "'Oliver Sacks' is misspelled as 'Oliver Sachs' in the ASR input, and the candidate retains '奥利弗·萨克斯' which corresponds to 'Sachs' instead of the correct '萨克斯' for 'Sacks'. This misrepresents the name."
+        "note": "'Oliver Sachs' is a misspelling of 'Oliver Sacks'; 'the president's speech' is incorrectly rendered as if it were a statement by or about a president."
       },
       "negation": {
         "pass": true,
-        "note": "No negations in the source; translation correctly does not introduce any."
+        "note": "No negation errors present."
       },
       "omission": {
-        "pass": true,
-        "note": "All key information from the source is included in the translation."
+        "pass": false,
+        "note": "The original structure attributing the observation to Sacks' paper is omitted, altering credit."
       },
       "hallucination": {
-        "pass": true,
-        "note": "Nothing is added that is not supported by the source."
+        "pass": false,
+        "note": "The candidate adds that 'the president's speech' made the indication, which is not supported by the source."
       },
       "terminology": {
         "pass": true,
-        "note": "Terms like '脑损伤' (brain damage) and '真诚程度' (sincerity) are appropriately used."
+        "note": "Domain terms like 'brain damage' and 'assess sincerity' are adequately rendered."
       },
       "fluency": {
         "pass": true,
-        "note": "The Chinese translation reads naturally and idiomatically."
+        "note": "The Chinese text is fluent and natural."
       }
     },
     "findings": [
       {
+        "dimension": "meaning",
+        "sourceQuote": "Oliver Sacks, in his paper The President's Speech, indicated how people...",
+        "targetQuote": "奥利弗·萨克斯及其论文指出，总统的演讲表明...",
+        "reason": "The candidate incorrectly shifts the indication from Sacks' paper to 'the president's speech', distorting the original meaning."
+      },
+      {
         "dimension": "entities_numbers",
-        "sourceQuote": "Oliver Sacks",
-        "targetQuote": "奥利弗·萨克斯",
-        "reason": "The candidate translation uses '萨克斯' which reflects the ASR error 'Sachs' instead of the correct 'Sacks', leading to an incorrect rendering of the person's name."
+        "sourceQuote": "Oliver Sacks, in his paper The President's Speech",
+        "targetQuote": "奥利弗·萨克斯及其论文指出，总统的演讲",
+        "reason": "'Oliver Sachs' misrepresents the name; 'The President's Speech' is a paper title, not a speech by a president, but the translation treats it as such."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "Oliver Sacks, in his paper The President's Speech, indicated...",
+        "targetQuote": "总统的演讲表明...",
+        "reason": "The candidate invents that 'the president's speech' is the source of the indication, which is not stated or implied in the original."
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 498,
-    "completion_tokens": 312,
-    "total_tokens": 810,
-    "cost": 0.000315,
+    "prompt_tokens": 492,
+    "completion_tokens": 435,
+    "total_tokens": 927,
+    "cost": 0.00028353,
     "is_byok": false,
     "prompt_tokens_details": {
-      "cached_tokens": 48,
+      "cached_tokens": 0,
       "cache_write_tokens": 0,
       "audio_tokens": 0,
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.000315,
-      "upstream_inference_prompt_cost": 0.0000654,
-      "upstream_inference_completions_cost": 0.0002496
+      "upstream_inference_cost": 0.00028353,
+      "upstream_inference_prompt_cost": 0.00004428,
+      "upstream_inference_completions_cost": 0.00023925
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -71,5 +83,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.000315
+  "providerUsd": 0.00028353
 }

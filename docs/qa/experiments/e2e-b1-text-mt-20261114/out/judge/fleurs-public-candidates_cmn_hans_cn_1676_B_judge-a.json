@@ -11,7 +11,7 @@
     "dimensions": {
       "meaning": {
         "pass": true,
-        "note": "accurate meaning conveyed"
+        "note": "accurate meaning transfer"
       },
       "entities_numbers": {
         "pass": true,
@@ -23,11 +23,11 @@
       },
       "omission": {
         "pass": true,
-        "note": "no material omitted"
+        "note": "no omissions"
       },
       "hallucination": {
         "pass": true,
-        "note": "no hallucination"
+        "note": "no added information"
       },
       "terminology": {
         "pass": true,
@@ -35,7 +35,7 @@
       },
       "fluency": {
         "pass": true,
-        "note": "natural English phrasing"
+        "note": "natural English"
       }
     },
     "findings": []
@@ -43,9 +43,9 @@
   "finishReason": "stop",
   "usage": {
     "prompt_tokens": 458,
-    "completion_tokens": 125,
-    "total_tokens": 583,
-    "cost": 0.0003832,
+    "completion_tokens": 123,
+    "total_tokens": 581,
+    "cost": 0.00038,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +54,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0003832,
+      "upstream_inference_cost": 0.00038,
       "upstream_inference_prompt_cost": 0.0001832,
-      "upstream_inference_completions_cost": 0.0002
+      "upstream_inference_completions_cost": 0.0001968
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0003832
+  "providerUsd": 0.00038
 }

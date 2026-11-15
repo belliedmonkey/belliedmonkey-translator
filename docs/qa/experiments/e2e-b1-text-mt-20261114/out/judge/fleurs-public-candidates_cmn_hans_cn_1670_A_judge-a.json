@@ -11,41 +11,41 @@
     "dimensions": {
       "meaning": {
         "pass": true,
-        "note": "The candidate conveys the same meaning as the source."
+        "note": "The meaning is fully preserved."
       },
       "entities_numbers": {
         "pass": true,
-        "note": "All entities and locations are correctly preserved."
+        "note": "All entities and numbers are correctly rendered."
       },
       "negation": {
         "pass": true,
-        "note": "Negation is accurately maintained."
+        "note": "Negation is preserved."
       },
       "omission": {
         "pass": true,
-        "note": "No material information is omitted."
+        "note": "No material omission."
       },
       "hallucination": {
         "pass": true,
-        "note": "No information is added beyond the source."
+        "note": "No hallucination detected."
       },
       "terminology": {
         "pass": true,
-        "note": "Terminology is consistent and appropriate."
+        "note": "Terminology is consistent and sensible."
       },
       "fluency": {
         "pass": true,
-        "note": "The translation reads naturally in English."
+        "note": "Fluent and natural English."
       }
     },
     "findings": []
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 498,
-    "completion_tokens": 145,
-    "total_tokens": 643,
-    "cost": 0.0004312,
+    "prompt_tokens": 507,
+    "completion_tokens": 134,
+    "total_tokens": 641,
+    "cost": 0.0004172,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +54,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0004312,
-      "upstream_inference_prompt_cost": 0.0001992,
-      "upstream_inference_completions_cost": 0.000232
+      "upstream_inference_cost": 0.0004172,
+      "upstream_inference_prompt_cost": 0.0002028,
+      "upstream_inference_completions_cost": 0.0002144
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0004312
+  "providerUsd": 0.0004172
 }

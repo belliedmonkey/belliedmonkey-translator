@@ -11,60 +11,60 @@
     "dimensions": {
       "meaning": {
         "pass": false,
-        "note": "The original phrase 'computer languages是' indicates a statement about computer languages, but the candidate translation 'Probably it's mostly just language' introduces uncertainty and changes the mean"
+        "note": "The candidate translation does not convey the meaning of 'computer languages是'."
       },
       "entities_numbers": {
         "pass": true,
-        "note": "No entities or numbers present to compare."
+        "note": "No entities or numbers to preserve."
       },
       "negation": {
         "pass": true,
-        "note": "No negation present in source or candidate."
+        "note": "No negation present."
       },
       "omission": {
         "pass": false,
-        "note": "The candidate omits the explicit mention of 'computer languages'."
+        "note": "The candidate omits 'computer languages' entirely."
       },
       "hallucination": {
-        "pass": true,
-        "note": "No information added beyond the source."
+        "pass": false,
+        "note": "The candidate adds 'Maybe usually all language' which is not supported."
       },
       "terminology": {
         "pass": false,
-        "note": "The term 'computer languages' is not preserved; 'language' alone is less precise."
+        "note": "The term 'computer languages' is not translated or represented."
       },
       "fluency": {
         "pass": true,
-        "note": "The candidate reads naturally in English."
+        "note": "The candidate is fluent English."
       }
     },
     "findings": [
       {
         "dimension": "meaning",
         "sourceQuote": "computer languages是",
-        "targetQuote": "Probably it's mostly just language",
-        "reason": "The candidate introduces uncertainty and changes the meaning from a statement about computer languages to a probable statement about language in general."
+        "targetQuote": "Maybe usually all language",
+        "reason": "The candidate does not convey the meaning of 'computer languages是' and instead produces unrelated content."
       },
       {
         "dimension": "omission",
         "sourceQuote": "computer languages是",
-        "targetQuote": "Probably it's mostly just language",
-        "reason": "The candidate omits the explicit mention of 'computer' in 'computer languages', reducing specificity."
+        "targetQuote": "Maybe usually all language",
+        "reason": "The candidate omits the key term 'computer languages' entirely."
       },
       {
-        "dimension": "terminology",
-        "sourceQuote": "computer languages",
-        "targetQuote": "language",
-        "reason": "The candidate fails to preserve the domain-specific term 'computer languages', instead using the more general 'language'."
+        "dimension": "hallucination",
+        "sourceQuote": "computer languages是",
+        "targetQuote": "Maybe usually all language",
+        "reason": "The candidate adds speculative words 'Maybe usually all' not present in the source."
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 411,
-    "completion_tokens": 319,
-    "total_tokens": 730,
-    "cost": 0.0006748,
+    "prompt_tokens": 410,
+    "completion_tokens": 314,
+    "total_tokens": 724,
+    "cost": 0.0006664,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -73,9 +73,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0006748,
-      "upstream_inference_prompt_cost": 0.0001644,
-      "upstream_inference_completions_cost": 0.0005104
+      "upstream_inference_cost": 0.0006664,
+      "upstream_inference_prompt_cost": 0.000164,
+      "upstream_inference_completions_cost": 0.0005024
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -83,5 +83,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0006748
+  "providerUsd": 0.0006664
 }

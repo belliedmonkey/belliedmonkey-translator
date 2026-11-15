@@ -11,7 +11,7 @@
     "dimensions": {
       "meaning": {
         "pass": true,
-        "note": "The candidate translation accurately conveys all propositions from the source."
+        "note": "The candidate translation accurately conveys the meaning of the source."
       },
       "entities_numbers": {
         "pass": true,
@@ -19,7 +19,7 @@
       },
       "negation": {
         "pass": true,
-        "note": "Negation is correctly preserved in the phrase about climbing ability."
+        "note": "Negation is correctly preserved."
       },
       "omission": {
         "pass": true,
@@ -42,10 +42,10 @@
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 444,
-    "completion_tokens": 151,
-    "total_tokens": 595,
-    "cost": 0.0004192,
+    "prompt_tokens": 441,
+    "completion_tokens": 145,
+    "total_tokens": 586,
+    "cost": 0.0004084,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +54,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0004192,
-      "upstream_inference_prompt_cost": 0.0001776,
-      "upstream_inference_completions_cost": 0.0002416
+      "upstream_inference_cost": 0.0004084,
+      "upstream_inference_prompt_cost": 0.0001764,
+      "upstream_inference_completions_cost": 0.000232
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0004192
+  "providerUsd": 0.0004084
 }

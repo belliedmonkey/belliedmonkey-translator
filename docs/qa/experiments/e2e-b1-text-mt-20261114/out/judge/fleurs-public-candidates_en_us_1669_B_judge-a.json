@@ -11,48 +11,48 @@
     "dimensions": {
       "meaning": {
         "pass": true,
-        "note": "meaning preserved"
+        "note": "meaning preserved despite minor name error"
       },
       "entities_numbers": {
         "pass": false,
-        "note": "name mistranslated"
+        "note": "name 'Shekhar' mistranslated as '希卡尔'"
       },
       "negation": {
         "pass": true,
-        "note": "negation preserved"
+        "note": "no negation issues"
       },
       "omission": {
         "pass": true,
-        "note": "no omission"
+        "note": "no omissions"
       },
       "hallucination": {
         "pass": true,
-        "note": "no hallucination"
+        "note": "no added information"
       },
       "terminology": {
         "pass": true,
-        "note": "terminology correct"
+        "note": "terms correctly translated"
       },
       "fluency": {
         "pass": true,
-        "note": "natural fluency"
+        "note": "natural Chinese"
       }
     },
     "findings": [
       {
         "dimension": "entities_numbers",
-        "sourceQuote": "Police superintendent Chandra Shekhar Solanki",
-        "targetQuote": "警察局长钱德拉·希卡尔·索兰基",
-        "reason": "The name 'Chandra Shekhar Solanki' is mistranslated as '钱德拉·希卡尔·索兰基', which does not accurately reflect the original name."
+        "sourceQuote": "Chandra Shekhar Solanki",
+        "targetQuote": "钱德拉·希卡尔·索兰基",
+        "reason": "The middle name 'Shekhar' is mistranslated as '希卡尔', reflecting the ASR error 'Shikar' instead of 'Shekhar'."
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 456,
-    "completion_tokens": 198,
-    "total_tokens": 654,
-    "cost": 0.0004992,
+    "prompt_tokens": 461,
+    "completion_tokens": 205,
+    "total_tokens": 666,
+    "cost": 0.0005124,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -61,9 +61,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0004992,
-      "upstream_inference_prompt_cost": 0.0001824,
-      "upstream_inference_completions_cost": 0.0003168
+      "upstream_inference_cost": 0.0005124,
+      "upstream_inference_prompt_cost": 0.0001844,
+      "upstream_inference_completions_cost": 0.000328
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -71,5 +71,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0004992
+  "providerUsd": 0.0005124
 }

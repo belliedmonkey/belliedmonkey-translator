@@ -11,11 +11,11 @@
     "dimensions": {
       "meaning": {
         "pass": true,
-        "note": "The translation accurately conveys the intended meaning despite the ASR error."
+        "note": "The translation accurately conveys the meaning of the source, despite the ASR error."
       },
       "entities_numbers": {
         "pass": false,
-        "note": "'浮游' (ASR error for '蜉蝣') was incorrectly rendered as 'mayflies', which is contextually correct but based on a misrecognition."
+        "note": "'浮游' (ASR error for '蜉蝣') was correctly interpreted as 'mayflies' in context."
       },
       "negation": {
         "pass": true,
@@ -23,36 +23,36 @@
       },
       "omission": {
         "pass": true,
-        "note": "No material omissions."
+        "note": "No material omission from the source."
       },
       "hallucination": {
         "pass": true,
-        "note": "No hallucinations."
+        "note": "No hallucination; content aligns with source."
       },
       "terminology": {
         "pass": true,
-        "note": "Terminology is appropriate and consistent."
+        "note": "Technical terms are appropriately translated."
       },
       "fluency": {
         "pass": true,
-        "note": "The translation is fluent and natural."
+        "note": "Translation is fluent and natural."
       }
     },
     "findings": [
       {
         "dimension": "entities_numbers",
-        "sourceQuote": "浮游",
+        "sourceQuote": "蜉蝣",
         "targetQuote": "mayflies",
-        "reason": "The ASR output misrecognized '蜉蝣' as '浮游', which means 'plankton' or 'floating organisms', but the candidate translated it as 'mayflies', correctly restoring the intended entity despite the input error. However, since the candidate was produced from the erroneous input, this counts as a failure to preserve the entity as given in the ASR output."
+        "reason": "The ASR output misrecognized '蜉蝣' as '浮游', but the candidate correctly translated it as 'mayflies', which matches the authoritative source meaning. However, since the candidate inherited an ASR error and corrected it appropriately, this is marked as a pass in meaning but a fail in entities_numbers due to the initial error propagation."
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
     "prompt_tokens": 441,
-    "completion_tokens": 267,
-    "total_tokens": 708,
-    "cost": 0.00027102,
+    "completion_tokens": 258,
+    "total_tokens": 699,
+    "cost": 0.00026382,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 48,
@@ -61,9 +61,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.00027102,
+      "upstream_inference_cost": 0.00026382,
       "upstream_inference_prompt_cost": 0.00005742,
-      "upstream_inference_completions_cost": 0.0002136
+      "upstream_inference_completions_cost": 0.0002064
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -71,5 +71,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.00027102
+  "providerUsd": 0.00026382
 }

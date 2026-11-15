@@ -11,59 +11,65 @@
     "dimensions": {
       "meaning": {
         "pass": false,
-        "note": "'leave great distances' misheard from 'leap great distances' leads to '腾跃极远距离' which inaccurately conveys the action."
+        "note": "'leap great distances' mistranslated as '长途跋涉' (long-distance travel), altering the original meaning of physical jumping."
       },
       "entities_numbers": {
         "pass": true,
-        "note": "Numbers correctly rendered as '5倍'."
+        "note": "Numbers and comparisons, such as 'five times', are correctly rendered as '五倍'."
       },
       "negation": {
         "pass": true,
-        "note": "Negation '虽不擅长攀爬' correctly reflects 'though not well'."
+        "note": "Negation 'though not well' is correctly preserved as '虽然攀爬能力不强'."
       },
       "omission": {
-        "pass": true,
-        "note": "No material omissions from source."
+        "pass": false,
+        "note": "'Leap great distances' is omitted in sense; 'leave great distances' in ASR is a misrecognition but candidate fails to recover correct meaning."
       },
       "hallucination": {
         "pass": true,
-        "note": "No invented content beyond source."
+        "note": "No invented content beyond the source."
       },
       "terminology": {
         "pass": true,
-        "note": "Domain terms like '攀援', '腾跃' are appropriate."
+        "note": "Domain terms like 'pull with five times the force' are appropriately translated."
       },
       "fluency": {
         "pass": true,
-        "note": "Target is fluent and natural."
+        "note": "The translation reads naturally in Chinese."
       }
     },
     "findings": [
       {
         "dimension": "meaning",
         "sourceQuote": "leap great distances",
-        "targetQuote": "腾跃极远距离",
-        "reason": "The ASR error 'leave' for 'leap' was interpreted as '腾跃', which preserves the idea of jumping, but the candidate inherits a misrepresentation from the misheard input; however, '腾跃' is a reasonable translation of 'leap', so the meaning defect is minor but present due to reliance on incorrect input."
+        "targetQuote": "长途跋涉",
+        "reason": "'Leap great distances' refers to physical jumping ability, but '长途跋涉' means long-distance trekking or journeying, which distorts the original meaning."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "leap great distances",
+        "targetQuote": "长途跋涉",
+        "reason": "The physical action of leaping is omitted and replaced with travel, failing to convey the tiger's athletic jumping ability."
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 496,
-    "completion_tokens": 276,
-    "total_tokens": 772,
-    "cost": 0.00028592,
+    "prompt_tokens": 486,
+    "completion_tokens": 321,
+    "total_tokens": 807,
+    "cost": 0.00031764,
     "is_byok": false,
     "prompt_tokens_details": {
-      "cached_tokens": 48,
+      "cached_tokens": 80,
       "cache_write_tokens": 0,
       "audio_tokens": 0,
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.00028592,
-      "upstream_inference_prompt_cost": 0.00006512,
-      "upstream_inference_completions_cost": 0.0002208
+      "upstream_inference_cost": 0.00031764,
+      "upstream_inference_prompt_cost": 0.00006084,
+      "upstream_inference_completions_cost": 0.0002568
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -71,5 +77,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.00028592
+  "providerUsd": 0.00031764
 }

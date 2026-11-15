@@ -11,27 +11,27 @@
     "dimensions": {
       "meaning": {
         "pass": false,
-        "note": "The candidate adds 'only' which introduces a temporal exclusivity not present in the source, altering the meaning."
+        "note": "The candidate omits the specific fiscal year '2005财年' (fiscal year 2005), rendering it as 'Since 2005', which alters the temporal precision of the source."
       },
       "entities_numbers": {
-        "pass": true,
-        "note": "The year 2005 and the number 10 are correctly rendered."
+        "pass": false,
+        "note": "'2005财年' is inaccurately translated as 'Since 2005', losing the specificity of the fiscal year. Additionally, '10名探员' is rendered as 'ten agents', but the source specifies '探员' (investigators), which "
       },
       "negation": {
         "pass": true,
-        "note": "No negation errors; polarity is preserved."
+        "note": "No negation errors present."
       },
       "omission": {
-        "pass": true,
-        "note": "No material omissions from the source."
+        "pass": false,
+        "note": "The phrase '从 2005 财年' (starting from fiscal year 2005) is omitted in its precise form; the candidate simplifies it to 'Since 2005', dropping the fiscal year specification."
       },
       "hallucination": {
-        "pass": false,
-        "note": "The addition of 'only' introduces a temporal restriction not in the source, constituting a hallucination."
+        "pass": true,
+        "note": "No hallucinated content."
       },
       "terminology": {
-        "pass": true,
-        "note": "'anti-pornography initiative', 'FBI', 'agents', 'combat adult pornography' are appropriate and consistent."
+        "pass": false,
+        "note": "'扫黄倡议' is translated as 'anti-pornography initiative', which is acceptable, but '联邦调查局 (FBI)' should consistently include the acronym, which is omitted in the candidate. Also, '探员' is better rendered "
       },
       "fluency": {
         "pass": true,
@@ -41,24 +41,30 @@
     "findings": [
       {
         "dimension": "meaning",
-        "sourceQuote": "国会从 2005 财年开始资助该扫黄倡议",
-        "targetQuote": "Congress only began funding the anti-pornography initiative in 2005",
-        "reason": "The addition of 'only' implies exclusivity or delay not present in the original, altering the intended meaning."
+        "sourceQuote": "从 2005 财年开始",
+        "targetQuote": "Since 2005",
+        "reason": "The candidate removes the fiscal year specification, altering the temporal precision of the source."
       },
       {
-        "dimension": "hallucination",
-        "sourceQuote": "国会从 2005 财年开始资助该扫黄倡议",
-        "targetQuote": "Congress only began funding the anti-pornography initiative in 2005",
-        "reason": "The word 'only' is not supported by the source and introduces a temporal limitation that does not exist in the original."
+        "dimension": "entities_numbers",
+        "sourceQuote": "2005 财年",
+        "targetQuote": "Since 2005",
+        "reason": "The specific fiscal year is inaccurately rendered as a calendar year, losing key detail."
+      },
+      {
+        "dimension": "terminology",
+        "sourceQuote": "探员",
+        "targetQuote": "agents",
+        "reason": "'探员' should be more precisely translated as 'investigators' rather than the generic 'agents'."
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 498,
-    "completion_tokens": 346,
-    "total_tokens": 844,
-    "cost": 0.0003342,
+    "prompt_tokens": 496,
+    "completion_tokens": 480,
+    "total_tokens": 976,
+    "cost": 0.00030864,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -67,9 +73,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0003342,
-      "upstream_inference_prompt_cost": 0.0000747,
-      "upstream_inference_completions_cost": 0.0002595
+      "upstream_inference_cost": 0.00030864,
+      "upstream_inference_prompt_cost": 0.00004464,
+      "upstream_inference_completions_cost": 0.000264
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -77,5 +83,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0003342
+  "providerUsd": 0.00030864
 }

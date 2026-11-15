@@ -31,7 +31,7 @@
       },
       "terminology": {
         "pass": true,
-        "note": "terminology appropriate"
+        "note": "terms correctly translated"
       },
       "fluency": {
         "pass": true,
@@ -42,10 +42,10 @@
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 436,
+    "prompt_tokens": 438,
     "completion_tokens": 127,
-    "total_tokens": 563,
-    "cost": 0.0003776,
+    "total_tokens": 565,
+    "cost": 0.0003784,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,8 +54,8 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0003776,
-      "upstream_inference_prompt_cost": 0.0001744,
+      "upstream_inference_cost": 0.0003784,
+      "upstream_inference_prompt_cost": 0.0001752,
       "upstream_inference_completions_cost": 0.0002032
     },
     "completion_tokens_details": {
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0003776
+  "providerUsd": 0.0003784
 }

@@ -15,15 +15,15 @@
       },
       "entities_numbers": {
         "pass": true,
-        "note": "'1 minute' and 'a few minutes' are correctly rendered."
+        "note": "'1 minute' and 'several minutes' are correctly preserved."
       },
       "negation": {
         "pass": true,
-        "note": "No negation present; polarity is preserved."
+        "note": "No negation present; polarity is consistent."
       },
       "omission": {
         "pass": true,
-        "note": "No material omissions from the source."
+        "note": "No material information omitted from the source."
       },
       "hallucination": {
         "pass": true,
@@ -31,32 +31,32 @@
       },
       "terminology": {
         "pass": true,
-        "note": "'boiling' is appropriate and consistent with '水煮'."
+        "note": "'boiling' is appropriate and consistent with '水煮' in context."
       },
       "fluency": {
         "pass": true,
-        "note": "The sentence reads naturally in English."
+        "note": "The sentence is natural and fluent in English."
       }
     },
     "findings": []
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 449,
-    "completion_tokens": 172,
-    "total_tokens": 621,
-    "cost": 0.00019614,
+    "prompt_tokens": 448,
+    "completion_tokens": 176,
+    "total_tokens": 624,
+    "cost": 0.00019776,
     "is_byok": false,
     "prompt_tokens_details": {
-      "cached_tokens": 48,
+      "cached_tokens": 64,
       "cache_write_tokens": 0,
       "audio_tokens": 0,
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.00019614,
-      "upstream_inference_prompt_cost": 0.00005854,
-      "upstream_inference_completions_cost": 0.0001376
+      "upstream_inference_cost": 0.00019776,
+      "upstream_inference_prompt_cost": 0.00005696,
+      "upstream_inference_completions_cost": 0.0001408
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.00019614
+  "providerUsd": 0.00019776
 }

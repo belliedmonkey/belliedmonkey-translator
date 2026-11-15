@@ -42,10 +42,10 @@
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 395,
+    "prompt_tokens": 393,
     "completion_tokens": 100,
-    "total_tokens": 495,
-    "cost": 0.00013098,
+    "total_tokens": 493,
+    "cost": 0.0001307,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 48,
@@ -54,8 +54,8 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.00013098,
-      "upstream_inference_prompt_cost": 0.00005098,
+      "upstream_inference_cost": 0.0001307,
+      "upstream_inference_prompt_cost": 0.0000507,
       "upstream_inference_completions_cost": 0.00008
     },
     "completion_tokens_details": {
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.00013098
+  "providerUsd": 0.0001307
 }

@@ -11,11 +11,11 @@
     "dimensions": {
       "meaning": {
         "pass": true,
-        "note": "meaning preserved"
+        "note": "accurate meaning conveyed"
       },
       "entities_numbers": {
         "pass": true,
-        "note": "names and titles correctly rendered"
+        "note": "names and numbers preserved"
       },
       "negation": {
         "pass": true,
@@ -31,7 +31,7 @@
       },
       "terminology": {
         "pass": true,
-        "note": "terms correctly translated"
+        "note": "appropriate terminology"
       },
       "fluency": {
         "pass": true,
@@ -42,10 +42,10 @@
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 409,
+    "prompt_tokens": 411,
     "completion_tokens": 122,
-    "total_tokens": 531,
-    "cost": 0.0003588,
+    "total_tokens": 533,
+    "cost": 0.0003596,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,8 +54,8 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0003588,
-      "upstream_inference_prompt_cost": 0.0001636,
+      "upstream_inference_cost": 0.0003596,
+      "upstream_inference_prompt_cost": 0.0001644,
       "upstream_inference_completions_cost": 0.0001952
     },
     "completion_tokens_details": {
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0003588
+  "providerUsd": 0.0003596
 }

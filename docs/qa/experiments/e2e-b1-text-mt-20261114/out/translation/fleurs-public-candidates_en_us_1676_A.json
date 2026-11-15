@@ -7,21 +7,20 @@
   "source": "As with all South African National Parks, there are daily conservation and entry fees for the park.",
   "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
   "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
   "httpStatus": 200,
   "ok": true,
-  "translation": "与所有南非国家公园一样，该公园每日收取生态保育费和入园费。",
+  "translation": "与所有南非国家公园一样，该公园收取每日保护费和入场费。",
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 142,
-    "total_tokens": 518,
-    "completion_tokens": 376,
+    "prompt_tokens": 144,
+    "total_tokens": 159,
+    "completion_tokens": 15,
     "prompt_tokens_details": {
       "cached_tokens": 0,
-      "text_tokens": 142
-    },
-    "completion_tokens_details": {
-      "reasoning_tokens": 357,
-      "text_tokens": 376
+      "text_tokens": 144
     }
   },
   "error": null

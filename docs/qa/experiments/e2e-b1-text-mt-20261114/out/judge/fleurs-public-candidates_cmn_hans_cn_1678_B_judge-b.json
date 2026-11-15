@@ -5,26 +5,77 @@
   "judgeId": "judge-b",
   "model": "qwen/qwen3-235b-a22b-2507",
   "httpStatus": 200,
-  "ok": false,
-  "parseCode": "bad-json",
-  "verdict": null,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate mistranslates '论文' (paper/essay) as 'presidential address', which is a significant deviation in meaning."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "'总统的演讲' is inaccurately rendered as 'presidential address' instead of the correct 'the essay titled The President's Speech'."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation errors."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omissions."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The phrase 'presidential address' is a hallucination not supported by the source, which refers to a paper titled 'The President's Speech'."
+      },
+      "terminology": {
+        "pass": false,
+        "note": "'论文' should be translated as 'paper' or 'essay', not 'address'; '总统的演讲' is a title, not an event."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation is fluent and natural."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "他的论文《总统的演讲》",
+        "targetQuote": "his presidential address",
+        "reason": "The source refers to a written paper titled 'The President's Speech', while the candidate interprets it as a speech event, altering the core meaning."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "《总统的演讲》",
+        "targetQuote": "presidential address",
+        "reason": "The title 'The President's Speech' is misrepresented as a formal address given by a president, introducing factual inaccuracy."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "论文《总统的演讲》",
+        "targetQuote": "his presidential address",
+        "reason": "The candidate invents the idea that Oliver Sacks delivered a presidential address, which is not supported by the source text."
+      }
+    ]
+  },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 503,
-    "completion_tokens": 621,
-    "total_tokens": 1124,
-    "cost": 0.0005629,
+    "prompt_tokens": 501,
+    "completion_tokens": 380,
+    "total_tokens": 881,
+    "cost": 0.00025409,
     "is_byok": false,
     "prompt_tokens_details": {
-      "cached_tokens": 48,
+      "cached_tokens": 0,
       "cache_write_tokens": 0,
       "audio_tokens": 0,
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0005629,
-      "upstream_inference_prompt_cost": 0.0000661,
-      "upstream_inference_completions_cost": 0.0004968
+      "upstream_inference_cost": 0.00025409,
+      "upstream_inference_prompt_cost": 0.00004509,
+      "upstream_inference_completions_cost": 0.000209
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -32,5 +83,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0005629
+  "providerUsd": 0.00025409
 }

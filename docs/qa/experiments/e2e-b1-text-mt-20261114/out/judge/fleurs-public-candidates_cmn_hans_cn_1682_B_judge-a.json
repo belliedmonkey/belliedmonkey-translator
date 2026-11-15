@@ -11,41 +11,41 @@
     "dimensions": {
       "meaning": {
         "pass": true,
-        "note": "meaning preserved"
+        "note": "The candidate conveys the same meaning as the source."
       },
       "entities_numbers": {
         "pass": true,
-        "note": "numbers correctly rendered"
+        "note": "Numbers and entities are accurately preserved."
       },
       "negation": {
         "pass": true,
-        "note": "negation preserved"
+        "note": "Negation is correctly maintained."
       },
       "omission": {
         "pass": true,
-        "note": "no omission"
+        "note": "No material information omitted."
       },
       "hallucination": {
         "pass": true,
-        "note": "no hallucination"
+        "note": "No information added beyond the source."
       },
       "terminology": {
         "pass": true,
-        "note": "terminology consistent"
+        "note": "Terminology is consistent and appropriate."
       },
       "fluency": {
         "pass": true,
-        "note": "natural English"
+        "note": "The translation reads naturally in English."
       }
     },
     "findings": []
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 534,
-    "completion_tokens": 118,
-    "total_tokens": 652,
-    "cost": 0.0004024,
+    "prompt_tokens": 532,
+    "completion_tokens": 142,
+    "total_tokens": 674,
+    "cost": 0.00044,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +54,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0004024,
-      "upstream_inference_prompt_cost": 0.0002136,
-      "upstream_inference_completions_cost": 0.0001888
+      "upstream_inference_cost": 0.00044,
+      "upstream_inference_prompt_cost": 0.0002128,
+      "upstream_inference_completions_cost": 0.0002272
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0004024
+  "providerUsd": 0.00044
 }

@@ -11,15 +11,15 @@
     "dimensions": {
       "meaning": {
         "pass": true,
-        "note": "The main idea is fully preserved."
+        "note": "The candidate translation accurately conveys the meaning of the source."
       },
       "entities_numbers": {
         "pass": true,
-        "note": "Oliver Sacks and the essay title are correctly rendered."
+        "note": "Oliver Sacks and the essay title are correctly preserved."
       },
       "negation": {
         "pass": true,
-        "note": "Negation is accurately maintained."
+        "note": "The negation about inability to comprehend language is preserved."
       },
       "omission": {
         "pass": true,
@@ -27,11 +27,11 @@
       },
       "hallucination": {
         "pass": true,
-        "note": "No added information beyond the source."
+        "note": "No information is added beyond the source."
       },
       "terminology": {
         "pass": true,
-        "note": "Terminology is appropriate and consistent."
+        "note": "Terminology is consistent and appropriate."
       },
       "fluency": {
         "pass": true,
@@ -42,10 +42,10 @@
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 443,
-    "completion_tokens": 144,
-    "total_tokens": 587,
-    "cost": 0.0004076,
+    "prompt_tokens": 445,
+    "completion_tokens": 154,
+    "total_tokens": 599,
+    "cost": 0.0004244,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +54,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0004076,
-      "upstream_inference_prompt_cost": 0.0001772,
-      "upstream_inference_completions_cost": 0.0002304
+      "upstream_inference_cost": 0.0004244,
+      "upstream_inference_prompt_cost": 0.000178,
+      "upstream_inference_completions_cost": 0.0002464
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0004076
+  "providerUsd": 0.0004244
 }
