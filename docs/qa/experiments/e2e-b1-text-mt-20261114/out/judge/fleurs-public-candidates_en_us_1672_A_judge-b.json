@@ -11,41 +11,41 @@
     "dimensions": {
       "meaning": {
         "pass": true,
-        "note": "short"
+        "note": "exact meaning preserved"
       },
       "entities_numbers": {
         "pass": true,
-        "note": "short"
+        "note": ""
       },
       "negation": {
         "pass": true,
-        "note": "short"
+        "note": "negation correctly rendered"
       },
       "omission": {
         "pass": true,
-        "note": "short"
+        "note": "nothing omitted"
       },
       "hallucination": {
         "pass": true,
-        "note": "short"
+        "note": "no invented content"
       },
       "terminology": {
         "pass": true,
-        "note": "short"
+        "note": "terms like 'shrinkage' and 'scorch' correctly translated"
       },
       "fluency": {
         "pass": true,
-        "note": "short"
+        "note": "natural and fluent in Chinese"
       }
     },
     "findings": []
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 401,
-    "completion_tokens": 100,
-    "total_tokens": 501,
-    "cost": 0.00009109,
+    "prompt_tokens": 402,
+    "completion_tokens": 129,
+    "total_tokens": 531,
+    "cost": 0.00015705,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +54,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.00009109,
-      "upstream_inference_prompt_cost": 0.00003609,
-      "upstream_inference_completions_cost": 0.000055
+      "upstream_inference_cost": 0.00015705,
+      "upstream_inference_prompt_cost": 0.0000603,
+      "upstream_inference_completions_cost": 0.00009675
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.00009109
+  "providerUsd": 0.00015705
 }

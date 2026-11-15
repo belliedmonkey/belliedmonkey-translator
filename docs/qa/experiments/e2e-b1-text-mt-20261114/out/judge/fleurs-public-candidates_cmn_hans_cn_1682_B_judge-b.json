@@ -11,19 +11,19 @@
     "dimensions": {
       "meaning": {
         "pass": false,
-        "note": "The candidate splits the sentence structure, causing a subtle shift in emphasis and cohesion."
+        "note": "The candidate splits the sentence at a different point than the source, breaking the connection between the document's physical description and its storage condition, which slightly alters the flow of"
       },
       "entities_numbers": {
         "pass": true,
-        "note": "Numbers are correctly rendered as 29¾ and 24½ inches."
+        "note": "All measurements (29¾ inches by 24½ inches) are correctly preserved."
       },
       "negation": {
         "pass": true,
-        "note": "No negation issues present."
+        "note": "No negations in the source; none introduced or dropped."
       },
       "omission": {
-        "pass": false,
-        "note": "The connection between the document's size and its storage condition is weakened by sentence separation."
+        "pass": true,
+        "note": "No material omissions from the source."
       },
       "hallucination": {
         "pass": true,
@@ -31,7 +31,7 @@
       },
       "terminology": {
         "pass": true,
-        "note": "Terms like 'parchment document' and 'stored rolled up' are appropriate."
+        "note": "'parchment document' and 'rolled up' are appropriate and consistent."
       },
       "fluency": {
         "pass": true,
@@ -42,23 +42,17 @@
       {
         "dimension": "meaning",
         "sourceQuote": "但这个大型羊皮纸文档（尺寸为 29¾ 英寸乘以 24½ 英寸）据称在刚写成的时候是卷起来存放的。",
-        "targetQuote": "this large parchment document measures 29 and three-quarters inches by 24 and a half inches. It is said that upon its completion, it was stored rolled up.",
-        "reason": "The original sentence links the document's physical description directly to its storage method; the candidate separates this into two sentences, weakening the logical connection and altering the flow of information."
-      },
-      {
-        "dimension": "omission",
-        "sourceQuote": "但这个大型羊皮纸文档（尺寸为 29¾ 英寸乘以 24½ 英寸）据称在刚写成的时候是卷起来存放的。",
-        "targetQuote": "this large parchment document measures 29 and three-quarters inches by 24 and a half inches. It is said that upon its completion, it was stored rolled up.",
-        "reason": "The parenthetical size detail is no longer syntactically integrated with the main clause about storage, leading to a loss of cohesion present in the source."
+        "targetQuote": "this large parchment document measures 29¾ inches by 24½ inches. It is said to have been stored rolled up when it was first written.",
+        "reason": "The original links the size and storage method in a single clause connected by '但', emphasizing contrast or continuation. The split in the candidate weakens the cohesion, slightly altering the rhetorical structure and flow of meaning."
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 531,
-    "completion_tokens": 526,
-    "total_tokens": 1057,
-    "cost": 0.00049082,
+    "prompt_tokens": 530,
+    "completion_tokens": 324,
+    "total_tokens": 854,
+    "cost": 0.00032908,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 48,
@@ -67,9 +61,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.00049082,
-      "upstream_inference_prompt_cost": 0.00007002,
-      "upstream_inference_completions_cost": 0.0004208
+      "upstream_inference_cost": 0.00032908,
+      "upstream_inference_prompt_cost": 0.00006988,
+      "upstream_inference_completions_cost": 0.0002592
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -77,5 +71,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.00049082
+  "providerUsd": 0.00032908
 }

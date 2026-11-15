@@ -11,31 +11,31 @@
     "dimensions": {
       "meaning": {
         "pass": true,
-        "note": "The cancellation of the remaining tour dates is accurately conveyed."
+        "note": "The cancellation of remaining tour dates is conveyed."
       },
       "entities_numbers": {
         "pass": true,
-        "note": "The band name and the concept of remaining tour dates are preserved."
+        "note": "Band name and tour dates are preserved."
       },
       "negation": {
         "pass": true,
-        "note": "The negation of not continuing the tour is preserved."
+        "note": "Cancellation (negation) is correctly conveyed."
       },
       "omission": {
         "pass": true,
-        "note": "No material information is omitted."
+        "note": "No material information omitted."
       },
       "hallucination": {
         "pass": true,
-        "note": "No information is added beyond the source."
+        "note": "No added information beyond source."
       },
       "terminology": {
         "pass": true,
-        "note": "Terminology such as 'canceled' and 'tour' is appropriate."
+        "note": "Terminology appropriate and consistent."
       },
       "fluency": {
         "pass": true,
-        "note": "The sentence reads naturally in English."
+        "note": "Natural English phrasing."
       }
     },
     "findings": []
@@ -43,9 +43,9 @@
   "finishReason": "stop",
   "usage": {
     "prompt_tokens": 394,
-    "completion_tokens": 164,
-    "total_tokens": 558,
-    "cost": 0.00042,
+    "completion_tokens": 141,
+    "total_tokens": 535,
+    "cost": 0.0003832,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +54,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.00042,
+      "upstream_inference_cost": 0.0003832,
       "upstream_inference_prompt_cost": 0.0001576,
-      "upstream_inference_completions_cost": 0.0002624
+      "upstream_inference_completions_cost": 0.0002256
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.00042
+  "providerUsd": 0.0003832
 }

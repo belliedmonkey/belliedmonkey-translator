@@ -11,52 +11,52 @@
     "dimensions": {
       "meaning": {
         "pass": true,
-        "note": "The translation accurately conveys the funding start year, the initiative, and the FBI mandate."
+        "note": "The translation accurately conveys the original proposition that Congress began funding the initiative in FY2005 and required the FBI to assign 10 agents to combat adult pornography."
       },
       "entities_numbers": {
         "pass": true,
-        "note": "'2005 fiscal year', '10', and 'Federal Bureau of Investigation (FBI)' are correctly rendered."
+        "note": "'2005', '10', 'Congress', 'Federal Bureau of Investigation (FBI)', and 'adult pornography' are correctly rendered."
       },
       "negation": {
         "pass": true,
-        "note": "No negation present; polarity is correctly maintained."
+        "note": "No negation errors; the positive mandate is correctly expressed."
       },
       "omission": {
         "pass": true,
-        "note": "All key elements from the source are included in the translation."
+        "note": "No material omissions from the source text."
       },
       "hallucination": {
         "pass": true,
-        "note": "No invented information; all content is supported by the source."
+        "note": "No invented content; all information is supported by the source."
       },
       "terminology": {
         "pass": true,
-        "note": "'anti-pornography initiative' and 'combat adult pornography' are appropriate and consistent."
+        "note": "'anti-pornography initiative', 'fiscal year', 'mandated', and 'combat adult pornography' are appropriate and consistent."
       },
       "fluency": {
         "pass": true,
-        "note": "The sentence reads naturally in English."
+        "note": "The translation reads naturally to a native English speaker."
       }
     },
     "findings": []
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 437,
-    "completion_tokens": 195,
-    "total_tokens": 632,
-    "cost": 0.00021286,
+    "prompt_tokens": 435,
+    "completion_tokens": 229,
+    "total_tokens": 664,
+    "cost": 0.000237,
     "is_byok": false,
     "prompt_tokens_details": {
-      "cached_tokens": 48,
+      "cached_tokens": 0,
       "cache_write_tokens": 0,
       "audio_tokens": 0,
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.00021286,
-      "upstream_inference_prompt_cost": 0.00005686,
-      "upstream_inference_completions_cost": 0.000156
+      "upstream_inference_cost": 0.000237,
+      "upstream_inference_prompt_cost": 0.00006525,
+      "upstream_inference_completions_cost": 0.00017175
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.00021286
+  "providerUsd": 0.000237
 }

@@ -11,41 +11,41 @@
     "dimensions": {
       "meaning": {
         "pass": true,
-        "note": "meaning preserved"
+        "note": "The meaning is fully preserved."
       },
       "entities_numbers": {
         "pass": true,
-        "note": "entities correctly rendered"
+        "note": "Entities 'dragon flies' and 'mayflies' correctly translated as '蜻蜓' and '蜉蝣'."
       },
       "negation": {
         "pass": true,
-        "note": "negation preserved"
+        "note": "Negation 'cannot fold back' is correctly preserved."
       },
       "omission": {
         "pass": true,
-        "note": "no omission"
+        "note": "No material omission."
       },
       "hallucination": {
         "pass": true,
-        "note": "no hallucination"
+        "note": "No added information."
       },
       "terminology": {
         "pass": true,
-        "note": "terminology appropriate"
+        "note": "Terminology is accurate and consistent."
       },
       "fluency": {
         "pass": true,
-        "note": "natural and fluent"
+        "note": "Fluent and natural Chinese."
       }
     },
     "findings": []
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 407,
-    "completion_tokens": 118,
-    "total_tokens": 525,
-    "cost": 0.0003516,
+    "prompt_tokens": 408,
+    "completion_tokens": 158,
+    "total_tokens": 566,
+    "cost": 0.000416,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +54,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0003516,
-      "upstream_inference_prompt_cost": 0.0001628,
-      "upstream_inference_completions_cost": 0.0001888
+      "upstream_inference_cost": 0.000416,
+      "upstream_inference_prompt_cost": 0.0001632,
+      "upstream_inference_completions_cost": 0.0002528
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0003516
+  "providerUsd": 0.000416
 }

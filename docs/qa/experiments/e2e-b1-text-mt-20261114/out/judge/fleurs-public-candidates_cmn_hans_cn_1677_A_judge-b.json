@@ -11,31 +11,31 @@
     "dimensions": {
       "meaning": {
         "pass": true,
-        "note": "The translation accurately conveys that dragonflies and mayflies are the only insects unable to fold their wings backward."
+        "note": "The translation accurately conveys the original proposition."
       },
       "entities_numbers": {
         "pass": true,
-        "note": "'蜻蜓' as 'dragonflies' and '蜉蝣' as 'mayflies' are correctly rendered."
+        "note": "'蜻蜓' and '蜉蝣' correctly rendered as 'dragonflies' and 'mayflies'."
       },
       "negation": {
         "pass": true,
-        "note": "The negation 'cannot' correctly reflects '不能' in the source."
+        "note": "Negation '不能' correctly translated as 'cannot'."
       },
       "omission": {
         "pass": true,
-        "note": "No meaningful content is omitted from the source."
+        "note": "No material content omitted."
       },
       "hallucination": {
         "pass": true,
-        "note": "No information is added beyond the source."
+        "note": "No invented content."
       },
       "terminology": {
         "pass": true,
-        "note": "Technical terms like 'fold their wings backward' are appropriately used."
+        "note": "Technical terms appropriately translated."
       },
       "fluency": {
         "pass": true,
-        "note": "The sentence is natural and fluent in English."
+        "note": "Natural and fluent English."
       }
     },
     "findings": []
@@ -43,9 +43,9 @@
   "finishReason": "stop",
   "usage": {
     "prompt_tokens": 391,
-    "completion_tokens": 192,
-    "total_tokens": 583,
-    "cost": 0.00020402,
+    "completion_tokens": 155,
+    "total_tokens": 546,
+    "cost": 0.00017442,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 48,
@@ -54,9 +54,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.00020402,
+      "upstream_inference_cost": 0.00017442,
       "upstream_inference_prompt_cost": 0.00005042,
-      "upstream_inference_completions_cost": 0.0001536
+      "upstream_inference_completions_cost": 0.000124
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.00020402
+  "providerUsd": 0.00017442
 }

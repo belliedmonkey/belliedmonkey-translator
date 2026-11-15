@@ -11,60 +11,60 @@
     "dimensions": {
       "meaning": {
         "pass": false,
-        "note": "The candidate translation does not reflect the authoritative source meaning, which refers to 'computer languages' as a subject, while the candidate interprets it as 'probably it's mostly just language"
+        "note": "The candidate translation does not convey the meaning of the authoritative source, which refers to 'computer languages' as a subject, while the candidate talks about 'maybe usually all language' with "
       },
       "entities_numbers": {
-        "pass": false,
-        "note": "The term 'computer languages' from the source is entirely missing in the candidate, leading to incorrect entity representation."
+        "pass": true,
+        "note": "No specific entities or numbers in the source; nothing to preserve."
       },
       "negation": {
         "pass": true,
-        "note": "No negation in source or candidate."
+        "note": "No negation in the source."
       },
       "omission": {
         "pass": false,
-        "note": "The key term 'computer languages' is omitted and replaced with vague 'language', resulting in material loss."
+        "note": "The key term 'computer languages' is entirely omitted and replaced with an unrelated phrase."
       },
       "hallucination": {
         "pass": false,
-        "note": "The word 'probably' and 'mostly' are hallucinated and not supported by the authoritative source."
+        "note": "The words 'maybe', 'usually', and 'all' are hallucinated and not supported by the source."
       },
       "terminology": {
         "pass": false,
-        "note": "'computer languages' is a domain term that was not preserved; instead, a vague and incorrect 'language' is used."
+        "note": "The domain term 'computer languages' is not translated or even approximated correctly."
       },
       "fluency": {
         "pass": true,
-        "note": "The candidate sentence is fluent in English despite being inaccurate."
+        "note": "The candidate sentence is grammatically acceptable in English, though nonsensical."
       }
     },
     "findings": [
       {
         "dimension": "meaning",
         "sourceQuote": "computer languages是",
-        "targetQuote": "Probably it's mostly just language",
-        "reason": "The candidate introduces speculative modality ('probably', 'mostly') and omits the specific subject 'computer languages', failing to preserve the original meaning."
+        "targetQuote": "Maybe usually all language",
+        "reason": "The candidate fails to represent the subject 'computer languages' and introduces unrelated content."
       },
       {
         "dimension": "omission",
-        "sourceQuote": "computer languages是",
-        "targetQuote": "language",
-        "reason": "The specific term 'computer languages' is reduced to the generic 'language', omitting critical information."
+        "sourceQuote": "computer languages",
+        "targetQuote": "",
+        "reason": "The key term 'computer languages' is completely missing in the translation."
       },
       {
         "dimension": "hallucination",
-        "sourceQuote": "computer languages是",
-        "targetQuote": "Probably it's mostly just",
-        "reason": "The adverbs 'probably' and 'mostly' are not present in or implied by the source and are thus hallucinated content."
+        "sourceQuote": "",
+        "targetQuote": "Maybe usually",
+        "reason": "The words 'Maybe' and 'usually' are not present in or implied by the source and are thus hallucinated."
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 408,
-    "completion_tokens": 388,
-    "total_tokens": 796,
-    "cost": 0.0003632,
+    "prompt_tokens": 406,
+    "completion_tokens": 338,
+    "total_tokens": 744,
+    "cost": 0.0002768,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 48,
@@ -73,9 +73,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0003632,
-      "upstream_inference_prompt_cost": 0.0000528,
-      "upstream_inference_completions_cost": 0.0003104
+      "upstream_inference_cost": 0.0002768,
+      "upstream_inference_prompt_cost": 0.000074,
+      "upstream_inference_completions_cost": 0.0002028
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -83,5 +83,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0003632
+  "providerUsd": 0.0002768
 }

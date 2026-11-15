@@ -10,42 +10,55 @@
   "verdict": {
     "dimensions": {
       "meaning": {
-        "pass": true,
-        "note": "The translation conveys the same propositions as the source, including benefits of the Wild Card and access to parks in South Africa."
+        "pass": false,
+        "note": "The candidate translates '万能卡' as 'Universal Card', but the correct meaning in context is 'Wild Card', which is a specific term. This affects the overall meaning."
       },
       "entities_numbers": {
         "pass": true,
-        "note": "'Wild Card' and 'South Africa' are correctly rendered; 'some parks' and 'all of the national parks' are accurately translated."
+        "note": "South Africa, parks, and national parks are correctly rendered."
       },
       "negation": {
         "pass": true,
-        "note": "No negation present; polarity is correctly maintained."
+        "note": "No negation issues present."
       },
       "omission": {
         "pass": true,
-        "note": "No material omissions from the source text."
+        "note": "No material omissions from the source."
       },
       "hallucination": {
         "pass": true,
-        "note": "No invented content; all information is supported by the source."
+        "note": "No invented content beyond the source."
       },
       "terminology": {
-        "pass": true,
-        "note": "'Wild Card', 'parks', and 'national parks' are used appropriately and consistently."
+        "pass": false,
+        "note": "'万能卡' is a branded term best rendered as 'Wild Card'; 'Universal Card' is incorrect and misleading."
       },
       "fluency": {
         "pass": true,
-        "note": "The translation reads naturally to a native English speaker."
+        "note": "The translation reads naturally in English."
       }
     },
-    "findings": []
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "万能卡（Wild Card）",
+        "targetQuote": "Universal Card",
+        "reason": "The term '万能卡' is explicitly clarified in parentheses as 'Wild Card' in the source, but the candidate translates it as 'Universal Card', altering the intended meaning."
+      },
+      {
+        "dimension": "terminology",
+        "sourceQuote": "万能卡（Wild Card）",
+        "targetQuote": "Universal Card",
+        "reason": "'万能卡' is parenthetically defined as 'Wild Card', a specific term; translating it as 'Universal Card' misrepresents the official name and creates a terminology error."
+      }
+    ]
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 471,
-    "completion_tokens": 207,
-    "total_tokens": 678,
-    "cost": 0.00015624,
+    "prompt_tokens": 469,
+    "completion_tokens": 315,
+    "total_tokens": 784,
+    "cost": 0.0003066,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +67,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.00015624,
-      "upstream_inference_prompt_cost": 0.00004239,
-      "upstream_inference_completions_cost": 0.00011385
+      "upstream_inference_cost": 0.0003066,
+      "upstream_inference_prompt_cost": 0.00007035,
+      "upstream_inference_completions_cost": 0.00023625
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +77,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.00015624
+  "providerUsd": 0.0003066
 }

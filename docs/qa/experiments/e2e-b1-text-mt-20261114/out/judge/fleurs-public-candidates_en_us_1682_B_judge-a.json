@@ -11,54 +11,48 @@
     "dimensions": {
       "meaning": {
         "pass": false,
-        "note": "incorrect subject introduced"
+        "note": "The phrase 'who wrote it' is mistranslated as 'Serenhu Roi的情况', losing the original meaning."
       },
       "entities_numbers": {
         "pass": true,
-        "note": "numbers and measurements correctly rendered"
+        "note": "Numbers and measurements are correctly preserved."
       },
       "negation": {
         "pass": true,
-        "note": "negation preserved"
+        "note": "Negation is preserved ('no one knows')."
       },
       "omission": {
         "pass": true,
-        "note": "no material omission"
+        "note": "No material omission detected."
       },
       "hallucination": {
-        "pass": false,
-        "note": "invented proper name '塞伦胡·罗伊' not in source"
+        "pass": true,
+        "note": "No hallucinated content added."
       },
       "terminology": {
         "pass": true,
-        "note": "terms translated appropriately"
+        "note": "Terminology is appropriate."
       },
       "fluency": {
         "pass": true,
-        "note": "natural Chinese"
+        "note": "The sentence reads naturally in Chinese."
       }
     },
     "findings": [
       {
         "dimension": "meaning",
         "sourceQuote": "While no one knows for certain who wrote it",
-        "targetQuote": "尽管无人知晓塞伦胡·罗伊的详情",
-        "reason": "The candidate introduces a proper name '塞伦胡·罗伊' which is not present in the source, changing the meaning and subject."
-      },
-      {
-        "dimension": "hallucination",
-        "sourceQuote": "While no one knows for certain who wrote it",
-        "targetQuote": "尽管无人知晓塞伦胡·罗伊的详情",
-        "reason": "The candidate invents a proper name '塞伦胡·罗伊' that does not exist in the source text."
+        "targetQuote": "虽然无人知晓Serenhu Roi的情况",
+        "reason": "The original meaning about the unknown author is lost and replaced by an unclear phrase 'Serenhu Roi的情况'."
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 541,
-    "completion_tokens": 263,
-    "total_tokens": 804,
-    "cost": 0.0006372,
+    "prompt_tokens": 540,
+    "completion_tokens": 217,
+    "total_tokens": 757,
+    "cost": 0.0005632,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -67,9 +61,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0006372,
-      "upstream_inference_prompt_cost": 0.0002164,
-      "upstream_inference_completions_cost": 0.0004208
+      "upstream_inference_cost": 0.0005632,
+      "upstream_inference_prompt_cost": 0.000216,
+      "upstream_inference_completions_cost": 0.0003472
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -77,5 +71,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0006372
+  "providerUsd": 0.0005632
 }

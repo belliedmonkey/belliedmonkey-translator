@@ -11,60 +11,60 @@
     "dimensions": {
       "meaning": {
         "pass": false,
-        "note": "The candidate mistranslates '地下深穴' as 'subsurface snow accumulation', changing the meaning."
+        "note": "incorrect comparison object"
       },
       "entities_numbers": {
         "pass": false,
-        "note": "Flagstaff is mistranslated as '旗甘镇' in ASR and 'Flagstaff' is correct in candidate, but the ASR errors affect entity recognition."
+        "note": "incorrect place name and person name"
       },
       "negation": {
         "pass": true,
-        "note": "Negation is preserved."
+        "note": "negation preserved"
       },
       "omission": {
         "pass": true,
-        "note": "No material omission."
+        "note": "no material omission"
       },
       "hallucination": {
         "pass": false,
-        "note": "The candidate introduces 'subsurface snow accumulation' which is not in the source."
+        "note": "invented 'rising snow underground' not in source"
       },
       "terminology": {
-        "pass": false,
-        "note": "'地下深穴' should be 'deep underground caves' or similar, not 'subsurface snow accumulation'."
+        "pass": true,
+        "note": "terms translated consistently"
       },
       "fluency": {
         "pass": true,
-        "note": "The candidate reads naturally."
+        "note": "natural English"
       }
     },
     "findings": [
       {
         "dimension": "meaning",
-        "sourceQuote": "它们与地下深穴的情况很相似",
-        "targetQuote": "they closely resemble the conditions of subsurface snow accumulation",
-        "reason": "The candidate mistranslates '地下深穴' (deep underground caves) as 'subsurface snow accumulation', altering the meaning."
+        "sourceQuote": "它们的热行为不像地球上的大型洞穴那么稳定，但它们与地下深穴的情况很相似",
+        "targetQuote": "However, they are quite similar to conditions involving rising snow underground",
+        "reason": "The candidate mistranslates '地下深穴' (deep underground caves) as 'rising snow underground', changing the meaning."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "亚利桑那州旗杆镇美国地质调查局 (USGS) 太空地质团队和北亚利桑那大学的格伦·库欣",
+        "targetQuote": "Glen Cushing of the U.S. Geological Survey (USGS) Astrogeology Team in Flagstaff, Arizona, and Northern Arizona University",
+        "reason": "The candidate mistranslates '旗杆镇' as '旗甘镇' in ASR and 'Glen Cushing' as 'Glen Cushing' correctly, but ASR errors affect the candidate; place name is incorrect in ASR but candidate corrects it; however, the ASR errors count against candidate."
       },
       {
         "dimension": "hallucination",
         "sourceQuote": "地下深穴",
-        "targetQuote": "subsurface snow accumulation",
-        "reason": "The candidate invents 'subsurface snow accumulation' which is unsupported by the source."
-      },
-      {
-        "dimension": "terminology",
-        "sourceQuote": "地下深穴",
-        "targetQuote": "subsurface snow accumulation",
-        "reason": "Incorrect translation of a domain term changes the technical meaning."
+        "targetQuote": "rising snow underground",
+        "reason": "The candidate invents 'rising snow underground', which is not present in the source text."
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 607,
-    "completion_tokens": 339,
-    "total_tokens": 946,
-    "cost": 0.0007852,
+    "prompt_tokens": 615,
+    "completion_tokens": 400,
+    "total_tokens": 1015,
+    "cost": 0.000886,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -73,9 +73,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0007852,
-      "upstream_inference_prompt_cost": 0.0002428,
-      "upstream_inference_completions_cost": 0.0005424
+      "upstream_inference_cost": 0.000886,
+      "upstream_inference_prompt_cost": 0.000246,
+      "upstream_inference_completions_cost": 0.00064
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -83,5 +83,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0007852
+  "providerUsd": 0.000886
 }

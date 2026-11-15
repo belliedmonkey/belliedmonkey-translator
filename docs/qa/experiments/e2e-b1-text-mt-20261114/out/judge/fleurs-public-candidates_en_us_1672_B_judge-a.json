@@ -15,7 +15,7 @@
       },
       "entities_numbers": {
         "pass": true,
-        "note": "no entities or numbers"
+        "note": "no entities or numbers involved"
       },
       "negation": {
         "pass": true,
@@ -42,10 +42,10 @@
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 474,
-    "completion_tokens": 119,
-    "total_tokens": 593,
-    "cost": 0.00038,
+    "prompt_tokens": 471,
+    "completion_tokens": 121,
+    "total_tokens": 592,
+    "cost": 0.000382,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +54,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.00038,
-      "upstream_inference_prompt_cost": 0.0001896,
-      "upstream_inference_completions_cost": 0.0001904
+      "upstream_inference_cost": 0.000382,
+      "upstream_inference_prompt_cost": 0.0001884,
+      "upstream_inference_completions_cost": 0.0001936
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.00038
+  "providerUsd": 0.000382
 }

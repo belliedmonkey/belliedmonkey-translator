@@ -9,7 +9,8 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const ROOT = __dirname ? path.resolve(__dirname, '..') : process.cwd();
+const ROOT = path.resolve(__dirname, '..');
+const TAG = process.env.B1_TAG || '';
 const REPO = '/Users/belliedmonkey/OpenBot/Agents/agent-58a6cf7f-25c3-42a8-a363-d86cd56f66fc/work/repo';
 const EXP = path.join(REPO, 'docs/qa/experiments/sa-sv-36-llm-judge-20261113');
 const INPUT = path.join(EXP, 'records/07-v2-official-partial/evidence/llm-judge-v2-real-20261114-0015/input/input-asr-36.json');
@@ -55,6 +56,26 @@ function loadKeys() {
     out[m[1]] = v;
   }
   return out;
+}
+
+const PROVIDERS_GEN = path.join(REPO, 'extension/content/providers.gen.js');
+function productReasoningFragment() {
+  const src = fs.readFileSync(PROVIDERS_GEN, 'utf8');
+  const m = src.match(/window\.MT_MODEL_PARAMS = (\[[\s\S]*?\]);/);
+  if (!m) throw new Error('MT_MODEL_PARAMS missing');
+  const rows = JSON.parse(m[1]);
+  const row = rows.filter((r) => r.id === 'qwencloud')[0];
+  if (!row) throw new Error('qwencloud row missing');
+  if (!row.reasoning || row.reasoning.enable_thinking !== false) {
+    throw new Error('qwencloud reasoning fragment changed: ' + JSON.stringify(row.reasoning));
+  }
+  return row.reasoning;
+}
+
+let _reasoning = null;
+function reasoningFragment() {
+  if (!_reasoning) _reasoning = productReasoningFragment();
+  return _reasoning;
 }
 
 function assertPromptMatchesRepo() {
@@ -106,21 +127,21 @@ async function postJson(url, key, body) {
 }
 
 async function translate(rows, keys) {
-  const dir = path.join(ROOT, 'out', 'translation');
+  const dir = path.join(ROOT, 'out', 'translation' + TAG);
   fs.mkdirSync(dir, { recursive: true });
   const done = new Set(fs.existsSync(dir) ? fs.readdirSync(dir) : []);
   const out = [];
   for (const row of rows) {
     const name = row.pairId.replace(/[^A-Za-z0-9._-]+/g, '_') + '.json';
     if (done.has(name)) { out.push(readJson(path.join(dir, name))); continue; }
-    const body = {
+    const body = Object.assign({
       model: CHAT_MODEL,
       temperature: 0,
       messages: [
         { role: 'system', content: systemPromptFor(row.targetLang) },
         { role: 'user', content: row.source },
       ],
-    };
+    }, reasoningFragment());
     let rec = null;
     for (let attempt = 0; attempt < 5 && !rec; attempt++) {
       let r;
@@ -134,7 +155,7 @@ async function translate(rows, keys) {
       rec = {
         pairId: row.pairId, itemId: row.itemId, condition: row.condition, sourceKind: row.sourceKind,
         targetLang: row.targetLang, source: row.source, systemPromptSha256: sha(systemPromptFor(row.targetLang)),
-        model: CHAT_MODEL, httpStatus: r.status, ok: r.ok && typeof content === 'string',
+        model: CHAT_MODEL, reasoning: reasoningFragment(), httpStatus: r.status, ok: r.ok && typeof content === 'string',
         translation: typeof content === 'string' ? content.trim() : null,
         finishReason: r.json && r.json.choices && r.json.choices[0] && r.json.choices[0].finish_reason || null,
         usage: r.json && r.json.usage || null,
@@ -197,7 +218,7 @@ function goldOf(itemId) {
 }
 
 async function judge(rows, keys) {
-  const dir = path.join(ROOT, 'out', 'judge-v2');
+  const dir = path.join(ROOT, 'out', 'judge' + TAG);
   fs.mkdirSync(dir, { recursive: true });
   const results = [];
   for (const row of rows) {
@@ -326,7 +347,7 @@ async function main() {
       model: CHAT_MODEL,
     });
   } else {
-    const dir = path.join(ROOT, 'out', 'translation');
+    const dir = path.join(ROOT, 'out', 'translation' + TAG);
     trans = fs.readdirSync(dir).map((f) => readJson(path.join(dir, f)));
     trans.sort((a, b) => a.pairId.localeCompare(b.pairId));
   }

@@ -10,42 +10,55 @@
   "verdict": {
     "dimensions": {
       "meaning": {
-        "pass": true,
-        "note": "meaning preserved"
+        "pass": false,
+        "note": "'leap great distances' mistranslated as '能长途跋涉' (can travel long distances), changing the meaning."
       },
       "entities_numbers": {
         "pass": true,
-        "note": "numbers and entities correctly rendered"
+        "note": "Numbers and entities preserved correctly."
       },
       "negation": {
         "pass": true,
-        "note": "negation preserved"
+        "note": "Negation preserved ('though not well')."
       },
       "omission": {
         "pass": true,
-        "note": "no material omission"
+        "note": "No material omissions."
       },
       "hallucination": {
-        "pass": true,
-        "note": "no hallucination"
+        "pass": false,
+        "note": "'能长途跋涉' (can travel long distances) is an addition not supported by source."
       },
       "terminology": {
         "pass": true,
-        "note": "terminology appropriate"
+        "note": "Terminology is appropriate."
       },
       "fluency": {
         "pass": true,
-        "note": "natural and fluent"
+        "note": "Fluent and natural Chinese."
       }
     },
-    "findings": []
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "leap great distances",
+        "targetQuote": "能长途跋涉",
+        "reason": "The candidate translates 'leap great distances' as 'can travel long distances', which changes the meaning from jumping to traveling."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "leap great distances",
+        "targetQuote": "能长途跋涉",
+        "reason": "The candidate adds the idea of traveling long distances, which is not supported by the source text."
+      }
+    ]
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 513,
-    "completion_tokens": 121,
-    "total_tokens": 634,
-    "cost": 0.0003988,
+    "prompt_tokens": 502,
+    "completion_tokens": 270,
+    "total_tokens": 772,
+    "cost": 0.0006328,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +67,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0003988,
-      "upstream_inference_prompt_cost": 0.0002052,
-      "upstream_inference_completions_cost": 0.0001936
+      "upstream_inference_cost": 0.0006328,
+      "upstream_inference_prompt_cost": 0.0002008,
+      "upstream_inference_completions_cost": 0.000432
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +77,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0003988
+  "providerUsd": 0.0006328
 }

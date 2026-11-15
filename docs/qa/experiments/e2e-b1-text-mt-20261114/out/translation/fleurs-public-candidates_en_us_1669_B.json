@@ -7,21 +7,20 @@
   "source": "Police superintendent Chandra Shikar Solanki said that accused appeared in court with covered faces.",
   "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
   "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
   "httpStatus": 200,
   "ok": true,
-  "translation": "警察局长钱德拉·希卡尔·索兰基表示，被告蒙面出庭。",
+  "translation": "警察总监钱德拉·希卡尔·索兰基表示，被告在出庭时遮住了面部。",
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 143,
-    "total_tokens": 656,
-    "completion_tokens": 513,
+    "prompt_tokens": 145,
+    "total_tokens": 166,
+    "completion_tokens": 21,
     "prompt_tokens_details": {
       "cached_tokens": 0,
-      "text_tokens": 143
-    },
-    "completion_tokens_details": {
-      "reasoning_tokens": 492,
-      "text_tokens": 513
+      "text_tokens": 145
     }
   },
   "error": null

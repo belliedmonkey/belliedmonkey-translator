@@ -11,71 +11,71 @@
     "dimensions": {
       "meaning": {
         "pass": false,
-        "note": "The candidate incorrectly adds '蒙面' (covered faces) as an action performed by the defendants, implying they actively covered their faces, whereas the source only states their faces were covered, not t"
+        "note": "源文中的“the accused”明确指复数被告，而候选译文“被告”为单数，可能引起歧义，未完全保留原意。"
       },
       "entities_numbers": {
         "pass": false,
-        "note": "The name 'Chandra Shekhar Solanki' in the source is rendered as '钱德拉·希卡尔·索兰基', which reflects the ASR error 'Shikar' instead of 'Shekhar', failing to preserve the correct name."
+        "note": "源文为“Chandra Shekhar Solanki”，候选译文误作“钱德拉·希卡尔·索兰基”，“Shekhar”被错误识别为“Shikar”，名字音译错误。"
       },
       "negation": {
         "pass": true,
-        "note": "No negation in source or translation."
+        "note": "无否定关系变化。"
       },
       "omission": {
-        "pass": true,
-        "note": "No material omissions."
+        "pass": false,
+        "note": "源文有“the”限定“accused”，表示特指，候选译文未体现该限定，导致信息弱化。"
       },
       "hallucination": {
-        "pass": false,
-        "note": "The translation implies the accused actively covered their faces ('蒙面出庭'), which is not stated in the source and introduces an unsupported action."
+        "pass": true,
+        "note": "未添加原文未提及内容。"
       },
       "terminology": {
         "pass": true,
-        "note": "'Police superintendent' as '警察局长' and 'accused' as '被告' are appropriate."
+        "note": "术语如“警察总监”“出庭”使用恰当。"
       },
       "fluency": {
         "pass": true,
-        "note": "The Chinese sentence is fluent and natural."
+        "note": "中文表达自然流畅。"
       }
     },
     "findings": [
       {
         "dimension": "meaning",
-        "sourceQuote": "the accused appeared in court with covered faces",
-        "targetQuote": "被告蒙面出庭",
-        "reason": "The source states the faces were covered, but does not specify agency; the translation implies the accused themselves covered their faces, adding unintended agency and altering the meaning."
+        "sourceQuote": "the accused",
+        "targetQuote": "被告",
+        "reason": "源文使用定冠词+复数名词特指多名被告，候选译文未体现复数，语义不完整。"
       },
       {
         "dimension": "entities_numbers",
         "sourceQuote": "Chandra Shekhar Solanki",
         "targetQuote": "钱德拉·希卡尔·索兰基",
-        "reason": "The translation uses '希卡尔' (Shikar), reflecting the ASR error, instead of the correct 'Shekhar', thus misrepresenting the name."
+        "reason": "‘Shekhar’被错误识别为‘Shikar’，导致人名音译错误。"
       },
       {
-        "dimension": "hallucination",
-        "sourceQuote": "with covered faces",
-        "targetQuote": "蒙面出庭",
-        "reason": "The phrase '蒙面出庭' suggests the act of covering one's face as part of appearing in court, which is not stated in the source and introduces an unsupported action."
+        "dimension": "omission",
+        "sourceQuote": "the accused",
+        "targetQuote": "被告",
+        "reason": "源文中的定冠词‘the’表示特指，候选译文未体现这一限定含义。"
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 450,
-    "completion_tokens": 453,
-    "total_tokens": 903,
-    "cost": 0.00042396,
+    "prompt_tokens": 453,
+    "completion_tokens": 376,
+    "total_tokens": 829,
+    "cost": 0.00024757,
     "is_byok": false,
     "prompt_tokens_details": {
-      "cached_tokens": 16,
+      "cached_tokens": 0,
       "cache_write_tokens": 0,
       "audio_tokens": 0,
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.00042396,
-      "upstream_inference_prompt_cost": 0.00006156,
-      "upstream_inference_completions_cost": 0.0003624
+      "upstream_inference_cost": 0.00024757,
+      "upstream_inference_prompt_cost": 0.00004077,
+      "upstream_inference_completions_cost": 0.0002068
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -83,5 +83,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.00042396
+  "providerUsd": 0.00024757
 }

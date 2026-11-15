@@ -10,42 +10,61 @@
   "verdict": {
     "dimensions": {
       "meaning": {
-        "pass": true,
-        "note": "meaning preserved despite slight addition of 'Then I think'"
+        "pass": false,
+        "note": "The candidate translation changes '我专业是' (my major is) to 'I think love is', altering the meaning."
       },
       "entities_numbers": {
         "pass": true,
-        "note": "ISM and information systems management correctly rendered"
+        "note": "ISM and information systems management are preserved."
       },
       "negation": {
         "pass": true,
-        "note": "no negation present"
+        "note": "No negation present or altered."
       },
       "omission": {
-        "pass": true,
-        "note": "no material omitted"
+        "pass": false,
+        "note": "The candidate omits 'my major is'."
       },
       "hallucination": {
-        "pass": true,
-        "note": "no hallucination"
+        "pass": false,
+        "note": "The candidate adds 'love' which is not in the source."
       },
       "terminology": {
         "pass": true,
-        "note": "terminology consistent and sensible"
+        "note": "Information systems management is correctly translated."
       },
       "fluency": {
         "pass": true,
-        "note": "natural English phrasing"
+        "note": "The sentence reads naturally."
       }
     },
-    "findings": []
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "我专业是那个",
+        "targetQuote": "Then I think love is that",
+        "reason": "The candidate changes 'my major is' to 'I think love is', altering the intended meaning."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "我专业是那个",
+        "targetQuote": "Then I think love is that",
+        "reason": "The candidate omits the phrase indicating 'my major is' and replaces it with an unrelated phrase."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "no",
+        "targetQuote": "love",
+        "reason": "The candidate adds the word 'love' which is not present in the source."
+      }
+    ]
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 433,
-    "completion_tokens": 136,
-    "total_tokens": 569,
-    "cost": 0.0003908,
+    "prompt_tokens": 435,
+    "completion_tokens": 295,
+    "total_tokens": 730,
+    "cost": 0.000646,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +73,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0003908,
-      "upstream_inference_prompt_cost": 0.0001732,
-      "upstream_inference_completions_cost": 0.0002176
+      "upstream_inference_cost": 0.000646,
+      "upstream_inference_prompt_cost": 0.000174,
+      "upstream_inference_completions_cost": 0.000472
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +83,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0003908
+  "providerUsd": 0.000646
 }

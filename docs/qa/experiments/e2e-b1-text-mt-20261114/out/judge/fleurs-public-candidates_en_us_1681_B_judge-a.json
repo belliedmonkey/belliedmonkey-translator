@@ -11,41 +11,41 @@
     "dimensions": {
       "meaning": {
         "pass": true,
-        "note": "The candidate conveys all key ideas: experimentation is not alone, experiment as a test to eliminate hypotheses, and asking questions and observations guide research."
+        "note": "meaning preserved"
       },
       "entities_numbers": {
         "pass": true,
-        "note": "No entities or numbers to verify."
+        "note": "no entities or numbers"
       },
       "negation": {
         "pass": true,
-        "note": "Negation 'not alone' is preserved as '并非唯一'."
+        "note": "negation preserved"
       },
       "omission": {
         "pass": true,
-        "note": "No material omissions; all parts of the source are represented."
+        "note": "no material omitted"
       },
       "hallucination": {
         "pass": true,
-        "note": "No added information beyond the source."
+        "note": "no hallucination"
       },
       "terminology": {
         "pass": true,
-        "note": "Terms like 'experiment', 'hypotheses', 'scientific research' are translated appropriately."
+        "note": "terms correctly translated"
       },
       "fluency": {
         "pass": true,
-        "note": "The translation reads naturally and fluently in Chinese."
+        "note": "natural and fluent"
       }
     },
     "findings": []
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 512,
-    "completion_tokens": 191,
-    "total_tokens": 703,
-    "cost": 0.0005104,
+    "prompt_tokens": 508,
+    "completion_tokens": 121,
+    "total_tokens": 629,
+    "cost": 0.0003968,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +54,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0005104,
-      "upstream_inference_prompt_cost": 0.0002048,
-      "upstream_inference_completions_cost": 0.0003056
+      "upstream_inference_cost": 0.0003968,
+      "upstream_inference_prompt_cost": 0.0002032,
+      "upstream_inference_completions_cost": 0.0001936
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0005104
+  "providerUsd": 0.0003968
 }

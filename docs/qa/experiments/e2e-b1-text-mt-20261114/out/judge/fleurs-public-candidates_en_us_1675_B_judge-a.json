@@ -11,27 +11,27 @@
     "dimensions": {
       "meaning": {
         "pass": false,
-        "note": "The candidate mistranslates 'Sie for you' as '安全' (safe), changing the meaning."
+        "note": "The candidate translation changes the meaning by replacing 'the word Sie for you' with '与你世界安全相关的' (related to your world safety), which is incorrect."
       },
       "entities_numbers": {
-        "pass": true,
-        "note": "No entities or numbers to preserve."
+        "pass": false,
+        "note": "The word 'Sie' is mistranslated as '世界安全' (world safety), which is incorrect."
       },
       "negation": {
         "pass": true,
-        "note": "No negation present."
+        "note": "No negation issues."
       },
       "omission": {
         "pass": false,
-        "note": "The candidate omits the concept of the word 'Sie' and replaces it with '安全'."
+        "note": "The candidate omits the mention of the word 'Sie' as a pronoun for 'you'."
       },
       "hallucination": {
-        "pass": false,
-        "note": "The candidate introduces '安全' (safe), which is not in the source."
+        "pass": true,
+        "note": "No hallucinated content beyond the inherited ASR errors."
       },
       "terminology": {
-        "pass": true,
-        "note": "Terminology is consistent where applicable."
+        "pass": false,
+        "note": "The term 'Sie' is mistranslated and the phrase 'world safe' is introduced erroneously."
       },
       "fluency": {
         "pass": true,
@@ -42,29 +42,29 @@
       {
         "dimension": "meaning",
         "sourceQuote": "the word Sie for you",
-        "targetQuote": "“安全”一词，对你而言",
-        "reason": "The candidate mistranslates 'Sie' as '安全' (safe), altering the meaning."
+        "targetQuote": "与你世界安全相关的",
+        "reason": "The candidate mistranslates 'the word Sie for you' as '与你世界安全相关的', changing the meaning significantly."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "the word Sie for you",
+        "targetQuote": "与你世界安全相关的",
+        "reason": "The proper noun 'Sie' is mistranslated as '世界安全' (world safety), losing the original entity."
       },
       {
         "dimension": "omission",
         "sourceQuote": "the word Sie for you",
-        "targetQuote": "“安全”一词，对你而言",
-        "reason": "The candidate omits the concept of the word 'Sie' and replaces it with '安全'."
-      },
-      {
-        "dimension": "hallucination",
-        "sourceQuote": "the word Sie for you",
-        "targetQuote": "“安全”一词，对你而言",
-        "reason": "The candidate introduces '安全' (safe), which is not present in the source."
+        "targetQuote": "",
+        "reason": "The candidate omits the explanation that 'Sie' is the formal 'you' pronoun."
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 477,
-    "completion_tokens": 320,
-    "total_tokens": 797,
-    "cost": 0.0007028,
+    "prompt_tokens": 471,
+    "completion_tokens": 354,
+    "total_tokens": 825,
+    "cost": 0.0007548,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -73,9 +73,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0007028,
-      "upstream_inference_prompt_cost": 0.0001908,
-      "upstream_inference_completions_cost": 0.000512
+      "upstream_inference_cost": 0.0007548,
+      "upstream_inference_prompt_cost": 0.0001884,
+      "upstream_inference_completions_cost": 0.0005664
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -83,5 +83,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0007028
+  "providerUsd": 0.0007548
 }

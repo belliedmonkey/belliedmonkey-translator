@@ -11,23 +11,23 @@
     "dimensions": {
       "meaning": {
         "pass": false,
-        "note": "The candidate translation reflects the ASR output, which misrecognized '福建' as '附件', changing the meaning from a place name to 'attachment'."
+        "note": "The candidate translation reflects the ASR output, which misrecognized '福建' (Fujian) as '附件' (attachment), changing the meaning."
       },
       "entities_numbers": {
         "pass": false,
-        "note": "The place name '福建' is mistranslated as 'attachment', losing the entity."
+        "note": "The place name '福建' is mistranslated as 'attachment', losing the original entity."
       },
       "negation": {
         "pass": true,
-        "note": "No negation present in source or target."
+        "note": "No negation present in source or candidate."
       },
       "omission": {
-        "pass": true,
-        "note": "No material content omitted."
+        "pass": false,
+        "note": "The original place name is omitted and replaced incorrectly."
       },
       "hallucination": {
-        "pass": true,
-        "note": "No added information beyond ASR error."
+        "pass": false,
+        "note": "The candidate invents 'attachment' which is not in the source."
       },
       "terminology": {
         "pass": true,
@@ -35,7 +35,7 @@
       },
       "fluency": {
         "pass": true,
-        "note": "The target sentence is fluent and natural."
+        "note": "The candidate reads naturally in English."
       }
     },
     "findings": [
@@ -43,22 +43,28 @@
         "dimension": "meaning",
         "sourceQuote": "ok福建",
         "targetQuote": "OK, attachment.",
-        "reason": "The candidate translation follows the ASR output 'OK附件' which changes the meaning from 'Fujian' (a place) to 'attachment', thus failing to preserve the original meaning."
+        "reason": "The candidate translation changes '福建' (Fujian) to 'attachment', altering the meaning."
       },
       {
         "dimension": "entities_numbers",
         "sourceQuote": "福建",
         "targetQuote": "attachment",
         "reason": "The place name '福建' is mistranslated as 'attachment', losing the original entity."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "ok福建",
+        "targetQuote": "OK, attachment.",
+        "reason": "The candidate introduces 'attachment' which is not present in the source."
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
     "prompt_tokens": 404,
-    "completion_tokens": 274,
-    "total_tokens": 678,
-    "cost": 0.0006,
+    "completion_tokens": 303,
+    "total_tokens": 707,
+    "cost": 0.0006464,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -67,9 +73,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0006,
+      "upstream_inference_cost": 0.0006464,
       "upstream_inference_prompt_cost": 0.0001616,
-      "upstream_inference_completions_cost": 0.0004384
+      "upstream_inference_completions_cost": 0.0004848
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -77,5 +83,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0006
+  "providerUsd": 0.0006464
 }

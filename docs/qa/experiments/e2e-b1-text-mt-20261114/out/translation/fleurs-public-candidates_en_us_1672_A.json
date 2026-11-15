@@ -7,21 +7,20 @@
   "source": "Be careful not to allow fabric to become too hot (which can cause shrinkage, or in extreme cases, scorch).",
   "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
   "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
   "httpStatus": 200,
   "ok": true,
-  "translation": "注意不要让面料温度过高（否则会导致缩水，极端情况下甚至会烫焦）。",
+  "translation": "小心不要让织物过热（这可能导致缩水，极端情况下甚至会烧焦）。",
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 148,
-    "total_tokens": 735,
-    "completion_tokens": 587,
+    "prompt_tokens": 150,
+    "total_tokens": 165,
+    "completion_tokens": 15,
     "prompt_tokens_details": {
       "cached_tokens": 0,
-      "text_tokens": 148
-    },
-    "completion_tokens_details": {
-      "reasoning_tokens": 568,
-      "text_tokens": 587
+      "text_tokens": 150
     }
   },
   "error": null

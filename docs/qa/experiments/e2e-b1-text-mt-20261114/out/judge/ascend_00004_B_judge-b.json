@@ -26,7 +26,7 @@
         "note": "short"
       },
       "hallucination": {
-        "pass": true,
+        "pass": false,
         "note": "short"
       },
       "terminology": {
@@ -42,23 +42,29 @@
       {
         "dimension": "meaning",
         "sourceQuote": "呃what's the呃",
-        "targetQuote": "I'm so...",
-        "reason": "The source expresses hesitation while asking 'what's the', but the translation conveys a completely different phrase 'I'm so...', altering the intended meaning."
+        "targetQuote": "I am so",
+        "reason": "The candidate translation introduces a completely different meaning. The source is a hesitant utterance possibly leading into a question about 'what's the...', while the translation 'I am so' is a declarative phrase with no connection to the original intent."
       },
       {
         "dimension": "omission",
         "sourceQuote": "what's the",
-        "targetQuote": "I'm so...",
-        "reason": "The key question 'what's the' is entirely omitted and replaced with unrelated content."
+        "targetQuote": "",
+        "reason": "The key part of the source 'what's the' is entirely missing in the translation, resulting in a significant omission of the intended query."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "",
+        "targetQuote": "I am so",
+        "reason": "The translation invents content not present in the source; 'I am so' has no basis in the original '呃what's the呃', constituting a hallucination."
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
     "prompt_tokens": 403,
-    "completion_tokens": 194,
-    "total_tokens": 597,
-    "cost": 0.0002073,
+    "completion_tokens": 271,
+    "total_tokens": 674,
+    "cost": 0.0002689,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 48,
@@ -67,9 +73,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0002073,
+      "upstream_inference_cost": 0.0002689,
       "upstream_inference_prompt_cost": 0.0000521,
-      "upstream_inference_completions_cost": 0.0001552
+      "upstream_inference_completions_cost": 0.0002168
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -77,5 +83,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0002073
+  "providerUsd": 0.0002689
 }

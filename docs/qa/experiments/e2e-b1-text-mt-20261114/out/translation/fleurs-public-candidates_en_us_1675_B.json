@@ -7,21 +7,20 @@
   "source": "All nouns alongside the world safe for you, always begin with a capital letter, even in the middle of a sentence.",
   "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
   "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
   "httpStatus": 200,
   "ok": true,
-  "translation": "所有名词以及“安全”一词，对你而言，总是以大写字母开头，即使位于句子中间也是如此。",
+  "translation": "所有与你世界安全相关的名词，即使在句子中间，也始终以大写字母开头。",
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 147,
-    "total_tokens": 993,
-    "completion_tokens": 846,
+    "prompt_tokens": 149,
+    "total_tokens": 168,
+    "completion_tokens": 19,
     "prompt_tokens_details": {
       "cached_tokens": 0,
-      "text_tokens": 147
-    },
-    "completion_tokens_details": {
-      "reasoning_tokens": 820,
-      "text_tokens": 846
+      "text_tokens": 149
     }
   },
   "error": null

@@ -7,21 +7,20 @@
   "source": "Aerosmith had canceled their remaining concerts on their tour.",
   "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
   "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
   "httpStatus": 200,
   "ok": true,
-  "translation": "Aerosmith已取消了其巡演剩余的演唱会。",
+  "translation": "Aerosmith 已经取消了他们巡演中剩余的演唱会。",
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 135,
-    "total_tokens": 675,
-    "completion_tokens": 540,
+    "prompt_tokens": 137,
+    "total_tokens": 149,
+    "completion_tokens": 12,
     "prompt_tokens_details": {
       "cached_tokens": 0,
-      "text_tokens": 135
-    },
-    "completion_tokens_details": {
-      "reasoning_tokens": 527,
-      "text_tokens": 540
+      "text_tokens": 137
     }
   },
   "error": null

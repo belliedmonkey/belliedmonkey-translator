@@ -11,54 +11,48 @@
     "dimensions": {
       "meaning": {
         "pass": false,
-        "note": "The candidate adds a proposition not in the source: '实验并非唯一的手段' ('experiment is not the only method'), which introduces a contrastive emphasis absent in the original. The source does not state or impl"
+        "note": "The candidate adds a period after 'experimentation', turning one sentence into two, which alters the logical connection and emphasis. The source presents a continuous idea: 'It isn’t alone though, exp"
       },
       "entities_numbers": {
         "pass": true,
-        "note": "No entities or numbers present; no issues."
+        "note": "No entities or numbers in the source; nothing to preserve."
       },
       "negation": {
         "pass": true,
-        "note": "Negation is correctly handled; no errors in polarity."
+        "note": "No negation in the source; no polarity to preserve."
       },
       "omission": {
         "pass": true,
-        "note": "All content from the source is addressed in the translation."
+        "note": "All content from the source is present in meaning-equivalent form, despite structural shift."
       },
       "hallucination": {
-        "pass": false,
-        "note": "The candidate adds '实验并非唯一的手段' which is not supported by the source text. The phrase 'It isn’t alone though' refers to the continuation of ideas, not to downplaying the role of experimentation as a me"
+        "pass": true,
+        "note": "No invented content beyond the structural shift."
       },
       "terminology": {
         "pass": true,
-        "note": "Scientific terms like 'experiment', 'hypotheses', 'observations' are correctly translated."
+        "note": "'experiment', 'hypotheses', 'scientific research' translated accurately and consistently."
       },
       "fluency": {
         "pass": true,
-        "note": "The target sentence reads naturally to a native Chinese speaker."
+        "note": "The Chinese translation reads naturally to a native speaker."
       }
     },
     "findings": [
       {
         "dimension": "meaning",
-        "sourceQuote": "It isn’t alone though, experimentation, and an experiment is a test that is used to eliminate one or more of the possible hypotheses",
-        "targetQuote": "不过，实验并非唯一的手段。实验是一种旨在排除一种或多种可能假设的测试",
-        "reason": "The translation interprets 'It isn’t alone though' as '实验并非唯一的手段', implying experimentation is not the only method, which adds a comparative and contrastive meaning not present in the original. The original uses 'It isn't alone' to introduce additional elements (asking questions, making observations) that accompany experimentation, not to suggest experimentation is being downplayed as one of many methods."
-      },
-      {
-        "dimension": "hallucination",
-        "sourceQuote": "It isn’t alone though, experimentation",
-        "targetQuote": "不过，实验并非唯一的手段",
-        "reason": "The phrase '实验并非唯一的手段' is an interpretive addition not supported by the source. The source does not claim or imply that experimentation is being positioned as one among several methods; rather, it continues a list of practices in scientific research."
+        "sourceQuote": "It isn’t alone though, experimentation, and an experiment is a test...",
+        "targetQuote": "然而，实验并非孤立存在。实验是一种...",
+        "reason": "The candidate incorrectly splits the sentence and reifies 'experimentation' as '实验', implying that the experiment itself is not alone, whereas the source means that 'it' (presumably a prior concept) is not alone because experimentation, asking questions, and making observations also guide science. This misrepresents the subject and logical structure."
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 497,
-    "completion_tokens": 514,
-    "total_tokens": 1011,
-    "cost": 0.00046005,
+    "prompt_tokens": 498,
+    "completion_tokens": 390,
+    "total_tokens": 888,
+    "cost": 0.00038898,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -67,9 +61,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.00046005,
-      "upstream_inference_prompt_cost": 0.00007455,
-      "upstream_inference_completions_cost": 0.0003855
+      "upstream_inference_cost": 0.00038898,
+      "upstream_inference_prompt_cost": 0.00006723,
+      "upstream_inference_completions_cost": 0.00032175
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -77,5 +71,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.00046005
+  "providerUsd": 0.00038898
 }

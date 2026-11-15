@@ -11,7 +11,7 @@
     "dimensions": {
       "meaning": {
         "pass": true,
-        "note": "The candidate conveys all key ideas from the source."
+        "note": "The candidate conveys the full meaning of the source."
       },
       "entities_numbers": {
         "pass": true,
@@ -19,33 +19,33 @@
       },
       "negation": {
         "pass": true,
-        "note": "Negation is preserved correctly."
+        "note": "Negation is preserved."
       },
       "omission": {
         "pass": true,
-        "note": "No material omissions detected."
+        "note": "No material omissions."
       },
       "hallucination": {
         "pass": true,
-        "note": "No added information beyond the source."
+        "note": "No added information."
       },
       "terminology": {
         "pass": true,
-        "note": "Scientific terms are translated appropriately."
+        "note": "Terminology is appropriate and consistent."
       },
       "fluency": {
         "pass": true,
-        "note": "The translation reads naturally in Chinese."
+        "note": "The translation reads naturally."
       }
     },
     "findings": []
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 437,
-    "completion_tokens": 141,
-    "total_tokens": 578,
-    "cost": 0.0004004,
+    "prompt_tokens": 433,
+    "completion_tokens": 135,
+    "total_tokens": 568,
+    "cost": 0.0003892,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +54,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0004004,
-      "upstream_inference_prompt_cost": 0.0001748,
-      "upstream_inference_completions_cost": 0.0002256
+      "upstream_inference_cost": 0.0003892,
+      "upstream_inference_prompt_cost": 0.0001732,
+      "upstream_inference_completions_cost": 0.000216
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0004004
+  "providerUsd": 0.0003892
 }

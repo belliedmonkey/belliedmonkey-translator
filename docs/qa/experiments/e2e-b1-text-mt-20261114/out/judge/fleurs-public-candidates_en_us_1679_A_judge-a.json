@@ -15,11 +15,11 @@
       },
       "entities_numbers": {
         "pass": true,
-        "note": "Aerosmith correctly translated as 空中铁匠乐队"
+        "note": "Aerosmith and concerts preserved"
       },
       "negation": {
         "pass": true,
-        "note": "negation preserved"
+        "note": "cancellation negation preserved"
       },
       "omission": {
         "pass": true,
@@ -27,25 +27,25 @@
       },
       "hallucination": {
         "pass": true,
-        "note": "no hallucination"
+        "note": "no added info"
       },
       "terminology": {
         "pass": true,
-        "note": "terminology appropriate"
+        "note": "terms translated correctly"
       },
       "fluency": {
         "pass": true,
-        "note": "natural and fluent"
+        "note": "natural Chinese"
       }
     },
     "findings": []
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 393,
-    "completion_tokens": 130,
-    "total_tokens": 523,
-    "cost": 0.0003652,
+    "prompt_tokens": 389,
+    "completion_tokens": 124,
+    "total_tokens": 513,
+    "cost": 0.000354,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +54,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0003652,
-      "upstream_inference_prompt_cost": 0.0001572,
-      "upstream_inference_completions_cost": 0.000208
+      "upstream_inference_cost": 0.000354,
+      "upstream_inference_prompt_cost": 0.0001556,
+      "upstream_inference_completions_cost": 0.0001984
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0003652
+  "providerUsd": 0.000354
 }

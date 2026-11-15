@@ -43,45 +43,45 @@
       "judged": 0,
       "dims": {
         "meaning": {
-          "pass": 45,
-          "total": 71
+          "pass": 42,
+          "total": 72
         },
         "entities_numbers": {
           "pass": 54,
-          "total": 71
+          "total": 72
         },
         "negation": {
-          "pass": 71,
-          "total": 71
+          "pass": 72,
+          "total": 72
         },
         "omission": {
-          "pass": 62,
-          "total": 71
+          "pass": 57,
+          "total": 72
         },
         "hallucination": {
-          "pass": 58,
-          "total": 71
+          "pass": 53,
+          "total": 72
         },
         "terminology": {
-          "pass": 63,
-          "total": 71
+          "pass": 62,
+          "total": 72
         },
         "fluency": {
-          "pass": 71,
-          "total": 71
+          "pass": 72,
+          "total": 72
         }
       },
-      "allPass": 42,
-      "verdicts": 71
+      "allPass": 40,
+      "verdicts": 72
     }
   },
-  "judgesPaired": 71,
-  "agree": 52,
-  "disagree": 19,
-  "bothJudgesFailedItem": 8,
+  "judgesPaired": 72,
+  "agree": 51,
+  "disagree": 21,
+  "bothJudgesFailedItem": 9,
   "judgeCalls": 144,
-  "judgeParsed": 143,
-  "judgeProviderUsd": 0.04539754,
+  "judgeParsed": 144,
+  "judgeProviderUsd": 0.04397937,
   "translations": 72,
   "translated": 72,
   "promptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8"

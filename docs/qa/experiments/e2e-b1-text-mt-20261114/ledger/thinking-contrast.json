@@ -1,0 +1,61 @@
+{
+  "schema": "belliedmonkey.e2e-b1.thinking-contrast.v1",
+  "note": "Same three cmn items, same prompt, same model, same key; only the product's reasoning fragment differs. Latency is wall time of a single call from this Mac.",
+  "probeItems": [
+    "fleurs-public-candidates/cmn_hans_cn/1668",
+    "fleurs-public-candidates/cmn_hans_cn/1669",
+    "fleurs-public-candidates/cmn_hans_cn/1670"
+  ],
+  "withoutFragment": {
+    "latencyMs": [
+      10714,
+      8168,
+      16264
+    ],
+    "completionTokens": [
+      550,
+      455,
+      861
+    ],
+    "reasoningTokens": [
+      514,
+      430,
+      798
+    ]
+  },
+  "withProductFragment": {
+    "latencyMs": [
+      1786,
+      1460,
+      1994
+    ],
+    "completionTokens": [
+      30,
+      24,
+      67
+    ],
+    "reasoningTokens": [
+      0,
+      0,
+      0
+    ]
+  },
+  "wholeRun": {
+    "calls": 72,
+    "withoutFragment": {
+      "prompt": 10559,
+      "completion": 46720,
+      "reasoning": 44682
+    },
+    "withProductFragment": {
+      "prompt": 10703,
+      "completion": 1805,
+      "reasoning": 0
+    }
+  },
+  "judgeUsd": {
+    "thinkingOn": 0.04539754,
+    "productExact": 0.04397937
+  },
+  "conclusion": "The 95.6% reasoning share was caused by this harness omitting enable_thinking:false, not by the product. The product already sends it (build/model-params.config.js qwencloud row, providers.gen.js)."
+}

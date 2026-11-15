@@ -15,27 +15,27 @@
       },
       "entities_numbers": {
         "pass": true,
-        "note": "The number 13 and 'Articles of Confederation' are correctly preserved."
+        "note": "The number 13 and key terms are correctly preserved."
       },
       "negation": {
         "pass": true,
-        "note": "No negation issues."
+        "note": "No negation issues present."
       },
       "omission": {
         "pass": true,
-        "note": "No material omissions."
+        "note": "No material omissions detected."
       },
       "hallucination": {
         "pass": true,
-        "note": "No added information."
+        "note": "No added information beyond the source."
       },
       "terminology": {
         "pass": true,
-        "note": "Terminology is accurate and consistent."
+        "note": "Terms like 'Articles of Confederation' and 'Congress' are correctly translated."
       },
       "fluency": {
         "pass": true,
-        "note": "Fluent and natural English."
+        "note": "The translation reads naturally in English."
       }
     },
     "findings": []
@@ -43,9 +43,9 @@
   "finishReason": "stop",
   "usage": {
     "prompt_tokens": 485,
-    "completion_tokens": 144,
-    "total_tokens": 629,
-    "cost": 0.0004244,
+    "completion_tokens": 155,
+    "total_tokens": 640,
+    "cost": 0.000442,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +54,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0004244,
+      "upstream_inference_cost": 0.000442,
       "upstream_inference_prompt_cost": 0.000194,
-      "upstream_inference_completions_cost": 0.0002304
+      "upstream_inference_completions_cost": 0.000248
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0004244
+  "providerUsd": 0.000442
 }

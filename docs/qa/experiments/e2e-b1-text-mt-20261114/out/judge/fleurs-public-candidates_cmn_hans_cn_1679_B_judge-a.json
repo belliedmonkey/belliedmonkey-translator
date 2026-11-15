@@ -11,31 +11,31 @@
     "dimensions": {
       "meaning": {
         "pass": false,
-        "note": "The band name is mistranslated."
+        "note": "Band name mistranslated"
       },
       "entities_numbers": {
         "pass": false,
-        "note": "Band name '空中铁匠乐队' is incorrectly translated as 'Aerosmith'."
+        "note": "Band name incorrect"
       },
       "negation": {
         "pass": true,
-        "note": "Negation is preserved."
+        "note": "Negation preserved"
       },
       "omission": {
         "pass": true,
-        "note": "No material omission."
+        "note": "No omission"
       },
       "hallucination": {
         "pass": true,
-        "note": "No added information."
+        "note": "No hallucination"
       },
       "terminology": {
         "pass": true,
-        "note": "Terminology is appropriate."
+        "note": "Terminology acceptable"
       },
       "fluency": {
         "pass": true,
-        "note": "Fluent English."
+        "note": "Fluent English"
       }
     },
     "findings": [
@@ -43,22 +43,22 @@
         "dimension": "meaning",
         "sourceQuote": "空中铁匠乐队",
         "targetQuote": "Aerosmith",
-        "reason": "The band name is mistranslated, changing the identity of the subject."
+        "reason": "The band name '空中铁匠乐队' literally means 'Air Blacksmith Band' and is not 'Aerosmith'; the candidate mistranslates the band name, altering the meaning."
       },
       {
         "dimension": "entities_numbers",
         "sourceQuote": "空中铁匠乐队",
         "targetQuote": "Aerosmith",
-        "reason": "The original band name is replaced by a different, unrelated band name."
+        "reason": "The band name is incorrectly translated as 'Aerosmith', which is a different band name and entity."
       }
     ]
   },
   "finishReason": "stop",
   "usage": {
     "prompt_tokens": 450,
-    "completion_tokens": 225,
-    "total_tokens": 675,
-    "cost": 0.00054,
+    "completion_tokens": 236,
+    "total_tokens": 686,
+    "cost": 0.0005576,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -67,9 +67,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.00054,
+      "upstream_inference_cost": 0.0005576,
       "upstream_inference_prompt_cost": 0.00018,
-      "upstream_inference_completions_cost": 0.00036
+      "upstream_inference_completions_cost": 0.0003776
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -77,5 +77,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.00054
+  "providerUsd": 0.0005576
 }

@@ -11,11 +11,11 @@
     "dimensions": {
       "meaning": {
         "pass": true,
-        "note": "accurately conveys the original meaning"
+        "note": "meaning preserved"
       },
       "entities_numbers": {
         "pass": true,
-        "note": "numbers and regions correctly rendered"
+        "note": "numbers preserved"
       },
       "negation": {
         "pass": true,
@@ -23,29 +23,29 @@
       },
       "omission": {
         "pass": true,
-        "note": "no material omitted"
+        "note": "no omission"
       },
       "hallucination": {
         "pass": true,
-        "note": "no added information"
+        "note": "no hallucination"
       },
       "terminology": {
         "pass": true,
-        "note": "terms translated appropriately"
+        "note": "terminology appropriate"
       },
       "fluency": {
         "pass": true,
-        "note": "natural and fluent English"
+        "note": "natural English"
       }
     },
     "findings": []
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 404,
-    "completion_tokens": 127,
-    "total_tokens": 531,
-    "cost": 0.0003648,
+    "prompt_tokens": 402,
+    "completion_tokens": 117,
+    "total_tokens": 519,
+    "cost": 0.000348,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +54,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.0003648,
-      "upstream_inference_prompt_cost": 0.0001616,
-      "upstream_inference_completions_cost": 0.0002032
+      "upstream_inference_cost": 0.000348,
+      "upstream_inference_prompt_cost": 0.0001608,
+      "upstream_inference_completions_cost": 0.0001872
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.0003648
+  "providerUsd": 0.000348
 }

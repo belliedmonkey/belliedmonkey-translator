@@ -11,41 +11,41 @@
     "dimensions": {
       "meaning": {
         "pass": true,
-        "note": "The translation conveys the same core message: defendants appeared in court with covered faces as stated by Police Chief Chandra Shekhar Solanki."
+        "note": "short"
       },
       "entities_numbers": {
         "pass": true,
-        "note": "'Chandra Shekhar Solanki' is correctly rendered; no other entities or numbers present."
+        "note": "short"
       },
       "negation": {
         "pass": true,
-        "note": "No negation present; polarity is preserved."
+        "note": "short"
       },
       "omission": {
         "pass": true,
-        "note": "All key elements from the source are included in the translation."
+        "note": "short"
       },
       "hallucination": {
         "pass": true,
-        "note": "Nothing is added that is not in the source."
+        "note": "short"
       },
       "terminology": {
         "pass": true,
-        "note": "'Police Chief', 'defendants', 'appeared in court', and 'faces covered' are appropriate and consistent."
+        "note": "short"
       },
       "fluency": {
         "pass": true,
-        "note": "The sentence reads naturally in English."
+        "note": "short"
       }
     },
     "findings": []
   },
   "finishReason": "stop",
   "usage": {
-    "prompt_tokens": 400,
-    "completion_tokens": 205,
-    "total_tokens": 605,
-    "cost": 0.00014875,
+    "prompt_tokens": 402,
+    "completion_tokens": 100,
+    "total_tokens": 502,
+    "cost": 0.00009118,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +54,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.00014875,
-      "upstream_inference_prompt_cost": 0.000036,
-      "upstream_inference_completions_cost": 0.00011275
+      "upstream_inference_cost": 0.00009118,
+      "upstream_inference_prompt_cost": 0.00003618,
+      "upstream_inference_completions_cost": 0.000055
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.00014875
+  "providerUsd": 0.00009118
 }

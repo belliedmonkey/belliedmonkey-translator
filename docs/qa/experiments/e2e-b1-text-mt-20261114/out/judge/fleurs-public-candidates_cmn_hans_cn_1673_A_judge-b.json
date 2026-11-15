@@ -11,31 +11,31 @@
     "dimensions": {
       "meaning": {
         "pass": true,
-        "note": "short"
+        "note": "The translation accurately conveys the formation of a weak central government under the Articles of Confederation during the Revolutionary War, with Congress as its sole component."
       },
       "entities_numbers": {
         "pass": true,
-        "note": "short"
+        "note": "The entities 'thirteen states', 'Revolutionary War', 'Articles of Confederation', and 'Congress' are correctly rendered."
       },
       "negation": {
         "pass": true,
-        "note": "short"
+        "note": "No negations present; polarity is preserved."
       },
       "omission": {
         "pass": true,
-        "note": "short"
+        "note": "No material omissions from the source."
       },
       "hallucination": {
         "pass": true,
-        "note": "short"
+        "note": "Nothing is added that is not in the source."
       },
       "terminology": {
         "pass": true,
-        "note": "short"
+        "note": "Domain terms like 'Articles of Confederation' and 'central government' are correctly used."
       },
       "fluency": {
         "pass": true,
-        "note": "short"
+        "note": "The sentence reads naturally in English."
       }
     },
     "findings": []
@@ -43,9 +43,9 @@
   "finishReason": "stop",
   "usage": {
     "prompt_tokens": 413,
-    "completion_tokens": 100,
-    "total_tokens": 513,
-    "cost": 0.00009217,
+    "completion_tokens": 202,
+    "total_tokens": 615,
+    "cost": 0.000222405,
     "is_byok": false,
     "prompt_tokens_details": {
       "cached_tokens": 0,
@@ -54,9 +54,9 @@
       "video_tokens": 0
     },
     "cost_details": {
-      "upstream_inference_cost": 0.00009217,
-      "upstream_inference_prompt_cost": 0.00003717,
-      "upstream_inference_completions_cost": 0.000055
+      "upstream_inference_cost": 0.000222405,
+      "upstream_inference_prompt_cost": 0.000055755,
+      "upstream_inference_completions_cost": 0.00016665
     },
     "completion_tokens_details": {
       "reasoning_tokens": 0,
@@ -64,5 +64,5 @@
       "audio_tokens": 0
     }
   },
-  "providerUsd": 0.00009217
+  "providerUsd": 0.000222405
 }
