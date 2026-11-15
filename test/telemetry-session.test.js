@@ -657,8 +657,11 @@ describe('BEL-226 pack_download_* / packs_ready', () => {
       // 既有优先级不被状态改写。
       [{ status: 503, mtSttTimeout: true }, 'timeout'],
       [{ status: 503, cancelled: true }, 'other'],
-      // 4xx 仍可落到更具体的既有原因。
+      // 4xx 仍可落到更具体的既有原因；但单独的 "http" 只是协议名，不是 404 的原因。
       [{ status: 400, reason: 'hash' }, 'hash'],
+      [{ status: 400, message: 'sha256 mismatch' }, 'hash'],
+      [{ status: 404, message: 'HTTP 404' }, 'other'],
+      [{ status: 401, code: 'http' }, 'other'],
       // 自由文本里的 "503" 不是结构化状态，不参与映射。
       [{ message: 'request failed with 503' }, 'other'],
     ];

@@ -798,6 +798,19 @@ function packFailStatus(e) {
   return 0;
 }
 
+// 六值里的具体原因（hash/disk/network/unsupported）。noGenericHttp：4xx 下只看真正
+// 指向失败原因的词；单独一个 "http" 只是协议名，不能把 404 记成 network。
+function packFailTextReason(raw, noGenericHttp) {
+  if (/sha|hash|checksum|integrity|mismatch/.test(raw)) return 'hash';
+  if (/disk|enospc|no[ _-]?space|storage[ _-]?full|quota/.test(raw)) return 'disk';
+  const net = noGenericHttp
+    ? /offline|network|dns|connect|socket|unreachable|not connected|econn|fetch/
+    : /offline|network|http|dns|connect|socket|unreachable|not connected|econn|fetch/;
+  if (net.test(raw)) return 'network';
+  if (/unsupported|no[ _-]?bridge|not[ _-]?supported|not[ _-]?device|^locale$|^os$|\blocale\b/.test(raw)) return 'unsupported';
+  return '';
+}
+
 // 六值归一化。只看错误对象里的结构化取消/超时标志、结构化 HTTP 状态与
 // reason/code/why/name/message，**不**把原始报错或 URL 发出去。
 // 顺序：显式取消/中止 → timeout(含 408/504) → 5xx → hash → disk → network →
@@ -820,13 +833,11 @@ export function packFailReason(err) {
   if (timeout || status === 408 || status === 504) return 'timeout';
   // 5xx = 传输/服务端失败；六值里没有 server，按既有语义记 network。
   if (status >= 500 && status <= 599) return 'network';
-  // 4xx 默认 other，但继续走下面已有的具体原因（hash/disk/network/unsupported）。
-  if (/sha|hash|checksum|integrity|mismatch/.test(raw)) return 'hash';
-  if (/disk|enospc|no[ _-]?space|storage[ _-]?full|quota/.test(raw)) return 'disk';
-  if (/offline|network|http|dns|connect|socket|unreachable|not connected|econn|fetch/.test(raw)) return 'network';
-  if (/unsupported|no[ _-]?bridge|not[ _-]?supported|not[ _-]?device|^locale$|^os$|\blocale\b/.test(raw)) return 'unsupported';
+  // 4xx 默认 other，但错误自己带了更具体的既有原因（hash/disk/network/unsupported）
+  // 时保留；4xx 下单独的 "http" 不算具体原因，避免 404 被文本猜成 network。
+  const is4xx = status >= 400 && status <= 499;
   // 缺资产（assets / download / load / failed）是下载没成，不是「系统不支持」。
-  return 'other';
+  return packFailTextReason(raw, is4xx) || 'other';
 }
 function failReasonValue(reason) {
   if (PACK_FAIL_REASONS.indexOf(reason) >= 0) return reason;
