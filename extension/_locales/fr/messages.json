@@ -4367,5 +4367,23 @@
   },
   "app_e1_note": {
     "message": "Activé par défaut pour le chinois (zh) uniquement. Le modèle se télécharge en arrière-plan à la première utilisation (environ 160 Mo) ; jusqu'à la fin du téléchargement et en cas d'échec, la dictée du système est utilisée. La modification prend effet à la session suivante. La désactivation rétablit la dictée du système."
+  },
+  "firstrun_packs_skip": {
+    "message": "Télécharger plus tard, continuer"
+  },
+  "packs_pending_title": {
+    "message": "Les paquets de langues ne sont pas prêts"
+  },
+  "packs_pending_body": {
+    "message": "L’écoute, les sous-titres en direct et la lecture à voix haute hors ligne ne sont pas disponibles tant que les paquets de langues ne sont pas téléchargés."
+  },
+  "packs_pending_go": {
+    "message": "Télécharger les paquets de langues"
+  },
+  "packs_pending_why": {
+    "message": "Les paquets de langues ne sont pas prêts — téléchargez-les d’abord sur la page « Paquets de langues »"
+  },
+  "packs_pending_tts": {
+    "message": "Lecture à voix haute hors ligne (TTS de l’appareil) indisponible : les paquets de langues ne sont pas prêts"
   }
 }

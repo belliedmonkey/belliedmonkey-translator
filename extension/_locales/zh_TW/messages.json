@@ -4368,5 +4368,23 @@
   },
   "app_e1_note": {
     "message": "預設開啟，僅中文（zh）。首次使用會在背景下載約 160MB；下載完成前及失敗時仍用系統聽寫，完成後的下一次工作階段生效。關閉後回到系統聽寫。"
+  },
+  "firstrun_packs_skip": {
+    "message": "稍後補包，先進入"
+  },
+  "packs_pending_title": {
+    "message": "語言包未就緒"
+  },
+  "packs_pending_body": {
+    "message": "聽譯、即時字幕和離線朗讀暫時無法使用。下載語言包後即可使用。"
+  },
+  "packs_pending_go": {
+    "message": "去下載語言包"
+  },
+  "packs_pending_why": {
+    "message": "語言包未就緒 —— 先去「語言包」頁下載"
+  },
+  "packs_pending_tts": {
+    "message": "離線朗讀（裝置 TTS）無法使用：語言包未就緒"
   }
 }

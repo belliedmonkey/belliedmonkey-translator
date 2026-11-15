@@ -4367,5 +4367,23 @@
   },
   "app_e1_note": {
     "message": "Ativado por padrão apenas para chinês (zh). O modelo é baixado em segundo plano no primeiro uso (cerca de 160 MB); até a conclusão e em caso de falha, é usada a transcrição do sistema. A alteração entra em vigor na próxima sessão. Desativar volta à transcrição do sistema."
+  },
+  "firstrun_packs_skip": {
+    "message": "Baixar depois, continuar"
+  },
+  "packs_pending_title": {
+    "message": "Pacotes de idiomas não estão prontos"
+  },
+  "packs_pending_body": {
+    "message": "Escuta, legendas ao vivo e leitura em voz alta offline ficam indisponíveis até baixar os pacotes de idiomas."
+  },
+  "packs_pending_go": {
+    "message": "Baixar pacotes de idiomas"
+  },
+  "packs_pending_why": {
+    "message": "Os pacotes de idiomas não estão prontos — baixe-os primeiro na página “Pacotes de idiomas”"
+  },
+  "packs_pending_tts": {
+    "message": "Leitura em voz alta offline (TTS do dispositivo) indisponível: os pacotes de idiomas não estão prontos"
   }
 }

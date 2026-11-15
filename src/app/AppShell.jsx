@@ -152,8 +152,10 @@ function AppShell() {
       </section>
 
       {/* 屏 2 · 资源包（2026-10-01，#532）。
-           硬门：**识别语言包** + **高质量朗读包** 下完才放行 —— 这一屏**不许有跳过按钮**
-           （判据 test/app-firstrun.test.js 的 R2）。唯一允许的降级：该语种系统不支持识别
+           硬门：**识别语言包** + **高质量朗读包** 下完才放行 —— 成功路径**不许有跳过按钮**。
+           唯一例外是 BEL-269：自动重试一次后仍失败，才露「稍后补包，先进入」（#packs-skip）
+           并把 listenPacksDone 落盘；它是失败态的备用出口，不是常态跳过。
+           唯一允许的降级：该语种系统不支持识别
            ⇒ 只下朗读包（firstrun.js 的 degradeAllowed('asrUnsupported')），其余一律只能重试。
            文案尽量复用设置页那两行已有的键（同一件事只写一份）。 */}
       {/* 屏 2 · 改稿 F（2026-10-11）：多选语言，不再是一对下拉。
@@ -192,6 +194,7 @@ function AppShell() {
         <p className="note" id="packs-err" hidden></p>
         <button id="packs-manage-back" type="button" className="link" hidden></button>
         <button id="packs-go" type="button"></button>
+        <button id="packs-skip" type="button" className="link" hidden></button>
         <input type="hidden" id="packs-my-lang" />
         <input type="hidden" id="packs-other-lang" />
       </section>
@@ -312,6 +315,19 @@ function AppShell() {
           <span className="status-text" id="engine-status-text"></span>
           <button className="status-chip" id="engine-status-fix" type="button" hidden></button>
         </div>
+
+        {/* BEL-269：跳过了首启包屏之后，首页必须**一直**说出「包没齐」这件事。
+            它不是一次性 toast（包没下完就一直挂着），也不是登录/引擎横幅的替代：
+            听译、实时字幕、离线朗读三条能力各自不可用，原因同一句；点「去下载语言包」
+            回到与设置页「管理」同一个包屏（openPackManager），不另造第二套流程。
+            默认 hidden：只有 listenPacksSkipped 且包确实没齐时 shell-model 才揭开。 */}
+        <section id="packs-pending" className="packs-pending" role="status" aria-live="polite" hidden>
+          <p className="packs-pending-title" id="packs-pending-title"></p>
+          <p className="note" id="packs-pending-body"></p>
+          <button id="packs-pending-go" type="button" className="secondary"></button>
+          <p className="note packs-pending-need" id="packs-pending-why"></p>
+          <p className="note packs-pending-need" id="packs-pending-tts"></p>
+        </section>
 
         {/* 两位主角（2026-10-01 设计稿）：实时字幕与实时听译 —— 这一页唯一「别处做不到」的能力，
             登录后即可用。它们由 listen-view.jsx 渲染（整行可点），CSS 把它们做成等高同权的主角卡。 */}

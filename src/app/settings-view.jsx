@@ -26,6 +26,7 @@ import { withUtm } from '../shared/utm.js';
 import SettingsStore from '../store/settings-store.js';
 import settingsModel from './settings-model.js';
 import listenModel from './listen-model.js';
+import * as PackPending from './pack-pending.js';
 import { deviceBridgeHost, DISCONNECT, PAIR_HINT, PAIR_LABEL } from './device-bridge-host.js';
 import LearnDialog from '../shared/dialog.jsx';
 import DepLineView from '../shared/dep-line-view.jsx';
@@ -375,6 +376,12 @@ export default function SettingsView() {
   }
   function paintLangpacksTtsLine(st) {
     const el = $('langpacks-tts-state'); if (!el) return;
+    // BEL-269：跳过包屏后，设备朗读行不能再写「已就绪」（默认标记就是这句）。
+    // 文件其实没下，先给同一句「语言包未就绪」；包下好后 paintTtsPack 会覆回正常态。
+    if (PackPending.packsPendingSync() && !(st && st.ready)) {
+      el.textContent = t('packs_pending_tts', '离线朗读（设备 TTS）不可用：语言包未就绪');
+      return;
+    }
     if (!st || !st.bridge) {
       el.textContent = t('langpacks_tts_na', '离线朗读 · 仅 App 可用');
       return;
