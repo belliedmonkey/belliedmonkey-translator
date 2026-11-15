@@ -4361,5 +4361,8 @@
   },
   "settings_value_follow": {
     "message": "Seguir o idioma da interface"
+  },
+  "firstrun_packs_skip": {
+    "message": "Baixar depois, continuar"
   }
 }

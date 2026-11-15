@@ -4174,5 +4174,8 @@
   },
   "settings_value_follow": {
     "message": "ตามภาษาของอินเทอร์เฟซ"
+  },
+  "firstrun_packs_skip": {
+    "message": "ดาวน์โหลดแพ็กภายหลัง แล้วเข้าไปก่อน"
   }
 }

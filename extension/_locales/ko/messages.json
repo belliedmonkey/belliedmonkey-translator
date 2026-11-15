@@ -4361,5 +4361,8 @@
   },
   "settings_value_follow": {
     "message": "인터페이스 언어 따르기"
+  },
+  "firstrun_packs_skip": {
+    "message": "나중에 팩을 받고 먼저 들어가기"
   }
 }

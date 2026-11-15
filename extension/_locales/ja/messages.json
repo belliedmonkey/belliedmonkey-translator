@@ -4361,5 +4361,8 @@
   },
   "settings_value_follow": {
     "message": "表示言語に合わせる"
+  },
+  "firstrun_packs_skip": {
+    "message": "あとでパックを追加して、先に進む"
   }
 }

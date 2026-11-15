@@ -4361,5 +4361,8 @@
   },
   "settings_value_follow": {
     "message": "Следовать языку интерфейса"
+  },
+  "firstrun_packs_skip": {
+    "message": "Загрузить позже, продолжить"
   }
 }

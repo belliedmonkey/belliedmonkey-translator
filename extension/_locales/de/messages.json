@@ -4361,5 +4361,8 @@
   },
   "settings_value_follow": {
     "message": "Der Oberflächensprache folgen"
+  },
+  "firstrun_packs_skip": {
+    "message": "Später nachladen, jetzt fortfahren"
   }
 }

@@ -4361,5 +4361,8 @@
   },
   "settings_value_follow": {
     "message": "اتبع لغة الواجهة"
+  },
+  "firstrun_packs_skip": {
+    "message": "التنزيل لاحقًا والمتابعة"
   }
 }

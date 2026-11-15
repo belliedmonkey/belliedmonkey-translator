@@ -4362,5 +4362,8 @@
   },
   "settings_value_follow": {
     "message": "跟隨介面語言"
+  },
+  "firstrun_packs_skip": {
+    "message": "稍後補包，先進入"
   }
 }

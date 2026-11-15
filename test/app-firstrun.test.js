@@ -14,7 +14,8 @@
 //   R6 每屏至多一个填色按钮
 const fs = require('fs');
 const path = require('path');
-const { describe, test, ok, eq, deepEq, loadSrc } = require('./harness');
+const { describe, test, ok, eq, deepEq, loadSrc, rejects } = require('./harness');
+const cfg = require('../build/telemetry.config.js');
 
 const ROOT = path.join(__dirname, '..');
 const SHELL = 'src/app/AppShell.jsx';
@@ -81,10 +82,17 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
     deepEq(extra, [], '未登录首屏出现了登录以外的可点元素');
   });
 
-  test('R2 · 屏序可达，且屏 2 无跳过、屏 3 有跳过', () => {
+  test('R2 · 屏序可达；屏 2 常态无跳过，BEL-269 只在失败态给备用出口；屏 3 有跳过', () => {
     ok(packs, '找不到 #firstrun-packs 段 —— 屏 2（资源包）还没实现');
-    ok(!/(先跳过|稍后再说|先用着|稍后再下|skip)/i.test(packs), '屏 2 出现跳过/稍后一类出口 —— 它是硬门');
-    ok(!/id="[^"]*skip/i.test(packs), '屏 2 出现带 skip 的控件 id');
+    // BEL-269：失败态多一个「稍后补包，先进入」。它必须是默认隐藏的 link（不是填色
+    // 按钮），且屏 2 仍不许有别的跳过/稍后出口 —— 硬门只在「两次都失败」后放行。
+    const skipBtn = (packs.match(/<button[^>]*\sid="packs-skip"[^>]*>/) || [''])[0];
+    ok(skipBtn, '屏 2 缺 BEL-269 的 #packs-skip 备用出口');
+    ok(/\bhidden\b/.test(skipBtn), '#packs-skip 默认必须 hidden —— 成功路径不许有跳过');
+    ok(/className="link"/.test(skipBtn), '#packs-skip 必须是 link —— 屏 2 仍只能有一个填色按钮');
+    ok(!/(先跳过|稍后再说|先用着|稍后再下)/i.test(packs),
+      '屏 2 出现常态跳过/稍后一类出口 —— 它仍是硬门（BEL-269 只允许失败态 #packs-skip）');
+    ok(!/id="(?!packs-skip")[^"]*skip/i.test(packs), '屏 2 出现其他带 skip 的控件 id');
     ok(/id="ob-skip"/.test(shell), '屏 3（引导）没有跳过出口 —— 它是软门，必须能跳');
   });
 
@@ -591,5 +599,165 @@ describe('改稿 F / 改稿 G · 多选语言包与听译准备中（2026-10-11�
     ok(/asrLangReady\(id\.slice\(4\)\)/.test(shell), '包屏一行的「已就绪」仍看全局开关');
     const bytes = shell.slice(shell.indexOf('function selectedBytes'), shell.indexOf('function selectedSizeLabel'));
     ok(/!\(packLidReady && packVadReady\)/.test(bytes), '页脚仍把已经下好的基础组件算进总量');
+  });
+});
+
+// BEL-269（P0）：首启包下载失败不能只剩「重试」。下面的判据是**行为**：
+// 自动重试一次（带退避）→ 仍失败时「重试」与「稍后补包，先进入」都可达 →
+// 跳过把 listenPacksDone 落盘并进首页，下次冷启动 app_open 直接 app_home。
+// 成功路径保持 1 次尝试、无退避、无失败出口；两次失败时 pack_download_start/fail
+// 各 2 条，不出现 ok / packs_ready。
+describe('BEL-269 · 首启包失败：自动重试一次 + 可继续进入', () => {
+  const MODEL = 'src/app/shell-model.js';
+  const Shell = loadSrc(MODEL, 'ShellModel', {
+    window: {},
+    document: {},
+    chrome: { storage: { local: { get() {}, set() {} }, onChanged: { addListener() {} } } },
+    navigator: {},
+    localStorage: {},
+  }).ShellModel;
+  const FR = loadSrc(FIRST, 'FirstRun').FirstRun;
+
+  function loadTelemetry(store) {
+    const events = [];
+    const local = {
+      get(keys, cb) {
+        const out = {};
+        const list = Array.isArray(keys) ? keys : (typeof keys === 'string' ? [keys] : Object.keys(keys || {}));
+        for (const k of list) if (k in store) out[k] = store[k];
+        cb && cb(out);
+      },
+      set(obj, cb) { Object.assign(store, obj); cb && cb(); },
+      remove(keys, cb) {
+        for (const k of (Array.isArray(keys) ? keys : [keys])) delete store[k];
+        cb && cb();
+      },
+    };
+    const sandbox = {
+      window: { MT_TELEMETRY: {
+        url: 'https://ingest.test/functions/v1/bt-ingest',
+        spec: { common: cfg.COMMON, events: cfg.EVENTS, limits: cfg.LIMITS },
+      } },
+      chrome: { storage: { local } },
+      fetch: async () => ({ ok: true, status: 200 }),
+      MTTelemetry: {
+        enabled: async () => true,
+        track(name, props) { events.push({ name, props }); },
+        installId: async () => ({ id: '11111111-1111-4111-8111-111111111111' }),
+      },
+      LearnAuth: { currentStable: async () => ({ userId: 'u' }), lastLoadError: () => '' },
+    };
+    return { TS: loadSrc('src/app/telemetry-session.js', 'TelemetrySession', sandbox).TelemetrySession, events };
+  }
+
+  test('A1 · 首次失败 ⇒ 自动重试一次（共 2 次）且两次之间有退避', async () => {
+    const sleeps = [];
+    let attempts = 0;
+    const e = await rejects(Shell.runPackAttempts(async () => {
+      attempts++;
+      throw new Error('ensureAssets: offline');
+    }, { sleep: async (ms) => { sleeps.push(ms); } }), /offline/);
+    ok(e, '两次都失败必须把错误抛给失败态');
+    eq(attempts, 2, '自动重试不是「恰好再一次」—— 多了会循环，少了用户没有第二次机会');
+    eq(sleeps.length, 1, '两次尝试之间必须等一次退避，且只等一次');
+    ok(sleeps[0] >= 1000, '退避时间太短（<1s）—— 等于立刻重试');
+    const model = stripComments(read(MODEL));
+    const run = model.slice(model.indexOf('async function runFirstRunPacks'), model.indexOf('async function enterListen'));
+    ok(/runPackAttempts\(/.test(run) && /PACK_AUTO_RETRY_ATTEMPTS/.test(run),
+      'runFirstRunPacks 没有接自动重试（PACK_AUTO_RETRY_ATTEMPTS）');
+    ok(/PACK_AUTO_RETRY_DELAY_MS/.test(run), 'runFirstRunPacks 没把退避时间传给重试');
+  });
+
+  test('A2 · 两次失败后重试与跳过都可达；跳过进首页并落 listenPacksDone', async () => {
+    deepEq(Shell.packsFailureActions({ failed: true, busy: false, manage: false, phase: 'pick' }),
+      { retry: true, skip: true }, '第二次失败后两个出口必须同时可达');
+    for (const s of [
+      { failed: true, busy: true, phase: 'downloading' },
+      { failed: true, manage: true, phase: 'pick' },
+      { failed: true, phase: 'done' },
+      { failed: false, phase: 'pick' },
+    ]) {
+      deepEq(Shell.packsFailureActions(s), { retry: false, skip: false },
+        `这些状态不许露失败出口：${JSON.stringify(s)}`);
+    }
+
+    const store = {};
+    const order = [];
+    const r = await Shell.skipPacksToHome({
+      persist: async () => { order.push('persist'); store[Shell.PACKS_DONE_KEY] = 1; return true; },
+      enterHome: async () => { order.push('home'); },
+    });
+    eq(r.persisted, true, '跳过必须报告已落盘');
+    deepEq(order, ['persist', 'home'], '必须先落 skip 再进首页 —— 先离开会把「下次不再拦」丢掉');
+    eq(store[Shell.PACKS_DONE_KEY], 1, 'skip 没写 listenPacksDone');
+    eq(Shell.PACKS_DONE_KEY, 'listenPacksDone', 'skip 的持久化键必须与成功/冷启动同一个');
+    eq(FR.step({
+      loggedIn: true, packsDone: !!store[Shell.PACKS_DONE_KEY],
+      asrPack: false, ttsPack: false, basePack: false, onboardingSeen: true,
+    }), 'home', '落盘后下一次 FirstRun.step 仍回 packs —— 跳过等于没跳');
+
+    const shellSrc = read(SHELL);
+    const model = stripComments(read(MODEL));
+    ok(/\$\('packs-skip'\)\.addEventListener\('click'/.test(model), '#packs-skip 没接点击');
+    const skipFn = model.slice(model.indexOf('async function onPacksSkip'), model.indexOf('async function packFailCode'));
+    ok(/skipPacksToHome\(/.test(skipFn) && /writePacksDone/.test(skipFn),
+      'onPacksSkip 没走同一个持久化 helper（writePacksDone）');
+    ok(/dismissPacksAfterDone\(\)/.test(skipFn), 'onPacksSkip 没进首页');
+    ok(/id="packs-skip"/.test(shellSrc), 'AppShell 里缺 #packs-skip');
+
+    // app_open / heartbeat：skip 写入的键正是 telemetry 的 app_home 判据。
+    const tel = loadTelemetry(store);
+    await tel.TS.appOpen();
+    eq(tel.events.length, 1, 'skip 后冷启的 app_open 没有发出');
+    eq(tel.events[0].name, 'app_open');
+    eq(tel.events[0].props.surface, 'app_home', 'skip 后 app_open 仍判 packs —— 首启死循环');
+    ok(/deviceBridgeHost\.boot\(\)/.test(model), '设备桥 heartbeat 的 boot 不见了');
+  });
+
+  test('A3 · 成功路径不变：1 次尝试、不退避、不露失败出口', async () => {
+    let calls = 0;
+    let sleeps = 0;
+    const out = await Shell.runPackAttempts(async () => { calls++; return 'done'; }, {
+      sleep: async () => { sleeps++; },
+    });
+    eq(out, 'done');
+    eq(calls, 1, '成功路径跑了不止一次 —— 改变了成功行为');
+    eq(sleeps, 0, '成功路径不应退避');
+    deepEq(Shell.packsFailureActions({ failed: false, busy: false, manage: false, phase: 'pick' }),
+      { retry: false, skip: false }, '成功路径不应露失败出口');
+    const model = stripComments(read(MODEL));
+    const paint = model.slice(model.indexOf('function paintPackChrome'), model.indexOf('function statusText'));
+    ok(/firstrun_packs_retry/.test(paint) && /重试/.test(paint), '手动「重试」被改掉了');
+    ok(/firstrun_packs_skip/.test(paint) && /稍后补包，先进入/.test(paint),
+      '失败态缺「稍后补包，先进入」文案');
+  });
+
+  test('A4 · 两次都失败 ⇒ pack_download_start/fail 各 2，无 false ok / packs_ready', async () => {
+    const events = [];
+    const tel = {
+      packStart: async () => { events.push('start'); return { id: 'unit' }; },
+      packOk: async () => { events.push('ok'); },
+      packFail: async () => { events.push('fail'); },
+      packsReady: async () => { events.push('packs_ready'); },
+    };
+    await rejects(Shell.runPackAttempts(async () => {
+      await Shell.reportPackUnit(tel, { pack_kind: 'asr', pack_id: 'asr_zh' }, async () => {
+        events.push('ensureAssets');
+        throw new Error('offline');
+      }, () => 'download');
+    }, { sleep: async () => {} }), /offline/);
+    deepEq(events, ['start', 'ensureAssets', 'fail', 'start', 'ensureAssets', 'fail'],
+      'start/fail 没有与两次尝试一一对应');
+    eq(events.filter((x) => x === 'start').length, 2);
+    eq(events.filter((x) => x === 'fail').length, 2);
+    eq(events.indexOf('ok'), -1, '失败路径发了 pack_download_ok');
+    eq(events.indexOf('packs_ready'), -1, '失败路径发了 packs_ready');
+    const model = stripComments(read(MODEL));
+    const run = model.slice(model.indexOf('async function runFirstRunPacks'), model.indexOf('async function enterListen'));
+    const catchAt = run.indexOf('} catch (e) {');
+    const ret = run.indexOf('return;', catchAt);
+    ok(catchAt > -1 && ret > catchAt, '切不出 runFirstRunPacks 的失败分支');
+    ok(!/probePacks\(\)/.test(run.slice(catchAt, ret)),
+      '失败分支仍 probePacks —— 会发 packs_ready');
   });
 });

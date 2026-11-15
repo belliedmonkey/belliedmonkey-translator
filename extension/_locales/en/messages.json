@@ -4361,5 +4361,8 @@
   },
   "settings_value_follow": {
     "message": "Follow interface language"
+  },
+  "firstrun_packs_skip": {
+    "message": "Skip for now, continue"
   }
 }

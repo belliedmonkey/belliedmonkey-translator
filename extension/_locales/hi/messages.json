@@ -4194,5 +4194,8 @@
   },
   "settings_value_follow": {
     "message": "इंटरफ़ेस भाषा का पालन करें"
+  },
+  "firstrun_packs_skip": {
+    "message": "बाद में पैक करें, आगे बढ़ें"
   }
 }

@@ -152,8 +152,10 @@ function AppShell() {
       </section>
 
       {/* 屏 2 · 资源包（2026-10-01，#532）。
-           硬门：**识别语言包** + **高质量朗读包** 下完才放行 —— 这一屏**不许有跳过按钮**
-           （判据 test/app-firstrun.test.js 的 R2）。唯一允许的降级：该语种系统不支持识别
+           硬门：**识别语言包** + **高质量朗读包** 下完才放行 —— 成功路径**不许有跳过按钮**。
+           唯一例外是 BEL-269：自动重试一次后仍失败，才露「稍后补包，先进入」（#packs-skip）
+           并把 listenPacksDone 落盘；它是失败态的备用出口，不是常态跳过。
+           唯一允许的降级：该语种系统不支持识别
            ⇒ 只下朗读包（firstrun.js 的 degradeAllowed('asrUnsupported')），其余一律只能重试。
            文案尽量复用设置页那两行已有的键（同一件事只写一份）。 */}
       {/* 屏 2 · 改稿 F（2026-10-11）：多选语言，不再是一对下拉。
@@ -192,6 +194,7 @@ function AppShell() {
         <p className="note" id="packs-err" hidden></p>
         <button id="packs-manage-back" type="button" className="link" hidden></button>
         <button id="packs-go" type="button"></button>
+        <button id="packs-skip" type="button" className="link" hidden></button>
         <input type="hidden" id="packs-my-lang" />
         <input type="hidden" id="packs-other-lang" />
       </section>
