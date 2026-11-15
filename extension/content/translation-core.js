@@ -64,6 +64,25 @@ var TranslationCore = (() => {
     return '';
   }
 
+  // translate_fail props are an ALLOWLIST, never a spread of the error. The relay's
+  // response text / reason / body may sit on `e` for the UI, but they must never
+  // reach the event: bt-ingest rejects the whole row on any extra key, and response
+  // text is content we promised not to collect. Every emitted code is first forced
+  // into FAIL_CODES so a future name cannot silently leave the enum.
+  function failProps(e, provider, kind) {
+    const raw = e && typeof e.code === 'string' ? e.code : '';
+    const code = FAIL_CODE_SET.has(raw) ? raw : ((e && e.status) ? 'http' : 'network');
+    const props = {
+      provider: String(provider || ''),
+      kind: String(kind || ''),
+      code,
+      status: Number.isInteger(e && e.status) ? e.status : 0,
+      route: (e && e.route === 'proxy') ? 'proxy' : ((e && e.route === 'direct') ? 'direct' : ''),
+    };
+    if (Number.isInteger(e && e.ms)) props.ms = e.ms;
+    return props;
+  }
+
   // i18n: read a localized UI string with a Chinese fallback so a missing key never
   // blanks the UI. Shared by all adapters.
   //
@@ -663,7 +682,7 @@ var TranslationCore = (() => {
 
   return {
     grantHaltMessage, haltMessage, haltAnchor,
-    FAIL_CODES, HALT_IMMEDIATE, TIMEOUT_STREAK_MAX, classifyFail,
+    FAIL_CODES, HALT_IMMEDIATE, TIMEOUT_STREAK_MAX, classifyFail, failProps,
     DEFAULT_TARGET_LANG, WINDOW, MERGE, MSG, t: i18n,
     isTranslated, isAlreadyTargetLanguage, isScriptDecidableTarget, detectorSaysTargetLanguage,
     looksLikeCode, endsSentence, joinCue, wordBreakIndex,
