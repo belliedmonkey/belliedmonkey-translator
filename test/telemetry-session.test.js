@@ -397,6 +397,22 @@ describe('BEL-226 pack_download_* / packs_ready', () => {
     ok(!/Users|secret|zip|boom/.test(JSON.stringify(events[0].props)));
   });
 
+  test('BEL-268：阶段后缀 download_asr 进既有 code；事件不含未登记属性', async () => {
+    const gen = require('../supabase/functions/bt-ingest/events.gen.json');
+    const allowed = new Set(
+      Object.keys(gen.common).concat(Object.keys(gen.events.pack_download_fail)),
+    );
+    const { TS, events } = load();
+    for (const code of ['download', 'download_base', 'download_asr', 'download_tts', 'download_vad']) {
+      await TS.packFail('listen', code);
+      const p = events[events.length - 1].props;
+      eq(p.code, code);
+      for (const k of Object.keys(p)) {
+        ok(allowed.has(k), 'pack_download_fail 出现未登记属性：' + k);
+      }
+    }
+  });
+
   test('packs_ready 按过渡去重：未齐不发、齐发一次、重复探不发、再变齐可再发', async () => {
     const s = store();
     const ready = { base: { required: 1, ready: 1 }, asr: { required: 2, ready: 2 }, tts: { required: 1, ready: 1 }, all: { required: 4, ready: 4 } };
