@@ -19,6 +19,7 @@ import Registry from '../lib/registry.js';
 // 首屏三段式的**既有**判定（纯函数，不读存储/不摸 DOM）；app_open 只借用它，
 // 不在这里另写一套包屏状态机。见 firstrun.js 的 step()。
 import * as FirstRun from './firstrun.js';
+import { PACKS_SKIPPED_KEY } from './pack-pending.js';
 
 // BEL-223 的五个功能面（build/telemetry.config.js 的 SURFACES 同源）。
 //   listen       对话 · 实时听译页
@@ -297,6 +298,12 @@ export function currentSurfaceAsync() {
 // 包屏判定只读**既有**的两个落盘信号：shell-model 写的 `listenPacksDone`，以及
 // telemetry-session.packsReady() 在最近一次探包后写的 `tm:packsReady.kinds` 快照；
 // 再交给 FirstRun.step() 判。没有快照 = 这台设备还没探过包（首启）⇒ packs。
+//
+// BEL-269：「稍后补包，先进入」把 done 写成 true（否则每次冷启都会被拉回包屏），
+// 于是只看 done 的话，「没包也进了首页」在数据里完全看不见。这里读 shell 另写的
+// `listenPacksSkipped`：**值仍用既有的 `packs`**（没有新事件、没有新枚举值），
+// 因为它最接近的语义就是「这次冷启时包屏没过」。它记录的是包门状态，不是字面屏；
+// 实际路由仍由 done 决定、测试另行钉住停在首页。这是本票的口径选择，写进 RESULT。
 const PACKS_DONE_KEY = 'listenPacksDone';
 
 async function appOpenScreen(authState) {
@@ -306,13 +313,24 @@ async function appOpenScreen(authState) {
   if (authState === 'signed_out') return 'login';
   if (authState !== 'signed_in') return '';
   let packsDone = false;
+  let packsSkipped = false;
   let snapshot = null;
   try {
-    const r = await sget([PACKS_DONE_KEY, K.packsReady]);
+    const r = await sget([PACKS_DONE_KEY, PACKS_SKIPPED_KEY, K.packsReady]);
     packsDone = !!r[PACKS_DONE_KEY];
+    packsSkipped = !!r[PACKS_SKIPPED_KEY];
     const v = r[K.packsReady];
     if (v && v.kinds && typeof v.kinds === 'object') snapshot = v.kinds;
   } catch (_) { /* 读不到就按首启包屏处理 */ }
+  // 跳过的冷启：包门仍未满足。用既有 'packs' 让「entered without packs」可观测；
+  // 路由没有被改（shell 仍按 done 判 home），所以不会把用户拉回包屏。
+  if (packsDone && packsSkipped) {
+    // 若最近一次探包快照已经三样都齐（系统后来自己下好了），就不要继续报 packs ——
+    // 这一个键只回答「现在包门过没过」，不是「历史上跳过一次」。
+    const allReady = !!(snapshot
+      && snapshot.asr !== false && snapshot.tts !== false && snapshot.base !== false);
+    return allReady ? 'app_home' : 'packs';
+  }
   if (packsDone) return 'app_home';
   // 没探过包（全新安装 / 刚升级）⇒ 首启包屏还没走完。
   if (!snapshot) return 'packs';

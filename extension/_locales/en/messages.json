@@ -4364,5 +4364,20 @@
   },
   "firstrun_packs_skip": {
     "message": "Skip for now, continue"
+  },
+  "packs_pending_title": {
+    "message": "Language packs aren’t ready"
+  },
+  "packs_pending_body": {
+    "message": "Listening, live captions, and offline read-aloud are unavailable until the language packs are downloaded."
+  },
+  "packs_pending_go": {
+    "message": "Download language packs"
+  },
+  "packs_pending_why": {
+    "message": "Language packs aren’t ready — download them on the Language packs page first"
+  },
+  "packs_pending_tts": {
+    "message": "Offline read-aloud (device TTS) is unavailable: language packs aren’t ready"
   }
 }

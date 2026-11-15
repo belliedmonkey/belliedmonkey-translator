@@ -4364,5 +4364,20 @@
   },
   "firstrun_packs_skip": {
     "message": "Descargar más tarde, continuar"
+  },
+  "packs_pending_title": {
+    "message": "Los paquetes de idioma no están listos"
+  },
+  "packs_pending_body": {
+    "message": "La escucha, los subtítulos en directo y la lectura en voz alta sin conexión no están disponibles hasta descargar los paquetes de idioma."
+  },
+  "packs_pending_go": {
+    "message": "Descargar paquetes de idioma"
+  },
+  "packs_pending_why": {
+    "message": "Los paquetes de idioma no están listos: descárgalos primero en la página «Paquetes de idioma»"
+  },
+  "packs_pending_tts": {
+    "message": "Lectura en voz alta sin conexión (TTS del dispositivo) no disponible: los paquetes de idioma no están listos"
   }
 }

@@ -14,7 +14,7 @@
 //   R6 每屏至多一个填色按钮
 const fs = require('fs');
 const path = require('path');
-const { describe, test, ok, eq, deepEq, loadSrc, rejects } = require('./harness');
+const { describe, test, ok, eq, deepEq, loadSrc, rejects, tick } = require('./harness');
 const cfg = require('../build/telemetry.config.js');
 
 const ROOT = path.join(__dirname, '..');
@@ -759,5 +759,283 @@ describe('BEL-269 · 首启包失败：自动重试一次 + 可继续进入', ()
     ok(catchAt > -1 && ret > catchAt, '切不出 runFirstRunPacks 的失败分支');
     ok(!/probePacks\(\)/.test(run.slice(catchAt, ret)),
       '失败分支仍 probePacks —— 会发 packs_ready');
+  });
+});
+
+
+// BEL-269 产品约束（同一分支的第二个 commit）：跳过包屏之后的**首页**行为。
+// 前一个 commit 只回答了「失败后能不能进去」；这里补三件用户真的会撞到的事：
+//   ① 包没齐这件事在首页要一直看得见，并给得回包页/设置两条路；
+//   ② 听译 / 实时字幕 / 设备朗读不能假装可用，也不能空转；
+//   ③ 心跳/重绘既不能把人拉回包屏，也不能再起一轮下载。
+// 遥测仍只用既有事件与枚举值；「没包也进来」用 app_open.surface='packs' 观测。
+describe('BEL-269 延伸 · 首页不假装包已就绪 + 路由/重试去重', () => {
+  const Shell = loadSrc('src/app/shell-model.js', 'ShellModel', {
+    window: {},
+    document: {},
+    chrome: { storage: { local: { get() {}, set() {} }, onChanged: { addListener() {} } } },
+    navigator: {},
+    localStorage: {},
+  }).ShellModel;
+  const FIRST = 'src/app/firstrun.js';
+  const FR = loadSrc(FIRST, 'FirstRun').FirstRun;
+
+  test('B1 · 跳过后首页横幅常驻；心跳/重绘再多次仍停在首页', async () => {
+    const afterSkip = {
+      session: true, packsDone: true, skipped: true,
+      asrPack: false, ttsPack: false, basePack: false,
+      packPhase: 'pick', packsManage: false,
+    };
+    // 路由：包没齐但 done=true ⇒ home，而且重复判定（心跳/重绘）不会翻转。
+    eq(Shell.firstRunScreenFor(afterSkip), 'home', '跳过后第一次判定不在首页');
+    for (let i = 0; i < 5; i++) {
+      await tick();
+      eq(Shell.firstRunScreenFor(afterSkip), 'home',
+        `第 ${i + 1} 次心跳/重绘把路由改回了包屏 —— 用户会被反复拉走`);
+    }
+    // 横幅：同一组输入每次都露；三样包齐了才收。
+    const banner = Shell.packsBannerView({ session: true, skipped: true, ready: false, screen: 'home' });
+    eq(banner.show, true, '跳过后首页横幅没露 —— 用户在假装包已就绪的首页上');
+    for (let i = 0; i < 5; i++) {
+      await tick();
+      eq(Shell.packsBannerView({ session: true, skipped: true, ready: false, screen: 'home' }).show, true,
+        '重绘一次横幅就消失了 —— 它不是常驻横幅');
+    }
+    eq(Shell.packsBannerView({ session: true, skipped: true, ready: true, screen: 'home' }).show, false,
+      '包真的齐了横幅还挂着');
+    eq(Shell.packsBannerView({ session: true, skipped: true, ready: false, screen: 'packs' }).show, false,
+      '包屏上还叠着首页横幅，会挡住下载按钮');
+    eq(FR.step({ loggedIn: true, packsDone: true, asrPack: false, ttsPack: false, basePack: false }), 'home',
+      'FirstRun.step 不认 skip 的 done —— 冷启还是会被拉回包屏');
+
+    // 两个入口都接在同一个 openPackManager 上；设置页原来的「管理」没有被替换。
+    const model = stripComments(read('src/app/shell-model.js'));
+    const shellSrc = read(SHELL);
+    for (const id of ['packs-pending', 'packs-pending-title', 'packs-pending-body',
+      'packs-pending-go', 'packs-pending-why', 'packs-pending-tts']) {
+      ok(shellSrc.includes(`id="${id}"`), `AppShell 缺 #${id}`);
+    }
+    ok(/\$\('packs-pending-go'\)\.addEventListener\('click', \(\) => \{ openPackManager\(\); \}\)/.test(model),
+      '横幅的「去下载语言包」没接 openPackManager');
+    ok(/\$\('set-pack-manage'\)\.addEventListener\('click', \(\) => \{ openPackManager\(\); \}\)/.test(model),
+      '设置页的「管理」没接包流程');
+    ok(/persist: \(\) => writePacksDone\(\{ skipped: true \}\)/.test(model),
+      '跳过没把 listenPacksSkipped 落盘 —— 冷启后首页横幅与 app_open 都看不见');
+    ok(/function paintPacksPending\(\)/.test(model), '没有画横幅的函数');
+    ok(/paintPacksPending\(\)/.test(model.slice(model.indexOf('function paintFirstRun'), model.indexOf('async function loadPackSelection'))),
+      'paintFirstRun 不在每次判定后重画横幅 —— 重绘会把它丢掉');
+  });
+
+  test('B2 · 听译/实时字幕入口在包未就绪时明确不可用并给原因（不是静默/空转）', async () => {
+    // 复用 listen-model 的入口状态：探针说 ok（设备支持），但包没下完 ⇒ 仍必须挡住。
+    const gate = loadSrc('src/app/pack-pending.js', 'PackPending').PackPending;
+    deepEq(gate.packsEntryGate(true, true), { available: false, reasonKey: 'packs_pending_why', reason: 'packs' },
+      '探针 ok 时包未就绪仍被当成可用 —— 用户会点进一个空转的听译页');
+    eq(gate.packsEntryGate(false, true).available, true, '包齐了反而把入口挡了');
+    eq(gate.packsEntryGate(false, false).available, false, '探针失败时入口必须不可用');
+
+    const C = require('../app/listen-core.js');
+    const mkEl = () => ({ hidden: false, disabled: false, textContent: '', value: '', style: {},
+      classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
+      addEventListener() {}, setAttribute() {}, removeAttribute() {}, appendChild() {},
+      querySelector() { return mkEl(); }, querySelectorAll() { return []; }, getAttribute() { return ''; } });
+    function bootEntry(store) {
+      const tracked = [];
+      const sb = {
+        window: { addEventListener() {}, removeEventListener() {},
+          MT_TELEMETRY: { spec: { common: cfg.COMMON, events: cfg.EVENTS, limits: cfg.LIMITS } } },
+        document: { getElementById: () => mkEl(), querySelector: () => mkEl(), querySelectorAll: () => [],
+          addEventListener() {}, createElement: () => mkEl(), body: mkEl(), documentElement: mkEl(),
+          hidden: false, visibilityState: 'visible' },
+        navigator: { platform: 'MacIntel', maxTouchPoints: 0, language: 'zh-CN', userAgent: 'test' },
+        btoa: (x) => Buffer.from(x, 'binary').toString('base64'),
+        atob: (x) => Buffer.from(x, 'base64').toString('binary'),
+        chrome: { storage: { local: {
+          get: (k, cb) => {
+            const out = Object.assign({
+              listenOtherLang: 'en', listenMyLang: 'zh', listenAutoSpeak: false,
+              listenCapture: false, provider: 'deepseek', apiKey: 'k',
+            }, store);
+            if (typeof k === 'function') { k(out); return; }
+            cb && cb(out);
+          },
+          set: (_o, cb) => { if (cb) cb(); },
+          remove: (_k, cb) => { if (cb) cb(); },
+        }, onChanged: { addListener() {} } }, runtime: { getURL: (u) => u } },
+        ListenCore: C,
+        NativeAudio: { available: () => true, audioCaps: () => ({ system: 'ok' }), capsProbe: async () => ({ system: 'ok' }),
+          onEvent() {}, onTick() {} },
+        NativeSpeech: { available: () => true, probeResult: () => ({ ok: true, assets: 'missing' }),
+          probe: async () => ({ ok: true, assets: 'missing' }), quota: () => ({ max: 5, reserved: [] }) },
+        DiagLog: { push() {} },
+        MTTelemetry: { track: (n, p) => tracked.push([n, p || {}]), once() {} },
+        MTFeedback: {},
+        LearnNotes: { resolveConfig: () => ({}), shouldCapture: () => false, langAllowed: () => true },
+        LearnRules: { dominantScript: () => 'Han', langAllowed: () => true },
+        LearnDialog: { confirm: async () => true },
+        TranslationAPI: { resolveProvider: (id) => id, listenPass: async () => '{}', translate: async () => '' },
+        EngineState: { byId: () => ({ id: 'deepseek', type: 'chat-compat' }) },
+        WireFormat: { formatFor: () => 'chat-compat', resolveEndpoint: () => 'https://x', translationModelName: () => false },
+        Date: { now: () => 1700000000000 },
+        console, URL,
+      };
+      const ctx = loadSrc('src/app/listen-model.js', 'AppListen', sb);
+      return { A: ctx.AppListen, tracked };
+    }
+
+    const pending = bootEntry({ listenPacksSkipped: 1 });
+    await pending.A.refreshEntry();
+    const pe = pending.A.entryView('');
+    eq(pe.listen.disabled, true, '包未就绪时听译入口仍可点');
+    eq(pe.listen.needShown, true, '听译入口灰了但没给原因');
+    ok(/语言包未就绪/.test(pe.listen.why), '听译入口的原因不是「语言包未就绪」');
+    ok(/语言包未就绪/.test(pe.listen.hint), '听译卡说明位没写包未就绪');
+    eq(pe.subs.disabled, true, '包未就绪时实时字幕入口仍可点');
+    eq(pe.subs.needShown, true, '实时字幕灰了但没给原因');
+    ok(/语言包未就绪/.test(pe.subs.needWhy), '实时字幕的原因不是「语言包未就绪」');
+    // 「没包也进来」的第二个既有口子：asr_entry{app_home,no_live}（与灰卡同一条语义）。
+    ok(pending.tracked.some(([n, p]) => n === 'asr_entry'
+      && p.surface === 'app_home' && p.result === 'no_live'),
+    '包未就绪时没有用既有 asr_entry/no_live 记下「听译入口不可用」');
+
+    const ready = bootEntry({});
+    await ready.A.refreshEntry();
+    eq(ready.A.entryView('').listen.disabled, false, '没跳过时探针 ok 的入口被误伤');
+    eq(ready.A.entryView('').subs.disabled, false, '没跳过时实时字幕被误伤');
+
+    // 设备朗读（TTS）：播客入口与设置页状态行都用同一句原因，不能写「已就绪」。
+    const driving = read('src/app/driving-model.js');
+    ok(/PackPending\.readPacksPending\(\)/.test(driving) && /showNeedSpeech\(true, 'packs'\)/.test(driving),
+      '设备朗读入口没按包未就绪门控');
+    ok(/packs_pending_tts/.test(driving), '设备朗读入口没给「语言包未就绪」原因');
+    const settingsView = read('src/app/settings-view.jsx');
+    ok(/PackPending\.packsPendingSync\(\)/.test(settingsView) && /packs_pending_tts/.test(settingsView),
+      '设置页设备朗读状态行仍会写「已就绪」');
+    const listenSrc = read('src/app/listen-model.js');
+    ok(/if \(PackPending\.packsPendingSync\(\)\) return;/.test(listenSrc),
+      'listen-model 的 warmPacks 还会在跳过之后后台自动补包');
+  });
+
+  test('B3 · 自动重试恰好一次且被去重：心跳/重绘起不了第二轮', async () => {
+    // 来源闸：只有用户手势 / 网络恢复能开始下载；后台重入一律 false。
+    eq(Shell.packAttemptAllowed({ busy: false, skipped: false, source: 'user' }), true);
+    eq(Shell.packAttemptAllowed({ busy: false, skipped: false, source: 'resume' }), true);
+    eq(Shell.packAttemptAllowed({ busy: false, skipped: false, source: 'heartbeat' }), false,
+      '心跳能开始一轮真实下载');
+    eq(Shell.packAttemptAllowed({ busy: false, skipped: false, source: 'repaint' }), false,
+      '重绘能开始一轮真实下载');
+    eq(Shell.packAttemptAllowed({ busy: true, skipped: false, source: 'user' }), false,
+      '下载中重复点击又起了一轮');
+    eq(Shell.packAttemptAllowed({ busy: false, skipped: true, source: 'heartbeat' }), false,
+      '跳过之后后台还能再试');
+    eq(Shell.packAttemptAllowed({ busy: false, skipped: true, source: 'user' }), true,
+      '跳过后用户主动去设置重试也被挡了');
+
+    // 一轮被作废时，第二次尝试连退避都不该发生。
+    let attempts = 0;
+    let sleeps = 0;
+    const e = await rejects(Shell.runPackAttempts(async () => {
+      attempts++;
+      throw new Error('offline');
+    }, { sleep: async () => { sleeps++; }, shouldContinue: () => false }), /offline/);
+    ok(e, '错误必须抛回失败态');
+    eq(attempts, 1, '心跳/重绘把自动重试又续了一轮');
+    eq(sleeps, 0, '这一轮已作废却还等了一次退避');
+
+    // 正常的自动重试仍是恰好一次（A1 的同一判据，这里再钉一遍 shouldContinue 不改变它）。
+    let normal = 0;
+    await rejects(Shell.runPackAttempts(async () => { normal++; throw new Error('offline'); },
+      { sleep: async () => {}, shouldContinue: () => true }), /offline/);
+    eq(normal, 2, '正常自动重试不是恰好再一次');
+
+    const model = stripComments(read('src/app/shell-model.js'));
+    const run = model.slice(model.indexOf('async function runFirstRunPacks'), model.indexOf('async function enterListen'));
+    ok(/packAttemptAllowed\(\{ busy: packsBusy, skipped: packsSkippedMem, source \}\)/.test(run),
+      'runFirstRunPacks 没接来源闸');
+    ok(/shouldContinue: \(\) => packRunSeq === runId && packsBusy/.test(run),
+      '自动重试没绑当前轮次 —— 心跳能续跑旧轮');
+    ok(!/runFirstRunPacks\('(?:heartbeat|repaint)'\)/.test(model), '代码里有心跳/重绘触发的下载');
+    const paint = model.slice(model.indexOf('function paintFirstRun'), model.indexOf('async function loadPackSelection'));
+    ok(!/runFirstRunPacks\(/.test(paint), 'paintFirstRun（每次重绘都跑）里直接起下载');
+  });
+
+  test('B4 · 「没包也进来」可观测（既有 app_open/packs），且 start/fail 与真实尝试一一对应', async () => {
+    function loadTelemetry(store) {
+      const events = [];
+      const local = {
+        get(keys, cb) {
+          const out = {};
+          const list = Array.isArray(keys) ? keys : (typeof keys === 'string' ? [keys] : Object.keys(keys || {}));
+          for (const k of list) if (k in store) out[k] = store[k];
+          cb && cb(out);
+        },
+        set(obj, cb) { Object.assign(store, obj); cb && cb(); },
+        remove(keys, cb) {
+          for (const k of (Array.isArray(keys) ? keys : [keys])) delete store[k];
+          cb && cb();
+        },
+      };
+      const sandbox = {
+        window: { MT_TELEMETRY: {
+          url: 'https://ingest.test/functions/v1/bt-ingest',
+          spec: { common: cfg.COMMON, events: cfg.EVENTS, limits: cfg.LIMITS },
+        } },
+        chrome: { storage: { local } },
+        fetch: async () => ({ ok: true, status: 200 }),
+        MTTelemetry: {
+          enabled: async () => true,
+          track(name, props) { events.push({ name, props }); },
+          installId: async () => ({ id: '11111111-1111-4111-8111-111111111111' }),
+        },
+        LearnAuth: { currentStable: async () => ({ userId: 'u' }), lastLoadError: () => '' },
+      };
+      return { TS: loadSrc('src/app/telemetry-session.js', 'TelemetrySession', sandbox).TelemetrySession, events };
+    }
+    // 口子选择：app_open.surface 的既有值 `packs` = 这次冷启时包门没过。
+    // 不新增事件、不新增枚举值；路由仍由 done 决定（B1 已钉住停在首页）。
+    ok(cfg.EVENTS.app_open.surface.includes('packs'), '前提：app_open 的既有枚举里没有 packs');
+    const store = { [Shell.PACKS_DONE_KEY]: 1, [Shell.PACKS_SKIPPED_KEY]: 1 };
+    const tel = loadTelemetry(store);
+    await tel.TS.appOpen();
+    eq(tel.events.length, 1, '跳过的冷启 app_open 不是一条');
+    eq(tel.events[0].name, 'app_open');
+    eq(tel.events[0].props.surface, 'packs',
+      '「没包也进来」在数据里看不见 —— app_open 仍说 app_home');
+    // 探包快照已经三样都齐（系统后来自己下好了）⇒ 仍报 app_home，不拿历史跳过当现状。
+    const telReady = loadTelemetry({
+      [Shell.PACKS_DONE_KEY]: 1, [Shell.PACKS_SKIPPED_KEY]: 1,
+      'tm:packsReady': { kinds: { asr: true, tts: true, base: true } },
+    });
+    await telReady.TS.appOpen();
+    eq(telReady.events[0].props.surface, 'app_home', '包已经齐了却还在报 packs');
+    // 对照：正常完成包屏的冷启仍是 app_home（旧行为不被改写）。
+    const doneOnly = { [Shell.PACKS_DONE_KEY]: 1 };
+    const tel2 = loadTelemetry(doneOnly);
+    await tel2.TS.appOpen();
+    eq(tel2.events[0].props.surface, 'app_home', '正常完成包屏的 app_open 被改成了 packs');
+
+    // 第一次失败、第二次成功：2 start / 1 fail / 1 ok，没有 packs_ready；
+    // 数字等于真实尝试次数，而不是「重试了一次就再记一条 ok」。
+    const events = [];
+    const t = {
+      packStart: async () => { events.push('start'); return { id: 'u' }; },
+      packOk: async () => { events.push('ok'); },
+      packFail: async () => { events.push('fail'); },
+      packsReady: async () => { events.push('packs_ready'); },
+    };
+    let n = 0;
+    await Shell.runPackAttempts(async () => {
+      n++;
+      await Shell.reportPackUnit(t, { pack_kind: 'asr', pack_id: 'asr_zh' }, async () => {
+        events.push('ensureAssets');
+        if (n === 1) throw new Error('offline');
+      }, () => 'download');
+    }, { sleep: async () => {} });
+    deepEq(events, ['start', 'ensureAssets', 'fail', 'start', 'ensureAssets', 'ok'],
+      'start/ok/fail 没有与两次真实尝试一一对应');
+    eq(events.filter((x) => x === 'start').length, 2, 'start 条数不等于尝试次数');
+    eq(events.filter((x) => x === 'fail').length, 1, 'fail 条数不等于失败次数');
+    eq(events.filter((x) => x === 'ok').length, 1, 'ok 条数不等于成功次数');
+    eq(events.indexOf('packs_ready'), -1, '单语言成功被记成了 packs_ready');
   });
 });
