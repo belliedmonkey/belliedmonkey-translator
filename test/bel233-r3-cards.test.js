@@ -50,6 +50,9 @@ function makeRestoreHarness({ claimError = null } = {}) {
   const hooks = { say: (m) => calls.say.push(String(m)) };
   const settingsModel = {
     hooks: () => hooks,
+    // BEL-271：view 的 catch 只经这一口决定「池子空了 + 说什么」。桩按旧行为返回
+    // 原始 error message，restore 失败那条断言仍然测「错误没有静默」。
+    grantFailureView: (e) => ({ poolEmpty: false, copy: String((e && e.message) || e) }),
     claimAndApply: async (opts) => {
       calls.claim.push(opts);
       if (claimError) throw claimError;
