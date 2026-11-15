@@ -333,7 +333,17 @@ Rules:
       // 不可重试：额度用完了重试多少次都一样，只会把停机推迟到更晚、更混乱的时刻。
       const gcode = (typeof WireFormat !== 'undefined' && WireFormat.grantError)
         ? WireFormat.grantError(resp.status, raw) : '';
-      if (gcode) { e.code = gcode; e.grant = true; e.retryable = false; e.url = url; e.serverMessage = said; e.route = usedRoute; throw e; }
+      // BEL-270 A completion: the relay's named errors predate this ticket, but four of
+      // them are not in the DEPLOYED translate_fail enum. Map them here, at the source,
+      // so every caller — not just the engine's classifyFail — hands on a code the
+      // backend accepts. The three names that already are enum values pass through.
+      if (gcode) {
+        e.code = relayGrantCode(gcode);
+        // `busy` is the relay's 429; keep the retry-after semantics of that status
+        // even if a relay/proxy wrapper ever reports it with a different status code.
+        if (gcode === 'busy') e.status = 429;
+        e.grant = true; e.retryable = false; e.url = url; e.serverMessage = said; e.route = usedRoute; throw e;
+      }
       // key 被服务商拒绝（2026-09-10，第八期）：401/403 且请求带了用户自己的 key。与额度
       // 用完同一套停机 —— 5 天里 308 条 401 来自同一台机器，每个段落砸一次，界面上没有
       // 一个「key 被拒了」的出口。`halt` 是引擎停机位，`grant` 仍只给额度那一族。
@@ -343,7 +353,15 @@ Rules:
       // `code`/`url` are for the settings page's engine self-check: without a code it
       // fell through to the raw message, so a 404 never got the "the endpoint URL or
       // the model name is wrong" hint the learning engines already had.
-      e.code = 'http';
+      //
+      // BEL-270: a relay 400 with a known `reason` gets its own code so the failure is
+      // countable; a 400 without one stays `http`. Either way the error keeps status
+      // 400 and is non-retryable — resending the same segment cannot fix a bad shape.
+      // Deliberately NOT halt-worthy: one bad segment must not stop the page/document/
+      // subtitle run, so these codes stay out of HALT_IMMEDIATE and carry no halt bit.
+      const relayCode = resp.status === 400 ? relayBadCode(raw) : '';
+      e.code = relayCode || 'http';
+      if (resp.status === 400) e.retryable = false;
       e.url = url;
       // The server's OWN sentence, kept separate from `message` so the UI can show it
       // verbatim next to our hint. Withholding it was a real cost: a gateway rejecting
@@ -588,6 +606,43 @@ Rules:
       inFlight++;
       fn().then(resolve, reject).finally(() => { inFlight--; drain(); });
     }
+  }
+
+  // BEL-270: the relay answers a request-shape failure with 400 and keeps
+  // `error: 'bad_request'` exactly as before; it adds a machine `reason`. Only these
+  // four values name a translate_fail code. Anything else (absent reason, older relay,
+  // a gateway's own 400) keeps the existing generic `http` + status 400 path.
+  const RELAY_BAD_REASONS = Object.freeze({
+    json_syntax: 'relay_bad_json',
+    messages_json: 'relay_bad_messages',
+    audio_decode: 'relay_bad_audio',
+    input_invalid: 'relay_bad_input',
+  });
+  function relayBadCode(raw) {
+    try {
+      const d = JSON.parse(String(raw == null ? '' : raw));
+      const reason = d && typeof d === 'object' && typeof d.reason === 'string' ? d.reason : '';
+      return RELAY_BAD_REASONS[reason] || '';
+    } catch (_) { return ''; }
+  }
+
+  // BEL-270 A completion: the relay's named errors are a closed set, and only names
+  // already in the deployed translate_fail enum may leave apiFetch. `grant_revoked`
+  // and `grant_invalid` are the existing `auth` family; a relay misconfiguration is
+  // the pool-unavailable family; `busy` is the existing `http` + status 429. The
+  // remaining three are already enum values and stay byte-identical. Unknown names
+  // fall back to `http` rather than leaking a name the backend would reject.
+  const RELAY_GRANT_CODES = Object.freeze({
+    credit_exhausted: 'credit_exhausted',
+    grant_unavailable: 'grant_unavailable',
+    model_not_allowed: 'model_not_allowed',
+    grant_revoked: 'auth',
+    grant_invalid: 'auth',
+    grant_misconfigured: 'grant_unavailable',
+    busy: 'http',
+  });
+  function relayGrantCode(name) {
+    return RELAY_GRANT_CODES[name] || 'http';
   }
 
   // ─── Public translate (uniform retry: backoff honors Retry-After + jitter;

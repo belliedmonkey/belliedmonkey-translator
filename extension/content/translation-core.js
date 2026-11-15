@@ -40,6 +40,9 @@ var TranslationCore = (() => {
     // 单单元卡死（BEL-247）：120 s 不落地，与 timeout 分开记 —— 「一个 promise 不
     // 落地」和「请求超时」不是同一件事，混在一列里会让熔断与用户重试都读错。
     'stalled',
+    // 中继的 400 请求形状错误（BEL-270）：`error` 仍是 bad_request，`reason` 只做
+    // 机器分类。这四个都只让**这一段**失败，不进 HALT_IMMEDIATE（不停止整页）。
+    'relay_bad_json', 'relay_bad_messages', 'relay_bad_audio', 'relay_bad_input',
   ]);
   const FAIL_CODE_SET = new Set(FAIL_CODES);
   // 一次失败就停泵。timeout 不在这里 —— 它要连续 TIMEOUT_STREAK_MAX 次单元级失败。
