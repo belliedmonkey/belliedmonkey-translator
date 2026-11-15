@@ -272,28 +272,34 @@ const grantTokenWrites = (st) => {
   return writes;
 };
 
-// BEL-257 迁移：老安装没有 owner key。只补**缺的**，不覆盖已有值；`bmg_` 一律
-// 归到 grant id（这样升级后的第一条请求就被 grant_token_wrong_engine 拦住），
-// 用户 key 归到当前的 provider / engine。不删、不改任何旧 key。
+// BEL-257 迁移 / 纠正：老安装没有 owner key 时补 owner，已有 owner 被误写成
+// grant* 时清空。`bmg_` 一律归到 grant id（这样升级后的第一条请求就被
+// grant_token_wrong_engine 拦住）；用户 key 的 owner **留空**，不按当前
+// provider / engine 猜 —— 迁移时无法知道一枚 BYOK key 属于哪个厂商，用当时的
+// 引擎去填只是猜，且恰好在额度态下猜成 grant。owner 为空 = 不判归属
+// （request-shape 的守卫跳过空 owner），下一次用户保存该槽时再写入真实厂商。
+// 纠正只清「owner ∈ grant* 且 key 非 bmg_」：`bmg_ + grant` 原样保留，
+// `owner='openai'` 等真实厂商归属也不动。不删、不改任何 key。
 export function migrateOwners(s) {
   const st = s || {};
   const g = /^bmg_/i;
+  const grantOwners = { grant: true, grant_speech: true, grant_stt: true };
   const out = {};
-  const one = (key, ownerKey, grantId, engineKey) => {
-    if (st[ownerKey] !== undefined) return;
+  const one = (key, ownerKey, grantId) => {
     const v = String(st[key] == null ? '' : st[key]).trim();
-    let owner = String(st[engineKey] || '');
-    // chat 的 provider 要归一化（跨 flavor 的旧 id 会落到注册表第一条）；tts/stt
-    // 的 engine id 不在 MT_PROVIDERS 里，绝不能拿去 resolve。
-    if (owner && key === 'apiKey' && typeof EngineState !== 'undefined' && EngineState.resolve) {
-      owner = EngineState.resolve(owner) || owner;
+    // 已有 owner：只做纠正，不覆盖真实厂商归属。
+    if (st[ownerKey] !== undefined) {
+      const owner = String(st[ownerKey] == null ? '' : st[ownerKey]).trim();
+      if (grantOwners[owner] && !g.test(v)) out[ownerKey] = '';
+      return;
     }
-    out[ownerKey] = !v ? '' : (g.test(v) ? grantId : owner);
+    // 缺 owner：bmg_ 认成 grant；其余（含空槽）一律空，绝不拿引擎值来填。
+    out[ownerKey] = v && g.test(v) ? grantId : '';
   };
-  one('apiKey', 'apiKeyOwner', 'grant', 'provider');
-  one('ttsApiKey', 'ttsKeyOwner', 'grant_speech', 'ttsEngine');
-  one('sttApiKey', 'sttKeyOwner', 'grant_stt', 'sttEngine');
-  one('notesApiKey', 'notesKeyOwner', 'grant', 'notesProvider');
+  one('apiKey', 'apiKeyOwner', 'grant');
+  one('ttsApiKey', 'ttsKeyOwner', 'grant_speech');
+  one('sttApiKey', 'sttKeyOwner', 'grant_stt');
+  one('notesApiKey', 'notesKeyOwner', 'grant');
   return out;
 }
 
