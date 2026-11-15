@@ -343,7 +343,15 @@ Rules:
       // `code`/`url` are for the settings page's engine self-check: without a code it
       // fell through to the raw message, so a 404 never got the "the endpoint URL or
       // the model name is wrong" hint the learning engines already had.
-      e.code = 'http';
+      //
+      // BEL-270: a relay 400 with a known `reason` gets its own code so the failure is
+      // countable; a 400 without one stays `http`. Either way the error keeps status
+      // 400 and is non-retryable — resending the same segment cannot fix a bad shape.
+      // Deliberately NOT halt-worthy: one bad segment must not stop the page/document/
+      // subtitle run, so these codes stay out of HALT_IMMEDIATE and carry no halt bit.
+      const relayCode = resp.status === 400 ? relayBadCode(raw) : '';
+      e.code = relayCode || 'http';
+      if (resp.status === 400) e.retryable = false;
       e.url = url;
       // The server's OWN sentence, kept separate from `message` so the UI can show it
       // verbatim next to our hint. Withholding it was a real cost: a gateway rejecting
@@ -588,6 +596,24 @@ Rules:
       inFlight++;
       fn().then(resolve, reject).finally(() => { inFlight--; drain(); });
     }
+  }
+
+  // BEL-270: the relay answers a request-shape failure with 400 and keeps
+  // `error: 'bad_request'` exactly as before; it adds a machine `reason`. Only these
+  // four values name a translate_fail code. Anything else (absent reason, older relay,
+  // a gateway's own 400) keeps the existing generic `http` + status 400 path.
+  const RELAY_BAD_REASONS = Object.freeze({
+    json_syntax: 'relay_bad_json',
+    messages_json: 'relay_bad_messages',
+    audio_decode: 'relay_bad_audio',
+    input_invalid: 'relay_bad_input',
+  });
+  function relayBadCode(raw) {
+    try {
+      const d = JSON.parse(String(raw == null ? '' : raw));
+      const reason = d && typeof d === 'object' && typeof d.reason === 'string' ? d.reason : '';
+      return RELAY_BAD_REASONS[reason] || '';
+    } catch (_) { return ''; }
   }
 
   // ─── Public translate (uniform retry: backoff honors Retry-After + jitter;
