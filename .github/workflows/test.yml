@@ -80,7 +80,14 @@ jobs:
       # `data_collection_permissions` assertion (issue #53) and the china-flavor
       # compliance grep over dist-china/. A green build IS the gate here; the
       # zip it produces is a byproduct we throw away.
+      # The placeholder hatch is the only way a runner with no backend secrets
+      # can package at all. It forces SKIP_ZIP and writes .not-shippable into
+      # dist and dist-app*, so nothing here is shippable. ci-package-smoke is an
+      # exact-string context that releaseReason allows; CI=true alone stays refused.
       - run: ${{ matrix.cmd }}
+        env:
+          MT_ALLOW_PLACEHOLDER_BACKEND: '1'
+          MT_BUILD_CONTEXT: ci-package-smoke
 
 # Not covered here, on purpose:
 #
