@@ -199,7 +199,7 @@ async function run(forceLang) {
   try {
     for (let i = 0; i < units.length; i++) {
       // 逐段出：第一段到了就先显示，不等整篇
-      const r = await TranslationAPI.translate(units[i], choice.lang, TranslationAPI.resolveProvider(tr.provider), tr.apiKey, tr.baseUrl || '', tr.model || '');
+      const r = await TranslationAPI.translate(units[i], choice.lang, TranslationAPI.resolveProvider(tr.provider), tr.apiKey, tr.baseUrl || '', tr.model || '', { surface: 'quick' });
       if (my !== gen) { clearTimeout(slow); return; }
       out.push(r); rows[i].k = 'tr'; rows[i].text = r; bump(); fit();
     }
