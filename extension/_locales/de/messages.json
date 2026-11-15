@@ -4370,5 +4370,20 @@
   },
   "firstrun_packs_skip": {
     "message": "Später nachladen, jetzt fortfahren"
+  },
+  "packs_pending_title": {
+    "message": "Sprachpakete sind noch nicht bereit"
+  },
+  "packs_pending_body": {
+    "message": "Zuhören, Live-Untertitel und Vorlesen offline sind erst nach dem Herunterladen der Sprachpakete verfügbar."
+  },
+  "packs_pending_go": {
+    "message": "Sprachpakete herunterladen"
+  },
+  "packs_pending_why": {
+    "message": "Sprachpakete sind noch nicht bereit – lade sie zuerst auf der Seite „Sprachpakete“ herunter"
+  },
+  "packs_pending_tts": {
+    "message": "Vorlesen offline (Geräte-TTS) nicht verfügbar: Sprachpakete sind noch nicht bereit"
   }
 }

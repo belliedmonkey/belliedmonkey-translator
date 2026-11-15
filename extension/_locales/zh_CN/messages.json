@@ -4371,5 +4371,20 @@
   },
   "firstrun_packs_skip": {
     "message": "稍后补包，先进入"
+  },
+  "packs_pending_title": {
+    "message": "语言包未就绪"
+  },
+  "packs_pending_body": {
+    "message": "听译、实时字幕和离线朗读暂时不可用。下载语言包后即可使用。"
+  },
+  "packs_pending_go": {
+    "message": "去下载语言包"
+  },
+  "packs_pending_why": {
+    "message": "语言包未就绪 —— 先去「语言包」页下载"
+  },
+  "packs_pending_tts": {
+    "message": "离线朗读（设备 TTS）不可用：语言包未就绪"
   }
 }
