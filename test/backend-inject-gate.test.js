@@ -38,6 +38,30 @@ function tmpdir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'mt-b259-gate-'));
 }
 
+// Spawn build.js with a clean CI/release/backend environment, so the test does
+// not inherit `CI=1 npm test` or a developer's MT_* shell. Returns the exit code
+// plus stdout+stderr; the flag's refusals happen before any artifact is written.
+function runBuild(args, extraEnv = {}) {
+  const env = Object.assign({}, process.env);
+  for (const k of Object.keys(env)) {
+    if (/^(CI|MT_RELEASE|MT_BUILD_CONTEXT|MT_ALLOW_PLACEHOLDER_BACKEND|MT_BACKEND_.*|MT_CHINA_.*|npm_lifecycle_event)$/.test(k)) {
+      delete env[k];
+    }
+  }
+  Object.assign(env, extraEnv);
+  try {
+    const out = execFileSync(process.execPath, ['build.js'].concat(args), {
+      cwd: ROOT, env, encoding: 'utf8', stdio: 'pipe',
+    });
+    return { code: 0, out };
+  } catch (e) {
+    return {
+      code: typeof e.status === 'number' ? e.status : 1,
+      out: String((e.stdout || '') + (e.stderr || '')),
+    };
+  }
+}
+
 describe('BEL-259 构建门：只查生效字段，占位必败', () => {
   test('global：真 host + 同源 JWT 通过', () => {
     const r = INJECT.checkShippable({ url: INTL_URL, anonKey: INTL_KEY }, { flavor: 'global' });
@@ -138,20 +162,23 @@ describe('BEL-259 构建门：只查生效字段，占位必败', () => {
       const m = INJECT.placeholderMode(Object.assign({ MT_ALLOW_PLACEHOLDER_BACKEND: '1' }, env));
       ok(m.enabled && m.refused, `发布上下文没被拒绝：${JSON.stringify(env)}`);
     }
-    // CI 包冒烟：唯一允许的 CI 上下文。逃生阀强制 SKIP_ZIP 并写 .not-shippable，
-    // 所以这条路径产不出可发布产物；CI=true 单凭自己仍然被拒（在上面那个循环里）。
-    const smoke = INJECT.placeholderMode({
-      MT_ALLOW_PLACEHOLDER_BACKEND: '1', CI: 'true', MT_BUILD_CONTEXT: 'ci-package-smoke',
-    });
-    ok(smoke.enabled && !smoke.refused, 'ci-package-smoke 应放行 CI 包冒烟');
-    const smokeRelease = INJECT.placeholderMode({
-      MT_ALLOW_PLACEHOLDER_BACKEND: '1', CI: 'true', MT_BUILD_CONTEXT: 'ci-package-smoke', MT_RELEASE: '1',
-    });
-    ok(smokeRelease.enabled && smokeRelease.refused, '发布旗标必须压过 ci-package-smoke');
-    const nearMiss = INJECT.placeholderMode({
-      MT_ALLOW_PLACEHOLDER_BACKEND: '1', CI: 'true', MT_BUILD_CONTEXT: 'ci-package-smoke-extra',
-    });
-    ok(nearMiss.enabled && nearMiss.refused, '上下文是精确匹配，近似字符串不得放行');
+    // #692 回退：releaseReason 先看 CI；MT_BUILD_CONTEXT 不再有 CI 包冒烟豁免。
+    eq(INJECT.releaseReason({ CI: 'true' }), 'CI=true');
+    eq(INJECT.releaseReason({ CI: 'true', MT_BUILD_CONTEXT: 'ci-package-smoke' }), 'CI=true');
+    eq(INJECT.releaseReason({ MT_BUILD_CONTEXT: 'ci-package-smoke' }), null);
+    for (const ctx of [
+      'ci-package-smoke',
+      'ci-package-smoke ',
+      ' ci-package-smoke',
+      'CI-PACKAGE-SMOKE',
+      'ci-package-smoke-extra',
+    ]) {
+      const m = INJECT.placeholderMode({
+        MT_ALLOW_PLACEHOLDER_BACKEND: '1', CI: 'true', MT_BUILD_CONTEXT: ctx,
+      });
+      ok(m.enabled && m.refused, `CI 上下文不得绕过发布门：${JSON.stringify(ctx)}`);
+      eq(INJECT.releaseReason({ CI: 'true', MT_BUILD_CONTEXT: ctx }), 'CI=true');
+    }
   });
 
   test('allowPlaceholder：只降级占位，不同源仍硬失败', () => {
@@ -162,6 +189,49 @@ describe('BEL-259 构建门：只查生效字段，占位必败', () => {
       flavor: 'global', allowPlaceholder: true,
     });
     ok(!mixed.ok, '预览也不许把东京 host 和别的 ref 拼在一起');
+  });
+});
+
+describe('--ci-package-smoke：仅 CI 的构建旗标，不是发布上下文逃生阀', () => {
+  test('非 CI 下拒绝（exit 1），不写产物', () => {
+    const r = runBuild(['--ci-package-smoke']);
+    eq(r.code, 1, r.out);
+    ok(/CI-only/.test(r.out), r.out);
+  });
+
+  test('MT_RELEASE=1 下拒绝（exit 1）', () => {
+    const r = runBuild(['--ci-package-smoke'], { CI: 'true', MT_RELEASE: '1' });
+    eq(r.code, 1, r.out);
+    ok(/MT_RELEASE=1/.test(r.out), r.out);
+  });
+
+  test('只认精确 argv：尾空格 / 前置空格 / 大小写 / 环境字符串都不激活', () => {
+    const cases = [
+      ['尾空格', ['--ci-package-smoke '], {}],
+      ['前置空格', [' --ci-package-smoke'], {}],
+      ['大小写', ['--CI-PACKAGE-SMOKE'], {}],
+      ['环境字符串（无 argv）', [], { MT_BUILD_CONTEXT: 'ci-package-smoke' }],
+      ['环境字符串 + env 逃生阀', [], {
+        MT_BUILD_CONTEXT: 'ci-package-smoke', MT_ALLOW_PLACEHOLDER_BACKEND: '1',
+      }],
+    ];
+    for (const [why, args, env] of cases) {
+      const r = runBuild(args, Object.assign({ CI: 'true' }, env));
+      eq(r.code, 1, `${why} 竟没有失败：\n${r.out}`);
+      ok(/CI=true|backend gate FAILED/.test(r.out), `${why} 没走到拒绝门：\n${r.out}`);
+      ok(!/CI package smoke \(non-shippable\)/.test(r.out), `${why} 激活了旗标路径：\n${r.out}`);
+    }
+  });
+
+  test('源码形状：argv 精确匹配、只为本旗标打开 allow-placeholder、marker 文案固定', () => {
+    ok(/const CI_PACKAGE_SMOKE = argv\.includes\('--ci-package-smoke'\)/.test(BUILD),
+      '旗标不是 argv 精确匹配');
+    ok(!/MT_BUILD_CONTEXT/.test(BUILD), 'build.js 不得从环境字符串读冒烟上下文');
+    ok(/const ALLOW_PLACEHOLDER = CI_PACKAGE_SMOKE \|\| PLACEHOLDER\.enabled/.test(BUILD),
+      '旗标没有接到 allow-placeholder 路径');
+    ok(/SKIP_ZIP = 'CI package smoke \(non-shippable\)'/.test(BUILD),
+      '旗标没有强制非可发布 SKIP_ZIP');
+    ok(/envTruthy\(process\.env\.CI\)/.test(BUILD), '旗标没有要求 CI');
   });
 });
 
