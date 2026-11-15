@@ -41,6 +41,10 @@ const KEYS = SETTINGS_SCHEMA.keysFor('app');
 // 同一条裁定）—— 也因此 SettingsStore 的 onStorageChanged 会跳过它：读写必须走 raw。
 const DETAIL_KEY = 'optDetailMode';
 
+// BEL-257 一次性纠正迁移的标记。**不是设置**，不进 SETTINGS_SCHEMA：它只回答
+// 「这台设备的坏 owner 已经修过了吗」，不该出现在任何设置页或默认值表里。
+const OWNER_FIX_KEY = 'ownerFix257';
+
 function get(keys) {
   return new Promise((res) => chrome.storage.local.get(keys, res));
 }
@@ -68,7 +72,7 @@ function currentAccountEpoch() { return accountEpoch; }
 // 根本不读它，所以那句错话是**无条件**显示的。真正的修复在 app.js 的
 // paintAppEmptyState()：把空态换成 App 自己的说法。这个 flag 与那件事无关。
 async function ensureDefaults() {
-  const cur = await get(KEYS);
+  const cur = await get(KEYS.concat([OWNER_FIX_KEY]));
   const patch = {};
   if (cur.learnEnabled !== true) patch.learnEnabled = true;
   if (typeof cur.learnDailyNew !== 'number') patch.learnDailyNew = 15;
@@ -77,6 +81,16 @@ async function ensureDefaults() {
   if (['off', 'assist', 'audio-first'].indexOf(cur.ttsMode) < 0) patch.ttsMode = 'off';
   if (typeof cur.ttsAutoPlay !== 'boolean') patch.ttsAutoPlay = false;
   if (typeof cur.ttsRate !== 'number') patch.ttsRate = 1;
+  // BEL-257 纠正迁移：1.23.4 之前，App boot 从不跑 migrateOwners（只有扩展
+  // options.jsx 跑），Mac App 上「BYOK key + owner=grant」一旦写进存储就永远
+  // 修不到。这里在 App 最早的设置读取点补一次：非 bmg_ 的 key 若带着 grant*
+  // owner 就清空（守卫对空 owner 不判），bmg_ + grant 原样保留，key 一个字节
+  // 不动。ownerFix257 让整段只跑一次；patch 为空的那次也要落标记，否则每次
+  // 启动都会重扫。标记走 raw storage —— 它不是设置，不进 SETTINGS_SCHEMA。
+  if (cur[OWNER_FIX_KEY] !== true) {
+    Object.assign(patch, LearnGrant.migrateOwners(cur));
+    patch[OWNER_FIX_KEY] = true;
+  }
   if (Object.keys(patch).length) await set(patch);
 }
 
