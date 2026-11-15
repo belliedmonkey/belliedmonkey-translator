@@ -127,11 +127,13 @@ var LearnNotes = (() => {
   // `url` rides along so the settings page can echo the address it actually requested.
   async function fetchNamed(url, init) {
     // BEL-224：只给自家中继补匿名 install_id（vendor URL 返回 {}，init 原样不动）。
+    // BEL-267：句子解析是文档/阅读（doc）上下文，传真实值；relayHeaders() 只接受
+    // 枚举内的 surface，其余整个省略。
     // 归因失败 / 遥测关掉都静默跳过 —— 不能因为少一个 header 让解析失败。
     let opts = init;
     if (typeof MTTelemetry !== 'undefined' && MTTelemetry && MTTelemetry.relayHeaders) {
       try {
-        const extra = await MTTelemetry.relayHeaders(url);
+        const extra = await MTTelemetry.relayHeaders(url, 'doc');
         if (extra && Object.keys(extra).length) {
           opts = Object.assign({}, init, {
             headers: Object.assign({}, (init && init.headers) || {}, extra),

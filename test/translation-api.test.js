@@ -7,6 +7,7 @@ const { makeChrome, makeFetch } = require('./stubs');
 // The transports resolve their endpoint through this shared pure module; it is a
 // dependency, not a stub, so the real one is injected rather than faked.
 const WireFormat = require('../extension/content/wire-format.js');
+const { makeTelemetry, expectAttribution, deriveGrantEvent } = require('./attrib-headers-fixture');
 
 // The transport reads the provider registry off `window.MT_PROVIDERS`, which the
 // build generates per flavor into providers.gen.js. Load that real (global-flavor)
@@ -671,6 +672,37 @@ describe('TranslationAPI — relay 请求带 install_id，vendor 不带（BEL-22
     });
     eq(await API.translate('hello', 'zh-CN', 'openai', 'KEY', RELAY), '你好');
     ok(!('x-mt-install-id' in fetch.calls[0].opts.headers));
+  });
+
+  // BEL-267：真实 MTTelemetry（不是桩）跑一遍，断言 fetch 真正收到的头。
+  // 页面翻译没有枚举 surface（relay 的 SURFACES 不含 'page'），默认必须省略；
+  // 调用方明确给了 opts.surface='web_caption' 才带。
+  test('BEL-267：relay 请求带齐归因头；surface 只在 opts.surface 合法时出现', async () => {
+    const fx = makeTelemetry();
+    const { API, fetch } = loadAPI([okChat(), okChat(), okChat()], {}, null, { MTTelemetry: fx.T });
+
+    // 1) 默认（页面翻译）：六个归因头齐，surface 整个键缺席。
+    eq(await API.translate('hello default', 'zh-CN', 'openai', 'KEY', RELAY), '你好');
+    const plain = fetch.calls[0].opts.headers;
+    expectAttribution(plain, fx.headers);
+    ok(!('surface' in fetch.calls[0].opts), 'surface 不是 RequestInit 的一部分，不能漏给 fetch');
+    const plainEvent = deriveGrantEvent(plain, 'chat');
+    eq(plainEvent.v, '1.23.4'); eq(plainEvent.host, 'safari');
+    ok(!Object.prototype.hasOwnProperty.call(plainEvent.props, 'surface'), '未传 surface 时事件 props 不能有 surface 键');
+
+    // 2) caller 明确知道这次是字幕（web_caption）⇒ 头出现，镜像事件也带 surface。
+    eq(await API.translate('hello caption', 'zh-CN', 'openai', 'KEY', RELAY, undefined,
+      { surface: 'web_caption' }), '你好');
+    const caption = fetch.calls[1].opts.headers;
+    expectAttribution(caption, fx.headers, 'web_caption');
+    eq(deriveGrantEvent(caption, 'chat').props.surface, 'web_caption');
+
+    // 3) 'page' 不是 relay 枚举值 —— 即使 caller 传了也不许发明。
+    eq(await API.translate('hello page', 'zh-CN', 'openai', 'KEY', RELAY, undefined,
+      { surface: 'page' }), '你好');
+    const page = fetch.calls[2].opts.headers;
+    expectAttribution(page, fx.headers);
+    ok(!Object.prototype.hasOwnProperty.call(deriveGrantEvent(page, 'chat').props, 'surface'));
   });
 });
 
