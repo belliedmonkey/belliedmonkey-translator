@@ -53,6 +53,19 @@ export const tail = (v) => {
 //
 // 头的写法照 sync.js:28-36，但**不 import LearnSync**：那个模块带着整套推拉状态机，
 // 而这里只需要一次 POST。抄三行比拉进一个状态机便宜。
+// fetch 抛出的错没有 HTTP status。BEL-271：超时与「完全连不上」都要归 network，
+// 但在错误上要留出可分辨的 code —— 自动重试只针对这一类瞬时失败，而 401/403/
+// revoked/429/池子空了一个都不能重试。AbortError / TimeoutError / ETIMEDOUT 都算超时。
+function fetchFailureCode(err) {
+  const name = String((err && err.name) || '');
+  const code = String((err && err.code) || '').toUpperCase();
+  const msg = String((err && err.message) || '');
+  if (name === 'AbortError' || name === 'TimeoutError'
+      || code === 'ETIMEDOUT' || code === 'ESOCKETTIMEDOUT' || code === 'TIMEOUT'
+      || /time(?:d)?\s*out|timeout/i.test(msg)) return 'timeout';
+  return 'offline';
+}
+
 export async function claim(deps) {
   const sp = spec();
   if (!sp) { const e = new Error('grant not available'); e.code = 'grant_unavailable'; throw e; }
@@ -70,8 +83,12 @@ export async function claim(deps) {
       method: 'POST',
       headers: { apikey: backend.anonKey, Authorization: 'Bearer ' + token },
     });
-  } catch (_) {
-    const e = new Error('offline'); e.code = 'offline'; throw e;
+  } catch (cause) {
+    const code = fetchFailureCode(cause);
+    const e = new Error(code);
+    e.code = code;
+    e.status = 0;
+    throw e;
   }
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -80,6 +97,9 @@ export async function claim(deps) {
     const e = new Error('claim ' + res.status);
     e.code = String(body && body.error) || 'server';
     e.status = res.status;
+    // BEL-271：只有服务端**明确**说池子空了，才允许 UI 进入「池子空了」状态。
+    // 连不上 / 超时 / 5xx / 429 都只是这一次没领成，不是池子空了。
+    if (e.code === 'unavailable' || e.code === 'grant_unavailable') e.poolEmpty = true;
     throw e;
   }
   const claimed = {
