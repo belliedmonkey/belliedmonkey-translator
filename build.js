@@ -1482,9 +1482,12 @@ legacyBrandGate(DIST, path.basename(DIST),
 validateManifest(DIST, isFirefox);
 
 // Content 同步注入面的字节预算门（React 迁移 PR8a 起，计划 §C）。manifest
-// content_scripts 列出的 dist/content js 字节和不得超基线 +150KB —— 懒加载
-// （动态 import）是给新 UI 字节的唯一通道；把新字节塞进同步列表的改动在这里红，
-// 正当增长（如同步面本来就该有的东西）在 PR 里给数字并重新钉基线。
+// content_scripts 列出的 dist/content js 字节和不得超基线 +150KB —— 新 UI 字节
+// 优先走懒加载 / 小静态件；把大块新字节塞进同步列表的改动在这里红，正当增长
+// （如同步面本来就该有的东西）在 PR 里给数字并重新钉基线。
+// BEL-277（2026-11-15）是本门的一次**小静态例外**：字幕菜单从懒加载 ESM 翻成
+// 静态 IIFE（+5,933 字节，bounded 宿主）—— 不是把 React/overlay 搬进同步面，
+// 预算仍余 ≈42KB。动态 import 因此不再是唯一通道，但「大件不许进同步面」不变。
 // 基线 2026-10-03（第 13 门界面语言「泰国语」加入后，global flavor）：3756331 字节。
 //   上一次钉 3381059（2026-09-28，PR7c）。本次 +375272 字节，其中**泰国语 ≈ 336 KB** ——
 //   生成表里 `"th":{…}` 一段 168107 字节，而 i18n-messages.js 在同步清单里出现两次，
