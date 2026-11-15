@@ -49,7 +49,6 @@ function envTruthy(v) {
 }
 
 function releaseReason(env = process.env) {
-  if (envTruthy(env.CI)) return `CI=${env.CI}`;
   if (env.MT_RELEASE === '1') return 'MT_RELEASE=1';
   const ctx = String(env.MT_BUILD_CONTEXT || '').trim();
   if (/^(release|store|upload|publish|tf|prod|production)\b/i.test(ctx)) {
@@ -59,6 +58,14 @@ function releaseReason(env = process.env) {
   if (/^(release|publish|upload)/i.test(lifecycle)) {
     return `npm_lifecycle_event=${lifecycle}`;
   }
+  // CI package smoke: the hatch forces SKIP_ZIP and writes .not-shippable into
+  // both dist and dist-app*, so this path cannot produce a shippable artifact.
+  // The CI job exists to run the manifest and compliance greps, and it throws
+  // the zip away; refusing it here only made the build gate fail itself.
+  // Every release signal above still wins, and a plain CI=true without the
+  // exact context string is still refused below.
+  if (ctx === 'ci-package-smoke') return null;
+  if (envTruthy(env.CI)) return `CI=${env.CI}`;
   return null;
 }
 
