@@ -325,6 +325,11 @@ export function grantFailureView(err) {
     copy = t('grant_err_unavailable', '不是你用完了 —— 是我们这边的免费额度池空了，正在补。先用自己的 key，或者稍后再来。');
   } else if (f.reason === 'network' || (f.reason === 'server' && f.status >= 500)) {
     copy = t('app_offline', '连不上服务器，检查网络后重试。');
+  } else if (f.reason === 'revoked') {
+    // 401/403 的响应体可能同时带一个 grant_invalid（失败矩阵里的 401 就是）；
+    // reason 已经按 status 判成 revoked，文案必须先按 revoked 收口，否则会被下面
+    // 的 code 分支改写成「认不出来了」—— 与票面的 copy_class=revoked 自相矛盾。
+    copy = t('grant_err_revoked', '这份免费额度已经停用了（退出登录或删除账号会停用它）。重新登录同一个账号就会回来，余额不变。');
   } else if (code === 'grant_misconfigured' || code === 'misconfigured'
       || (code === 'grant_unavailable' && f.status === 0)) {
     copy = t('grant_err_misconfigured', '免费额度这条路我们这边配错了，已经记下。这不是你的问题；先用自己的 key。');
@@ -332,8 +337,6 @@ export function grantFailureView(err) {
     copy = t('grant_err_invalid', '这份免费额度认不出来了。到设置里重新领一次。');
   } else if (f.reason === 'busy') {
     copy = t('grant_err_busy', '这会儿请求太密了，等几秒再试。');
-  } else if (f.reason === 'revoked') {
-    copy = t('grant_err_revoked', '这份免费额度已经停用了（退出登录或删除账号会停用它）。重新登录同一个账号就会回来，余额不变。');
   } else {
     copy = String((err && err.message) || err);
   }
