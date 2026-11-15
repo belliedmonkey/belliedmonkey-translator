@@ -617,14 +617,43 @@ const listenModel = (() => {
     }
     return 'other';
   }
-  // ── BEL-273：麦克风权限门 ──────────────────────────────────────────────────
-  // 采集链失败的 native_code（AVAudioSession / AVAudioEngine 的 domain:code）：
-  // 只收有界的「域名:码」，系统长文/路径/用户内容一律不进。这里不是遥测白名单，
-  // 是本地状态与界面可读码；asr_fail 仍只发 fail_reason='capture'（见 RESULT 契约缺口）。
-  const NATIVE_CODE_RE = /^[A-Za-z][A-Za-z0-9_.]{0,31}:[A-Za-z0-9_-]{1,16}$/;
+  // ── BEL-273：麦克风权限门 + 采集链 native_code ──────────────────────────────
+  // 原生只送有界的 `domain:code`（AVFoundation / NSOSStatus / AVAudioSession /
+  // AVAudioEngine / NSURLError），JS 侧把它归一成遥测契约的短码：
+  //   AVFoundationErrorDomain → avf_<code>   NSOSStatusErrorDomain → os_<code>
+  //   AVAudioSession          → session_<code>  AVAudioEngine       → engine_<code>
+  //   NSURLErrorDomain        → url_<code>    denied/interrupted   → denied/interrupted
+  // 未知域折成 other；长文/带空白/引号的原始 NSError 描述一律不收。输出只允许
+  // /^[a-z0-9_-]{1,32}$/，因此原始 domain/description/用户内容不会进事件。
+  const NATIVE_CODE_RE = /^(?:(?:avf|os|session|engine|url)_[a-z0-9_]{1,28}|denied|interrupted|other|unknown)$/;
+  const NATIVE_DOMAIN_PREFIX = [
+    ['avfoundation', 'avf'],
+    ['nsosstatus', 'os'],
+    ['avaudiosession', 'session'],
+    ['avaudioengine', 'engine'],
+    ['nsurlerror', 'url'],
+  ];
+  function sanitizeNativePart(v) {
+    return String(v || '').toLowerCase().replace(/[^a-z0-9_]/g, '');
+  }
+  // 幂等：已经归一化过的码（noteAsrFail 会再收一次）原样通过。
   function normalizeNativeCode(v) {
     const s = String(v || '').trim();
-    return NATIVE_CODE_RE.test(s) ? s : '';
+    if (!s || s.length > 96 || /[\s"'\u201c\u201d]/.test(s)) return '';   // 老壳 NSError 长文
+    if (NATIVE_CODE_RE.test(s)) return s.length <= 32 ? s : '';
+    const at = s.indexOf(':');
+    if (at < 0) return '';                    // 裸 reason（native/input-format…）不是 code
+    const domain = s.slice(0, at).toLowerCase();
+    const rawCode = s.slice(at + 1);
+    if (/^denied$|permission|not[-_ ]?determined|restricted/.test(domain)) return 'denied';
+    if (/^interrupted$|interruption/.test(domain)) return 'interrupted';
+    let prefix = '';
+    for (const pair of NATIVE_DOMAIN_PREFIX) {
+      if (domain.indexOf(pair[0]) >= 0) { prefix = pair[1]; break; }
+    }
+    if (!prefix) return 'other';              // 未知 domain：分类，但不带原文
+    const code = sanitizeNativePart(rawCode).replace(/^_+|_+$/g, '').slice(0, 32 - prefix.length - 1);
+    return code ? prefix + '_' + code : prefix + '_unknown';
   }
   // 原生 reason 若还是老壳的 NSError 长文，只保留已知短码，其余折成 'native'。
   function captureReason(reason, nativeCode) {
@@ -764,7 +793,14 @@ const listenModel = (() => {
     if (!tmId(fail_reason)) return;
     noteAsrStart();
     session.asrFailSent = true;
-    track('asr_fail', Object.assign({ fail_reason }, funnelProps()));
+    const props = Object.assign({ fail_reason }, funnelProps());
+    // BEL-273：只有采集链失败带 native_code；permission/interrupted/socket 等不带。
+    // 码已在 noteAsrNativeCode 归一过，这里再收一次，保证发出的一定过 'id' 型。
+    if (fail_reason === 'capture') {
+      const code = normalizeNativeCode((session && session.nativeCode) || lastAsrNativeCode);
+      if (code) props.native_code = code;
+    }
+    track('asr_fail', props);
   }
   function noteTranslateStart() {
     if (!session || session.tmStart) return;
@@ -2342,8 +2378,8 @@ const listenModel = (() => {
     }
     if (state === 'denied') halt('denied', '');
     else if (state === 'failed') {
-      // BEL-273：采集链失败带上有界的 native_code（domain:code）。事件仍只发 capture；
-      // 码留在本次会话与 _debug，并进可见的失败句 —— 不静默丢，也不塞进冻结的白名单。
+      // BEL-273：采集链失败带上有界的 native_code（domain:code）。事件仍发
+      // fail_reason='capture'，native_code 归一后进 asr_fail；原始长文/domain 不进事件。
       noteAsrNativeCode(nativeCode) || noteAsrNativeCode(reason);
       halt('failed', captureReason(reason, nativeCode));
     }
@@ -3985,10 +4021,11 @@ const listenModel = (() => {
       // 方案 4（R12）的纯判据读数点：测试直接喂 (finalEv, partial, at) 读结论，不重启会话。
       rescueWorth: (ev, p, at) => partialWorthRescue(ev, p, at),
       asrFailReason: (reason, why) => asrFailReason(reason, why),
-      // BEL-273：权限门与采集链 native_code 的只读读数点（事件里没有 native_code，白名单冻结）。
+      // BEL-273：权限门与采集链 native_code 的只读读数点（native_code 现在进 asr_fail 契约）。
       perm: { state: micPerm.state, gate: micPerm.gate, explained: micPerm.explained,
         settingsOpened: micPerm.settingsOpened, pending: micPermPending },
       asrNativeCode: lastAsrNativeCode,
+      normalizeNativeCode: (v) => normalizeNativeCode(v),
       // BEL-216/218 的读数点（真模型跑在假 NativeSpeech 上时，测试直接读这三项）：
       // 当前 pair、挂起卡与已装资产、以及左格迁移的纯判据。
       cfgLangs: () => (cfg ? { myLang: cfg.myLang, otherLang: cfg.otherLang, targetLang: cfg.targetLang } : null),

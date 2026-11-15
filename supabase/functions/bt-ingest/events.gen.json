@@ -433,6 +433,7 @@
         "timeout",
         "other"
       ],
+      "native_code": "id",
       "engine": "id",
       "locale_pair": "id"
     },
