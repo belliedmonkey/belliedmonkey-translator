@@ -138,6 +138,30 @@ describe('BEL-266 — ownerFor：显式 vendor，绝不由引擎推', () => {
     eq(Owner.ownerFor('notes', OWN_A, ''), '');
   });
 
+  test('非 bmg_ + 显式 grant：空串（用户 key 永不被 grant 认领）', () => {
+    eq(Owner.ownerFor('chat', 'sk-test', 'grant'), '');
+    eq(Owner.ownerFor('tts', 'sk-test', 'grant_speech'), '');
+    eq(Owner.ownerFor('stt', 'sk-test', 'grant_stt'), '');
+  });
+
+  test('bmg_ 不受新守卫影响：显式 grant 仍按槽位归属', () => {
+    eq(Owner.ownerFor('chat', 'bmg_xxx', 'grant'), 'grant');
+    eq(Owner.ownerFor('tts', 'bmg_xxx', 'grant_speech'), 'grant_speech');
+    eq(Owner.ownerFor('stt', 'bmg_xxx', 'grant_stt'), 'grant_stt');
+    eq(Owner.ownerFor('chat', 'bmg_xxx', 'openai'), 'grant');
+  });
+
+  test('窄测：任意非 bmg_ key × grant 家族 vendor → 空串', () => {
+    const family = [...new Set(Object.values(Owner.GRANT_OWNER_BY_SLOT))];
+    deepEq(family.sort(), ['grant', 'grant_speech', 'grant_stt'],
+      'grant 家族必须从 GRANT_OWNER_BY_SLOT 派生，且只有这三个 id');
+    for (const slot of ['chat', 'notes', 'tts', 'stt']) {
+      for (const vendor of family) {
+        eq(Owner.ownerFor(slot, 'sk-test', vendor), '', `${slot} + ${vendor} 必须为空`);
+      }
+    }
+  });
+
   test('空 key → 空 owner；bmg_ 的手填仍由 options 拒绝（null）', () => {
     eq(Owner.ownerFor('chat', '', 'qwencloud'), '');
     eq(M.keyOwnerPatch('apiKey', '', 'qwencloud').apiKeyOwner, '');

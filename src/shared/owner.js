@@ -22,6 +22,10 @@ const GRANT_OWNER_BY_SLOT = {
   stt: 'grant_stt',
 };
 
+// grant 家族从槽位表派生，不再手写第二份名单：加槽位/改 id 时这里自动跟上。
+// 用户 key 永远不属于这个集合，见 ownerFor 的不变量。
+const GRANT_OWNERS = new Set(Object.values(GRANT_OWNER_BY_SLOT));
+
 function ownerFor(slot, key, explicitVendor, grantId) {
   const v = String(key == null ? '' : key).trim();
   if (!v) return '';
@@ -31,9 +35,15 @@ function ownerFor(slot, key, explicitVendor, grantId) {
     return GRANT_OWNER_BY_SLOT[slot] || String(grantId == null ? '' : grantId).trim();
   }
   // 用户自己的 key：只认调用点显式选择的 vendor。空 = 不判归属。
+  // 不变量：非 bmg_ 的 key + grant 家族的显式 vendor 是**不可表示**的状态 ——
+  // 用户 key 绝不能被 grant 认领（否则下一次请求撞 key_owner_mismatch，额度账
+  // 也会把用户 key 记到 grant 头上）。这里返回空串：不读存储、不回落引擎，
+  // 也不退回「显式 vendor 原样用」。
   // notes 的「跟随翻译引擎」在调用点就是空串，这里同样得到 '' —— 符合设计，
   // 而不是漏了一种分支。
-  return String(explicitVendor == null ? '' : explicitVendor).trim();
+  const vendor = String(explicitVendor == null ? '' : explicitVendor).trim();
+  if (GRANT_OWNERS.has(vendor)) return '';
+  return vendor;
 }
 
 export { ownerFor, GRANT_OWNER_BY_SLOT };
