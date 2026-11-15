@@ -2158,6 +2158,22 @@
     "message": "Apple 로그인을 완료하지 못했습니다. 아래의 이메일이나 전화번호를 이용하세요.",
     "description": "Native Apple sign-in failed (not user cancel)"
   },
+  "app_apple_no_credential": {
+    "message": "Apple 인증 정보를 받지 못했습니다. Apple 로그인을 다시 시도하거나 이메일 / Google을 사용하세요.",
+    "description": "Native Apple sign-in returned no credential; offers retry and alternate sign-in"
+  },
+  "app_apple_retry": {
+    "message": "Apple 로그인 다시 시도",
+    "description": "Button: retry native Apple sign-in after a failure"
+  },
+  "app_apple_other": {
+    "message": "이메일 / Google 사용",
+    "description": "Button: switch away from Apple to email or Google"
+  },
+  "app_apple_canceled": {
+    "message": "Apple 로그인이 취소되었습니다. 다시 시도할 수 있습니다.",
+    "description": "Neutral copy after the user cancels the Apple sheet (not a failure)"
+  },
   "learn_empty_other_account": {
     "message": "이 기기에는 다른 계정의 학습 자료도 있습니다. 지금은 다른 계정으로 로그인되어 있습니다 — 사라진 것이 아니며, 원래 계정으로 로그인하면 돌아옵니다.",
     "description": "Empty review page while signed in as a different account than the one owning this device corpus"
