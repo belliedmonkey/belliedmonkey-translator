@@ -138,6 +138,20 @@ describe('BEL-259 构建门：只查生效字段，占位必败', () => {
       const m = INJECT.placeholderMode(Object.assign({ MT_ALLOW_PLACEHOLDER_BACKEND: '1' }, env));
       ok(m.enabled && m.refused, `发布上下文没被拒绝：${JSON.stringify(env)}`);
     }
+    // CI 包冒烟：唯一允许的 CI 上下文。逃生阀强制 SKIP_ZIP 并写 .not-shippable，
+    // 所以这条路径产不出可发布产物；CI=true 单凭自己仍然被拒（在上面那个循环里）。
+    const smoke = INJECT.placeholderMode({
+      MT_ALLOW_PLACEHOLDER_BACKEND: '1', CI: 'true', MT_BUILD_CONTEXT: 'ci-package-smoke',
+    });
+    ok(smoke.enabled && !smoke.refused, 'ci-package-smoke 应放行 CI 包冒烟');
+    const smokeRelease = INJECT.placeholderMode({
+      MT_ALLOW_PLACEHOLDER_BACKEND: '1', CI: 'true', MT_BUILD_CONTEXT: 'ci-package-smoke', MT_RELEASE: '1',
+    });
+    ok(smokeRelease.enabled && smokeRelease.refused, '发布旗标必须压过 ci-package-smoke');
+    const nearMiss = INJECT.placeholderMode({
+      MT_ALLOW_PLACEHOLDER_BACKEND: '1', CI: 'true', MT_BUILD_CONTEXT: 'ci-package-smoke-extra',
+    });
+    ok(nearMiss.enabled && nearMiss.refused, '上下文是精确匹配，近似字符串不得放行');
   });
 
   test('allowPlaceholder：只降级占位，不同源仍硬失败', () => {
