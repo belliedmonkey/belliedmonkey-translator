@@ -25,7 +25,7 @@ var FailSurface = (() => {
   function surface(code, opts) {
     const o = opts || {};
     const global = (o.region || regionOf()) !== 'cn';
-    const anchor = code === 'auth' ? '#engine'
+    const anchor = (code === 'auth' || code === 'no_base') ? '#engine'
       : (code === 'timeout' ? '' : '#grant');
     const common = {
       code: code || '',
@@ -48,6 +48,19 @@ var FailSurface = (() => {
         rowNote: t('fail_credit_title', '免费额度用完'),
         primary: actionBtn(t('fail_go_grant', '去改通道'), 'open', { anchor: anchor }),
         secondary: actionBtn(t('fail_fill_key', '填自己的 Key'), 'open', { anchor: '#engine' }),
+      });
+    }
+    // no_base（BEL-274）：缺的是端点地址，不是额度也不是 key。复用系统翻译那条已经
+    // 写好的可操作文案；锚点去引擎块（#engine），而不是额度卡。第一次就停，行上
+    // 不再给「点此重试」—— 地址没填，重试还是同一个 no_base。
+    if (code === 'no_base') {
+      return Object.assign(common, {
+        halt: true,
+        anchor: anchor,
+        title: t('engine_test_no_base', '还没填端点地址'),
+        next: t('sys_fail_no_base', '这个引擎要填地址，而现在是空的。打开大肚猴翻译填一次。'),
+        rowNote: t('sys_fail_no_base', '这个引擎要填地址，而现在是空的。打开大肚猴翻译填一次。'),
+        primary: actionBtn(t('halt_open_settings', '去设置'), 'open', { anchor: anchor }),
       });
     }
     if (code === 'grant_unavailable') {

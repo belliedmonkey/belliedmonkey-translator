@@ -59,7 +59,10 @@ describe('BEL-247 — 五个发送点都带 kind，假 ms 消失', () => {
   test('translation-core：FAIL_CODES 有 stalled，卡死分支发 stalled', () => {
     const s = read('extension/content/translation-core.js');
     ok(/'stalled'/.test(s));
-    ok(/onFail\(\{ code: 'stalled' \}\)/.test(s), '卡死还写成 timeout');
+    // BEL-274 把这条分支改走 noteFail()，以便同一运行里的 stalled 也只发一条；
+    // 断言仍然是「发 stalled，不发 timeout」。
+    ok(/noteFail\(\{ code: 'stalled' \}, 'stalled'\)/.test(s)
+      || /onFail\(\{ code: 'stalled' \}\)/.test(s), '卡死还写成 timeout');
     ok(!/onFail\(\{ code: 'timeout', stalled: true \}\)/.test(s));
     ok(/e\.preflight/.test(s), 'preflight 没有直接进 error 态');
   });
