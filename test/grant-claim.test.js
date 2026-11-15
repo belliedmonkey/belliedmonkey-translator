@@ -178,6 +178,19 @@ describe('BEL-271 只有真正的池子空了才置 unavailable，且文案不�
   });
 });
 
+describe('BEL-271 401/revoked 文案 —— reason=revoked 必须说「已停用」', () => {
+  test('HTTP 401 + grant_invalid：reason=revoked，文案走 revoked 而不是 invalid', async () => {
+    const h = await claimFail([http401(), http401()]);
+    eq(h.calls.length, 1, '401 绝不重试');
+    eq(h.err.reason, 'revoked', '401 的 reason 是 revoked');
+    const view = h.Model.grantFailureView(h.err);
+    eq(view.reason, 'revoked');
+    eq(view.code, 'grant_invalid');
+    match(view.copy, /停用了/);
+    ok(!/认不出来/.test(view.copy), '401 显示了 invalid 文案：' + view.copy);
+  });
+});
+
 describe('BEL-271 重试成功 —— 走原来的 claim-and-apply，三槽真的写进去', () => {
   test('offline 后第二次成功：两次请求、只有一条 grant_claimed、三槽落盘', async () => {
     const h = loadModel([offline(), { status: 200, body: CLAIMED }]);
