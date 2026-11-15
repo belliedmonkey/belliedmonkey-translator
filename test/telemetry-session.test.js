@@ -603,6 +603,43 @@ describe('BEL-226 pack_download_* / packs_ready', () => {
     eq(events.length, 2, '失败只发一条 fail（不再补一条整批的）');
   });
 
+  test('BEL-268：e.reason 进六值；stage 只进既有 code，不新增属性（events.gen 白名单）', async () => {
+    const gen = require('../supabase/functions/bt-ingest/events.gen.json');
+    const allowed = new Set(
+      Object.keys(gen.common).concat(Object.keys(gen.events.pack_download_fail)),
+    );
+    const { TS, events } = load();
+    const unit = { pack_kind: 'asr', pack_id: 'asr_zh', locale: 'zh', surface: 'first_run_packs', source: 'system' };
+    const cases = [
+      // ensureAssets 现在只 reject {reason}；stage 由 runPackUnit 编码进 code 后缀。
+      [{ reason: 'hash', stage: 'asr' }, 'download_asr', 'hash'],
+      [{ reason: 'network' }, 'download', 'network'],
+      // 旧路径：没有 reason 的普通 Error 仍是 other / download。
+      [new Error('download failed'), 'download', 'other'],
+      // 既有优先级：超时 / TTS / base 的旧 code 不被 stage 改写。
+      [{ mtSttTimeout: true, reason: 'timeout' }, 'timeout', 'timeout'],
+      [{ mtTtsFailed: true, reason: 'network' }, 'tts_failed', 'network'],
+      [{ mtBaseFailed: true, reason: 'disk' }, 'base_failed', 'disk'],
+    ];
+    for (const [err, code, want] of cases) {
+      const tok = await TS.packStart(unit);
+      await TS.packFail(tok, err, code);
+      const p = events[events.length - 1].props;
+      eq(events[events.length - 1].name, 'pack_download_fail');
+      eq(p.reason, want, JSON.stringify(err) + ' 的 reason');
+      eq(p.code, code, JSON.stringify(err) + ' 的 code');
+      ok(!('stage' in p), '不得新增 stage 属性：白名单没有它，bt-ingest 会整条拒收');
+      for (const k of Object.keys(p)) {
+        ok(allowed.has(k), 'pack_download_fail 出现未登记属性：' + k);
+      }
+    }
+    // 直接传 e.reason 字符串也走同一张六值表（调用方不必构造错误对象）。
+    const tok = await TS.packStart(unit);
+    await TS.packFail(tok, 'disk', 'download_tts');
+    eq(events[events.length - 1].props.reason, 'disk');
+    eq(events[events.length - 1].props.code, 'download_tts');
+  });
+
   test('packs_ready 只在整套齐时发一次；重复探/跨启动不发；再变齐可再发', async () => {
     const s = store();
     const ready = packState();

@@ -821,7 +821,9 @@ function legacyCode(code, fallback) {
 
 /**
  * 失败。token 来自 packStart；也接受旧调用 packFail(surface, reason, code)（会现造 token）。
- * `reason` 是本轮六值；`code` 是旧 P0 的 id 型码，过渡期同发。
+ * `reason` 可以是原始错误对象（带 mtSttTimeout / mtTtsFailed 等优先级标志），也可以只是
+ * 原生 reject 的 `e.reason` 字符串；两种形状都归一成下方六值。`code` 是旧 P0 的 id 型码，
+ * 过渡期同发；BEL-268 的下载阶段已编码进这个 code（download_asr 等），不另发属性。
  */
 export async function packFail(token, reason, code) {
   try {
@@ -832,7 +834,8 @@ export async function packFail(token, reason, code) {
     if (!attempt) {
       try { attempt = await nextAttempt(setup, i.pack_id); } catch (_) { attempt = 0; }
     }
-    const r = failReasonValue(reason);
+    // 对象优先：超时/取消标志参与判断，e.reason 也在这张表里映射；字符串按 e.reason 处理。
+    const r = failReasonValue((reason && typeof reason === 'object') ? reason : { reason });
     const c = legacyCode(code, r);
     const p = packFields(i, setup, download_id, attempt);
     p.reason = r;
