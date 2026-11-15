@@ -2,17 +2,18 @@
 //
 // 判据分两层：
 //   1. 纯状态机 —— 未决定先解释、拒绝给设置、从设置回来重试、已授权直接开；
-//   2. 接线 —— 真模型走同一串原生消息，事件属性必须仍是**已部署** asr_fail 白名单的子集。
-// native_code 不在部署白名单里（schema 冻结），所以第 2 层同时钉住「文档化降级」：
-// 只留在会话/_debug/可见失败句，绝不混进事件，也不静默丢。
+//   2. 接线 —— 真模型走同一串原生消息，事件属性必须是**生成**的 asr_fail 白名单子集。
+// native_code 是 BEL-273 的契约新增：只随 fail_reason='capture' 发出，只收归一后的
+// /^[a-z0-9_-]{1,32}$/ 短码；原始 NSError domain/description/用户内容不进事件。
 const fs = require('fs');
 const path = require('path');
-const { test, ok, eq, loadSrc, loadModule } = require('./harness');
+const { test, ok, eq, loadSrc } = require('./harness');
 const cfg = require('../build/telemetry.config.js');
 const C = require('../app/listen-core.js');
 
-const DEPLOYED = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'supabase/functions/bt-ingest/events.gen.json'), 'utf8')).events.asr_fail;
-const DEPLOYED_KEYS = Object.keys(DEPLOYED);
+const SCHEMA = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'supabase/functions/bt-ingest/events.gen.json'), 'utf8')).events.asr_fail;
+const SCHEMA_KEYS = Object.keys(SCHEMA);
+const ID_RE = /^[a-z0-9_-]{1,32}$/;
 
 function names(tracked, n) { return tracked.filter((e) => e[0] === n); }
 
@@ -237,29 +238,83 @@ function captureFail(code) {
   }).then(() => b);
 }
 
-test('BEL-273 采集失败：两个不同 native code/domain 都穿过到会话读数', async () => {
-  const a = await captureFail('NSOSStatusErrorDomain:-10851');
-  eq(a.A._debug().asrNativeCode, 'NSOSStatusErrorDomain:-10851');
-  const b = await captureFail('AVAudioEngine:converter');
-  eq(b.A._debug().asrNativeCode, 'AVAudioEngine:converter');
-  ok(a.A._debug().asrNativeCode !== b.A._debug().asrNativeCode, '两个原因必须可区分');
+async function failAfter(state, opts) {
+  const o = opts || {};
+  const b = boot();
+  b.A.wire();
+  b.captured.native({ type: 'mic-perm', state: 'granted', kind: 'mic' });
+  b.A.open('conv');
+  await b.clk.runTo(0);
+  b.A.pttToggle('other');
+  await b.clk.runTo(0);
+  b.captured.h.onState('granted', '', 'mic');
+  await b.clk.runTo(o.ms || 0);
+  b.captured.h.onState(state, o.reason || '', 'mic', o.code || '');
+  await b.clk.runTo(0);
+  return b;
+}
+
+test('BEL-273 native_code 归一映射：五个 domain 前缀 + 权限/中断/未知', () => {
+  const { A } = boot();
+  const norm = A._debug().normalizeNativeCode;
+  eq(norm('AVFoundationErrorDomain:561017449'), 'avf_561017449');
+  eq(norm('NSOSStatusErrorDomain:-10851'), 'os_10851');
+  eq(norm('AVAudioSession:561017449'), 'session_561017449');
+  eq(norm('AVAudioEngine:converter'), 'engine_converter');
+  eq(norm('NSURLErrorDomain:-1009'), 'url_1009');
+  eq(norm('denied'), 'denied');
+  eq(norm('interrupted'), 'interrupted');
+  eq(norm('SFSpeechErrorDomain:11'), 'other', '未知 domain 只分类，不带原文');
+  eq(norm('Error Domain=SFSpeechErrorDomain Code=11 "Too many allocated locales"'), '',
+    '老壳 NSError 长文不归一（也不缓存）');
+  for (const v of ['avf_561017449', 'os_10851', 'session_561017449', 'engine_converter',
+    'url_1009', 'denied', 'interrupted', 'other']) {
+    ok(ID_RE.test(v), v + ' 不是契约短码');
+  }
 });
 
-test('BEL-273 采集失败：asr_fail 仍是部署白名单子集，native_code 不混入事件', async () => {
-  // 先钉住契约缺口本身：部署的 asr_fail 没有 native_code（也冻结了 schema）。
-  ok(DEPLOYED_KEYS.indexOf('native_code') < 0, '如果白名单已加 native_code，本测试与 RESULT 的契约缺口说明要一起改');
-  eq(DEPLOYED_KEYS.sort().join(','), Object.keys(cfg.EVENTS.asr_fail).sort().join(','),
-    '仓库白名单与部署白名单必须一致，避免本地自嗨');
+test('BEL-273 采集失败：两个 domain/code 归一成不同短码并进 asr_fail', async () => {
+  const a = await captureFail('NSOSStatusErrorDomain:-10851');
+  eq(a.A._debug().asrNativeCode, 'os_10851');
+  const fa = names(a.tracked, 'asr_fail')[0][1];
+  eq(fa.fail_reason, 'capture');
+  eq(fa.native_code, 'os_10851');
+
+  const b = await captureFail('AVFoundationErrorDomain:561017449');
+  eq(b.A._debug().asrNativeCode, 'avf_561017449');
+  const fb = names(b.tracked, 'asr_fail')[0][1];
+  eq(fb.fail_reason, 'capture');
+  eq(fb.native_code, 'avf_561017449');
+  ok(fa.native_code !== fb.native_code, '两个原因必须可区分');
+});
+
+test('BEL-273 采集失败：asr_fail props 是生成白名单子集，native_code 是 id 短码', async () => {
+  eq(SCHEMA_KEYS.sort().join(','), Object.keys(cfg.EVENTS.asr_fail).sort().join(','),
+    'repo 注册表与 events.gen.json 必须一致');
+  eq(SCHEMA.native_code, 'id', 'asr_fail.native_code 必须是 id 型');
+  eq(cfg.EVENTS.asr_fail.native_code, 'id');
 
   const b = await captureFail('NSOSStatusErrorDomain:-10851');
   const fails = names(b.tracked, 'asr_fail');
   eq(fails.length, 1);
   eq(fails[0][1].fail_reason, 'capture');
+  eq(fails[0][1].native_code, 'os_10851');
   for (const k of Object.keys(fails[0][1])) {
-    ok(DEPLOYED_KEYS.indexOf(k) >= 0, `事件属性 ${k} 不在部署 asr_fail 白名单里`);
+    ok(SCHEMA_KEYS.indexOf(k) >= 0, `事件属性 ${k} 不在生成的 asr_fail 白名单里`);
   }
-  ok(!/Domain|NSError|Too many|SFSpeech|Settings/.test(JSON.stringify(fails[0][1])), '事件里不许有系统长文');
-  ok(!('native_code' in fails[0][1]), '冻结白名单下 native_code 只能走本地读数，不能塞事件');
+  ok(ID_RE.test(fails[0][1].native_code), 'native_code 必须是 /^[a-z0-9_-]{1,32}$/');
+  ok(!/Domain|NSError|Too many|SFSpeech|Settings|Privacy/.test(JSON.stringify(fails[0][1])),
+    '事件里不许有系统长文');
+});
+
+test('BEL-273 采集失败：非法字符被清洗，原始内容不入事件', async () => {
+  const b = await captureFail('AVAudioEngine:Input-Format!$%^&*()');
+  const f = names(b.tracked, 'asr_fail')[0][1];
+  eq(f.fail_reason, 'capture');
+  eq(f.native_code, 'engine_inputformat');
+  ok(ID_RE.test(f.native_code), f.native_code);
+  ok(!/[^a-z0-9_-]/.test(f.native_code), '只能有小写字母/数字/_/-');
+  ok(!/Input|Format|AVAudioEngine/.test(JSON.stringify(f)), '原始 domain/code 文本不进事件');
 });
 
 test('BEL-273 采集失败：老壳长文不落 props，折成 capture；权限/采集中断三码互斥', async () => {
@@ -267,6 +322,7 @@ test('BEL-273 采集失败：老壳长文不落 props，折成 capture；权限/
   eq(b.A._debug().asrNativeCode, '', '不合有界 domain:code 的长文不缓存');
   const f = names(b.tracked, 'asr_fail')[0][1];
   eq(f.fail_reason, 'capture');
+  ok(!('native_code' in f), '没有归一码时不带 native_code');
   ok(!/Domain|SFSpeech|Too many/.test(JSON.stringify(f)));
 
   const map = b.A._debug().asrFailReason;
@@ -275,6 +331,18 @@ test('BEL-273 采集失败：老壳长文不落 props，折成 capture；权限/
   eq(map('locked', ''), 'interrupted');
   eq(new Set([map('denied', ''), map('failed', 'native'), map('locked', '')]).size, 3,
     'permission / capture / interrupted 必须是三个不同的统计值');
+});
+
+test('BEL-273 非采集失败不带 native_code：permission / interrupted', async () => {
+  const denied = await failAfter('denied', {});
+  const pf = names(denied.tracked, 'asr_fail')[0][1];
+  eq(pf.fail_reason, 'permission');
+  ok(!('native_code' in pf), 'permission 失败不能带 native_code');
+
+  const interrupted = await failAfter('interrupted', { ms: 3500 });
+  const intf = names(interrupted.tracked, 'asr_fail')[0][1];
+  eq(intf.fail_reason, 'interrupted');
+  ok(!('native_code' in intf), 'interrupted 失败不能带 native_code');
 });
 
 test('BEL-273 原生协议：设置深链与 native_code 键都在桥的协议里', () => {
