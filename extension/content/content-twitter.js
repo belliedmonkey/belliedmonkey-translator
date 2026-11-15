@@ -247,7 +247,8 @@ var TwitterTranslator = (() => {
     textWidth,
     translate: (text, s) => TranslationAPI.translate(
       text, s.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
-      TranslationAPI.resolveProvider(s.provider), s.apiKey || '', s.apiBaseUrl || '', s.apiModel || ''),
+      TranslationAPI.resolveProvider(s.provider), s.apiKey || '', s.apiBaseUrl || '', s.apiModel || '',
+      { surface: 'web_caption' }),
     showButton: () => !TranslationCore.isMobileLayout(), // mobile: page FAB drives it
     syncNative,
     srtName: () => document.title,
