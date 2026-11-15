@@ -1,13 +1,14 @@
 #!/usr/bin/env node
-// verify-content-menu.js — PR8a 懒加载菜单的行为冒烟（真 Chrome，本地门，不进 CI）。
+// verify-content-menu.js — BEL-277 菜单的行为冒烟（真 Chrome，本地门，不进 CI）。
 //
 // 验三件事，判据全部是「DOM/异常」不是「没报错」：
 // ① FAB 的 SVG 经 createElementNS 落在真页面里：#mt-fab svg 存在，且
 //    .mt-fab-off / .mt-fab-on 两组都在（test:layout fabStates 的前置事实）；
-// ② 内容脚本 isolated world 里 dynamic import(content/sub-menu.bundle.js) 真的
-//    能成 —— Firefox/Safari 的动态 import 是否可用是 PR8b 矩阵要回答的问题，
-//    这道门先把 Chrome 这条基线钉住：哪天它红了，说明回退开关该拨了；
-// ③ host.open()/close() 画出又摘掉菜单容器：行数、行文本、关闭后无残留。
+// ② isolated world 里 SubtitleAdapter._openMenu 可用：静态 host 优先、DOM 回退
+//    也能画（静态 bundle 的渲染由 test/bel277-submenu.test.js 覆盖）；
+// ③ 菜单容器行数/勾号/关闭后无残留。
+//
+// 真 YouTube/X 站点 E2E 需要登录/网络与真实视频，见 RESULT.md 的 pending 步骤。
 //
 // 用法：node scripts/verify-content-menu.js   （先 node build.js 出 dist/）
 'use strict';
@@ -94,12 +95,11 @@ async function main() {
         '逐个探测 __mtMainLoaded 全部落空 —— 监听时序或内容脚本没跑）');
     }
 
-    // isolated world 里动态 import + 开/关菜单。
+    // isolated world 里静态 host 优先 / DOM 回退 + 开/关菜单。
     const probe = await cdp.send('Runtime.evaluate', {
       expression: `(async () => {
-        const m = await import(chrome.runtime.getURL('content/sub-menu.bundle.js'));
-        const host = m.default;
-        if (!host || typeof host.open !== 'function') throw new Error('bundle has no default host');
+        const A = window.SubtitleAdapter;
+        if (!A || typeof A._openMenu !== 'function') throw new Error('SubtitleAdapter._openMenu missing');
         const btn = document.createElement('button');
         btn.id = 'probe-btn';
         document.body.appendChild(btn);
@@ -109,16 +109,23 @@ async function main() {
           { kind: 'head', label: '标题乙' },
           { kind: 'row', label: '行丙', onClick: () => {} },
         ];
-        host.open({ id: 'probe-menu', btn, rows, closeMenu: () => host.close() });
+        // ① 没有全局 host（或条目没注入的本页面）⇒ DOM 回退必须开。
+        const via = A._openMenu({ id: 'probe-menu', btn, rows, closeMenu: () => document.getElementById('probe-menu')?.remove() });
         const menu = document.getElementById('probe-menu');
         const out = {
+          via,
           opened: !!menu,
           rows: menu ? menu.children.length : 0,
-          text: menu ? menu.textContent : '',
           tick: menu ? !!Array.from(menu.querySelectorAll('span')).find((s) => s.textContent === '✓') : false,
         };
-        host.close();
-        out.closed = !document.getElementById('probe-menu');
+        document.getElementById('probe-menu')?.remove();
+        // ② 有全局 host ⇒ 必须走 host，不再画回退。
+        let hostHit = 0;
+        window.MTSubMenuBundle = { open() { hostHit += 1; }, close() {} };
+        out.host = A._openMenu({ id: 'probe-menu-2', btn, rows, closeMenu() {} });
+        out.hostHit = hostHit;
+        delete window.MTSubMenuBundle;
+        out.closed = !document.getElementById('probe-menu-2');
         return JSON.stringify(out);
       })()`,
       contextId: extContextId,
@@ -126,14 +133,13 @@ async function main() {
       returnByValue: true,
     }, sid);
     if (probe.exceptionDetails) {
-      throw new Error(`isolated world 动态 import/开菜单失败：${probe.exceptionDetails.exception?.description || probe.exceptionDetails.text}` +
-        '\n→ Chrome 都不过 ⇒ 检查 bundle/web_accessible；Firefox/Safari 不过属矩阵问题（PR8b）');
+      throw new Error(`isolated world 菜单探测失败：${probe.exceptionDetails.exception?.description || probe.exceptionDetails.text}`);
     }
     const v = JSON.parse(probe.result.value);
-    if (!v.opened || v.rows !== 4 || !v.tick || !v.closed) {
-      throw new Error(`菜单行为不符：${JSON.stringify(v)}（期望 opened/rows=4/tick/closed 全真）`);
+    if (v.via !== 'fallback' || !v.opened || v.rows !== 4 || !v.tick || v.host !== 'bundle' || v.hostHit !== 1 || !v.closed) {
+      throw new Error(`菜单行为不符：${JSON.stringify(v)}（期望 fallback / 4 行 / 勾号 / host 命中 / 关闭无残留）`);
     }
-    console.log(`② isolated world 动态 import OK；③ 菜单开/关 OK（${v.rows} 个子节点、勾号在、关闭无残留）`);
+    console.log(`② host 优先 + DOM 回退 OK；③ 菜单开/关 OK（${v.rows} 个子节点、勾号在、关闭无残留）`);
     console.log('PASS: content-menu smoke');
   } finally {
     cdp.close();

@@ -945,8 +945,20 @@ App 原生那一步（`apple-result` 带 `error`）经 `LearnAuth.noteAuthFail('
 - **Client module** `extension/learn/telemetry.js` (`MTTelemetry`). `track(name, props)`
   only enqueues (key `tm:queue` in `chrome.storage.local`, cap 200, drop oldest).
   `flush()` runs when the queue reaches 10, or 60 s have passed, or any extension page
-  opens; `navigator.sendBeacon` first, `fetch(keepalive)` as fallback. The host app runs
-  the same bytes via `Script.js`.
+  opens. The host app runs the same bytes via `Script.js`.
+- **BEL-277 transport split**: on an **http/https page** the content script cannot rely
+  on `fetch` — the visited page's CSP (`connect-src`) can block it. It sends
+  `{ action:'telemetrySend', url, init }` to the service worker instead; the SW fetches
+  the ingest endpoint. The SW only accepts the build's own ingest URL (origin +
+  pathname exactly equal to `telemetry-endpoints.json`, generated next to
+  `providers.gen.js`) and a body ≤ 64 KB; every other URL is rejected. **Extension
+  pages and the App keep the direct `fetch(keepalive)` path** (their fetches are not
+  governed by a page CSP).
+- **Queue + drops**: a failed SW round trip (unavailable / timeout / non-2xx) returns
+  `ok:false`, and `flush()` puts the batch back at the queue tail. Queues over 200 drop
+  the oldest rows and increment the local storage counter `mtTelemetryDropped` plus
+  `console.warn('[mt] telemetry dropped', n)` — a drop is never silent. The counter is
+  local storage, not a telemetry event.
 - **Endpoint** global: `MT_BACKEND.url + '/functions/v1/bt-ingest'`. China: `MT_BACKEND.china.url + '/functions/v1/bt-ingest'` (in-country; never `*.supabase.co`). `build.js` emits `window.MT_TELEMETRY = { url, spec }` into `providers.gen.js` (which content scripts already
   load). China is `null` only while `china.ready` is false. **No anon key**: the function is deployed `--no-verify-jwt`, so content scripts
   never load `backend.config.js` — `build.js`'s standing rule is that the anon key must
