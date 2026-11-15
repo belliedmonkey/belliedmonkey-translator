@@ -83,8 +83,9 @@ jobs:
       # The runner has no backend secrets, so every command opts into the
       # CI-only --ci-package-smoke flag. It forces SKIP_ZIP and writes
       # .not-shippable into dist and dist-app*, so nothing here is shippable.
-      # The flag is an exact argv token and is refused unless CI is truthy;
-      # releaseReason() itself still refuses CI. GitHub Actions sets CI=true.
+      # The flag is an exact argv token and is refused unless CI is truthy.
+      # releaseReason() still refuses a plain CI build; the raw-exact
+      # ci-package-smoke context is its only allowance. GitHub Actions sets CI=true.
       - run: ${{ matrix.cmd }}
 
 # Not covered here, on purpose:

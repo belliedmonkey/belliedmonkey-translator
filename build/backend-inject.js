@@ -49,9 +49,9 @@ function envTruthy(v) {
 }
 
 function releaseReason(env = process.env) {
-  if (envTruthy(env.CI)) return `CI=${env.CI}`;
   if (env.MT_RELEASE === '1') return 'MT_RELEASE=1';
-  const ctx = String(env.MT_BUILD_CONTEXT || '').trim();
+  const rawCtx = String(env.MT_BUILD_CONTEXT || '');
+  const ctx = rawCtx.trim();
   if (/^(release|store|upload|publish|tf|prod|production)\b/i.test(ctx)) {
     return `MT_BUILD_CONTEXT=${ctx}`;
   }
@@ -59,6 +59,19 @@ function releaseReason(env = process.env) {
   if (/^(release|publish|upload)/i.test(lifecycle)) {
     return `npm_lifecycle_event=${lifecycle}`;
   }
+  // CI package smoke: the hatch forces SKIP_ZIP and writes .not-shippable into
+  // both dist and dist-app*, so this path cannot produce a shippable artifact.
+  // The CI job exists to run the manifest and compliance greps, and it throws
+  // the zip away; refusing it here only made the build gate fail itself.
+  // Every release signal above still wins, and a plain CI=true without the
+  // exact context string is still refused below.
+  //
+  // BEL-692: this allowance compares the RAW env value — deliberately no trim.
+  // ` ci-package-smoke` / `ci-package-smoke ` / case variants / suffixed strings
+  // are not the CI job's context and must keep failing closed. The release-signal
+  // regexes above still use the trimmed `ctx`; only this escape hatch is exact.
+  if (rawCtx === 'ci-package-smoke') return null;
+  if (envTruthy(env.CI)) return `CI=${env.CI}`;
   return null;
 }
 
