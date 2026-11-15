@@ -258,15 +258,23 @@ Rules:
     // BEL-224：只给自家中继补匿名 install_id（`relayHeaders` 对 vendor URL 返回 {}），
     // 且必须在选路之前 —— 直连与后台代理拿到的是同一份 opts，两条路都覆盖。
     // 遥测不存在 / 关掉 / 取值失败都静默跳过：归因绝不能挡住翻译。
+    // BEL-267：调用方若知道这次的真实功能面，就放在 opts.surface 里传进来；页面翻译
+    // 没有枚举面（relay 的 SURFACES 不含 'page'），所以这里不猜，缺了就省略。
     if (typeof MTTelemetry !== 'undefined' && MTTelemetry && MTTelemetry.relayHeaders) {
       try {
-        const extra = await MTTelemetry.relayHeaders(url);
+        const extra = await MTTelemetry.relayHeaders(url, (opts && opts.surface) || '');
         if (extra && Object.keys(extra).length) {
           opts = Object.assign({}, opts, {
             headers: Object.assign({}, (opts && opts.headers) || {}, extra),
           });
         }
       } catch (_) {}
+    }
+    // surface 只是给 relayHeaders 的输入，不是 fetch 的选项：摘掉再选路，免得它被
+    // 直连 fetch 当成未知 RequestInit 字段、或被原样塞进后台代理的消息里。
+    if (opts && Object.prototype.hasOwnProperty.call(opts, 'surface')) {
+      opts = Object.assign({}, opts);
+      delete opts.surface;
     }
     let resp;
     let usedRoute = null;
@@ -401,9 +409,13 @@ Rules:
   }
 
   async function callChatAPI(o) {
-    const resp = await apiFetch(o.url, {
-      method: 'POST', headers: o.headers, body: JSON.stringify(o.body)
-    }, o.label, o.diag, o.timeoutMs);
+    const init = {
+      method: 'POST', headers: o.headers, body: JSON.stringify(o.body),
+    };
+    // BEL-267：surface 只给 relayHeaders() 读（中继记账的 props.surface），不是
+    // RequestInit 的一部分 —— apiFetchInner 在补完头之后会把它摘掉再发请求。
+    if (o.surface) init.surface = o.surface;
+    const resp = await apiFetch(o.url, init, o.label, o.diag, o.timeoutMs);
     // 正文按 text 读再 parse，而不是 resp.json()：apiFetch 的错误分支也这么读，两边
     // 保持一致，且畸形正文抛的是我们能定位的 SyntaxError 而不是 fetch 内部的。
     const parsed = JSON.parse(await resp.text());
@@ -467,7 +479,7 @@ Rules:
 
   // The endpoint is used EXACTLY as stored — no path is appended, ever, under any
   // condition. See content/wire-format.js.
-  function callProvider(provider, text, targetLang, apiKey, baseUrl, model, diag) {
+  function callProvider(provider, text, targetLang, apiKey, baseUrl, model, diag, surface) {
     const p = providerById(provider);
     // 认识的 google 引擎才走 google。**不认识的 id 一律具名报错,绝不静默兜底。**
     //
@@ -519,7 +531,7 @@ Rules:
     // 没有这两行的话，「我们发了什么」又只能靠读源码或抓包去猜。
     if (diag) { diag.paramRow = req.caps.id; diag.bodyKeys = Object.keys(req.body); }
     return callChatAPI({ diag, url, headers: req.headers, body: req.body,
-      label: p.label || provider, extract: req.extract });
+      label: p.label || provider, extract: req.extract, surface: surface || '' });
   }
 
   // ─── Cache helpers ────────────────────────────────────────────────────
@@ -622,7 +634,8 @@ Rules:
       let retries = 0;
       while (retries < MAX_RETRIES) {
         try {
-          return await callProvider(provider, text, targetLang, apiKey, baseUrl, model, opts && opts.diag);
+          return await callProvider(provider, text, targetLang, apiKey, baseUrl, model, opts && opts.diag,
+            (opts && opts.surface) || '');
         } catch (err) {
           retries++;
           if (retries >= MAX_RETRIES) {
@@ -694,7 +707,7 @@ Rules:
       if (req.error) { const e = new Error(req.error); e.status = 0; e.code = req.error; e.retryable = false; throw e; }
       const diag = opts && opts.diag;
       if (diag) { diag.url = url; diag.paramRow = req.caps.id; diag.bodyKeys = Object.keys(req.body); }
-      return callChatAPI({ diag, url, headers: req.headers, body: req.body, label: p.label || provider, extract: req.extract });
+      return callChatAPI({ diag, url, headers: req.headers, body: req.body, label: p.label || provider, extract: req.extract, surface: (opts && opts.surface) || '' });
     });
   }
 
@@ -733,7 +746,7 @@ Rules:
       if (req.error) { const e = new Error(req.error); e.status = 0; e.code = req.error; e.retryable = false; throw e; }
       const diag = o.diag;
       if (diag) { diag.url = url; diag.paramRow = req.caps.id; diag.bodyKeys = Object.keys(req.body); }
-      return callChatAPI({ diag, url, headers: req.headers, body: req.body, label: p.label || provider, extract: req.extract, timeoutMs: o.timeoutMs });
+      return callChatAPI({ diag, url, headers: req.headers, body: req.body, label: p.label || provider, extract: req.extract, timeoutMs: o.timeoutMs, surface: o.surface || '' });
     });
   }
 

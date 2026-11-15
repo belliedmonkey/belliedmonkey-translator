@@ -11,6 +11,7 @@ const { loadModule, loadSrc, describe, test, ok, eq } = require('./harness');
 
 const REGISTRY = require('../build/tts.config.js');
 const WireFormat = require('../extension/content/wire-format.js');
+const { makeTelemetry, expectAttribution, deriveGrantEvent } = require('./attrib-headers-fixture');
 
 function voice(name, lang, extra) {
   return Object.assign({ name, lang, voiceURI: name + '|' + lang, default: false }, extra || {});
@@ -428,6 +429,29 @@ describe('LearnTTS — speech-compat transport & cache', () => {
     TTS.configure(cfg);                                    // vendor 端点（127.0.0.1 自建）
     await TTS.getAudio('Hello again', 'en');
     ok(!('x-mt-install-id' in calls.fetch[1].init.headers), 'vendor 请求绝不能带 install_id');
+  });
+
+  // BEL-267：真实 MTTelemetry 跑一遍。朗读当前没有调用方知道枚举 surface，所以
+  // 默认省略；只有 cfg.surface 被明确设成枚举值时才带（telemetry 负责再收窄一次）。
+  test('BEL-267：relay 带齐归因头；tts 默认省略 surface，cfg.surface 合法时才带', async () => {
+    const fx = makeTelemetry();
+    const relayCfg = Object.assign({}, cfg, {
+      baseUrl: 'https://backend.example/functions/v1/bt-relay/audio/speech',
+    });
+    const { TTS, calls } = setup({ MTTelemetry: fx.T });
+    TTS.configure(relayCfg);
+    await TTS.getAudio('Attribution one', 'en');
+    const plain = calls.fetch[0].init.headers;
+    expectAttribution(plain, fx.headers);
+    const plainEvent = deriveGrantEvent(plain, 'tts');
+    eq(plainEvent.v, '1.23.4'); eq(plainEvent.host, 'safari');
+    ok(!Object.prototype.hasOwnProperty.call(plainEvent.props, 'surface'));
+
+    TTS.configure(Object.assign({}, relayCfg, { surface: 'listen' }));
+    await TTS.getAudio('Attribution two', 'en');
+    const withSurface = calls.fetch[1].init.headers;
+    expectAttribution(withSurface, fx.headers, 'listen');
+    eq(deriveGrantEvent(withSurface, 'tts').props.surface, 'listen');
   });
 
   test('尾斜杠原样保留 —— 我们既不补路径，也不替用户裁字符', async () => {

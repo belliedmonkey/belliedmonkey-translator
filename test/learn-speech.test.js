@@ -7,6 +7,7 @@
 
 const { loadModule, describe, test, ok, eq } = require('./harness');
 const WireFormat = require('../extension/content/wire-format.js');
+const { makeTelemetry, expectAttribution, deriveGrantEvent } = require('./attrib-headers-fixture');
 
 const ENGINES = [
   { id: 'local', type: 'transcribe-compat', label: 'L', defaultEndpoint: null,
@@ -185,6 +186,22 @@ describe('LearnSpeech — transcribe: the multipart shape and named failures', (
     S.configure({ engineId: 'cloud', apiKey: 'sk-1', baseUrl: '' });   // vendor 端点（注册表默认）
     await S.transcribe(blob(), 'm4a', 'en');
     ok(!('x-mt-install-id' in calls.fetch[1].init.headers), 'vendor 请求绝不能带 install_id');
+  });
+
+  // BEL-267：ASR 入口就是 listen 面。真实 MTTelemetry，断言转写请求上真正发出的头。
+  test('BEL-267：relay 转写带齐归因头，surface=listen（真实值，不猜）', async () => {
+    const fx = makeTelemetry();
+    const { S, calls } = setup({ MTTelemetry: fx.T });
+    S.configure({
+      engineId: 'cloud', apiKey: 'sk-1',
+      baseUrl: 'https://backend.example/functions/v1/bt-relay/audio/transcriptions',
+    });
+    await S.transcribe(blob(), 'm4a', 'en');
+    const headers = calls.fetch[0].init.headers;
+    expectAttribution(headers, fx.headers, 'listen');
+    eq(fx.relayCalls[0].surface, 'listen', '调用点必须把 listen 传给 relayHeaders');
+    const event = deriveGrantEvent(headers, 'stt');
+    eq(event.v, '1.23.4'); eq(event.host, 'safari'); eq(event.props.surface, 'listen');
   });
 
   test('尾斜杠原样保留 —— 地址是用户的陈述，我们不裁也不补', async () => {

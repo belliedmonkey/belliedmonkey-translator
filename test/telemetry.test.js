@@ -42,7 +42,7 @@ function load({ china = false, sends = [], flavor = null, telemetry = undefined,
 }
 const q = (store, T) => store[T.KEYS.queue] || [];
 
-describe('MTTelemetry — relayHeaders 只给自家中继带 install_id（BEL-224）', () => {
+describe('MTTelemetry — relayHeaders 只给自家中继带归因头（BEL-224/267）', () => {
   const RELAY = 'https://backend.example/functions/v1/bt-relay/chat/completions';
   test('/bt-relay/... ⇒ x-mt-install-id，值就是 installId() 的匿名 uuid', async () => {
     const { T } = load();
@@ -81,6 +81,43 @@ describe('MTTelemetry — relayHeaders 只给自家中继带 install_id（BEL-22
     // 没有可用 crypto：installId 直接失败 ⇒ 仍返回 {}，且不成为未处理的 rejection。
     const broken = load({ crypto: {} });
     deepEq(await broken.T.relayHeaders(RELAY), {});
+  });
+
+  // BEL-267：relay 的 attributionOf() 从同一组头里读 v/host/flavor/device/ui，
+  // emitGrantEvent() 缺 v 会落 '0.0.0'、host 非法落空串。客户端把已有 helper 的
+  // 值原样带上，键名逐字对齐 relay —— 这里断言的是这六个头的**值**。
+  test('中继请求带齐 v/host/flavor/device/ui + install_id，值是 helper 的输出', async () => {
+    const { T } = load();
+    const { id } = await T.installId();
+    const h = await T.relayHeaders(RELAY);
+    eq(h['x-mt-install-id'], id);
+    eq(h['x-mt-v'], '9.9.9');
+    eq(h['x-mt-host'], 'safari');
+    eq(h['x-mt-flavor'], 'global');
+    eq(h['x-mt-device'], 'iPhone');
+    eq(h['x-mt-ui'], 'zh');
+    eq(Object.keys(h).sort().join(','), 'x-mt-device,x-mt-flavor,x-mt-host,x-mt-install-id,x-mt-ui,x-mt-v',
+      '没传 surface 时不能多出 x-mt-surface，也不能少任何归因头');
+  });
+
+  test('surface 只认 relay 的五个枚举值；空/未知/大小写不符 ⇒ 整个键省略', async () => {
+    const { T } = load();
+    for (const s of ['listen', 'live_caption', 'quick', 'doc', 'web_caption']) {
+      eq((await T.relayHeaders(RELAY, s))['x-mt-surface'], s, s);
+    }
+    for (const s of ['', 'page', 'unknown', 'LISTEN', 'listen ', null, undefined, 0, {}]) {
+      const h = await T.relayHeaders(RELAY, s);
+      ok(!Object.prototype.hasOwnProperty.call(h, 'x-mt-surface'),
+        '非法 surface 不该发：' + String(s));
+      // 归因头仍在 —— 省略的只是 surface，不是整组。
+      eq(h['x-mt-v'], '9.9.9');
+    }
+  });
+
+  test('vendor URL 带 surface 也仍是 {} —— 枚举校验不绕过中继边界', async () => {
+    const { T } = load();
+    await T.installId();
+    deepEq(await T.relayHeaders('https://api.openai.com/v1/chat/completions', 'web_caption'), {});
   });
 });
 

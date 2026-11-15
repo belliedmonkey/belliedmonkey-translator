@@ -153,10 +153,12 @@ var LearnSpeech = (() => {
     // that separates a wrong address from an unreachable one, and no error text can
     // supply it.
     // BEL-224：只给自家中继补匿名 install_id（vendor URL 返回 {}，headers 原样不动）。
+    // BEL-267：这条入口就是听译（ASR）的 listen 面，传真实值而不是猜；relayHeaders()
+    // 只接受枚举内的 surface，其余整个省略。
     // 归因失败 / 遥测关掉都静默跳过 —— 不能因为少一个 header 让转写失败。
     if (typeof MTTelemetry !== 'undefined' && MTTelemetry && MTTelemetry.relayHeaders) {
       try {
-        const extra = await MTTelemetry.relayHeaders(url);
+        const extra = await MTTelemetry.relayHeaders(url, 'listen');
         if (extra && Object.keys(extra).length) headers = Object.assign({}, headers, extra);
       } catch (_) {}
     }

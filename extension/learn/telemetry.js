@@ -299,23 +299,43 @@ var MTTelemetry = (() => {
     return false;
   }
 
-  // ── 中继归因：install_id 只随自家 relay 请求走 header（BEL-224）──────────────
+  // ── 中继归因：install_id + 信封字段随自家 relay 请求走 header（BEL-224/267）──
   // 病：2026-11-14 的 v51 窗口里 grant_debited 0 条、106 条 grant_event_skipped
   // grant_debited no_install_id —— relay 的出账请求上没有 install_id，扣费成功也
   // 认不出是谁。relay 的 attributionOf() 已经认 header `x-mt-install-id`（也认
   // body / multipart），且按 UUID_RE 校验，所以客户端只需把同一个匿名 id 带上。
+  //
+  // BEL-267：只带 install_id 还不够。relay 的 emitGrantEvent() 从同一组头里取
+  // v/host/surface/flavor/device/ui，缺了就落 0.0.0 / 空串 / 省略 surface。这里
+  // 用**本文件已有的 helper**补齐，键名逐字对着 attributionOf()，不加新字段：
+  //   x-mt-v ← version() · x-mt-host ← host() · x-mt-flavor ← buildFlavor()
+  //   x-mt-device ← device() · x-mt-ui ← ui() · x-mt-surface ← 调用点已知的枚举值
   //
   // 三条边界：
   //   ① 只对自家中继（URL 命中 `/bt-relay`）发；vendor 请求一个字节都不加。
   //   ② 只看 enabled()：用户关掉遥测就不发（relay 记 skip，隐私优先）。
   //   ③ 任何异常都吞掉返回 {}：归因失败绝不能挡住翻译、朗读、转写、解析。
   // 放 header 而不是 URL / body：不进 Referer / 访问日志，且 body 形状不用为它改。
-  async function relayHeaders(url) {
+  const RELAY_SURFACES = ['listen', 'live_caption', 'quick', 'doc', 'web_caption'];
+  async function relayHeaders(url, surface) {
     try {
       if (!/\/bt-relay(?:\/|$)/i.test(String(url || ''))) return {};
       if (!(await enabled())) return {};
       const { id } = await installId();
-      return id ? { 'x-mt-install-id': id } : {};
+      if (!id) return {};
+      const out = {
+        'x-mt-install-id': id,
+        'x-mt-v': version(),
+        'x-mt-host': host(),
+        'x-mt-flavor': buildFlavor(),
+        'x-mt-device': device(),
+        'x-mt-ui': ui(),
+      };
+      // surface 只在**确实是 relay 枚举之一**时才带。空串 / 'page' / 拼错的值整个
+      // 键省略，绝不发明：relay 的 grantEventProps() 对非法 surface 也是整键省略，
+      // 两边同一规则；用量行则会原样记下客户端给的值，所以更不能送猜测。
+      if (RELAY_SURFACES.indexOf(surface) >= 0) out['x-mt-surface'] = surface;
+      return out;
     } catch (_) { return {}; }
   }
 

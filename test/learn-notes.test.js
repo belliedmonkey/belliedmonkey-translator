@@ -8,6 +8,7 @@
 
 const { loadModule, describe, test, ok, eq } = require('./harness');
 const WireFormat = require('../extension/content/wire-format.js');
+const { makeTelemetry, expectAttribution, deriveGrantEvent } = require('./attrib-headers-fixture');
 
 const PROVIDERS = [
   { id: 'google', type: 'google', label: 'G' },
@@ -135,6 +136,23 @@ describe('LearnNotes — 生词只取自原句，缓存带提示词版本 (§9.2
     N.configure({ provider: 'chat1', apiKey: 'k', baseUrl: '' });      // vendor 端点（注册表默认）
     await N.get(Object.assign({}, ITEM, { id: 'card2' }), 'zh-CN');
     ok(!('x-mt-install-id' in calls.fetch[1].headers), 'vendor 请求绝不能带 install_id');
+  });
+
+  // BEL-267：句子解析属于文档/阅读（doc）上下文。真实 MTTelemetry，断言解析请求上
+  // 真正发出的头，并确认调用点传的是 'doc' 而不是一个猜出来的面。
+  test('BEL-267：relay 解析带齐归因头，surface=doc（真实值，不猜）', async () => {
+    const fx = makeTelemetry();
+    const { N, calls } = setup({ MTTelemetry: fx.T });
+    N.configure({
+      provider: 'chat1', apiKey: 'k',
+      baseUrl: 'https://backend.example/functions/v1/bt-relay/chat/completions',
+    });
+    await N.get(ITEM, 'zh-CN');
+    const headers = calls.fetch[0].headers;
+    expectAttribution(headers, fx.headers, 'doc');
+    eq(fx.relayCalls[0].surface, 'doc', '调用点必须把 doc 传给 relayHeaders');
+    const event = deriveGrantEvent(headers, 'chat');
+    eq(event.v, '1.23.4'); eq(event.host, 'safari'); eq(event.props.surface, 'doc');
   });
 
   test('cached() hides stale-version notes from the auto-render path', async () => {
