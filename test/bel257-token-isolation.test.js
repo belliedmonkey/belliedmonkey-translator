@@ -231,7 +231,7 @@ describe('BEL-257 — background 纵深：bmg_ 不许被转发到非中继 host'
 describe('BEL-257 — 旧配置 owner 迁移', () => {
   const G = loadSrc('src/shared/grant.js', 'LearnGrant').LearnGrant;
 
-  test('bmg_ → grant id；用户 key → 当前 provider/engine；不删 key', () => {
+  test('bmg_ → grant id；非 bmg_ 的用户 key 一律空 owner；不删 key', () => {
     const p = G.migrateOwners({
       apiKey: GRANT, provider: 'deepseek',
       ttsApiKey: USER_KEY, ttsEngine: 'openai_speech',
@@ -240,10 +240,46 @@ describe('BEL-257 — 旧配置 owner 迁移', () => {
     });
     deepEq(p, {
       apiKeyOwner: 'grant',
-      ttsKeyOwner: 'openai_speech',
+      ttsKeyOwner: '',
       sttKeyOwner: 'grant_stt',
-      notesKeyOwner: 'openai',
+      notesKeyOwner: '',
     });
+  });
+
+  test('非 bmg_ + provider/engine=grant → 空 owner（不拿引擎名当厂商）', () => {
+    const p = G.migrateOwners({
+      apiKey: USER_KEY, provider: 'grant',
+      ttsApiKey: USER_KEY, ttsEngine: 'grant_speech',
+      sttApiKey: USER_KEY, sttEngine: 'grant_stt',
+      notesApiKey: USER_KEY, notesProvider: 'grant',
+    });
+    deepEq(p, {
+      apiKeyOwner: '', ttsKeyOwner: '', sttKeyOwner: '', notesKeyOwner: '',
+    });
+  });
+
+  test('bmg_ + 任意引擎 → grant / grant_speech / grant_stt', () => {
+    const p = G.migrateOwners({
+      apiKey: GRANT, provider: 'openai',
+      ttsApiKey: GRANT, ttsEngine: 'openai_speech',
+      sttApiKey: GRANT, sttEngine: 'openai_transcribe',
+      notesApiKey: GRANT, notesProvider: 'deepseek',
+    });
+    deepEq(p, {
+      apiKeyOwner: 'grant',
+      ttsKeyOwner: 'grant_speech',
+      sttKeyOwner: 'grant_stt',
+      notesKeyOwner: 'grant',
+    });
+  });
+
+  test('纠正：非 bmg_ + owner=grant → 清空；bmg_ + owner=grant → 保持', () => {
+    const bad = G.migrateOwners({ apiKey: USER_KEY, apiKeyOwner: 'grant' });
+    eq(bad.apiKeyOwner, '', 'BYOK key 被误写成 grant，必须清空');
+    const good = G.migrateOwners({ apiKey: GRANT, apiKeyOwner: 'grant' });
+    eq(good.apiKeyOwner, undefined, 'bmg_ + grant 不许清');
+    const real = G.migrateOwners({ apiKey: USER_KEY, apiKeyOwner: 'openai' });
+    eq(real.apiKeyOwner, undefined, '真实厂商 owner 不许动');
   });
 
   test('已有 owner 不覆盖；空槽不造归属', () => {
@@ -260,5 +296,102 @@ describe('BEL-257 — 旧配置 owner 迁移', () => {
     eq(out.writes.apiKeyOwner, '');
     eq(out.writes.ttsApiKey, undefined, '用户 key 不许清');
     eq(out.writes.ttsKeyOwner, undefined, '用户 key 的 owner 不许清');
+  });
+});
+
+describe('BEL-257 — 迁移后的空 owner 与 qwencloud 集成', () => {
+  const G = loadSrc('src/shared/grant.js', 'LearnGrant').LearnGrant;
+  const window = loadRegistry();
+  const RS = shapeCtx(window);
+  const qwen = window.MT_PROVIDERS.find((p) => p.id === 'qwencloud');
+  const chat = {
+    url: qwen.defaultEndpoint, model: qwen.defaultModel,
+    system: 's', user: 'u', needsKey: true, providerId: 'qwencloud',
+  };
+
+  test('迁移后 owner 为空 + qwencloud → 不抛 key_owner_mismatch', () => {
+    const p = G.migrateOwners({ apiKey: USER_KEY, provider: 'grant' });
+    eq(p.apiKeyOwner, '', '迁移必须把 owner 留空，不拿 grant 引擎当厂商');
+    const req = RS.build('chat-compat', Object.assign({}, chat, {
+      apiKey: USER_KEY, keyOwner: p.apiKeyOwner,
+    }));
+    eq(req.headers.Authorization, 'Bearer ' + USER_KEY, '空 owner 不判归属，请求正常构造');
+  });
+
+  test('owner=grant + qwencloud → 仍然 key_owner_mismatch（守卫不改）', () => {
+    const e = buildError(RS, 'chat-compat', Object.assign({}, chat, {
+      apiKey: USER_KEY, keyOwner: 'grant',
+    }));
+    ok(e, '必须 throw');
+    eq(e.code, 'key_owner_mismatch');
+    eq(e.retryable, false);
+  });
+});
+
+describe('BEL-257 — App boot 一次性纠正迁移', () => {
+  const APP_SPEC = {
+    vendor: 'qwencloud', vendorLabel: 'QwenCloud', limitUsd: 0.2,
+    claimUrl: 'https://backend.invalid/functions/v1/bt-grant',
+    models: { chat: 'qwen3.7-plus', tts: 'qwen3-tts-flash', stt: 'qwen3-asr-flash' },
+  };
+
+  function makeStorage(seed) {
+    const store = Object.assign({}, seed || {});
+    const writes = [];
+    const pick = (keys) => {
+      const out = {};
+      const arr = Array.isArray(keys) ? keys : (typeof keys === 'string' ? [keys] : Object.keys(keys || {}));
+      for (const k of arr) if (k in store) out[k] = store[k];
+      return out;
+    };
+    const get = (keys, cb) => { const out = pick(keys); if (cb) cb(out); return Promise.resolve(out); };
+    const set = (patch, cb) => { writes.push(Object.assign({}, patch)); Object.assign(store, patch); if (cb) cb(); return Promise.resolve(); };
+    const remove = (keys, cb) => {
+      for (const k of (Array.isArray(keys) ? keys : [keys])) delete store[k];
+      if (cb) cb();
+      return Promise.resolve();
+    };
+    return { store, writes, get, set, remove };
+  }
+
+  function loadAppSettings(seed) {
+    const storage = makeStorage(seed);
+    const LearnGrant = loadSrc('src/shared/grant.js', 'grant', {
+      window: { MT_GRANT: APP_SPEC },
+      document: { createElement: () => ({ style: {}, appendChild() {}, setAttribute() {} }) },
+      chrome: { i18n: { getMessage: () => '' } },
+    }).grant;
+    const ctx = loadSrc('src/app/settings-model.js', 'Settings', {
+      window: {
+        MT_GRANT: APP_SPEC,
+        MT_PROVIDERS: [{ id: 'grant', type: 'chat-compat', needsKey: true, defaultEndpoint: '', defaultModel: '' }],
+        MT_TTS_ENGINES: [], MT_STT_ENGINES: [],
+      },
+      chrome: {
+        i18n: { getUILanguage: () => 'zh-CN', getMessage: () => '' },
+        storage: { local: { get: storage.get, set: storage.set, remove: storage.remove }, onChanged: { addListener() {} } },
+      },
+      navigator: { language: 'zh-CN' },
+      LearnGrant,
+      LearnTTS: { config: {}, configure() {} },
+      EngineState: { needsSetup: () => false, resolve: (p) => String(p || '') },
+      MTTelemetry: { track() {}, once() {} },
+      AppSetupDone: { show: async () => {} },
+      console, URL,
+    });
+    return { Settings: ctx.Settings, store: storage.store, writes: storage.writes };
+  }
+
+  test('ensureDefaults 清 owner、不动 key、写 ownerFix257；第二次是 no-op', async () => {
+    const h = loadAppSettings({ apiKey: USER_KEY, apiKeyOwner: 'grant' });
+    await h.Settings.ensureDefaults();
+    eq(h.store.apiKey, USER_KEY, 'key 一个字节都不许动');
+    eq(h.store.apiKeyOwner, '', 'BYOK key 被误写成 grant，App boot 必须清空');
+    eq(h.store.ownerFix257, true, '一次性标记必须落盘');
+    const first = h.writes.length;
+    eq(first, 1, '纠正与标记一笔落盘');
+    await h.Settings.ensureDefaults();
+    eq(h.writes.length, first, '第二次启动不再写盘');
+    eq(h.store.apiKeyOwner, '', '第二次也不回填错误的 owner');
   });
 });
