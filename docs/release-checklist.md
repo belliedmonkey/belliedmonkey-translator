@@ -278,6 +278,27 @@ node scripts/verify-backend-injected.js <导出的 .app 或 .ipa> --flavor globa
 `anonKey` 不是占位常量。非 0 就**不要上传**。同一道断言也已接在 `amo-publish.js` / `cws-publish.js` /
 `gh-release.js` 的上传之前；它不认 `MT_ALLOW_PLACEHOLDER_BACKEND`。
 
+### 上传 / TestFlight 硬闸（BEL-692，无例外）
+
+任何 `altool` / Organizer / TestFlight 上传前，**必须**先过这道只读闸：
+
+```bash
+node scripts/check-shippable.js
+```
+
+它检查 `dist/`、`dist-app/`、`dist-china/`、`dist-app-china/`、`dist-firefox/` 里的
+`.not-shippable`；任一存在就打印标记文件与原因并非零退出。**归档路径**还要带上 `verify:ios`：
+
+```bash
+node scripts/check-shippable.js --verify-ios <DerivedData> [--flavor china]
+```
+
+第二条会把 `verify:ios` 的非零退出原样传回（包不完整、marker、后台播放声明、悬空符号链接、
+扩展 bundle id 任一失败都算）。`check-shippable` 非 0 时**不得归档、不得上传、也不得用
+Organizer 绕过** —— `docs/status/r5/hostexec5/archive-upload.sh` 已在 archive 前跑一次，并在每次
+`altool --upload-app` 前再跑一次；Mac 与 iOS、global 与 china 都在同一个循环里覆盖。**没有例外**：
+SKIP_ZIP / `MT_SYNC_E2E` / 占位后端构建产出的树只能测、不能发；要发就用正常参数重跑构建。
+
 ### 上传需要凭证 —— 这台机器上一个都没有
 
 `xcrun altool` / `xcodebuild` 上传需要二者之一：
