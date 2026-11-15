@@ -530,7 +530,7 @@ export function grantClaimCode(code) {
   if (raw === 'grant_misconfigured' || raw === 'no_host' || raw === 'no host') return 'misconfigured';
   if (raw === 'signed_out' || raw === 'auth' || raw === '401' || raw === '403') return 'revoked';
   if (raw === 'model_not_allowed' || raw.indexOf('model') === 0) return 'model';
-  if (raw === 'invalid' || raw === 'bad_request' || raw === '400') return 'invalid';
+  if (raw === 'invalid' || raw === 'grant_invalid' || raw === 'bad_request' || raw === '400') return 'invalid';
   if (raw === 'busy' || raw === 'rate_limited' || raw === '429') return 'busy';
   return 'unavailable';
 }
@@ -539,17 +539,28 @@ export function grantClaimCode(code) {
 //   offline / network / timeout                    → network
 //   busy / rate_limited / 429                      → busy
 //   revoked / grant_revoked / signed_out / 401/403 → revoked
-//   server / grant_unavailable / grant_misconfigured / 5xx → server
-//   其余（exhausted / invalid / model）                     → other
+//   server（无具名 error 的 5xx）                    → server
+//   unavailable / grant_unavailable / grant_misconfigured / 其余 → other
+//
+// 2026-11-15（BEL-271）：池子空了（`unavailable` / `grant_unavailable`）原来被并进
+// `server`，于是「池子空了」与「服务器 5xx」在票面上分不开，UI 又把任何
+// `grant_unavailable` 当成池子空了。现在只有**真正的 5xx**（没有具名 error）才是
+// server；池子空了归 other。legacy `code` 七值不变（grantClaimCode 仍是那张表）。
+const GRANT_REASONS = ['network', 'busy', 'server', 'revoked', 'other'];
+
 export function grantClaimReason(err) {
+  const given = String((err && typeof err === 'object' ? err.reason : '') || '').toLowerCase();
+  if (GRANT_REASONS.indexOf(given) >= 0) return given;
   const code = String((err && typeof err === 'object') ? (err.code || '') : (err || '')).toLowerCase();
   const status = Number(err && typeof err === 'object' ? err.status : 0) || 0;
   if (code === 'offline' || code === 'network' || code === 'timeout' || code === 'fetch') return 'network';
   if (code === 'busy' || code === 'rate_limited' || status === 429) return 'busy';
   if (code === 'revoked' || code === 'grant_revoked' || code === 'signed_out'
       || code === 'auth' || status === 401 || status === 403) return 'revoked';
-  if (code === 'server' || code === 'grant_unavailable' || code === 'grant_misconfigured'
-      || status >= 500) return 'server';
+  // 池子空了 / 我们这边配错：服务端**明确具名**，不是 5xx，也不是用户用完。
+  if (code === 'unavailable' || code === 'grant_unavailable' || code === 'grant_misconfigured'
+      || (err && typeof err === 'object' && err.poolEmpty === true)) return 'other';
+  if (code === 'server' || status >= 500) return 'server';
   return 'other';
 }
 export function grantClaimFail(err, path) {

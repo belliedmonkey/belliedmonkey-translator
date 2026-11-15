@@ -423,8 +423,10 @@ describe('BEL-223 live_gate / grant_claim_fail / launch_id', () => {
       [{ code: 'server', status: 503 }, 'manual', 'server', 'retryable'],
       [{ code: 'signed_out' }, 'manual', 'revoked', 'revoked'],
       [{ code: 'grant_revoked', status: 401 }, 'silent', 'revoked', 'revoked'],
-      [{ code: 'grant_unavailable', status: 503 }, 'silent', 'server', 'retryable'],
-      [{ code: 'grant_misconfigured' }, 'silent', 'server', 'retryable'],
+      [{ code: 'grant_unavailable', status: 503 }, 'silent', 'other', 'retryable'],
+      [{ code: 'grant_misconfigured' }, 'silent', 'other', 'retryable'],
+      [{ code: 'unavailable', status: 503 }, 'manual', 'other', 'retryable'],
+      [{ code: 'server', status: 500 }, 'manual', 'server', 'retryable'],
       [{ code: 'exhausted' }, 'silent', 'other', 'retryable'],
     ];
     for (const [err, path, reason, copy] of cases) {

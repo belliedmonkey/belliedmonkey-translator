@@ -886,8 +886,12 @@ export default function SettingsView() {
     try {
       await settingsModel.claimAndApply({ overwrite: id === 'restore', say: hooks.say, path: 'manual' });
     } catch (e) {
-      if (e && e.code === 'grant_unavailable') grantUnavailable.current = true;
-      if (hooks.say) hooks.say(String((e && e.message) || e));
+      // BEL-271：只有服务端明确说池子空了才置「池子空了」。网络 / 超时 / 5xx
+      // 是可重试的「连不上」，不是池子空了 —— 旧代码只看 grant_unavailable，
+      // 把这三类一起显示成了「池子空了」。
+      const fail = settingsModel.grantFailureView(e);
+      if (fail.poolEmpty) grantUnavailable.current = true;
+      if (hooks.say) hooks.say(fail.copy);
     } finally {
       grantBusy.current = false;
       await paintGrant(session);
