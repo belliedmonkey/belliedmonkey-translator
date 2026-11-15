@@ -48,10 +48,16 @@ describe('内容脚本能打开的扩展页，必须在 web_accessible_resources
   });
 
   test('每一个 getURL 到的扩展页都被声明了', () => {
+    // esbuild 产物（如 content/sub-menu.bundle.js）不在源树里；它的存在性由
+    // 下一条「声明了的资源都真的存在」在 dist 在场时回读。
+    const artifacts = new Set(require('../build/ui-entries.config.js').ENTRIES.map((e) => e.out));
     const bad = [];
     for (const rel of files) {
       const p = path.join(EXT, rel);
-      if (!fs.existsSync(p)) { bad.push(`${rel} 在 manifest 里但文件不存在`); continue; }
+      if (!fs.existsSync(p)) {
+        if (artifacts.has(rel)) continue;
+        bad.push(`${rel} 在 manifest 里但文件不存在`); continue;
+      }
       const src = fs.readFileSync(p, 'utf8');
       // chrome.runtime.getURL('x') —— 只挑指向页面/资源的字符串字面量。
       for (const m of src.matchAll(/chrome\.runtime\.getURL\(\s*'([^']+)'/g)) {
@@ -66,7 +72,7 @@ describe('内容脚本能打开的扩展页，必须在 web_accessible_resources
   });
 
   test('声明了的资源都真的存在 —— 列一个不存在的路径等于没列', () => {
-    // 构建产物（esbuild bundle，如 PR8a 的懒加载菜单）只存在于 dist/，源树里没有
+    // 构建产物（esbuild bundle，如 BEL-277 的静态菜单）只存在于 dist/，源树里没有
     // 是正常的。判据三选一：源树里有；或它是 ui-entries 登记处的产物输出
     // （build.js 会真的产出它）；dist/ 在场时还必须回读到 dist 里的真身 ——
     // 「登记了但构建没产出」同样算缺失。

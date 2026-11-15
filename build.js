@@ -463,6 +463,12 @@ function generateProviders(dir, flavor) {
   }
   body += `window.MT_RECOMMENDED_HOSTS = ${JSON.stringify(recHosts)};\n`;
   fs.writeFileSync(path.join(dir, 'content', 'providers.gen.js'), banner + body);
+  // BEL-277：SW 只放行**本 build 的** ingest 端点。清单必须在 SW 能读到的位置，
+  // 且与 MT_TELEMETRY.url 同源同一次生成 —— 否则「内容脚本发往 A、SW 只认 B」
+  // 会让遥测在升级窗口里静默全丢。没有遥测规格（中国版未就绪）就是空清单：
+  // SW fail closed，队列保留，不是「任意 URL 放行」。
+  fs.writeFileSync(path.join(dir, 'telemetry-endpoints.json'),
+    JSON.stringify({ ingest: telemetry && telemetry.url ? [telemetry.url] : [] }, null, 2) + '\n');
   log(`Generated content/providers.gen.js (${flavor}: ${providers.map((p) => p.id).join(', ')}`
     + ` · ${params.length} param rows)`);
 }
