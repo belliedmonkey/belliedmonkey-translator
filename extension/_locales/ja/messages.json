@@ -4361,5 +4361,23 @@
   },
   "settings_value_follow": {
     "message": "表示言語に合わせる"
+  },
+  "firstrun_packs_skip": {
+    "message": "あとでパックを追加して、先に進む"
+  },
+  "packs_pending_title": {
+    "message": "言語パックが未準備です"
+  },
+  "packs_pending_body": {
+    "message": "言語パックをダウンロードするまで、聞き取り・リアルタイム字幕・オフライン読み上げは利用できません。"
+  },
+  "packs_pending_go": {
+    "message": "言語パックをダウンロード"
+  },
+  "packs_pending_why": {
+    "message": "言語パックが未準備です — 先に「言語パック」ページでダウンロードしてください"
+  },
+  "packs_pending_tts": {
+    "message": "オフライン読み上げ（デバイス TTS）は利用できません：言語パックが未準備です"
   }
 }

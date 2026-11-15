@@ -35,6 +35,7 @@ import * as FirstRun from './firstrun.js';
 import * as PackProgress from './pack-progress.js';
 import * as ASRQuota from './asr-quota.js';   // 识别语言名额的本机记忆（第 5 轮 A / 改稿 H）
 import * as TelemetrySession from './telemetry-session.js';   // BEL-223/225/226 的 launch_id/surface/gate
+import * as PackPending from './pack-pending.js';   // BEL-269：跳过包屏后入口必须说「包未就绪」
 import { createHalt, meterText, failSurface } from './n26-session.js';
 import * as Quota from '../shared/quota.js';   // P1-1：余额的唯一运行时来源（刷新 / stale / 同口径）
 import {
@@ -421,6 +422,9 @@ const listenModel = (() => {
     let locales = [];
     const firstRefresh = !gateRefreshSeen;
     gateRefreshSeen = true;
+    // BEL-269：探针说「识别器可用」只代表硬件/系统这一层；包没下完时入口仍不可用。
+    // 与探针分开读，避免把「包缺」误记成 no_live / locale_unsupported 的遥测结果。
+    const packsPending = await PackPending.readPacksPending();
     try {
       const c = await readCfg();
       locales = deviceLocales(c);
@@ -450,13 +454,19 @@ const listenModel = (() => {
         reusedPriorState: reusedPrior,
       });
     } catch (_) {}
-    if (probe && probe.reason === 'timeout' && entryState['']) return;
+    // 超时保留上一次入口状态，但包未就绪是硬事实 —— 它不能沿用「上次可用」。
+    if (!packsPending && probe && probe.reason === 'timeout' && entryState['']) return;
     const reason = ok ? '' : unavailableReason(probe);
+    const packsGate = PackPending.packsEntryGate(packsPending, ok);
+    const packWhy = t('packs_pending_why', '语言包未就绪 —— 先去「语言包」页下载');
+    const entryAvailable = packsGate.available;
     // 门没过：入口**灰掉 + 一句原因**（用户 09-07 裁定 A），而不是消失 —— 灰掉更容易被发现，
     // 也回答了「这个按钮为什么不能用」。播客模式仍按它自己的规矩（门不过不存在）。
     // 2026-09-17 起原因只有两句（系统 / 语言），都不是配置问题 ⇒ 「去设置里选择 →」常藏。
     // asr_entry{no_live}（telemetry §3.3.3）：含义改为「本机识别器不可用」，每次启动记一次。
-    if (!ok && !trackedNoLive) {
+    // 包未就绪同样意味着「听译入口不可用」：沿用同一个既有 asr_entry/no_live，
+    // 这样「没包也进来」在没有 app_open 屏序枚举的宿主上也是可观测的（无新事件/枚举）。
+    if ((!ok || packsPending) && !trackedNoLive) {
       trackedNoLive = true;
       try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('asr_entry', { surface: 'app_home', result: 'no_live' }); } catch (_) {}
     }
@@ -467,15 +477,19 @@ const listenModel = (() => {
     for (const sfx of ENTRY_SUFFIXES) {
       entryState[sfx] = {
         ok,
-        hidden: false, disabled: !ok,
-        hint: t('listen_entry_short', '对方说，你看中文；按住或点一下「说中文」，译给对方'),
+        hidden: false, disabled: !entryAvailable,
+        // 说明位也换成「包未就绪」：卡上的灰态与下面那行原因必须说同一件事，
+        // 否则用户会以为点了就能用（或去系统设置里找一个不存在的开关）。
+        hint: packsPending
+          ? packWhy
+          : t('listen_entry_short', '对方说，你看中文；按住或点一下「说中文」，译给对方'),
         privacy: t('listen_entry_privacy_device', '本机转写，边说边出字；整句定稿后接上你自己配置的翻译引擎。'),
-        needShown: !ok,                      // 原 need.hidden = ok
-        why: ok ? '' : needText(reason),     // 原 `if (why && !ok) why.textContent = needText(reason)`
+        needShown: !entryAvailable,          // 原 need.hidden = ok
+        why: packsPending ? packWhy : (ok ? '' : needText(reason)),
       };
     }
     await refreshSubtitleEntry(ok, reason, {
-      probe, locales, firstRefresh, reusedPrior,
+      probe, locales, firstRefresh, reusedPrior, packsPending,
     });
     canvas.entry();
   }
@@ -514,14 +528,23 @@ const listenModel = (() => {
         reusedPriorState: ctx.reusedPrior,
       });
     } catch (_) {}
+    const ctxPacks = !!(gateCtx && gateCtx.packsPending);
+    const packWhy = t('packs_pending_why', '语言包未就绪 —— 先去「语言包」页下载');
     for (const sfx of ENTRY_SUFFIXES) {
       const subs = {
-        hidden: reason === 'hidden', disabled: !!reason,
-        hint: t('subtitle_entry_hint', '给正在播放的视频、直播、会议配双语字幕'),
+        // 包没齐时即便原生没回 audio-caps 也要留一行灰卡 + 原因（而不是整行消失）。
+        hidden: reason === 'hidden' && !ctxPacks,
+        disabled: !!reason || ctxPacks,
+        hint: ctxPacks
+          ? packWhy
+          : t('subtitle_entry_hint', '给正在播放的视频、直播、会议配双语字幕'),
         needShown: false, needWhy: '',
         // 没有任何一种灰态是「去设置」能解决的（系统版本 / 语言）—— 不给一个点了也没用的按钮
       };
-      if (reason && reason !== 'hidden') {
+      if (ctxPacks) {
+        subs.needShown = true;
+        subs.needWhy = packWhy;
+      } else if (reason && reason !== 'hidden') {
         subs.needShown = true;
         // 2026-09-29 清理（1.19.0）：删掉了「系统声音字幕需要 macOS 14.4 或更新」那句 ——
         // 2026-09-17 §9.6 修订后实时转写只走设备内置识别器（iOS/macOS 26 下限），而 26 ≥ 14.4，
@@ -535,8 +558,9 @@ const listenModel = (() => {
       // （用户 2026-09-15 裁定「合成一句」）。留对话那一行：它在上面，「去设置里选择 →」去的是同一个地方。
       // 原代码比对的是 refreshEntry 刚写上 DOM 的 listen 行文案；entryState 里躺的就是同一份
       // 数据（listen.needShown = !ok，why = needText(listenReason)），直接比字符串。
+      // 包未就绪是例外：两张卡都不能用，各自的原因都要看得见（且与横幅同一句）。
       const listen = entryState[sfx];
-      if (subs.needShown && listen && listen.needShown && listen.why === subs.needWhy) {
+      if (!ctxPacks && subs.needShown && listen && listen.needShown && listen.why === subs.needWhy) {
         subs.needShown = false;
       }
       subsEntryState[sfx] = subs;
@@ -1358,6 +1382,10 @@ const listenModel = (() => {
   }
 
   async function warmPacks() {
+    // BEL-269：跳过包屏后，听译页的「进入即补包」必须停下来 —— 它没有用户手势，
+    // 而且正是它把「包没齐」表现成一个没有尽头的 preparing。补包只走包页/设置里的
+    // 显式「下载」，两条入口都不会在心跳或重绘里被触发。
+    if (PackPending.packsPendingSync()) return;
     const job = ++warmJob;
     if (inflight && inflight.cancel) inflight.cancel();
     inflight = null;
