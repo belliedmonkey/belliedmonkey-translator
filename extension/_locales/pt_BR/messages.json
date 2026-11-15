@@ -4367,5 +4367,8 @@
   },
   "app_e1_note": {
     "message": "Ativado por padrão apenas para chinês (zh). O modelo é baixado em segundo plano no primeiro uso (cerca de 160 MB); até a conclusão e em caso de falha, é usada a transcrição do sistema. A alteração entra em vigor na próxima sessão. Desativar volta à transcrição do sistema."
+  },
+  "firstrun_packs_skip": {
+    "message": "Baixar depois, continuar"
   }
 }

@@ -4367,5 +4367,8 @@
   },
   "app_e1_note": {
     "message": "Activé par défaut pour le chinois (zh) uniquement. Le modèle se télécharge en arrière-plan à la première utilisation (environ 160 Mo) ; jusqu'à la fin du téléchargement et en cas d'échec, la dictée du système est utilisée. La modification prend effet à la session suivante. La désactivation rétablit la dictée du système."
+  },
+  "firstrun_packs_skip": {
+    "message": "Télécharger plus tard, continuer"
   }
 }

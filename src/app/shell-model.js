@@ -53,6 +53,75 @@ import { withUtm } from '../shared/utm.js'; // BEL-155 官网外链 UTM
 // deadlock, with `auth` instead of `oauth`).
 export const GOOGLE_AUTH_WAIT_MS = 5 * 60 * 1000;
 
+// ── BEL-269：首启包失败后的唯一一条前进路 ────────────────────────────────
+// 首启包屏仍是硬门（成功路径不变），但下载**失败**后不能再只剩「重试」：一次自动
+// 重试（固定退避，仅一次）之后，如果仍然失败，除了手动「重试」还要给「稍后补包，
+// 先进入」。跳过写的就是同一个 `listenPacksDone` —— 下次冷启动 FirstRun.step()
+// 直接判 home，不会再把用户按回这一屏。
+export const PACKS_DONE_KEY = 'listenPacksDone';
+export const PACK_AUTO_RETRY_DELAY_MS = 1500;
+export const PACK_AUTO_RETRY_ATTEMPTS = 2;
+
+// 跑一遍下载，失败后**只**再试一次；两次之间等 delayMs。上限恒为 2，不可能无限重试。
+export async function runPackAttempts(run, opts) {
+  const o = opts || {};
+  const limit = (Number.isFinite(o.attempts) && o.attempts > 0)
+    ? Math.floor(o.attempts) : PACK_AUTO_RETRY_ATTEMPTS;
+  const delayMs = (Number.isFinite(o.delayMs) && o.delayMs >= 0)
+    ? o.delayMs : PACK_AUTO_RETRY_DELAY_MS;
+  const sleep = typeof o.sleep === 'function'
+    ? o.sleep : (ms) => new Promise((r) => setTimeout(r, ms));
+  let last = null;
+  for (let attempt = 1; attempt <= limit; attempt++) {
+    try {
+      return await run(attempt);
+    } catch (e) {
+      last = e;
+      if (attempt >= limit) break;
+      if (typeof o.onRetry === 'function') {
+        try { o.onRetry(attempt, e, delayMs); } catch (_) {}
+      }
+      await sleep(delayMs);
+    }
+  }
+  throw last || new Error('pack-download-failed');
+}
+
+// 失败态该露哪些出口。retry 是既有 #packs-go（文案仍是「重试」），skip 是
+// #packs-skip；下载中 / 管理屏 / 完成态都不露。
+export function packsFailureActions(state) {
+  const s = state || {};
+  const blocked = !!s.busy || !!s.manage
+    || s.phase === 'done' || s.phase === 'downloading' || s.phase === 'waiting';
+  const failed = !!s.failed && !blocked;
+  return { retry: failed, skip: failed };
+}
+
+// 失败后「稍后补包，先进入」：先落 skip（同一个 listenPacksDone），再进首页。
+export async function skipPacksToHome(deps) {
+  const d = deps || {};
+  let persisted = false;
+  try {
+    if (typeof d.persist === 'function') persisted = !!(await d.persist());
+  } catch (_) { persisted = false; }
+  try {
+    if (typeof d.enterHome === 'function') await d.enterHome({ persisted });
+  } catch (_) {}
+  return { persisted };
+}
+
+// main 这条线的包下载 telemetry 是「一次流程 = 一条 start → ok/fail」（release 线
+// 已改成按单元上报）。抽成导出，BEL-269 的自动重试才能证明两次尝试 = 2 start / 2 fail。
+export async function reportPackRun(telemetry, surface, run, failCode) {
+  try { await telemetry.packStart(surface); } catch (_) {}
+  try {
+    return await run();
+  } catch (e) {
+    try { await telemetry.packFail(surface, failCode(e)); } catch (_) {}
+    throw e;
+  }
+}
+
 // Only the exact provider callback belongs here. `://oauth/mcp/callback` is
 // handled earlier and is NOT this shape; `isOAuthCallback('belliedmonkey://auth')`
 // must stay false (MCP must not steal Google).
@@ -791,7 +860,7 @@ export function bootShell() {
     try { chrome.storage.local.get([OB_SEEN], (v) => r(!!(v && v[OB_SEEN]))); } catch (_) { r(false); }
   });
   // 首启包屏完成过一次（r6）：之后冷启动不再按探针回包屏，见 FirstRun.step 的注释。
-  const PACKS_DONE = 'listenPacksDone';
+  const PACKS_DONE = PACKS_DONE_KEY;
   const readPacksDone = () => new Promise((r) => {
     try { chrome.storage.local.get([PACKS_DONE], (v) => r(!!(v && v[PACKS_DONE]))); } catch (_) { r(false); }
   });
@@ -1528,11 +1597,11 @@ export function bootShell() {
         privacy.textContent = t('firstrun_packs_lede', '下好这些，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音在你的设备上识别。识别出的文字会发去翻译：自己配了 key 时直接发给你配的服务商；用免费额度时经我们的服务器转发，不保存文字。');
       }
     }
+    const dlBusy = !!packsBusy || packPhase === 'downloading' || packPhase === 'waiting';
+    const errEl = $('packs-err');
+    const failed = !!(errEl && !errEl.hidden && errEl.textContent);
     const go = $('packs-go');
     if (go) {
-      const dlBusy = !!packsBusy || packPhase === 'downloading' || packPhase === 'waiting';
-      const errEl = $('packs-err');
-      const failed = !!(errEl && !errEl.hidden && errEl.textContent);
       go.disabled = dlBusy;
       // N24v2 D-03：齐态无主 CTA；自动跳
       if (packPhase === 'done') {
@@ -1555,6 +1624,15 @@ export function bootShell() {
             : t('firstrun_packs_go', '下载并继续');
         }
       }
+    }
+    // BEL-269：只有「两次都失败、且不在下载/管理/完成态」才露备用出口。成功路径、
+    // 其他状态一律 hidden；它是 link，不是第二个填色按钮（R6）。
+    const skip = $('packs-skip');
+    if (skip) {
+      const acts = packsFailureActions({ failed, busy: dlBusy, manage: packsManage, phase: packPhase });
+      skip.hidden = !acts.skip;
+      skip.disabled = dlBusy;
+      skip.textContent = t('firstrun_packs_skip', '稍后补包，先进入');
     }
     try { paintDlProgress(); } catch (_) {}
   }
@@ -1964,6 +2042,12 @@ export function bootShell() {
     const langs = firstRunAsrLangs(s);
     for (const loc of langs) setRow('asr:' + loc, { phase: 'queued', pct: 0, name: endonym(loc) });
     for (const loc of langs) {
+      const code = FirstRun.baseCode(loc);
+      // BEL-269：自动重试会重跑整段下载；已落地的这一门不能再下一次。
+      if (packAsrByLang[code]) {
+        setRow('asr:' + loc, { phase: 'ready', pct: 100, name: endonym(loc) });
+        continue;
+      }
       setRow('asr:' + loc, { phase: 'downloading', pct: 0, name: endonym(loc) });
       packFailStage = 'asr';
       let timer = null;
@@ -1990,7 +2074,7 @@ export function bootShell() {
           if (el) el.textContent = named.name + ' ' + pct + '%';
         }), timeout]);
       } finally { clearTimeout(timer); }
-      packAsrByLang[loc] = true;
+      packAsrByLang[code] = true;
       setRow('asr:' + loc, { phase: 'ready', pct: 100, name: endonym(loc) });
     }
   }
@@ -2015,6 +2099,22 @@ export function bootShell() {
     $('signed-in').hidden = false;
     firstRunScreen = 'home';
     packPhase = 'pick';
+    const skip = $('packs-skip');
+    if (skip) skip.hidden = true;
+  }
+
+  // BEL-269：失败后的备用出口。写的就是 listenPacksDone（与成功同一个键），所以
+  // 下次冷启动 FirstRun.step 直接 home；先进首页，不打开听译页。
+  async function onPacksSkip() {
+    if (packsBusy || packsManage) return;
+    const err = $('packs-err');
+    if (err) err.hidden = true;
+    const skip = $('packs-skip');
+    if (skip) skip.hidden = true;
+    await skipPacksToHome({
+      persist: writePacksDone,
+      enterHome: async () => { await dismissPacksAfterDone(); },
+    });
   }
 
   // 下载 → 重新探 → 齐态自动进首页/回来源（D-03）。失败留在这一屏，不跳。
@@ -2044,22 +2144,26 @@ export function bootShell() {
     packsBusy = true;
     packPhase = 'downloading';
     // 一条「把包配齐」的流程 = 一个 setup_id（跨启动不变，见 telemetry-session.js）。
-    // start / ok / fail 共用它；surface 用当前功能面（首启时默认 listen）。
+    // 每次尝试各发一条 start（失败再发 fail）；ok 仍只在探包确认齐了之后发。
     const packSurface = TelemetrySession.currentSurfaceSync();
-    try { await TelemetrySession.packStart(packSurface); } catch (_) {}
     // 把当前这一对**落盘**（#564）：选「默认值」不触发 change 时，重画不能按「未设置」重算。
     try { chrome.storage.local.set({ listenMyLang: langPair[0], listenOtherLang: langPair[1], listenPackLangs: packLangs.slice(), listenPackThaiTts: !!packThaiTts, listenPackKokoro: packKokoroOff ? false : true }, () => {}); } catch (_) {}
-    try { await paintFirstRun(currentSession); } catch (_) {}
     const err = $('packs-err');
+    // 重试/手动重试一开始就收掉上一次的失败态（含 #packs-skip），下载中不露失败出口。
     if (err) err.hidden = true;
     packFailStage = '';
+    try { await paintFirstRun(currentSession); } catch (_) {}
     try {
-      const s = await readObSettings();
-      await downloadBase();
-      await downloadTts(s);
-      await downloadAsr(s);
+      // BEL-269：整段下载失败后自动再跑**一次**（固定退避），上限恒为 2。
+      await runPackAttempts(async () => {
+        await reportPackRun(TelemetrySession, packSurface, async () => {
+          const s = await readObSettings();
+          await downloadBase();
+          await downloadTts(s);
+          await downloadAsr(s);
+        }, (e) => packFailCode(e, packFailStage));
+      }, { attempts: PACK_AUTO_RETRY_ATTEMPTS, delayMs: PACK_AUTO_RETRY_DELAY_MS });
     } catch (e) {
-      try { await TelemetrySession.packFail(packSurface, packFailCode(e, packFailStage)); } catch (_) {}
       if (err) {
         err.hidden = false;
         if (e && e.mtSttTimeout) {
@@ -3369,6 +3473,8 @@ export function bootShell() {
   // （未登录复习入口的监听随该入口一起退役，2026-10-01 #532）
   // 屏 2 的主按钮：下载 → 重探 → 前进；失败留在原地并说明原因（#532）。
   if ($('packs-go')) $('packs-go').addEventListener('click', () => { onPacksGo(); });
+  // BEL-269：失败后的备用出口（下载成功/进行中它都被 paintPackChrome 藏起来）。
+  if ($('packs-skip')) $('packs-skip').addEventListener('click', () => { onPacksSkip(); });
   if ($('packs-cell-wait')) $('packs-cell-wait').addEventListener('click', () => { onCellWait(); });
   if ($('packs-cell-go')) $('packs-cell-go').addEventListener('click', () => { onCellGo(); });
   if ($('packs-manage-back')) $('packs-manage-back').addEventListener('click', () => { closePackManager(); });

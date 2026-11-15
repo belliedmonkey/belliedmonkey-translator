@@ -4367,5 +4367,8 @@
   },
   "app_e1_note": {
     "message": "On by default for Chinese (zh) only. The model downloads in the background on first use (about 160 MB); until it finishes, and on failure, system dictation is used. It takes effect on the next session. Turn off to go back to system dictation."
+  },
+  "firstrun_packs_skip": {
+    "message": "Skip for now, continue"
   }
 }
