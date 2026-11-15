@@ -762,6 +762,10 @@ export function bootShell() {
   let packAsrUnsupported = false;   // 该语种系统不支持识别 ⇒ 唯一允许的降级口
   let packLidReady = false;
   let packVadReady = false;
+  // BEL-268：本次整批下载当前走到哪一阶段（base/asr/tts/vad）。main 这条线仍是
+  // 「一次流程一条 start/ok/fail」，没有 per-unit token；失败在 runFirstRunPacks 的
+  // catch 里统一上报，所以阶段要在这里记住。
+  let packFailStage = '';
   let packsBusy = false;
   // 改稿 F：多选，不再是一对下拉。勾选、泰语朗读、共用朗读包的「用户关掉」都留在这里，
   // paint 与下载读同一份，重画不会把「我的 / 对方」对调（#564）。
@@ -1898,12 +1902,13 @@ export function bootShell() {
     };
     if (!packVadReady && typeof NativeSpeech !== 'undefined' && NativeSpeech.ensureVad) {
       const vad = vadSpec();
-      if (vad) await NativeSpeech.ensureVad(vad, onProg);
+      if (vad) { packFailStage = 'vad'; await NativeSpeech.ensureVad(vad, onProg); }
       packVadReady = true;
     }
     if (!packLidReady && typeof NativeSpeech !== 'undefined' && NativeSpeech.ensureLid) {
       const lid = lidSpec();
       if (lid) {
+        packFailStage = 'base';
         if (typeof ModelSources !== 'undefined' && ModelSources && typeof ModelSources.run === 'function') {
           const r = await ModelSources.run([lid], flavorNow(), (spec) => NativeSpeech.ensureLid(spec[0], onProg));
           if (r && r.ok === false) throw Object.assign(new Error(String(r.why || 'lid')), { mtBaseFailed: true });
@@ -1940,6 +1945,7 @@ export function bootShell() {
           .replace('{lang}', named.name).replace('{pct}', String(pct));
       }
     };
+    packFailStage = 'tts';
     const r = await LearnTTS.ensureDeviceReady(onProg, DEVICE_TTS_ENGINE, firstRunLocales(s));
     if (r && r.ok === false) {
       const why = String(r.why || r.reason || 'failed') + (r.attempts ? ' · ' + r.attempts : '');
@@ -1959,6 +1965,7 @@ export function bootShell() {
     for (const loc of langs) setRow('asr:' + loc, { phase: 'queued', pct: 0, name: endonym(loc) });
     for (const loc of langs) {
       setRow('asr:' + loc, { phase: 'downloading', pct: 0, name: endonym(loc) });
+      packFailStage = 'asr';
       let timer = null;
       let asrLast = '';
       const timeout = new Promise((_res, rej) => {
@@ -2012,13 +2019,24 @@ export function bootShell() {
 
   // 下载 → 重新探 → 齐态自动进首页/回来源（D-03）。失败留在这一屏，不跳。
   // BEL-226：pack_download_fail 的 code 只发 id 型（注册表 'id'）。不塞系统长文/路径。
-  function packFailCode(e) {
+  // BEL-268：main 这条线的 pack_download_fail 白名单只有 setup_id/surface/code（没有
+  // reason 枚举），所以把失败阶段编码进既有 code 的后缀：download_asr / base / tts / vad。
+  // 仍以 download 开头，老看板按前缀统计不换口径；阶段未知就退回 download。不新增属性
+  // （events.gen.json 没有 stage，bt-ingest 会整条拒收）。
+  function packFailCode(e, stage) {
     if (!e) return 'download';
     if (e.mtSttTimeout) return 'timeout';
     if (e.mtTtsFailed) return 'tts_failed';
     if (e.mtBaseFailed) return 'base_failed';
     const code = String(e.code || '').toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 32);
-    return /^[a-z0-9_-]+$/.test(code) ? code : 'download';
+    const base = /^[a-z0-9_-]+$/.test(code) ? code : 'download';
+    const stages = ['base', 'asr', 'tts', 'vad'];
+    const explicit = String(e.stage || '').toLowerCase();
+    const fallback = String(stage || '').toLowerCase();
+    const st = stages.indexOf(explicit) >= 0 ? explicit
+      : (stages.indexOf(fallback) >= 0 ? fallback : '');
+    if (!st || base !== 'download') return base;
+    return (base + '_' + st).slice(0, 32);
   }
 
   async function runFirstRunPacks() {
@@ -2034,13 +2052,14 @@ export function bootShell() {
     try { await paintFirstRun(currentSession); } catch (_) {}
     const err = $('packs-err');
     if (err) err.hidden = true;
+    packFailStage = '';
     try {
       const s = await readObSettings();
       await downloadBase();
       await downloadTts(s);
       await downloadAsr(s);
     } catch (e) {
-      try { await TelemetrySession.packFail(packSurface, packFailCode(e)); } catch (_) {}
+      try { await TelemetrySession.packFail(packSurface, packFailCode(e, packFailStage)); } catch (_) {}
       if (err) {
         err.hidden = false;
         if (e && e.mtSttTimeout) {

@@ -582,3 +582,66 @@ describe('改稿 F / 改稿 G · 多选语言包与听译准备中（2026-10-11�
     ok(/!\(packLidReady && packVadReady\)/.test(bytes), '页脚仍把已经下好的基础组件算进总量');
   });
 });
+
+// BEL-268：main 的 pack_download_fail 白名单没有 reason 枚举（只有 code），所以只把失败
+// 阶段编码进既有 code 后缀；不新增 stage 属性，否则 bt-ingest 整条拒收。
+describe('BEL-268 pack_download_fail 的阶段后缀（main）', () => {
+  function packFailCodeFn() {
+    const src = stripComments(read('src/app/shell-model.js'));
+    const start = src.indexOf('function packFailCode(');
+    ok(start >= 0, 'shell-model.js 里找不到 packFailCode()');
+    let depth = 0;
+    for (let i = src.indexOf('{', start); i < src.length; i++) {
+      if (src[i] === '{') depth++;
+      else if (src[i] === '}') {
+        depth--;
+        if (depth === 0) {
+          const body = src.slice(start, i + 1);
+          return new Function(body + '; return packFailCode;')();
+        }
+      }
+    }
+    throw new Error('packFailCode() 源码括号不配对');
+  }
+
+  test('阶段编码进 code 后缀；未知阶段退回 download；旧 code 不被改写', () => {
+    const packFailCode = packFailCodeFn();
+    const cases = [
+      [{ reason: 'hash', stage: 'asr' }, undefined, 'download_asr'],
+      [{ reason: 'network' }, undefined, 'download'],
+      [{ reason: 'hash' }, 'asr', 'download_asr'],
+      [{ reason: 'network' }, 'base', 'download_base'],
+      [{ reason: 'disk' }, 'tts', 'download_tts'],
+      [{ reason: 'unsupported' }, 'vad', 'download_vad'],
+      [{ reason: 'hash', stage: 'tts' }, 'asr', 'download_tts'],
+      [{ reason: 'hash', stage: 'wat' }, 'asr', 'download_asr'],
+      [{ reason: 'hash' }, 'wat', 'download'],
+      [new Error('download failed'), undefined, 'download'],
+      [{ mtSttTimeout: true, reason: 'timeout' }, 'asr', 'timeout'],
+      [{ mtTtsFailed: true, reason: 'network' }, 'tts', 'tts_failed'],
+      [{ mtBaseFailed: true, reason: 'disk' }, 'base', 'base_failed'],
+      [{ code: 'econnreset' }, 'asr', 'econnreset'],
+      [{ code: 'download' }, 'asr', 'download_asr'],
+    ];
+    for (const [err, stage, want] of cases) {
+      eq(packFailCode(err, stage), want, JSON.stringify(err) + ' / stage=' + stage);
+    }
+  });
+
+  test('下载各阶段写到 packFailStage，catch 交给 packFailCode', () => {
+    const src = stripComments(read('src/app/shell-model.js'));
+    ok(/let packFailStage = '';/.test(src), '没有记住本次失败阶段');
+    const segments = [
+      ['base/vad', /packFailStage = 'vad';[\s\S]{0,500}packFailStage = 'base';/],
+      ['tts', /packFailStage = 'tts';[\s\S]{0,200}ensureDeviceReady/],
+      ['asr', /packFailStage = 'asr';[\s\S]{0,1200}ensureAssets\('stt'/],
+    ];
+    for (const [name, re] of segments) {
+      ok(re.test(src), name + ' 下载阶段没有写进 packFailStage');
+    }
+    ok(/packFail\(packSurface, packFailCode\(e, packFailStage\)\)/.test(src),
+      'catch 没把 packFailStage 交给 packFailCode');
+    ok(!/pack_download_fail[\s\S]{0,200}\bstage\s*:/.test(src),
+      '事件字段里出现了 stage —— 白名单没有这个键，bt-ingest 会整条拒收');
+  });
+});
