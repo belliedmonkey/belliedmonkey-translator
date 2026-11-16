@@ -110,7 +110,21 @@ const EVENTS = {
     result: ['ok', 'fail'],
     code: ['no_key', 'no_base', 'no_path', 'bad_url', 'no_engine', 'unknown_provider',
       'network', 'timeout', 'http', 'bad_output', 'empty_output', 'empty_audio',
-      'reasoning_starved', 'device_no_file', 'other'],
+      'reasoning_starved', 'device_no_file', 'other',
+      // BEL-284（2026-11-16）：把传输层已有的失败码接进来，与 translate_fail 的语义
+      // 同一套。auth = 401/403 且带了真 key；model_not_allowed / credit_exhausted /
+      // grant_unavailable = 中继的具名拒绝；stalled = 单单元 120 s 不落地。
+      // 不写 serverMessage / 完整 URL / host / key —— engine-test 的隐私红线不变。
+      'auth', 'model_not_allowed', 'credit_exhausted', 'grant_unavailable', 'stalled'],
+    // 四个失败字段（BEL-284）：都可缺；成功时不写。
+    // http 是**这个错误**的 HTTP status，不是 code='http' 的布尔。注册表只有 'int'
+    // 这一种整数规则（非负、≤10 位），服务端不校验 100–599；**范围闸门在客户端**
+    // （learn/engine-test.js 只写 100–599 的整数，越界/非整数直接省略）。
+    http: 'int',
+    // route：只认两条真实通路。拿不到、空串、未知一律不写（不写空串）。
+    route: ['direct', 'proxy'],
+    // provider 复用 engine_set.provider 的 'id' 规则，不新造枚举。
+    provider: 'id',
     // BEL-223（2026-11-08）：从哪个功能面发起测试、哪次启动。键可缺。
     // launch_id = 32 位小写十六进制（uuid 去掉连字符），与 UUID 同义；用 'id' 规则见 app_open。
     launch_id: 'id',
