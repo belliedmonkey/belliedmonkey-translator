@@ -23,15 +23,18 @@ const UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/6
 function makeTelemetry(over = {}) {
   const store = Object.assign({ 'tm:id': INSTALL_ID, 'tm:on': true }, over.store || {});
   const relayCalls = [];
+  // Optional window: the Mac quick panel is a SECOND WKWebView and telemetry must
+  // resolve host() from the SAME window the panel posts through. That window carries
+  // mtQuick (not controller), so host() is 'app' even though its UA is not Safari.
+  const win = over.window || {};
+  win.MT_VERSION = VERSION;
+  win.MT_FLAVOR = 'global';
+  win.MT_TELEMETRY = over.telemetry === undefined ? {
+    url: 'https://x.test/functions/v1/bt-ingest',
+    spec: { common: cfg.COMMON, events: cfg.EVENTS, limits: cfg.LIMITS },
+  } : over.telemetry;
   const sandbox = {
-    window: {
-      MT_VERSION: VERSION,
-      MT_FLAVOR: 'global',
-      MT_TELEMETRY: over.telemetry === undefined ? {
-        url: 'https://x.test/functions/v1/bt-ingest',
-        spec: { common: cfg.COMMON, events: cfg.EVENTS, limits: cfg.LIMITS },
-      } : over.telemetry,
-    },
+    window: win,
     navigator: over.navigator || { userAgent: UA, platform: 'iPhone', language: 'zh-CN' },
     crypto: crypto.webcrypto,
     fetch: async () => ({ ok: true }),
@@ -60,7 +63,7 @@ function makeTelemetry(over = {}) {
     headers: {
       'x-mt-install-id': INSTALL_ID,
       'x-mt-v': VERSION,
-      'x-mt-host': 'safari',
+      'x-mt-host': over.host || 'safari',
       'x-mt-flavor': 'global',
       'x-mt-device': 'iPhone',
       'x-mt-ui': 'zh',
