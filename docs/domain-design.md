@@ -2065,10 +2065,14 @@ React 页挂载尚未翻转的共享渲染器时：ref 容器挂载，React **�
 > `test/content-ui.test.js`（结构门）与 `scripts/verify-content-inject.js`
 > / `scripts/verify-content-menu.js`（真 Chrome 门）。
 
-- **字幕控制菜单 = 唯一的 React root**（PR8a）：`src/content/sub-menu.jsx` →
-  `content/sub-menu.bundle.js`（ESM），不在 manifest 的 content_scripts 列表
-  —— 用户第一次开菜单才动态 `import()`，同步注入面零新增字节；行判据（行序 /
-  文案 / 勾选 / 定位公式）留在 `subtitle-adapter.js`，bundle 只拿行数据。
+- **字幕控制菜单 = 纯 DOM 静态 IIFE**（BEL-277 修订，翻掉 PR8a 的 React/懒加载）：
+  `src/content/sub-menu.jsx` → `content/sub-menu.bundle.js`（IIFE，`globalName`
+  挂 isolated-world 全局），作为 manifest 里**bounded 的静态 content_scripts 条目**
+  注入（YouTube / X / Twitter / Spotify / Apple Podcasts / 小宇宙 / Substack）。
+  行判据（行序 / 文案 / 勾选 / 定位公式）仍留在 `subtitle-adapter.js`，bundle 只
+  拿行数据；bundle **不再 import React**（6KB 级，过同步字节门）。静态条目没加载
+  或 `host.open` 抛错时，adapter 用内置**纯 DOM 回退菜单**，菜单仍然开得出。
+  动态 `import()` 与 `web_accessible_resources` 里的菜单条目一并删除。
 - **悬浮球 FAB + 翻译 chip 维持命令式**（PR8a 偏离声明）：FAB 的 SVG 改
   `createElementNS` 逐节点构建 —— 消掉 YouTube Trusted Types 面上最后一个字符
   串内联 HTML 注入点；chip 本就 `textContent`。FAB 是一次性静态子树，为它引
@@ -2093,13 +2097,18 @@ React 页挂载尚未翻转的共享渲染器时：ref 容器挂载，React **�
   `dom-processor.js` 不得出现 HTML 写入汇（赋值 / `insertAdjacentHTML` /
   `document.write`；读不咬 —— podcast 读 `documentElement.innerHTML` 扫字幕
   地址是合法的）。这是「维持命令式」面能安全保留的**前提不变量**。
-- **懒加载**：content UI bundle 构建为 ESM 进 `web_accessible_resources`，由
-  引用方在第一次要画 UI 时 `import(chrome.runtime.getURL(...))`（PR8a 起没有
-  独立 loader 文件，import 点在 `subtitle-adapter.js`）。Firefox/Safari 实测
-  不过则回退静态 IIFE 注入 —— 注意这只对**菜单**成立（降级可接受）；overlay
-  / `.mt-translation` 不在此回退路径上（见上，预算门互斥）。**预算门**：
-  同步注入面 ≤ 基线 +150KB（`contentSyncBytesGate`）且冷注入中位耗时增幅
-  ≤ 10ms（`verify-content-inject`），超了构建/门即红。
+- **静态注入 + DOM 回退**（BEL-277）：内容 UI 的菜单不再走动态 `import()` /
+  `web_accessible_resources`（页面 CSP 的 `connect-src` 与个别宿主的动态 import
+  都能把它拦掉）。静态条目只匹配字幕适配器实际使用的宿主，bounded；读不到全局
+  或 `host.open` 抛错时回退到 `subtitle-adapter.js` 里的纯 DOM 菜单。**没有**
+  `scripting` 权限，也不许用 `chrome.scripting`。overlay / `.mt-translation`
+  维持命令式（见上，预算门互斥）。**预算门**：同步注入面 ≤ 基线 +150KB
+  （`contentSyncBytesGate`）且冷注入中位耗时增幅 ≤ 10ms
+  （`verify-content-inject`），超了构建/门即红。
+- **权限零 diff**（BEL-277）：`permissions` / `host_permissions` 与 base
+  `e22fa913` 逐字一致（仍只有 `storage` / `activeTab` / `<all_urls>`），没有
+  `scripting`。**已安装用户升级不需要重新授权**；`test/bel277-permissions.test.js`
+  把两个数组钉死，改一个字符就红。
 - Trusted Types：React 不走 innerHTML；`src/` 全域禁 `dangerouslySetInnerHTML`
   （grep 门）；图标用 JSX `<svg>` 子元素，不用字符串注入。
 

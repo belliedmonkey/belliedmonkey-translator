@@ -43,8 +43,8 @@ function bundleUiEntries({ entries, dist, log }) {
     es.buildSync(buildOptions({
       entryPoints: [path.join(ROOT, entry)],
       outfile: path.join(dist, out),
-      // per-entry 覆盖（PR8a：content 懒加载 bundle 要 ESM；IIFE 回退经 globalName
-      // 挂 window.MTSubMenuBundle）。缺省仍 iife —— 既有页面产物形态不变。
+      // per-entry 覆盖（BEL-277：content 字幕菜单用 iife + globalName 挂
+      // isolated-world 全局，静态注入；缺省仍 iife —— 既有页面产物形态不变）。
       ...(format ? { format } : {}),
       ...(globalName ? { globalName } : {}),
     }));

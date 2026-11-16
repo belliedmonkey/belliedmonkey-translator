@@ -11,7 +11,7 @@ var FloatingButton = (() => {
   // HTML 是 FAB 注入面唯一的 TT 隐患 —— PR8a 消掉它（content-ui 结构门连注释里的
   // 字面量都咬：负向断言曾被自己的注释绊倒，见 test/content-ui.test.js）。FAB 是
   // 一次性静态子树，不值得为它引框架；真正有状态的菜单在
-  // subtitle-adapter.js → content/sub-menu.bundle.js。
+  // subtitle-adapter.js → 静态 content/sub-menu.bundle.js（BEL-277）。
   const SVG_NS = 'http://www.w3.org/2000/svg';
   function svgEl(name, attrs = {}, kids = []) {
     const el = document.createElementNS(SVG_NS, name);

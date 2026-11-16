@@ -463,6 +463,12 @@ function generateProviders(dir, flavor) {
   }
   body += `window.MT_RECOMMENDED_HOSTS = ${JSON.stringify(recHosts)};\n`;
   fs.writeFileSync(path.join(dir, 'content', 'providers.gen.js'), banner + body);
+  // BEL-277：SW 只放行**本 build 的** ingest 端点。清单必须在 SW 能读到的位置，
+  // 且与 MT_TELEMETRY.url 同源同一次生成 —— 否则「内容脚本发往 A、SW 只认 B」
+  // 会让遥测在升级窗口里静默全丢。没有遥测规格（中国版未就绪）就是空清单：
+  // SW fail closed，队列保留，不是「任意 URL 放行」。
+  fs.writeFileSync(path.join(dir, 'telemetry-endpoints.json'),
+    JSON.stringify({ ingest: telemetry && telemetry.url ? [telemetry.url] : [] }, null, 2) + '\n');
   log(`Generated content/providers.gen.js (${flavor}: ${providers.map((p) => p.id).join(', ')}`
     + ` · ${params.length} param rows)`);
 }
@@ -1476,9 +1482,12 @@ legacyBrandGate(DIST, path.basename(DIST),
 validateManifest(DIST, isFirefox);
 
 // Content 同步注入面的字节预算门（React 迁移 PR8a 起，计划 §C）。manifest
-// content_scripts 列出的 dist/content js 字节和不得超基线 +150KB —— 懒加载
-// （动态 import）是给新 UI 字节的唯一通道；把新字节塞进同步列表的改动在这里红，
-// 正当增长（如同步面本来就该有的东西）在 PR 里给数字并重新钉基线。
+// content_scripts 列出的 dist/content js 字节和不得超基线 +150KB —— 新 UI 字节
+// 优先走懒加载 / 小静态件；把大块新字节塞进同步列表的改动在这里红，正当增长
+// （如同步面本来就该有的东西）在 PR 里给数字并重新钉基线。
+// BEL-277（2026-11-15）是本门的一次**小静态例外**：字幕菜单从懒加载 ESM 翻成
+// 静态 IIFE（+5,933 字节，bounded 宿主）—— 不是把 React/overlay 搬进同步面，
+// 预算仍余 ≈42KB。动态 import 因此不再是唯一通道，但「大件不许进同步面」不变。
 // 基线 2026-10-03（第 13 门界面语言「泰国语」加入后，global flavor）：3756331 字节。
 //   上一次钉 3381059（2026-09-28，PR7c）。本次 +375272 字节，其中**泰国语 ≈ 336 KB** ——
 //   生成表里 `"th":{…}` 一段 168107 字节，而 i18n-messages.js 在同步清单里出现两次，
