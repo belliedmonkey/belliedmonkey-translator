@@ -15,7 +15,7 @@ const { assertCnRelaySpec, specUrl } = require('../build/cn-relay-gate.js');
 
 const ROOT = path.join(__dirname, '..');
 const CFG = require('../extension/learn/backend.config.js');
-const PROD_RELAY = 'https://1320551096-573eoa6wc4.ap-beijing.tencentscf.com';
+const PROD_RELAY = 'https://1320551096-7zvs1q2ggu.ap-beijing.tencentscf.com';
 const OLD_TOKEN = '0kh88' + 'p4r7e'; // 不写成连续串：见文件头
 
 function walk(dir, out = []) {
