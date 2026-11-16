@@ -52,6 +52,7 @@ import { useSettings, useSettingsStatus, useUiLang } from '../store/hooks.js';
 import {
   SAVE_KEYS, scaleValue, advNum as advNumClamp, learnDailyNew as dailyNewClamp,
   apiHint as apiHintStr, syncError as syncErrorText,
+  keyOwnerPatch, saveKeyField,
 } from './options-model.js';
 import LearnDialog from '../shared/dialog.jsx';
 
@@ -102,24 +103,21 @@ const INPUT_KEYS = {
 
 // BEL-257：粘贴/输入 key 时同步写 owner。**切引擎不清 key、不改 owner**；只有用户
 // 在 B 里主动粘贴新 key 才覆盖槽并把 owner 改成 B —— 那是一次显式替换，不是静默删除。
-const OWNER_FOR_KEY = {
-  apiKey: 'apiKeyOwner', ttsApiKey: 'ttsKeyOwner', sttApiKey: 'sttKeyOwner', notesApiKey: 'notesKeyOwner',
+// BEL-266：owner 的 vendor 只能来自**用户此刻在下拉里选的**那一个（调用点传入），
+// 不能再读 SettingsStore.get(provider/ttsEngine/sttEngine) —— 那正是「key 归属跟着
+// 引擎走」的 bug 本身。bmg_ 手填仍拒绝（null）；空 key 清 owner。
+const VENDOR_INPUT_FOR_KEY = {
+  apiKey: 'provider', ttsApiKey: 'tts-engine', sttApiKey: 'stt-engine', notesApiKey: 'notes-provider',
 };
-const OWNER_ENGINE_KEY = {
-  apiKey: 'provider', ttsApiKey: 'ttsEngine', sttApiKey: 'sttEngine', notesApiKey: 'notesProvider',
-};
-function keyOwnerFor(key, value) {
-  const ownerKey = OWNER_FOR_KEY[key];
-  if (!ownerKey) return {};
-  const v = String(value == null ? '' : value).trim();
-  if (!v) return { [ownerKey]: '' };
-  if (/^bmg_/i.test(v)) return null;            // 令牌不能手填：见下面的拒绝分支
-  const engine = String(SettingsStore.get(OWNER_ENGINE_KEY[key]) || '');
-  // notes 跟随翻译引擎时 owner 留空（由 resolveConfig 用 apiKeyOwner 判）。
-  if (key === 'notesApiKey') return { [ownerKey]: engine };
-  // 只有 chat provider 需要跑 EngineState 归一化；tts/stt 的 engine id 不在
-  // MT_PROVIDERS 里，拿它去 resolve 会落成默认 chat provider（一个错误的归属）。
-  return { [ownerKey]: key === 'apiKey' ? (EngineState.resolve(engine) || engine) : engine };
+// 调用点的「当前选择」：读控件本身，不读存储里的旧引擎。notes 的 '' = 跟随翻译，
+// 由 ownerFor 得到 ''（设计如此，不是漏判）。
+function currentVendorFor(key) {
+  const id = VENDOR_INPUT_FOR_KEY[key];
+  const el = id && typeof document !== 'undefined' ? document.getElementById(id) : null;
+  return el ? String(el.value || '') : '';
+}
+function keyOwnerFor(key, value, explicitVendor) {
+  return keyOwnerPatch(key, value, explicitVendor);
 }
 // 文本框失焦时的专属 toast（原 change 监听逐条）；不在表里 = 无 toast（notes/stt 三框）。
 // 中文一律走 t() 的兜底位 —— 零硬编码文案门禁按这个形状放行。
@@ -951,7 +949,7 @@ function Options() {
     const key = INPUT_KEYS[e.target.id];
     if (!key) return;
     const value = String(e.target.value || '').trim();
-    const owner = keyOwnerFor(key, value);
+    const owner = keyOwnerFor(key, value, currentVendorFor(key));
     if (owner === null) {
       showToast(t('grant_err_invalid', '这份免费额度认不出来了。到设置里重新领一次。'));
       return;
@@ -1035,12 +1033,18 @@ function Options() {
     if (!key) return;
     await flushPending();
     const value = String(el.value || '').trim();
-    const owner = keyOwnerFor(key, value);
-    if (owner === null) {
-      showToast(t('grant_err_invalid', '这份免费额度认不出来了。到设置里重新领一次。'));
+    try {
+      // 走 options-model 的落盘动作，让「key + owner」是一笔写入；失败会抛，
+      // 不会先弹「已保存」再让 owner 留在旧值上。
+      const owner = await saveKeyField(SettingsStore, key, value, currentVendorFor(key));
+      if (owner === null) {
+        showToast(t('grant_err_invalid', '这份免费额度认不出来了。到设置里重新领一次。'));
+        return;
+      }
+    } catch (_) {
+      showToast(t('toast_save_failed', '保存失败，请再试一次'));
       return;
     }
-    await SettingsStore.setMany(Object.assign({ [key]: value }, owner));
     const toast = changeToastFor(id, t);
     if (toast) showToast(toast);
   };
