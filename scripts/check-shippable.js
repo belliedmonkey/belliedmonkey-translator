@@ -28,6 +28,12 @@ const { spawnSync } = require('child_process');
 const ROOT = path.resolve(__dirname, '..');
 const ARTIFACT_DIRS = ['dist', 'dist-app', 'dist-china', 'dist-app-china', 'dist-firefox'];
 const MARKER = '.not-shippable';
+// BEL-280: `MT_TEST_400=<reason>` injects this header into grant requests. It is a
+// TEST-BUILD-ONLY probe (the relay honours it only for an allowlisted token hash),
+// so its literal name must never appear in an artifact tree that could be archived.
+// The build also withholds the zip + writes .not-shippable; this scan is the second,
+// independent gate — it catches a tree whose marker was deleted or never written.
+const TEST400_MARKER = 'x-mt-test-400';
 
 function usage(stream) {
   stream.write(
@@ -81,6 +87,40 @@ function findMarkers(root) {
     found.push({ name, marker, ...readMarker(marker) });
   }
   return found;
+}
+
+// Walk one artifact tree and return every file whose bytes contain the test header
+// literal. Read as UTF-8: the marker is ASCII, and a binary file that happens to
+// contain the bytes still decodes to a string containing it. A read error is a
+// failure, not a skip — "could not prove this file is clean" must not pass.
+function findTest400Marker(root) {
+  const hits = [];
+  const walk = (dir) => {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch (e) {
+      hits.push({ file: dir, error: e.message });
+      return;
+    }
+    for (const entry of entries) {
+      const abs = path.join(dir, entry.name);
+      if (entry.isDirectory()) { walk(abs); continue; }
+      if (!entry.isFile()) continue;
+      try {
+        const text = fs.readFileSync(abs, 'utf8');
+        if (text.indexOf(TEST400_MARKER) >= 0) hits.push({ file: abs });
+      } catch (e) {
+        hits.push({ file: abs, error: e.message });
+      }
+    }
+  };
+  for (const name of ARTIFACT_DIRS) {
+    const dir = path.join(root, name);
+    if (!fs.existsSync(dir)) continue;
+    walk(dir);
+  }
+  return hits;
 }
 
 function runVerifyIos(derivedData, flavor) {
@@ -138,6 +178,22 @@ function main(argv) {
   console.log(`✓ no ${MARKER} marker in ${ARTIFACT_DIRS.length} artifact dirs under ${opts.root} `
     + `(${ARTIFACT_DIRS.join(', ')})`);
 
+  // BEL-280: independent of the .not-shippable marker. A test-400 build is
+  // non-shippable by construction; this catches the case where the marker was
+  // deleted, the tree was copied without it, or a future build path forgot it.
+  const test400Hits = findTest400Marker(opts.root);
+  if (test400Hits.length) {
+    console.error(`✗ NOT SHIPPABLE — ${TEST400_MARKER} found in ${test400Hits.length} artifact file(s) under ${opts.root}:`);
+    for (const h of test400Hits) {
+      console.error(`  ${path.relative(opts.root, h.file)}${h.error ? ' (' + h.error + ')' : ''}`);
+    }
+    console.error('');
+    console.error('This tree came from an MT_TEST_400 test build. The relay 400 probe is');
+    console.error('TEST-BUILD-ONLY; rebuild without MT_TEST_400 before archiving or uploading.');
+    return 1;
+  }
+  console.log(`✓ no ${TEST400_MARKER} test-probe marker in artifact trees under ${opts.root}`);
+
   if (opts.verifyIos) {
     const status = runVerifyIos(opts.verifyIos, opts.flavor);
     if (status !== 0) return status;
@@ -147,4 +203,4 @@ function main(argv) {
 
 if (require.main === module) process.exit(main(process.argv.slice(2)));
 
-module.exports = { ARTIFACT_DIRS, MARKER, findMarkers, main };
+module.exports = { ARTIFACT_DIRS, MARKER, TEST400_MARKER, findMarkers, findTest400Marker, main };
