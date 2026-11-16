@@ -392,14 +392,42 @@ var MTTelemetry = (() => {
   //   x-mt-device ← device() · x-mt-ui ← ui() · x-mt-surface ← 调用点已知的枚举值
   //
   // 三条边界：
-  //   ① 只对自家中继（URL 命中 `/bt-relay`）发；vendor 请求一个字节都不加。
+  //   ① 只对自家中继发；vendor 请求一个字节都不加。
   //   ② 只看 enabled()：用户关掉遥测就不发（relay 记 skip，隐私优先）。
   //   ③ 任何异常都吞掉返回 {}：归因失败绝不能挡住翻译、朗读、转写、解析。
   // 放 header 而不是 URL / body：不进 Referer / 访问日志，且 body 形状不用为它改。
+  //
+  // BEL-279：中国版中继是 SCF 默认域名 + `/chat/completions`，URL 里没有
+  // `/bt-relay`。判定因此按**主机**来：host 集合从生成注册表的 grant 条目派生
+  // （RequestShape.grantHosts() 是同一份来源；测试 / 尚未加载它的宿主回退到
+  // window.MT_PROVIDERS），这里不写死东京或境内主机。
   const RELAY_SURFACES = ['listen', 'live_caption', 'quick', 'doc', 'web_caption'];
+  const GRANT_IDS = ['grant', 'grant_speech', 'grant_stt'];
+  function hostOfUrl(u) {
+    try { return new URL(String(u || '')).hostname.toLowerCase(); } catch (_) { return ''; }
+  }
+  function grantHosts() {
+    try {
+      if (typeof RequestShape !== 'undefined' && RequestShape && typeof RequestShape.grantHosts === 'function') {
+        return RequestShape.grantHosts();
+      }
+    } catch (_) {}
+    const hosts = [];
+    try {
+      const list = (typeof window !== 'undefined' && window.MT_PROVIDERS) || [];
+      for (const e of list) {
+        if (!e || GRANT_IDS.indexOf(String(e.id || '')) < 0) continue;
+        const h = hostOfUrl(e.defaultEndpoint || '');
+        if (h && hosts.indexOf(h) < 0) hosts.push(h);
+      }
+    } catch (_) {}
+    return hosts;
+  }
   async function relayHeaders(url, surface) {
     try {
-      if (!/\/bt-relay(?:\/|$)/i.test(String(url || ''))) return {};
+      const raw = String(url || '');
+      const relayHost = hostOfUrl(raw);
+      if (!/\/bt-relay(?:\/|$)/i.test(raw) && (!relayHost || grantHosts().indexOf(relayHost) < 0)) return {};
       if (!(await enabled())) return {};
       const { id } = await installId();
       if (!id) return {};
