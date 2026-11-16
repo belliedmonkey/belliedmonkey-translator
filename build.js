@@ -68,6 +68,10 @@ const APP_OUT_NAME = FLAVOR === 'china' ? 'dist-app-china' : 'dist-app';
 // backend, and `log` says so below.
 const backendInject = require('./build/backend-inject.js');
 const backendInjection = backendInject.install(ROOT);
+// BEL-280: TEST-BUILD-ONLY relay 400 probe. Exact enum or the build fails (see
+// build/test400.js); unset ⇒ every emitted bundle gets the sentinels replaced by ''.
+const test400 = require('./build/test400.js');
+const TEST400_REASON = test400.reasonFromEnv(process.env);
 // 免费额度三档的模型名：与三张注册表、中继 /spec 同源（BEL-236 单源）。
 const GRANT_MODELS = require('./build/grant-models.config.js');
 
@@ -75,6 +79,13 @@ const GRANT_MODELS = require('./build/grant-models.config.js');
 // still written (so it can be loaded unpacked for testing) but the packaged
 // artifact is withheld — see the Gate B escape hatch in validateManifest().
 let SKIP_ZIP = null;
+// BEL-280: the relay 400 probe is a TEST-BUILD-ONLY affordance. Setting the flag
+// makes the tree explicitly non-shippable (marker + no zip) and the independent
+// marker scan in scripts/check-shippable.js refuses it again before archive/upload.
+if (TEST400_REASON) {
+  SKIP_ZIP = `test-only relay 400 probe (MT_TEST_400=${TEST400_REASON})`;
+  log(`\x1b[33mMT_TEST_400=${TEST400_REASON} — TEST BUILD ONLY; zip withheld, .not-shippable written\x1b[0m`);
+}
 
 // BEL-259: local-preview escape hatch. Exactly the string "1"; refused in any
 // release-like context. When it is on, SKIP_ZIP is forced and .not-shippable is
@@ -1399,6 +1410,13 @@ if (FLAVOR === 'china') {
 
 // Copy sources
 copyDir(SRC, DIST);
+// BEL-280: resolve the probe sentinels in the emitted copy (the source tree keeps
+// them so the same one-file change drives dist/, dist-app/ and the system-translate
+// bundle). Unset ⇒ '' and the header literal never reaches any bundle.
+{
+  const rs = path.join(DIST, 'content', 'request-shape.js');
+  fs.writeFileSync(rs, test400.apply(fs.readFileSync(rs, 'utf8'), TEST400_REASON));
+}
 // BEL-259: put the preview marker down as soon as DIST exists, so a later gate
 // failing cannot leave an unmarked loadable tree behind. The end-of-build block
 // below also writes/removes both markers for the normal paths.
