@@ -2158,6 +2158,22 @@
     "message": "La connexion Apple n’a pas abouti. Utilisez plutôt l’e-mail ou le téléphone ci-dessous.",
     "description": "Native Apple sign-in failed (not user cancel)"
   },
+  "app_apple_no_credential": {
+    "message": "Apple n’a pas fourni d’identifiants. Réessaie la connexion Apple ou utilise e-mail / Google.",
+    "description": "Native Apple sign-in returned no credential; offers retry and alternate sign-in"
+  },
+  "app_apple_retry": {
+    "message": "Réessayer la connexion Apple",
+    "description": "Button: retry native Apple sign-in after a failure"
+  },
+  "app_apple_other": {
+    "message": "Utiliser e-mail / Google",
+    "description": "Button: switch away from Apple to email or Google"
+  },
+  "app_apple_canceled": {
+    "message": "La connexion Apple a été annulée. Tu peux réessayer.",
+    "description": "Neutral copy after the user cancels the Apple sheet (not a failure)"
+  },
   "learn_empty_other_account": {
     "message": "Cet appareil contient aussi le matériel d’un autre compte. Vous êtes connecté avec un compte différent — rien n’est perdu ; reconnectez-vous avec le compte d’origine et tout revient.",
     "description": "Empty review page while signed in as a different account than the one owning this device corpus"
@@ -4367,5 +4383,39 @@
   },
   "app_e1_note": {
     "message": "Activé par défaut pour le chinois (zh) uniquement. Le modèle se télécharge en arrière-plan à la première utilisation (environ 160 Mo) ; jusqu'à la fin du téléchargement et en cas d'échec, la dictée du système est utilisée. La modification prend effet à la session suivante. La désactivation rétablit la dictée du système."
+  },
+  "firstrun_packs_skip": {
+    "message": "Télécharger plus tard, continuer"
+  },
+  "packs_pending_title": {
+    "message": "Les paquets de langues ne sont pas prêts"
+  },
+  "packs_pending_body": {
+    "message": "L’écoute, les sous-titres en direct et la lecture à voix haute hors ligne ne sont pas disponibles tant que les paquets de langues ne sont pas téléchargés."
+  },
+  "packs_pending_go": {
+    "message": "Télécharger les paquets de langues"
+  },
+  "packs_pending_why": {
+    "message": "Les paquets de langues ne sont pas prêts — téléchargez-les d’abord sur la page « Paquets de langues »"
+  },
+  "packs_pending_tts": {
+    "message": "Lecture à voix haute hors ligne (TTS de l’appareil) indisponible : les paquets de langues ne sont pas prêts"
+  },
+  "listen_perm_explain_title": {
+    "message": "Microphone requis",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_explain_body": {
+    "message": "L’interprétation envoie l’audio du microphone vers le point de transcription que vous avez configuré. La demande d’autorisation système apparaît ensuite — choisissez « Autoriser » pour commencer.",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_title": {
+    "message": "Accès au microphone désactivé",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_body": {
+    "message": "Activez « Microphone » dans les réglages système, revenez ici et touchez « Réessayer » — inutile de relancer l’app.",
+    "description": "BEL-273 microphone permission gate"
   }
 }

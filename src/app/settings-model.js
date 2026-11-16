@@ -228,6 +228,23 @@ async function syncLiveTts(settings) {
   return true;
 }
 
+// BEL-266：一键卡（QuickSetup.plan）除了 writes 还给 marks —— 四把 *KeyOwner 是
+// [flow] 元数据，不在 SAVE_KEYS 里，所以不能混进普通保存。write 与 owner 必须是
+// **一笔**写：拆开会在中间留下「key 写了、owner 还是上一家」的窗口，下一次请求
+// 就会被 key_owner_mismatch 拦下。这里只放行 owner 键，grantTail / grant 等仍归
+// 领取路径自己写。
+const OWNER_MARK_KEYS = ['apiKeyOwner', 'ttsKeyOwner', 'sttKeyOwner', 'notesKeyOwner'];
+
+async function applyQuickSetup(plan) {
+  const patch = Object.assign({}, (plan && plan.writes) || {});
+  const marks = (plan && plan.marks) || {};
+  for (const k of OWNER_MARK_KEYS) if (k in marks) patch[k] = marks[k];
+  if (!Object.keys(patch).length) return;
+  // 写失败必须抛出去：quick-setup-view 的 catch 会把槽标红并保留按钮；
+  // 在这里吞掉 = 界面继续跑自检、最后说「配好了」，而 owner 根本没落盘。
+  await set(patch);
+}
+
 // `engineChosen` 此前**在 App 里一处都没写**（只有扩展设置页与扩展引导页写过），
 // 而 `EngineState.needsSetup` 要读它：于是在 App 里选了一个不需要 key 的引擎之后，
 // 界面仍然说「还没配过翻译引擎」。写入点跟着「真的写了 provider」走。
@@ -264,6 +281,116 @@ async function trackEngineSet(expectedEpoch) {
   } catch (_) {}
 }
 
+// BEL-271（P0）：领取失败的分类与**一次**自动重试。
+//
+// 旧行为：`claim()` 抛什么就原样往上传，UI 只看 `e.code === 'grant_unavailable'`
+// 就置「池子空了」；而网络失败 / 超时 / 5xx 在票面上全被归一成 legacy `unavailable`。
+// 于是连不上也显示「池子空了」，且一次都不重试。这里把两件事分开：
+//   · 分类用**已存在的** reason 五值（network / busy / server / revoked / other）
+//     加 HTTP status，legacy `code` 七值原样保留（telemetry-session 的那张表）。
+//   · 只有 network 与真正的 5xx 瞬时失败自动重试一次；401/403/revoked/429/池子空了
+//     一次都不重试（重试它们只会再失败一次，还会让用户以为是我们这边的问题）。
+const GRANT_RETRY_BACKOFF_MS = 600;
+const GRANT_REASON = ['network', 'busy', 'server', 'revoked', 'other'];
+
+function grantStatusOf(err) {
+  return Number(err && typeof err === 'object' ? err.status : 0) || 0;
+}
+function grantCodeOf(err) {
+  return String((err && typeof err === 'object' ? err.code : err) || '').toLowerCase();
+}
+
+// 纯函数：UI 与遥测共用同一份判定。`poolEmpty` 只认**服务端明确的池子空了** ——
+// grant.js 在 body.error 是 `unavailable` / `grant_unavailable` 时置 poolEmpty；
+// 本地的 `grant_unavailable`（没有 status，规格缺失）不算池子空了。
+// 分类表放在这一层（而不是只在 telemetry-session）：UI 也要用它决定文案与
+// 「池子空了」状态，而两个宿主/两条分支的 telemetry 形状不一定同步。reason 先看
+// 上游已经标好的值（幂等），没有才按 code + status 现算。
+function classifyReason(code, status, poolEmpty) {
+  if (code === 'offline' || code === 'network' || code === 'timeout' || code === 'fetch') return 'network';
+  if (code === 'busy' || code === 'rate_limited' || status === 429) return 'busy';
+  if (code === 'revoked' || code === 'grant_revoked' || code === 'signed_out'
+      || code === 'auth' || status === 401 || status === 403) return 'revoked';
+  if (poolEmpty || code === 'unavailable' || code === 'grant_unavailable'
+      || code === 'grant_misconfigured') return 'other';
+  if (code === 'server' || status >= 500) return 'server';
+  return 'other';
+}
+
+export function classifyGrantFailure(err) {
+  const code = grantCodeOf(err);
+  const status = grantStatusOf(err);
+  const given = String(err && typeof err === 'object' ? err.reason : '').toLowerCase();
+  const poolEmpty = !!(err && typeof err === 'object'
+    && (err.poolEmpty === true
+      || (status > 0 && (code === 'unavailable' || code === 'grant_unavailable'))));
+  const reason = GRANT_REASON.indexOf(given) >= 0 ? given : classifyReason(code, status, poolEmpty);
+  // 瞬时 = 网络/超时，或服务端 5xx（没有具名 error 的那种）。池子空了即使带 503
+  // 也不重试：它不是「这一次抖了」，重试只会再撞一次空池。
+  const transient = !poolEmpty && (reason === 'network' || (reason === 'server' && status >= 500));
+  return { code, status, reason, poolEmpty, transient, retryable: transient };
+}
+
+// UI 的 catch 只读这个：是否进入「池子空了」+ 该说哪句话。文案全部复用既有 key，
+// 不新增 key（i18n 的 13 份表一字不动）。网络/超时/5xx 给可重试的「连不上」，
+// 绝不出现「池子空了」。
+export function grantFailureView(err) {
+  const f = classifyGrantFailure(err);
+  const code = f.code;
+  let copy;
+  if (f.poolEmpty) {
+    copy = t('grant_err_unavailable', '不是你用完了 —— 是我们这边的免费额度池空了，正在补。先用自己的 key，或者稍后再来。');
+  } else if (f.reason === 'network' || (f.reason === 'server' && f.status >= 500)) {
+    copy = t('app_offline', '连不上服务器，检查网络后重试。');
+  } else if (f.reason === 'revoked') {
+    // 401/403 的响应体可能同时带一个 grant_invalid（失败矩阵里的 401 就是）；
+    // reason 已经按 status 判成 revoked，文案必须先按 revoked 收口，否则会被下面
+    // 的 code 分支改写成「认不出来了」—— 与票面的 copy_class=revoked 自相矛盾。
+    copy = t('grant_err_revoked', '这份免费额度已经停用了（退出登录或删除账号会停用它）。重新登录同一个账号就会回来，余额不变。');
+  } else if (code === 'grant_misconfigured' || code === 'misconfigured'
+      || (code === 'grant_unavailable' && f.status === 0)) {
+    copy = t('grant_err_misconfigured', '免费额度这条路我们这边配错了，已经记下。这不是你的问题；先用自己的 key。');
+  } else if (code === 'grant_invalid' || code === 'invalid') {
+    copy = t('grant_err_invalid', '这份免费额度认不出来了。到设置里重新领一次。');
+  } else if (f.reason === 'busy') {
+    copy = t('grant_err_busy', '这会儿请求太密了，等几秒再试。');
+  } else {
+    copy = String((err && err.message) || err);
+  }
+  return Object.assign({}, f, { copy });
+}
+
+function annotateGrantFailure(err, f, attempts) {
+  if (!err || typeof err !== 'object') return;
+  try {
+    err.reason = f.reason;
+    err.poolEmpty = f.poolEmpty;
+    err.retryable = f.transient;
+    err.attempts = attempts;
+  } catch (_) {}
+}
+
+// 只重试一次。`o.retryDelayMs` 是测试口（生产不传 = 600ms 退避）；不写成 0
+// 是为了让真实用户那一次重试真的等一拍，而不是紧接着再打一次。
+async function claimWithRetry(o) {
+  let attempts = 0;
+  for (;;) {
+    attempts++;
+    try {
+      return await LearnGrant.claim();
+    } catch (e) {
+      const f = classifyGrantFailure(e);
+      if (f.transient && attempts <= 1) {
+        const wait = Number(o && o.retryDelayMs);
+        await new Promise((res) => setTimeout(res, wait >= 0 ? wait : GRANT_RETRY_BACKOFF_MS));
+        continue;
+      }
+      annotateGrantFailure(e, f, attempts);
+      throw e;
+    }
+  }
+}
+
 // 领额度 → 写进三槽 → 记 engine_set → 三行自检回执。**这一段是共用的**：
 // 设置页的「领取 / 改回」按钮走它，引导页登录成功后的自动领取也走它
 // （2026-09-22，learning-design §8.10.1）。抽出来的理由不是复用，是**不能有第二份**
@@ -276,10 +403,12 @@ async function claimAndApply(opts) {
   const myEpoch = accountEpoch;
   let claimed;
   try {
-    claimed = await LearnGrant.claim();
+    claimed = await claimWithRetry(o);
   } catch (e) {
-    // BEL-223：领取失败**只记事件**，文案/流程一个字都不改（错误原样抛回调用方）。
-    // 两个 App 入口（登录即领取、设置页「领取 / 改回」）都经过这里，所以只接一处。
+    // BEL-223：领取失败**只记事件**，文案/流程由调用方决定（错误原样抛回）。
+    // BEL-271：这里收到的是**最终**失败（瞬时类已经重试过一次）；每次失败不各记
+    // 一条，否则「重试成功」也会留下一条 fail。成功路径也不会走进来 —— grant.js
+    // 只在 claim() 真正成功时记 grant_claimed，重试成功后仍只有一条。
     try { TelemetrySession.grantClaimFail(e && e.code); } catch (_) {}
     throw e;
   }
@@ -381,7 +510,8 @@ function writeStoredDetail(on) {
 export default {
   KEYS, DETAIL_KEY, get, set, ensureDefaults, engineById, sttSupportedBases, myLangOf,
   priceText, tallyText, writeRules, liveTtsConfigure, syncLiveTts, markEngineChosen, trackEngineSet,
-  claimAndApply, bumpAccountEpoch, currentAccountEpoch,
+  claimAndApply, classifyGrantFailure, grantFailureView, applyQuickSetup,
+  bumpAccountEpoch, currentAccountEpoch,
   bind, hooks, notifySettingsShown, onSettingsShown, currentSession,
   requestDetail, onDetailRequest, readStoredDetail, writeStoredDetail,
 };

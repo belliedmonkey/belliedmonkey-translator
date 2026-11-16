@@ -2158,6 +2158,22 @@
     "message": "Apple sign-in did not complete. You can use email or phone below instead.",
     "description": "Native Apple sign-in failed (not user cancel)"
   },
+  "app_apple_no_credential": {
+    "message": "Apple didn’t return a credential. You can try Apple sign-in again, or use email / Google instead.",
+    "description": "Native Apple sign-in returned no credential; offers retry and alternate sign-in"
+  },
+  "app_apple_retry": {
+    "message": "Try Apple sign-in again",
+    "description": "Button: retry native Apple sign-in after a failure"
+  },
+  "app_apple_other": {
+    "message": "Use email / Google instead",
+    "description": "Button: switch away from Apple to email or Google"
+  },
+  "app_apple_canceled": {
+    "message": "Apple sign-in was canceled. You can try again.",
+    "description": "Neutral copy after the user cancels the Apple sheet (not a failure)"
+  },
   "learn_empty_other_account": {
     "message": "This device also holds another account’s material. You are signed in as someone else right now — nothing was lost; sign back in with the original account and it returns.",
     "description": "Empty review page while signed in as a different account than the one owning this device corpus"
@@ -4367,5 +4383,39 @@
   },
   "app_e1_note": {
     "message": "On by default for Chinese (zh) only. The model downloads in the background on first use (about 160 MB); until it finishes, and on failure, system dictation is used. It takes effect on the next session. Turn off to go back to system dictation."
+  },
+  "firstrun_packs_skip": {
+    "message": "Skip for now, continue"
+  },
+  "packs_pending_title": {
+    "message": "Language packs aren’t ready"
+  },
+  "packs_pending_body": {
+    "message": "Listening, live captions, and offline read-aloud are unavailable until the language packs are downloaded."
+  },
+  "packs_pending_go": {
+    "message": "Download language packs"
+  },
+  "packs_pending_why": {
+    "message": "Language packs aren’t ready — download them on the Language packs page first"
+  },
+  "packs_pending_tts": {
+    "message": "Offline read-aloud (device TTS) is unavailable: language packs aren’t ready"
+  },
+  "listen_perm_explain_title": {
+    "message": "Microphone needed",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_explain_body": {
+    "message": "To interpret, your microphone audio is sent to the transcription endpoint you configured. The system permission prompt appears next — choose “Allow” to start.",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_title": {
+    "message": "Microphone access is off",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_body": {
+    "message": "Turn on Microphone in System Settings, then come back and tap “Retry” — no need to restart the app.",
+    "description": "BEL-273 microphone permission gate"
   }
 }

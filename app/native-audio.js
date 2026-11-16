@@ -42,7 +42,7 @@ var NativeAudio = (() => {
   // 协议。导出是为了让契约测试能拿这两组字符串去和 .swift 里的 case 对表：
   // 一边改名而另一边没跟上，表现是「遥控键按了没反应」，查起来极贵。
   const PROTOCOL = {
-    toNative: ['session-start', 'session-stop', 'now-playing', 'now-playing-artwork', 'playing-state', 'record-mode', 'mic-start', 'mic-stop', 'mic-perm-read',
+    toNative: ['session-start', 'session-stop', 'now-playing', 'now-playing-artwork', 'playing-state', 'record-mode', 'mic-start', 'mic-stop', 'mic-perm-read', 'mic-perm-open-settings',
       // 实时字幕（learning-design §9.8）。iOS 在一期前不回 caps-probe ⇒ 那边入口不显示（协议补充决定 11）。
       'caps-probe', 'subtitle-config', 'subtitle-show', 'subtitle-state', 'subtitle-float', 'subtitle-hide'],
     fromNative: ['session-ready', 'session-failed', 'remote', 'interrupt', 'route', 'artwork-size', 'mic-pcm', 'mic-state', 'mic-perm', 'mic-level',
@@ -336,6 +336,12 @@ var NativeAudio = (() => {
     if (!available()) return false;
     return post({ type: 'mic-perm-read' });
   }
+  // BEL-273：直接打开本 App 的系统设置页（iOS）或「隐私与安全性 › 麦克风」（macOS）。
+  // 老壳不认这条时返回 false，页面仍保留「重试」，不会假装已经打开。
+  function micPermOpenSettings() {
+    if (!available()) return false;
+    return post({ type: 'mic-perm-open-settings' });
+  }
   // base64 → Int16Array（小端）。同步解码，不走 fetch（同 toBlobUrl 的理由）。
   function pcmOf(b64) {
     const bin = atob(String(b64 || ''));
@@ -382,7 +388,12 @@ var NativeAudio = (() => {
       for (const w of ws) { try { w(caps); } catch (_) {} }
     }
     if (msg.type === 'mic-state') {
-      if (mic && mic.onState) { try { mic.onState(String(msg.state || ''), String(msg.reason || ''), String(msg.source || '')); } catch (_) {} }
+      if (mic && mic.onState) {
+        try {
+          mic.onState(String(msg.state || ''), String(msg.reason || ''), String(msg.source || ''),
+            String(msg.native_code || ''));
+        } catch (_) {}
+      }
     }
     for (const fn of listeners.slice()) { try { fn(msg); } catch (_) { /* 播放器不因一次回调出错而停 */ } }
   }
@@ -400,7 +411,7 @@ var NativeAudio = (() => {
     artSizes: () => artSizes.slice(),
     suspends: () => suspends,
     sessionStart, sessionStop, recordMode, nowPlaying, artwork, artworkLocal, playingState, onEvent, offEvent,
-    micStart, micStop, micPermRead, pcmOf, _fromNative,
+    micStart, micStop, micPermRead, micPermOpenSettings, pcmOf, _fromNative,
     capsProbe, audioCaps, subtitleConfig, subtitleShow, subtitleState, subtitleFloat, subtitleHide, onTick,
   };
   // 显式挂全局：原生就是照着这个名字回话的。

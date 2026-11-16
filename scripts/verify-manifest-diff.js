@@ -30,9 +30,32 @@ function compare(name, oldM, newM, problems, notes) {
   const cs = (m) => (m.content_scripts || []).map((c) => `${(c.matches || []).join(',')}|${c.world || 'ISOLATED'}|${c.all_frames ? 1 : 0}|${c.run_at || ''}`);
   if (JSON.stringify(cs(oldM)) !== JSON.stringify(cs(newM))) {
     notes.push(`${name}.content_scripts: ${JSON.stringify(cs(oldM))} → ${JSON.stringify(cs(newM))}`);
-    // 变宽 = 新增了匹配范围，或 all_frames 从 0 变 1
+    // 变宽 = 新增了匹配范围，或 all_frames 从 0 变 1。
+    // BEL-277 的唯一例外：字幕菜单从动态 import 翻成**静态 IIFE 条目**（不新增
+    // 任何权限，只为去掉 WAR/动态 import 依赖）。它必须是一条 bounded 的、
+    // 只装 content/sub-menu.bundle.js 的 isolated 条目 —— 不许借这个口子塞别的。
     const oldM2 = cs(oldM).length, newM2 = cs(newM).length;
-    if (newM2 > oldM2) problems.push(`${name}.content_scripts 条目变多（${oldM2} → ${newM2}）`);
+    const isStaticMenuBlock = (c) => {
+      const js = c.js || [];
+      return js.length === 1 && js[0] === 'content/sub-menu.bundle.js'
+        && !(c.matches || []).includes('<all_urls>')
+        && c.world !== 'MAIN';
+    };
+    // cs() 只比较匹配范围/世界/all_frames/run_at —— 既有块的 js 列表增长不算「条目
+    // 变多」。BEL-277 只允许**一个新的 cs 签名**，且它必须就是那条 bounded 菜单块。
+    const oldCs = cs(oldM);
+    const addedSigs = cs(newM).filter((x) => !oldCs.includes(x));
+    const onlyBoundedMenuAdd = newM2 > oldM2
+      && addedSigs.length === newM2 - oldM2
+      && addedSigs.every((sig) => {
+        const block = (newM.content_scripts || []).find((b) => (
+          `${(b.matches || []).join(',')}|${b.world || 'ISOLATED'}|${b.all_frames ? 1 : 0}|${b.run_at || ''}`
+        ) === sig);
+        return block && isStaticMenuBlock(block);
+      });
+    if (newM2 > oldM2 && !onlyBoundedMenuAdd) {
+      problems.push(`${name}.content_scripts 条目变多（${oldM2} → ${newM2}）`);
+    }
     if (cs(newM).some((x) => x.endsWith('|1|')) && !cs(oldM).some((x) => x.endsWith('|1|'))) {
       problems.push(`${name}.content_scripts 有 all_frames 从 0 变 1`);
     }

@@ -2158,6 +2158,22 @@
     "message": "لم يكتمل تسجيل الدخول عبر Apple. يمكنك استخدام البريد أو الهاتف بالأسفل.",
     "description": "Native Apple sign-in failed (not user cancel)"
   },
+  "app_apple_no_credential": {
+    "message": "لم يُرجع Apple بيانات اعتماد. يمكنك إعادة محاولة تسجيل الدخول عبر Apple أو استخدام البريد الإلكتروني / Google.",
+    "description": "Native Apple sign-in returned no credential; offers retry and alternate sign-in"
+  },
+  "app_apple_retry": {
+    "message": "إعادة محاولة تسجيل الدخول عبر Apple",
+    "description": "Button: retry native Apple sign-in after a failure"
+  },
+  "app_apple_other": {
+    "message": "استخدام البريد الإلكتروني / Google",
+    "description": "Button: switch away from Apple to email or Google"
+  },
+  "app_apple_canceled": {
+    "message": "تم إلغاء تسجيل الدخول عبر Apple. يمكنك المحاولة مرة أخرى.",
+    "description": "Neutral copy after the user cancels the Apple sheet (not a failure)"
+  },
   "learn_empty_other_account": {
     "message": "يحتوي هذا الجهاز أيضاً على مواد حساب آخر. أنت الآن مسجَّل بحساب مختلف — لم يُفقد شيء؛ سجّل الدخول بالحساب الأصلي وستعود.",
     "description": "Empty review page while signed in as a different account than the one owning this device corpus"
@@ -4367,5 +4383,39 @@
   },
   "app_e1_note": {
     "message": "مفعّل افتراضيًا للغة الصينية (zh) فقط. يُنزَّل الطراز في الخلفية عند أول استخدام (نحو 160 ميغابايت)؛ وإلى أن يكتمل التنزيل وعند الفشل يُستخدم الإملاء النظامي. يسري التغيير في الجلسة التالية. عند الإيقاف يعود إلى الإملاء النظامي."
+  },
+  "firstrun_packs_skip": {
+    "message": "التنزيل لاحقًا والمتابعة"
+  },
+  "packs_pending_title": {
+    "message": "حزم اللغات غير جاهزة"
+  },
+  "packs_pending_body": {
+    "message": "الاستماع والترجمة الفورية المرئية والقراءة بصوت عالٍ دون اتصال غير متاحة حتى تنزيل حزم اللغات."
+  },
+  "packs_pending_go": {
+    "message": "تنزيل حزم اللغات"
+  },
+  "packs_pending_why": {
+    "message": "حزم اللغات غير جاهزة — نزّلها أولًا من صفحة «حزم اللغات»"
+  },
+  "packs_pending_tts": {
+    "message": "القراءة بصوت عالٍ دون اتصال (TTS الجهاز) غير متاحة: حزم اللغات غير جاهزة"
+  },
+  "listen_perm_explain_title": {
+    "message": "يلزم استخدام الميكروفون",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_explain_body": {
+    "message": "ترسل الترجمة الفورية صوت الميكروفون إلى نقطة النسخ النصي التي أعددتها. سيظهر بعد ذلك طلب إذن النظام — اختر «السماح» للبدء.",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_title": {
+    "message": "إذن الميكروفون غير مفعّل",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_body": {
+    "message": "فعّل «الميكروفون» في إعدادات النظام، ثم عد إلى هنا واضغط «إعادة المحاولة» — لا حاجة لإعادة تشغيل التطبيق.",
+    "description": "BEL-273 microphone permission gate"
   }
 }

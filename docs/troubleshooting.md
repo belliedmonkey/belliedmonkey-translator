@@ -223,7 +223,7 @@ npm run verify:app-fresh -- "<…/BelliedMonkey Translator CN.app>" china   # �
 | 屏上写的是 | 含义 |
 |---|---|
 | 「连不上服务器，检查网络后重试。」（`app_offline`） | id_token **拿到了**，是**换会话那个 POST 在网络层抛了**（`auth.js` 的 `post()` catch → `code='offline'`） |
-| 「Apple 登录没能完成。可以改用下面的邮箱或手机号。」（`app_apple_failed`） | **原生那一步没给出 id_token**（`ASAuthorizationControllerDelegate.didCompleteWithError` → `error:"apple_failed"`） |
+| 「Apple 登录没能完成。可以改用下面的邮箱或手机号。」（`app_apple_failed`） | **原生那一步没给出 id_token**（`ASAuthorizationControllerDelegate.didCompleteWithError` → `error:"apple_failed"` + `errorCode`/`errorDomain`；BEL-272 起 `auth_fail.code` 编码为 `apple_asauth_<code>`） |
 
 **代码侧确定的一条**：`LearnAuth.signInWithIdToken()` **没有重试** —— 一次 `post()`，抛了就抛。
 而用户的观察是「**第二次就成功**」⇒ 把那一次重试**自动化**，就是这个症状的对症修法

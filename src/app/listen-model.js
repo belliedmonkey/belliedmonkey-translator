@@ -34,7 +34,9 @@ import SETTINGS_SCHEMA from '../store/schema.js';
 import * as FirstRun from './firstrun.js';
 import * as PackProgress from './pack-progress.js';
 import * as ASRQuota from './asr-quota.js';   // 识别语言名额的本机记忆（第 5 轮 A / 改稿 H）
+import * as MicPerm from './mic-permission.js';   // BEL-273：进听译前的麦克风权限状态机
 import * as TelemetrySession from './telemetry-session.js';   // BEL-223/225/226 的 launch_id/surface/gate
+import * as PackPending from './pack-pending.js';   // BEL-269：跳过包屏后入口必须说「包未就绪」
 import { createHalt, meterText, failSurface } from './n26-session.js';
 import * as Quota from '../shared/quota.js';   // P1-1：余额的唯一运行时来源（刷新 / stale / 同口径）
 import {
@@ -182,6 +184,11 @@ const listenModel = (() => {
   let lastSpoken = '';               // 最后读出去的那句（端到端测试的读取点）
   // 页内麦克风（无桥宿主的退路）
   let audioCtx = null, stream = null, proc = null, srcNode = null;
+  // BEL-273：麦克风权限预检。`micPerm` 是纯状态机；pending 记「被权限门挡住的那一次开始」，
+  // 用户在解释卡上点「继续」或从设置回来点「重试」时原样重放，不要求重开 App。
+  let micPerm = MicPerm.initial();
+  let micPermPending = null;
+  let lastAsrNativeCode = '';
 
   // ── 原来从 DOM 读的四处，提取为模型状态（PR6c）────────────────────────────
   let noteGo = '';                        // 提示可点时去设置页的哪一处（额度 / key 停机）
@@ -373,6 +380,9 @@ const listenModel = (() => {
   async function refreshEntry() {
     let ok = false;
     let probe = null;
+    // BEL-269：探针说「识别器可用」只代表硬件/系统这一层；包没下完时入口仍不可用。
+    // 与探针分开读，避免把「包缺」误记成 no_live / locale_unsupported 的遥测结果。
+    const packsPending = await PackPending.readPacksPending();
     try {
       const c = await readCfg();
       // 先探桥（旧系统 / 语言不支持 / 资产缺失都在这里得到具名答案），再判门。
@@ -383,13 +393,20 @@ const listenModel = (() => {
     } catch (_) { ok = false; }
     try { canvas.view('langs'); } catch (_) {}   // 探到支持的语种清单 ⇒ 下拉只列支持的
     // 探针没落定（超时）**不是**「不可用」：保留上一次入口状态，别把已就绪的入口灰掉。
-    if (probe && probe.reason === 'timeout' && entryState['']) return;
+    // 超时保留上一次入口状态，但包未就绪是硬事实 —— 它不能沿用「上次可用」。
+    if (!packsPending && probe && probe.reason === 'timeout' && entryState['']) return;
     const reason = ok ? '' : unavailableReason(probe);
+    const packsGate = PackPending.packsEntryGate(packsPending, ok);
+    const packWhy = t('packs_pending_why', '语言包未就绪 —— 先去「语言包」页下载');
+    const entryAvailable = packsGate.available;
     // 门没过：入口**灰掉 + 一句原因**（用户 09-07 裁定 A），而不是消失 —— 灰掉更容易被发现，
     // 也回答了「这个按钮为什么不能用」。播客模式仍按它自己的规矩（门不过不存在）。
     // 2026-09-17 起原因只有两句（系统 / 语言），都不是配置问题 ⇒ 「去设置里选择 →」常藏。
     // asr_entry{no_live}（telemetry §3.3.3）：含义改为「本机识别器不可用」，每次启动记一次。
-    if (!ok && !trackedNoLive) {
+    // 包未就绪同样意味着「听译入口不可用」：沿用同一个既有 asr_entry/no_live。
+    // 这条 branch 的 app_open 枚举只有五个功能面（没有 packs/app_home），所以
+    // 「没包也进来」由这个既有事件/值回答，不改白名单、不加新值。
+    if ((!ok || packsPending) && !trackedNoLive) {
       trackedNoLive = true;
       try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('asr_entry', { surface: 'app_home', result: 'no_live' }); } catch (_) {}
     }
@@ -400,33 +417,46 @@ const listenModel = (() => {
     for (const sfx of ENTRY_SUFFIXES) {
       entryState[sfx] = {
         ok,
-        hidden: false, disabled: !ok,
-        hint: t('listen_entry_short', '对方说，你看中文；按住或点一下「说中文」，译给对方'),
+        hidden: false, disabled: !entryAvailable,
+        // 说明位也换成「包未就绪」：卡上的灰态与下面那行原因必须说同一件事，
+        // 否则用户会以为点了就能用（或去系统设置里找一个不存在的开关）。
+        hint: packsPending
+          ? packWhy
+          : t('listen_entry_short', '对方说，你看中文；按住或点一下「说中文」，译给对方'),
         privacy: t('listen_entry_privacy_device', '本机转写，边说边出字；整句定稿后接上你自己配置的翻译引擎。'),
-        needShown: !ok,                      // 原 need.hidden = ok
-        why: ok ? '' : needText(reason),     // 原 `if (why && !ok) why.textContent = needText(reason)`
+        needShown: !entryAvailable,          // 原 need.hidden = ok
+        why: packsPending ? packWhy : (ok ? '' : needText(reason)),
       };
     }
-    await refreshSubtitleEntry(ok, reason);
+    await refreshSubtitleEntry(ok, reason, { packsPending });
     canvas.entry();
   }
 
   // 实时字幕入口（learning-design §9.8 + 协议补充决定 3）：原生不回 audio-caps ⇒ 整行不显示（老壳）；
   // 回了就按 ListenCore.entryGate 的顺序给灰态原因（本机识别器不可用 → Mac 系统声音版本）。
   const subsEntryState = { '': null, '2': null };
-  async function refreshSubtitleEntry(ok, deviceReason) {
+  async function refreshSubtitleEntry(ok, deviceReason, gateCtx) {
     let caps = null;
     try { caps = bridged() ? await NativeAudio.capsProbe(1500) : null; } catch (_) { caps = null; }
     const reason = C.entryGate({ caps, deviceOk: ok, deviceReason });
     subsReason = reason;
+    const ctxPacks = !!(gateCtx && gateCtx.packsPending);
+    const packWhy = t('packs_pending_why', '语言包未就绪 —— 先去「语言包」页下载');
     for (const sfx of ENTRY_SUFFIXES) {
       const subs = {
-        hidden: reason === 'hidden', disabled: !!reason,
-        hint: t('subtitle_entry_hint', '给正在播放的视频、直播、会议配双语字幕'),
+        // 包没齐时即便原生没回 audio-caps 也要留一行灰卡 + 原因（而不是整行消失）。
+        hidden: reason === 'hidden' && !ctxPacks,
+        disabled: !!reason || ctxPacks,
+        hint: ctxPacks
+          ? packWhy
+          : t('subtitle_entry_hint', '给正在播放的视频、直播、会议配双语字幕'),
         needShown: false, needWhy: '',
         // 没有任何一种灰态是「去设置」能解决的（系统版本 / 语言）—— 不给一个点了也没用的按钮
       };
-      if (reason && reason !== 'hidden') {
+      if (ctxPacks) {
+        subs.needShown = true;
+        subs.needWhy = packWhy;
+      } else if (reason && reason !== 'hidden') {
         subs.needShown = true;
         // 2026-09-29 清理（1.19.0）：删掉了「系统声音字幕需要 macOS 14.4 或更新」那句 ——
         // 2026-09-17 §9.6 修订后实时转写只走设备内置识别器（iOS/macOS 26 下限），而 26 ≥ 14.4，
@@ -440,8 +470,9 @@ const listenModel = (() => {
       // （用户 2026-09-15 裁定「合成一句」）。留对话那一行：它在上面，「去设置里选择 →」去的是同一个地方。
       // 原代码比对的是 refreshEntry 刚写上 DOM 的 listen 行文案；entryState 里躺的就是同一份
       // 数据（listen.needShown = !ok，why = needText(listenReason)），直接比字符串。
+      // 包未就绪是例外：两张卡都不能用，各自的原因都要看得见（且与横幅同一句）。
       const listen = entryState[sfx];
-      if (subs.needShown && listen && listen.needShown && listen.why === subs.needWhy) {
+      if (!ctxPacks && subs.needShown && listen && listen.needShown && listen.why === subs.needWhy) {
         subs.needShown = false;
       }
       subsEntryState[sfx] = subs;
@@ -586,6 +617,163 @@ const listenModel = (() => {
     }
     return 'other';
   }
+  // ── BEL-273：麦克风权限门 + 采集链 native_code ──────────────────────────────
+  // 原生只送有界的 `domain:code`（AVFoundation / NSOSStatus / AVAudioSession /
+  // AVAudioEngine / NSURLError），JS 侧把它归一成遥测契约的短码：
+  //   AVFoundationErrorDomain → avf_<code>   NSOSStatusErrorDomain → os_<code>
+  //   AVAudioSession          → session_<code>  AVAudioEngine       → engine_<code>
+  //   NSURLErrorDomain        → url_<code>    denied/interrupted   → denied/interrupted
+  // 未知域折成 other；长文/带空白/引号的原始 NSError 描述一律不收。输出只允许
+  // /^[a-z0-9_-]{1,32}$/，因此原始 domain/description/用户内容不会进事件。
+  const NATIVE_CODE_RE = /^(?:(?:avf|os|session|engine|url)_[a-z0-9_]{1,28}|denied|interrupted|other|unknown)$/;
+  const NATIVE_DOMAIN_PREFIX = [
+    ['avfoundation', 'avf'],
+    ['nsosstatus', 'os'],
+    ['avaudiosession', 'session'],
+    ['avaudioengine', 'engine'],
+    ['nsurlerror', 'url'],
+  ];
+  function sanitizeNativePart(v) {
+    return String(v || '').toLowerCase().replace(/[^a-z0-9_]/g, '');
+  }
+  // 幂等：已经归一化过的码（noteAsrFail 会再收一次）原样通过。
+  function normalizeNativeCode(v) {
+    const s = String(v || '').trim();
+    if (!s || s.length > 96 || /[\s"'\u201c\u201d]/.test(s)) return '';   // 老壳 NSError 长文
+    if (NATIVE_CODE_RE.test(s)) return s.length <= 32 ? s : '';
+    const at = s.indexOf(':');
+    if (at < 0) return '';                    // 裸 reason（native/input-format…）不是 code
+    const domain = s.slice(0, at).toLowerCase();
+    const rawCode = s.slice(at + 1);
+    if (/^denied$|permission|not[-_ ]?determined|restricted/.test(domain)) return 'denied';
+    if (/^interrupted$|interruption/.test(domain)) return 'interrupted';
+    let prefix = '';
+    for (const pair of NATIVE_DOMAIN_PREFIX) {
+      if (domain.indexOf(pair[0]) >= 0) { prefix = pair[1]; break; }
+    }
+    if (!prefix) return 'other';              // 未知 domain：分类，但不带原文
+    const code = sanitizeNativePart(rawCode).replace(/^_+|_+$/g, '').slice(0, 32 - prefix.length - 1);
+    return code ? prefix + '_' + code : prefix + '_unknown';
+  }
+  // 原生 reason 若还是老壳的 NSError 长文，只保留已知短码，其余折成 'native'。
+  function captureReason(reason, nativeCode) {
+    const code = normalizeNativeCode(nativeCode) || normalizeNativeCode(reason);
+    if (code) return code;
+    const r = String(reason || '');
+    return /^(os|timeout|input-format|converter|native|system)$/.test(r) ? r : 'native';
+  }
+  function noteAsrNativeCode(code) {
+    const c = normalizeNativeCode(code);
+    if (!c) return '';
+    lastAsrNativeCode = c;
+    if (session) session.nativeCode = c;
+    return c;
+  }
+  // 实时字幕在 Mac 上听的是系统声音（屏幕与系统录音），不是麦克风 —— 麦克风门不能拦它。
+  // iPhone 的字幕仍然走麦克风（caps 报 system:'unsupported'），照常预检。
+  function micPermRequired() {
+    if (mode !== 'subtitle') return true;
+    try { return C.captureSource(NativeAudio.audioCaps()) !== 'system'; } catch (_) { return true; }
+  }
+  function micPermEnter() {
+    if (!micPermRequired()) {
+      micPerm = Object.assign({}, micPerm, { gate: '' });
+      canvas.view('state');
+      return;
+    }
+    micPerm = MicPerm.enter(micPerm, micPerm.state);
+    // 还没读到（原生回话在路上）：先把解释画出来，别让用户抢在预检之前被系统框问。
+    // 老壳不认 mic-perm-read 时也会停在这张解释卡上，点「继续」仍走原生请求。
+    if (micPerm.state === 'unknown') micPerm = Object.assign({}, micPerm, { gate: 'explain' });
+    // 进听译页就读一次真实状态，不弹框（BEL-273；老壳不认这条就保持 unknown）。
+    if (bridged() && NativeAudio.micPermRead) { try { NativeAudio.micPermRead(); } catch (_) {} }
+    canvas.view('state');
+  }
+  function micPermObserve(state) {
+    if (!MicPerm.norm(state)) return;
+    micPerm = MicPerm.observe(micPerm, state);
+    canvas.view('state');
+  }
+  // 返回 true = 可以开麦；false = 已经画好门并把这一次开始记在 pending 里。
+  function micPermCanStart(intent) {
+    if (!bridged()) return true;   // 无桥宿主：页内 getUserMedia 自己问权限
+    if (!micPermRequired()) return true;   // Mac 字幕听系统声音，不碰麦克风
+    if (MicPerm.canStart(micPerm)) return true;
+    if (micPerm.state === 'not_determined' && !micPerm.explained) {
+      micPerm = Object.assign({}, micPerm, { gate: 'explain' });
+    } else if (micPerm.state === 'denied' || micPerm.state === 'restricted') {
+      micPerm = Object.assign({}, micPerm, { gate: 'denied' });
+    } else if (micPerm.state === 'prompted') {
+      micPerm = Object.assign({}, micPerm, { gate: 'requesting' });
+    }
+    micPermPending = intent || { kind: 'start' };
+    canvas.view('state');
+    return false;
+  }
+  function micPermRunPending() {
+    const p = micPermPending;
+    micPermPending = null;
+    if (p && p.kind === 'ptt' && p.side) { pttToggle(p.side); return; }
+    // 对话页没有「交给哪一侧」的 pending 时，默认用本机语言那一侧开麦；不能只 start()，
+    // 否则会开麦却没有收音侧。字幕页仍走 start()。
+    if (mode !== 'subtitle') { pttToggle(pttView().mineSide); return; }
+    // 拒绝后会话停在 halted：从设置回来点「重试」要走 resume，而不是 start()（那个只收 idle）。
+    if (phase === 'paused' || phase === 'halted') { resumeByUser(); return; }
+    start();
+  }
+  function permView() {
+    const gate = micPerm.gate;
+    if (!gate || !micPermRequired()) {
+      return { shown: false, gate: '', title: '', next: '', primary: null, secondary: null };
+    }
+    if (gate === 'denied') {
+      return {
+        shown: true, gate,
+        title: t('listen_perm_denied_title', '麦克风权限未开启'),
+        next: t('listen_perm_denied_body', '在系统设置里打开「麦克风」权限，回到这里点「重试」就能开始，不用重开 App。'),
+        primary: { label: t('halt_open_settings', '去设置'), action: 'settings' },
+        secondary: { label: t('fail_retry', '重试'), action: 'retry' },
+      };
+    }
+    if (gate === 'requesting') {
+      return {
+        shown: true, gate,
+        title: t('listen_perm_explain_title', '需要使用麦克风'),
+        next: t('subtitle_bar_waiting', '等待系统授权 — 请在弹出的权限框里点「允许」'),
+        primary: null, secondary: null,
+      };
+    }
+    return {
+      shown: true, gate: 'explain',
+      title: t('listen_perm_explain_title', '需要使用麦克风'),
+      next: t('listen_perm_explain_body', '听译要把麦克风的声音送到你设置的转写端点。下一步会弹出系统授权框，点「允许」即可开始。'),
+      primary: { label: t('ob_next', '继续'), action: 'continue' },
+      secondary: null,
+    };
+  }
+  function permAct(which) {
+    if (which === 'secondary') {
+      micPerm = MicPerm.retry(micPerm);
+      canvas.view('state');
+      if (micPerm.state === 'granted') { micPermRunPending(); return; }
+      if (bridged() && NativeAudio.micPermRead) { try { NativeAudio.micPermRead(); } catch (_) {} }
+      return;
+    }
+    if (micPerm.gate === 'denied') {
+      micPerm = MicPerm.openSettings(micPerm);
+      try {
+        if (typeof NativeAudio !== 'undefined' && NativeAudio.micPermOpenSettings) NativeAudio.micPermOpenSettings();
+      } catch (_) {}
+      canvas.view('state');
+      return;
+    }
+    if (micPerm.gate === 'explain') {
+      micPerm = MicPerm.explain(micPerm);
+      canvas.view('state');
+      micPermRunPending();
+    }
+  }
+
   const permSeen = {};
   function trackPerm(state, kind) {
     const k = kind === 'system' ? 'system' : 'mic';
@@ -605,7 +793,14 @@ const listenModel = (() => {
     if (!tmId(fail_reason)) return;
     noteAsrStart();
     session.asrFailSent = true;
-    track('asr_fail', Object.assign({ fail_reason }, funnelProps()));
+    const props = Object.assign({ fail_reason }, funnelProps());
+    // BEL-273：只有采集链失败带 native_code；permission/interrupted/socket 等不带。
+    // 码已在 noteAsrNativeCode 归一过，这里再收一次，保证发出的一定过 'id' 型。
+    if (fail_reason === 'capture') {
+      const code = normalizeNativeCode((session && session.nativeCode) || lastAsrNativeCode);
+      if (code) props.native_code = code;
+    }
+    track('asr_fail', props);
   }
   function noteTranslateStart() {
     if (!session || session.tmStart) return;
@@ -1257,6 +1452,10 @@ const listenModel = (() => {
   }
 
   async function warmPacks() {
+    // BEL-269：跳过包屏后，听译页的「进入即补包」必须停下来 —— 它没有用户手势，
+    // 而且正是它把「包没齐」表现成一个没有尽头的 preparing。补包只走包页/设置里的
+    // 显式「下载」，两条入口都不会在心跳或重绘里被触发。
+    if (PackPending.packsPendingSync()) return;
     const job = ++warmJob;
     if (inflight && inflight.cancel) inflight.cancel();
     inflight = null;
@@ -1459,6 +1658,8 @@ const listenModel = (() => {
       canvas.view('state');
       return true;
     }
+    // BEL-273：开麦前过权限门。未决定先解释、拒绝给「去设置」，被挡的这一次记在 pending。
+    if (!micPermCanStart({ kind: 'ptt', side })) return false;
     // 开始收音。**顺序不能反**：`start()` 内部会 `pttAbort()`（清收音态），先设会被它清掉。
     if (pttStopTimer) { clearTimeout(pttStopTimer); pttStopTimer = 0; }   // 收尾间隙里又点了 ⇒ 继续录
     if (phase === 'idle' || phase === 'ended') start();
@@ -2141,11 +2342,15 @@ const listenModel = (() => {
     if (!session || !sock || phase !== 'listening') return;
     if (session.mode === 'subtitle' && C.silenceCheck(session, rms, now())) pause('silence');
   }
-  function onMicState(state, reason, source) {
+  function onMicState(state, reason, source, nativeCode) {
     const kind = source === 'system' ? 'system' : 'mic';
     if (state === 'waiting' && reason === 'waiting-permission') trackPerm('prompted', 'system');
     else if (state === 'denied') trackPerm('denied', kind);
     else if (state === 'granted') trackPerm('granted', kind);
+    // BEL-273：系统框的结果也要回到权限门（kind=system 是 Mac 系统录音，不是麦克风）。
+    if (kind !== 'system' && (state === 'denied' || state === 'granted' || state === 'prompted')) {
+      micPermObserve(state);
+    }
     // iOS 字幕档：输出路由是耳机 ⇒ 麦克风听不到外放（§9.8 协议补充决定 7）
     if (reason === 'headphones') { halt('headphones', ''); return; }
     // Mac 系统声音：权限框还没点（§9.8 协议补充决定 10）—— 停在「准备中」，页面与字幕条都说在等授权
@@ -2172,7 +2377,12 @@ const listenModel = (() => {
       return;
     }
     if (state === 'denied') halt('denied', '');
-    else if (state === 'failed') halt('failed', reason);
+    else if (state === 'failed') {
+      // BEL-273：采集链失败带上有界的 native_code（domain:code）。事件仍发
+      // fail_reason='capture'，native_code 归一后进 asr_fail；原始长文/domain 不进事件。
+      noteAsrNativeCode(nativeCode) || noteAsrNativeCode(reason);
+      halt('failed', captureReason(reason, nativeCode));
+    }
     else if (state === 'interrupted') {
       // 刚起就被打断（3 s 内）多半是别的音频会话（页内保活/朗读走 WebKit 自己的会话）在
       // 抢，不是真的来电：带退避再试三次（0.8 / 1.6 / 3.2 s），**期间胶囊仍是「准备中」、
@@ -2318,8 +2528,11 @@ const listenModel = (() => {
   }
   async function start() {
     if (phase !== 'idle' && phase !== 'ended') return;
+    // BEL-273：字幕页的「开始」也走这里；权限门在会话说建之前。
+    if (!micPermCanStart({ kind: 'start' })) return;
     gen++;
     trHalt = createHalt();
+    lastAsrNativeCode = '';
     pttAbort();            // 新一场：按住态与强制语言清零（含原生「恢复判定」）
     cfg = await readCfg();
     // BEL-223 live_gate：这里是「能不能开」的判定点（点击开始之后、建会话之前）。
@@ -2830,6 +3043,11 @@ const listenModel = (() => {
   // 打开听译页。若已有 session（例如从设置返回），不新建 —— 尺寸变化更不得走 open（INV-1）。
   function open(m) {
     mode = m === 'subtitle' ? 'subtitle' : 'conv';
+    // BEL-273：新一次进入重新走权限门；保留已读到的真实状态，只清解释/待重放。
+    if (!session) {
+      micPerm = Object.assign(MicPerm.initial(), { state: micPerm.state });
+      micPermPending = null;
+    }
     // BEL-223：把这次进入的功能面记给冷启会话 —— listen（对话听译）/ live_caption（实时字幕）。
     // App 没有 web_caption 这个面（它只由扩展的网页字幕会话产生），这里不发。
     try { TelemetrySession.enter(mode === 'subtitle' ? 'live_caption' : 'listen'); } catch (_) {}
@@ -2847,6 +3065,8 @@ const listenModel = (() => {
     note('');
     paintMode();
     canvas.view('history'); canvas.view('now'); canvas.view('summary');   // 原开页收小结卡：原 :712 直写 hidden=true
+    // BEL-273：进入听译/字幕就预检麦克风权限（只读，不弹框）。
+    micPermEnter();
     if (mode === 'subtitle') {
       readCfg().then((c) => { if (mode === 'subtitle' && !session) { cfg = c; canvas.view('state'); } });
       canvas.view('state');
@@ -3159,7 +3379,10 @@ const listenModel = (() => {
   }
   function onNative(msg) {
     if (msg && msg.type === 'mic-perm') {
-      trackPerm(String(msg.state || ''), String(msg.kind || 'mic'));
+      const kind = String(msg.kind || 'mic');
+      trackPerm(String(msg.state || ''), kind);
+      // 系统录音（Mac 字幕）不是麦克风权限，不驱动听译页的权限门（BEL-273）。
+      if (kind !== 'system') micPermObserve(String(msg.state || ''));
       return;
     }
     if (!msg || ($('app-listen') && $('app-listen').hidden) || !session) return;
@@ -3725,6 +3948,8 @@ const listenModel = (() => {
     quotaView, quotaOpenSheet, quotaCloseSheet, quotaPick, quotaYieldAndRestore,
     // 收音（点一下开 / 停；改稿 D）；listen-view 的点击事件 → 状态机
     pttToggle, pttView,
+    // BEL-273：麦克风权限门（解释 → 系统请求 / 拒绝 → 去设置 / 回来重试）
+    permView, permAct,
     retranslate, toggleStar,   // 历史行内的「重试译文」与加星（原 renderHistory 逐行挂的 handler）
     meterView, failView, failAct,
     // 渲染数据（listen-view.jsx 渲染期调用）
@@ -3796,6 +4021,11 @@ const listenModel = (() => {
       // 方案 4（R12）的纯判据读数点：测试直接喂 (finalEv, partial, at) 读结论，不重启会话。
       rescueWorth: (ev, p, at) => partialWorthRescue(ev, p, at),
       asrFailReason: (reason, why) => asrFailReason(reason, why),
+      // BEL-273：权限门与采集链 native_code 的只读读数点（native_code 现在进 asr_fail 契约）。
+      perm: { state: micPerm.state, gate: micPerm.gate, explained: micPerm.explained,
+        settingsOpened: micPerm.settingsOpened, pending: micPermPending },
+      asrNativeCode: lastAsrNativeCode,
+      normalizeNativeCode: (v) => normalizeNativeCode(v),
       // BEL-216/218 的读数点（真模型跑在假 NativeSpeech 上时，测试直接读这三项）：
       // 当前 pair、挂起卡与已装资产、以及左格迁移的纯判据。
       cfgLangs: () => (cfg ? { myLang: cfg.myLang, otherLang: cfg.otherLang, targetLang: cfg.targetLang } : null),

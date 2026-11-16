@@ -26,6 +26,7 @@ import { withUtm } from '../shared/utm.js';
 import SettingsStore from '../store/settings-store.js';
 import settingsModel from './settings-model.js';
 import listenModel from './listen-model.js';
+import * as PackPending from './pack-pending.js';
 import { deviceBridgeHost, DISCONNECT, PAIR_HINT, PAIR_LABEL } from './device-bridge-host.js';
 import LearnDialog from '../shared/dialog.jsx';
 import DepLineView from '../shared/dep-line-view.jsx';
@@ -375,6 +376,12 @@ export default function SettingsView() {
   }
   function paintLangpacksTtsLine(st) {
     const el = $('langpacks-tts-state'); if (!el) return;
+    // BEL-269：跳过包屏后，设备朗读行不能再写「已就绪」（默认标记就是这句）。
+    // 文件其实没下，先给同一句「语言包未就绪」；包下好后 paintTtsPack 会覆回正常态。
+    if (PackPending.packsPendingSync() && !(st && st.ready)) {
+      el.textContent = t('packs_pending_tts', '离线朗读（设备 TTS）不可用：语言包未就绪');
+      return;
+    }
     if (!st || !st.bridge) {
       el.textContent = t('langpacks_tts_na', '离线朗读 · 仅 App 可用');
       return;
@@ -738,7 +745,9 @@ export default function SettingsView() {
   // 组件只返回 patch，写盘归本页 —— 与扩展设置页同一条分工。写完重画：一键配好的
   // 三组必须在「详细」里立刻看得见，否则用户下一次改任何一个字段都会用旧 DOM 覆盖回去。
   async function applyQuickSetup(plan, session, say) {
-    if (plan && plan.writes && Object.keys(plan.writes).length) await settingsModel.set(plan.writes);
+    // BEL-266：writes 与 plan.marks 里的 owner 键由 model 一笔落盘；写失败会抛，
+    // 交给 quick-setup-view 的 catch（槽标红、按钮恢复），不在这里吞成成功。
+    await settingsModel.applyQuickSetup(plan);
     await settingsModel.markEngineChosen(plan);
     await paintNow();
     try { await paintGrant(session); } catch (_) {}   // 同扩展设置页：一键卡写完后重画额度卡（F07）
@@ -886,8 +895,12 @@ export default function SettingsView() {
     try {
       await settingsModel.claimAndApply({ overwrite: id === 'restore', say: hooks.say });
     } catch (e) {
-      if (e && e.code === 'grant_unavailable') grantUnavailable.current = true;
-      if (hooks.say) hooks.say(String((e && e.message) || e));
+      // BEL-271：只有服务端明确说池子空了才置「池子空了」。网络 / 超时 / 5xx
+      // 是可重试的「连不上」，不是池子空了 —— 旧代码只看 grant_unavailable，
+      // 把这三类一起显示成了「池子空了」。
+      const fail = settingsModel.grantFailureView(e);
+      if (fail.poolEmpty) grantUnavailable.current = true;
+      if (hooks.say) hooks.say(fail.copy);
     } finally {
       grantBusy.current = false;
       await paintGrant(session);

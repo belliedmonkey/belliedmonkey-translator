@@ -45,6 +45,7 @@ import SETTINGS_SCHEMA from '../store/schema.js';
 // 放在 src/app/ 而不是 src/shared/：**播客模式是 app-only**，而 src/shared 有对账门
 // 要求两宿主都挂（`build/run-esbuild.js` 的 §9.4）。纯逻辑、可单测，与 firstrun.js 同类。
 import { speechChunks, SPEECH_GAP_MS } from './speech-chunks.js';
+import * as PackPending from './pack-pending.js';
 
 const $ = (id) => document.getElementById(id);
 const t = (k, fb) => PageText.t(k, fb);
@@ -160,6 +161,13 @@ async function refreshEntry() {
   try {
     const r = await loadSettings();
     if (!r.ok) { btn.hidden = true; return; }   // 读不到设置就不假装入口可用
+    // BEL-269：设备朗读（TTS）是包依赖能力。跳过包屏后入口不能假装可播 ——
+    // 留一行具名原因（与首页横幅同一句），而不是点了没声音。
+    if (await PackPending.readPacksPending()) {
+      btn.hidden = true;
+      showNeedSpeech(true, 'packs');
+      return;
+    }
     applySettings(r.data);
     const av = await LearnTTS.available(uiLang, 2000);
     btn.hidden = !av.ok;
@@ -197,6 +205,7 @@ function watchSettings() {
 // one wording per failure across surfaces.
 function ttsReason(reason) {
   switch (reason) {
+    case 'packs': return t('packs_pending_tts', '离线朗读（设备 TTS）不可用：语言包未就绪');
     case 'no_voice': return t('tts_no_voice', '系统里没有这门语言的语音');
     case 'no_voice_und': return t('tts_no_voice_und', '这张卡的语言未知 —— 在设置里选一个朗读语音后即可朗读');
     case 'not_configured': return t('tts_not_configured', '还没配语音引擎 —— 到「设置 › 朗读」里选一个');

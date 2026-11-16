@@ -106,6 +106,15 @@ function AppShell() {
           </div>
           <button id="btn-apple" type="button" className="provider apple" hidden><svg className="provider-mark" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" /></svg><span id="btn-apple-label"></span></button>
           <button id="btn-google" type="button" className="provider google" hidden><svg className="provider-mark" width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" /><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" /><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" /><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" /></svg><span id="btn-google-label"></span></button>
+          {/* BEL-272：原生 Apple 那一步没拿到凭据时的两个出口。默认隐藏；文案与按钮
+               标签都由 shell-model 的 apple-native.js 用 t() 画（不写死中文）。 */}
+          <div id="apple-fail" className="apple-fail" role="alert" hidden>
+            <p id="apple-fail-text"></p>
+            <div className="apple-fail-actions">
+              <button id="btn-apple-retry" type="button" className="secondary"></button>
+              <button id="btn-apple-other" type="button" className="link"></button>
+            </div>
+          </div>
           <button id="btn-signin" type="button" className="link"></button>
 
           {/* 邮箱表单在同一张卡里（design/signin/）：展开时接在链接的位置，验证码那一步
@@ -152,8 +161,10 @@ function AppShell() {
       </section>
 
       {/* 屏 2 · 资源包（2026-10-01，#532）。
-           硬门：**识别语言包** + **高质量朗读包** 下完才放行 —— 这一屏**不许有跳过按钮**
-           （判据 test/app-firstrun.test.js 的 R2）。唯一允许的降级：该语种系统不支持识别
+           硬门：**识别语言包** + **高质量朗读包** 下完才放行 —— 成功路径**不许有跳过按钮**。
+           唯一例外是 BEL-269：自动重试一次后仍失败，才露「稍后补包，先进入」（#packs-skip）
+           并把 listenPacksDone 落盘；它是失败态的备用出口，不是常态跳过。
+           唯一允许的降级：该语种系统不支持识别
            ⇒ 只下朗读包（firstrun.js 的 degradeAllowed('asrUnsupported')），其余一律只能重试。
            文案尽量复用设置页那两行已有的键（同一件事只写一份）。 */}
       {/* 屏 2 · 改稿 F（2026-10-11）：多选语言，不再是一对下拉。
@@ -192,6 +203,7 @@ function AppShell() {
         <p className="note" id="packs-err" hidden></p>
         <button id="packs-manage-back" type="button" className="link" hidden></button>
         <button id="packs-go" type="button"></button>
+        <button id="packs-skip" type="button" className="link" hidden></button>
         <input type="hidden" id="packs-my-lang" />
         <input type="hidden" id="packs-other-lang" />
       </section>
@@ -312,6 +324,19 @@ function AppShell() {
           <span className="status-text" id="engine-status-text"></span>
           <button className="status-chip" id="engine-status-fix" type="button" hidden></button>
         </div>
+
+        {/* BEL-269：跳过了首启包屏之后，首页必须**一直**说出「包没齐」这件事。
+            它不是一次性 toast（包没下完就一直挂着），也不是登录/引擎横幅的替代：
+            听译、实时字幕、离线朗读三条能力各自不可用，原因同一句；点「去下载语言包」
+            回到与设置页「管理」同一个包屏（openPackManager），不另造第二套流程。
+            默认 hidden：只有 listenPacksSkipped 且包确实没齐时 shell-model 才揭开。 */}
+        <section id="packs-pending" className="packs-pending" role="status" aria-live="polite" hidden>
+          <p className="packs-pending-title" id="packs-pending-title"></p>
+          <p className="note" id="packs-pending-body"></p>
+          <button id="packs-pending-go" type="button" className="secondary"></button>
+          <p className="note packs-pending-need" id="packs-pending-why"></p>
+          <p className="note packs-pending-need" id="packs-pending-tts"></p>
+        </section>
 
         {/* 两位主角（2026-10-01 设计稿）：实时字幕与实时听译 —— 这一页唯一「别处做不到」的能力，
             登录后即可用。它们由 listen-view.jsx 渲染（整行可点），CSS 把它们做成等高同权的主角卡。 */}

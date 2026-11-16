@@ -480,6 +480,21 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   gap: 10px;
 }
 #signin-why { margin: 0 0 2px; font-size: 0.9rem; line-height: 1.5; color: var(--fg); }
+/* BEL-272：原生 Apple 失败块。两个出口都保持 ≥44pt；重试是次级按钮、改道是文字链接，
+   所以这一屏仍然只有一个填色按钮（Apple 本身）。[hidden] 必须显式压掉 display:flex。 */
+#apple-fail:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+#apple-fail-text { margin: 0; font-size: 0.9rem; line-height: 1.5; color: var(--fg); }
+#apple-fail .apple-fail-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+#apple-fail #btn-apple-retry,
+#apple-fail #btn-apple-other { min-height: 44px; padding: 10px 12px; }
 :where(#signed-out) button.provider {
   display: flex; align-items: center; justify-content: center; gap: 10px;
   width: 100%; min-height: 48px; font-weight: 600; font-size: max(16px, 1rem);
@@ -1787,6 +1802,17 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
 .status-chip { min-height: 44px; min-width: 44px; flex: 1 1 auto; max-width: 100%; padding: 8px 14px;
   border-radius: 999px; background: color-mix(in oklab, #c67139 11%, transparent); color: var(--accent-deep);
   border: 0; font: inherit; line-height: 1.35; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+
+/* BEL-269：跳过包屏后的常驻横幅。与一次性 banner 不同 —— 包没齐它就在，直到包真下好。
+   放在状态行与两位主角之间：用户第一眼看到的「不能用」必须紧挨着不能用的入口。 */
+.packs-pending { margin: 0 0 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;
+  border: 1px solid var(--warn-bd, var(--line)); border-radius: var(--radius-lg);
+  background: var(--warn-bg, var(--card-bg)); }
+.packs-pending[hidden] { display: none; }
+.packs-pending-title { margin: 0; font-weight: 700; color: var(--accent-deep); }
+.packs-pending .note { margin: 0; }
+.packs-pending #packs-pending-go { align-self: flex-start; }
+.packs-pending-need { color: var(--muted, var(--fg)); }
 
 /* 两位主角（J01/J02/J03）：等高同权，各自整卡可点（触控比卡内小按钮更好按）。
    BEL-168（2026-10-31 Mac 首页 remaster）：≥720 宽窗两卡并排双列；卡内 CTA 只留中文、

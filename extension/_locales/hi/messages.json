@@ -1994,6 +1994,22 @@
   "app_apple_failed": {
     "message": "Apple साइन-इन पूरा नहीं हुआ। आप नीचे ईमेल या फ़ोन का उपयोग कर सकते हैं।"
   },
+  "app_apple_no_credential": {
+    "message": "Apple से क्रेडेंशियल नहीं मिला। आप Apple साइन-इन फिर से आज़मा सकते हैं, या ईमेल / Google इस्तेमाल कर सकते हैं।",
+    "description": "Native Apple sign-in returned no credential; offers retry and alternate sign-in"
+  },
+  "app_apple_retry": {
+    "message": "Apple साइन-इन फिर से आज़माएँ",
+    "description": "Button: retry native Apple sign-in after a failure"
+  },
+  "app_apple_other": {
+    "message": "ईमेल / Google इस्तेमाल करें",
+    "description": "Button: switch away from Apple to email or Google"
+  },
+  "app_apple_canceled": {
+    "message": "Apple साइन-इन रद्द हो गया। आप फिर से कोशिश कर सकते हैं।",
+    "description": "Neutral copy after the user cancels the Apple sheet (not a failure)"
+  },
   "learn_empty_other_account": {
     "message": "इस डिवाइस पर किसी अन्य खाते की सामग्री भी है। आप अभी किसी और के रूप में साइन इन हैं — कुछ भी खोया नहीं; मूल खाते से फिर से साइन इन करें और यह वापस आ जाएगा।"
   },
@@ -4200,5 +4216,39 @@
   },
   "app_e1_note": {
     "message": "केवल चीनी (zh) के लिए डिफ़ॉल्ट रूप से चालू। पहली बार उपयोग पर मॉडल पृष्ठभूमि में डाउनलोड होता है (लगभग 160MB); डाउनलोड पूरा होने तक और विफलता पर सिस्टम डिक्टेशन का उपयोग होता है। यह अगले सत्र में लागू होता है। बंद करने पर सिस्टम डिक्टेशन पर वापस आ जाता है।"
+  },
+  "firstrun_packs_skip": {
+    "message": "बाद में पैक करें, आगे बढ़ें"
+  },
+  "packs_pending_title": {
+    "message": "भाषा पैक तैयार नहीं हैं"
+  },
+  "packs_pending_body": {
+    "message": "भाषा पैक डाउनलोड होने तक सुनना, लाइव कैप्शन और ऑफ़लाइन पढ़कर सुनाना उपलब्ध नहीं हैं।"
+  },
+  "packs_pending_go": {
+    "message": "भाषा पैक डाउनलोड करें"
+  },
+  "packs_pending_why": {
+    "message": "भाषा पैक तैयार नहीं हैं — पहले “भाषा पैक” पेज पर डाउनलोड करें"
+  },
+  "packs_pending_tts": {
+    "message": "ऑफ़लाइन पढ़कर सुनाना (डिवाइस TTS) उपलब्ध नहीं: भाषा पैक तैयार नहीं हैं"
+  },
+  "listen_perm_explain_title": {
+    "message": "माइक्रोफ़ोन चाहिए",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_explain_body": {
+    "message": "लाइव अनुवाद आपके द्वारा सेट किए गए ट्रांसक्रिप्शन एंडपॉइंट पर माइक्रोफ़ोन की आवाज़ भेजता है। अगले चरण में सिस्टम अनुमति का संदेश आएगा — शुरू करने के लिए «अनुमति दें» चुनें।",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_title": {
+    "message": "माइक्रोफ़ोन की अनुमति बंद है",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_body": {
+    "message": "सिस्टम सेटिंग में «माइक्रोफ़ोन» चालू करें, यहाँ वापस आकर «फिर कोशिश करें» दबाएँ — ऐप को फिर से शुरू करने की ज़रूरत नहीं।",
+    "description": "BEL-273 microphone permission gate"
   }
 }

@@ -2158,6 +2158,22 @@
     "message": "Die Apple-Anmeldung wurde nicht abgeschlossen. Nutze stattdessen unten E-Mail oder Telefon.",
     "description": "Native Apple sign-in failed (not user cancel)"
   },
+  "app_apple_no_credential": {
+    "message": "Apple hat keine Anmeldedaten zurückgegeben. Versuche die Apple-Anmeldung erneut oder nutze E-Mail / Google.",
+    "description": "Native Apple sign-in returned no credential; offers retry and alternate sign-in"
+  },
+  "app_apple_retry": {
+    "message": "Apple-Anmeldung erneut versuchen",
+    "description": "Button: retry native Apple sign-in after a failure"
+  },
+  "app_apple_other": {
+    "message": "Stattdessen E-Mail / Google verwenden",
+    "description": "Button: switch away from Apple to email or Google"
+  },
+  "app_apple_canceled": {
+    "message": "Apple-Anmeldung abgebrochen. Du kannst es erneut versuchen.",
+    "description": "Neutral copy after the user cancels the Apple sheet (not a failure)"
+  },
   "learn_empty_other_account": {
     "message": "Auf diesem Gerät liegt auch das Material eines anderen Kontos. Du bist gerade mit einem anderen Konto angemeldet — nichts ist weg; melde dich wieder mit dem ursprünglichen Konto an, dann ist es zurück.",
     "description": "Empty review page while signed in as a different account than the one owning this device corpus"
@@ -4367,5 +4383,39 @@
   },
   "app_e1_note": {
     "message": "Standardmäßig aktiviert, nur für Chinesisch (zh). Das Modell wird bei der ersten Nutzung im Hintergrund heruntergeladen (ca. 160 MB). Bis zum Abschluss und bei Fehlern wird die Systemdiktierung verwendet. Die Änderung gilt ab der nächsten Sitzung. Ausschalten kehrt zur Systemdiktierung zurück."
+  },
+  "firstrun_packs_skip": {
+    "message": "Später nachladen, jetzt fortfahren"
+  },
+  "packs_pending_title": {
+    "message": "Sprachpakete sind noch nicht bereit"
+  },
+  "packs_pending_body": {
+    "message": "Zuhören, Live-Untertitel und Vorlesen offline sind erst nach dem Herunterladen der Sprachpakete verfügbar."
+  },
+  "packs_pending_go": {
+    "message": "Sprachpakete herunterladen"
+  },
+  "packs_pending_why": {
+    "message": "Sprachpakete sind noch nicht bereit – lade sie zuerst auf der Seite „Sprachpakete“ herunter"
+  },
+  "packs_pending_tts": {
+    "message": "Vorlesen offline (Geräte-TTS) nicht verfügbar: Sprachpakete sind noch nicht bereit"
+  },
+  "listen_perm_explain_title": {
+    "message": "Mikrofon erforderlich",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_explain_body": {
+    "message": "Beim Dolmetschen wird Mikrofon-Audio an den von dir eingerichteten Transkriptions-Endpunkt gesendet. Als Nächstes erscheint die Systemabfrage — wähle „Erlauben“, um zu starten.",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_title": {
+    "message": "Mikrofonzugriff ist aus",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_body": {
+    "message": "Aktiviere „Mikrofon“ in den Systemeinstellungen und tippe hier anschließend auf „Erneut versuchen“ — die App muss nicht neu gestartet werden.",
+    "description": "BEL-273 microphone permission gate"
   }
 }

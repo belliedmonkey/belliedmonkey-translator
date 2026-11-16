@@ -2159,6 +2159,22 @@
     "message": "Apple 登录没能完成。可以改用下面的邮箱或手机号。",
     "description": "Native Apple sign-in failed (not user cancel)"
   },
+  "app_apple_no_credential": {
+    "message": "没有拿到 Apple 凭据。可以重试 Apple 登录，或改用邮箱 / Google。",
+    "description": "Native Apple sign-in returned no credential; offers retry and alternate sign-in"
+  },
+  "app_apple_retry": {
+    "message": "重试 Apple 登录",
+    "description": "Button: retry native Apple sign-in after a failure"
+  },
+  "app_apple_other": {
+    "message": "改用邮箱/Google",
+    "description": "Button: switch away from Apple to email or Google"
+  },
+  "app_apple_canceled": {
+    "message": "已取消 Apple 登录，可以再点一次。",
+    "description": "Neutral copy after the user cancels the Apple sheet (not a failure)"
+  },
   "learn_empty_other_account": {
     "message": "这台设备上还有另一个账号的学习材料。你现在登录的是另一个账号 —— 那些卡没有丢，用原来的账号登录就会回来。",
     "description": "Empty review page while signed in as a different account than the one owning this device corpus"
@@ -4368,5 +4384,39 @@
   },
   "app_e1_note": {
     "message": "默认开启，仅中文（zh）。首次使用会在后台下载约 160MB；下载完成前及失败时仍用系统听写，完成后的下一次会话生效。关闭后回到系统听写。"
+  },
+  "firstrun_packs_skip": {
+    "message": "稍后补包，先进入"
+  },
+  "packs_pending_title": {
+    "message": "语言包未就绪"
+  },
+  "packs_pending_body": {
+    "message": "听译、实时字幕和离线朗读暂时不可用。下载语言包后即可使用。"
+  },
+  "packs_pending_go": {
+    "message": "去下载语言包"
+  },
+  "packs_pending_why": {
+    "message": "语言包未就绪 —— 先去「语言包」页下载"
+  },
+  "packs_pending_tts": {
+    "message": "离线朗读（设备 TTS）不可用：语言包未就绪"
+  },
+  "listen_perm_explain_title": {
+    "message": "需要使用麦克风",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_explain_body": {
+    "message": "听译要把麦克风的声音送到你设置的转写端点。下一步会弹出系统授权框，点「允许」即可开始。",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_title": {
+    "message": "麦克风权限未开启",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_body": {
+    "message": "在系统设置里打开「麦克风」权限，回到这里点「重试」就能开始，不用重开 App。",
+    "description": "BEL-273 microphone permission gate"
   }
 }

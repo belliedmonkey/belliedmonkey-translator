@@ -14,7 +14,9 @@
 //   R6 每屏至多一个填色按钮
 const fs = require('fs');
 const path = require('path');
-const { describe, test, ok, eq, deepEq, loadSrc } = require('./harness');
+const { describe, test, ok, eq, deepEq, loadSrc, rejects, tick } = require('./harness');
+const cfg = require('../build/telemetry.config.js');
+const { bootApp } = require('./lib/app-boot');
 
 const ROOT = path.join(__dirname, '..');
 const SHELL = 'src/app/AppShell.jsx';
@@ -76,15 +78,24 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
     // 允许的只有**登录这一件事**的元素：Apple / Google / 邮箱那一步，以及邮箱表单
     // 展开后的两步（验证码、密码），它们都是登录流程内部。
     const allowed = new Set(['btn-apple', 'btn-google', 'btn-signin', 'xb-check',
-      'send', 'verify', 'resend', 'back', 'app-pw-login', 'app-pw-back', 'app-use-pw']);
+      'send', 'verify', 'resend', 'back', 'app-pw-login', 'app-pw-back', 'app-use-pw',
+      // BEL-272：Apple 原生失败卡上的两个出口，仍是登录流程内部（默认 hidden）。
+      'btn-apple-retry', 'btn-apple-other']);
     const extra = buttonIds(signedOut).filter((x) => !allowed.has(x));
     deepEq(extra, [], '未登录首屏出现了登录以外的可点元素');
   });
 
-  test('R2 · 屏序可达，且屏 2 无跳过、屏 3 有跳过', () => {
+  test('R2 · 屏序可达；屏 2 常态无跳过，BEL-269 只在失败态给备用出口；屏 3 有跳过', () => {
     ok(packs, '找不到 #firstrun-packs 段 —— 屏 2（资源包）还没实现');
-    ok(!/(先跳过|稍后再说|先用着|稍后再下|skip)/i.test(packs), '屏 2 出现跳过/稍后一类出口 —— 它是硬门');
-    ok(!/id="[^"]*skip/i.test(packs), '屏 2 出现带 skip 的控件 id');
+    // BEL-269：失败态多一个「稍后补包，先进入」。它必须是默认隐藏的 link（不是填色
+    // 按钮），且屏 2 仍不许有别的跳过/稍后出口 —— 硬门只在「两次都失败」后放行。
+    const skipBtn = (packs.match(/<button[^>]*\sid="packs-skip"[^>]*>/) || [''])[0];
+    ok(skipBtn, '屏 2 缺 BEL-269 的 #packs-skip 备用出口');
+    ok(/\bhidden\b/.test(skipBtn), '#packs-skip 默认必须 hidden —— 成功路径不许有跳过');
+    ok(/className="link"/.test(skipBtn), '#packs-skip 必须是 link —— 屏 2 仍只能有一个填色按钮');
+    ok(!/(先跳过|稍后再说|先用着|稍后再下)/i.test(packs),
+      '屏 2 出现常态跳过/稍后一类出口 —— 它仍是硬门（BEL-269 只允许失败态 #packs-skip）');
+    ok(!/id="(?!packs-skip")[^"]*skip/i.test(packs), '屏 2 出现其他带 skip 的控件 id');
     ok(/id="ob-skip"/.test(shell), '屏 3（引导）没有跳过出口 —— 它是软门，必须能跳');
   });
 
@@ -580,5 +591,566 @@ describe('改稿 F / 改稿 G · 多选语言包与听译准备中（2026-10-11�
     ok(/asrLangReady\(id\.slice\(4\)\)/.test(shell), '包屏一行的「已就绪」仍看全局开关');
     const bytes = shell.slice(shell.indexOf('function selectedBytes'), shell.indexOf('function selectedSizeLabel'));
     ok(/!\(packLidReady && packVadReady\)/.test(bytes), '页脚仍把已经下好的基础组件算进总量');
+  });
+});
+
+// BEL-268：main 的 pack_download_fail 白名单没有 reason 枚举（只有 code），所以只把失败
+// 阶段编码进既有 code 后缀；不新增 stage 属性，否则 bt-ingest 整条拒收。
+describe('BEL-268 pack_download_fail 的阶段后缀（main）', () => {
+  function packFailCodeFn() {
+    const src = stripComments(read('src/app/shell-model.js'));
+    const start = src.indexOf('function packFailCode(');
+    ok(start >= 0, 'shell-model.js 里找不到 packFailCode()');
+    let depth = 0;
+    for (let i = src.indexOf('{', start); i < src.length; i++) {
+      if (src[i] === '{') depth++;
+      else if (src[i] === '}') {
+        depth--;
+        if (depth === 0) {
+          const body = src.slice(start, i + 1);
+          return new Function(body + '; return packFailCode;')();
+        }
+      }
+    }
+    throw new Error('packFailCode() 源码括号不配对');
+  }
+
+  test('阶段编码进 code 后缀；未知阶段退回 download；旧 code 不被改写', () => {
+    const packFailCode = packFailCodeFn();
+    const cases = [
+      [{ reason: 'hash', stage: 'asr' }, undefined, 'download_asr'],
+      [{ reason: 'network' }, undefined, 'download'],
+      [{ reason: 'hash' }, 'asr', 'download_asr'],
+      [{ reason: 'network' }, 'base', 'download_base'],
+      [{ reason: 'disk' }, 'tts', 'download_tts'],
+      [{ reason: 'unsupported' }, 'vad', 'download_vad'],
+      [{ reason: 'hash', stage: 'tts' }, 'asr', 'download_tts'],
+      [{ reason: 'hash', stage: 'wat' }, 'asr', 'download_asr'],
+      [{ reason: 'hash' }, 'wat', 'download'],
+      [new Error('download failed'), undefined, 'download'],
+      [{ mtSttTimeout: true, reason: 'timeout' }, 'asr', 'timeout'],
+      [{ mtTtsFailed: true, reason: 'network' }, 'tts', 'tts_failed'],
+      [{ mtBaseFailed: true, reason: 'disk' }, 'base', 'base_failed'],
+      [{ code: 'econnreset' }, 'asr', 'econnreset'],
+      [{ code: 'download' }, 'asr', 'download_asr'],
+    ];
+    for (const [err, stage, want] of cases) {
+      eq(packFailCode(err, stage), want, JSON.stringify(err) + ' / stage=' + stage);
+    }
+  });
+
+  test('下载各阶段写到 packFailStage，catch 交给 packFailCode', () => {
+    const src = stripComments(read('src/app/shell-model.js'));
+    ok(/let packFailStage = '';/.test(src), '没有记住本次失败阶段');
+    const segments = [
+      ['base/vad', /packFailStage = 'vad';[\s\S]{0,500}packFailStage = 'base';/],
+      ['tts', /packFailStage = 'tts';[\s\S]{0,200}ensureDeviceReady/],
+      ['asr', /packFailStage = 'asr';[\s\S]{0,1200}ensureAssets\('stt'/],
+    ];
+    for (const [name, re] of segments) {
+      ok(re.test(src), name + ' 下载阶段没有写进 packFailStage');
+    }
+    ok(/reportPackRun\(TelemetrySession, packSurface,[\s\S]{0,400}packFailCode\(e, packFailStage\)/.test(src),
+      '失败上报没把 packFailStage 交给 packFailCode');
+    ok(!/pack_download_fail[\s\S]{0,200}\bstage\s*:/.test(src),
+      '事件字段里出现了 stage —— 白名单没有这个键，bt-ingest 会整条拒收');
+  });
+});
+
+// BEL-269（P0）：首启包下载失败不能只剩「重试」。下面的判据是**行为**：
+// 自动重试一次（带退避）→ 仍失败时「重试」与「稍后补包，先进入」都可达 →
+// 跳过把 listenPacksDone 落盘并进首页，下次冷启动 app_open 直接 app_home。
+// 成功路径保持 1 次尝试、无退避、无失败出口；两次失败时 pack_download_start/fail
+// 各 2 条，不出现 ok / packs_ready。
+describe('BEL-269 · 首启包失败：自动重试一次 + 可继续进入', () => {
+  const MODEL = 'src/app/shell-model.js';
+  const Shell = loadSrc(MODEL, 'ShellModel', {
+    window: {},
+    document: {},
+    chrome: { storage: { local: { get() {}, set() {} }, onChanged: { addListener() {} } } },
+    navigator: {},
+    localStorage: {},
+  }).ShellModel;
+  const FR = loadSrc(FIRST, 'FirstRun').FirstRun;
+
+  function loadTelemetry(store) {
+    const events = [];
+    const local = {
+      get(keys, cb) {
+        const out = {};
+        const list = Array.isArray(keys) ? keys : (typeof keys === 'string' ? [keys] : Object.keys(keys || {}));
+        for (const k of list) if (k in store) out[k] = store[k];
+        cb && cb(out);
+      },
+      set(obj, cb) { Object.assign(store, obj); cb && cb(); },
+      remove(keys, cb) {
+        for (const k of (Array.isArray(keys) ? keys : [keys])) delete store[k];
+        cb && cb();
+      },
+    };
+    const sandbox = {
+      window: { MT_TELEMETRY: {
+        url: 'https://ingest.test/functions/v1/bt-ingest',
+        spec: { common: cfg.COMMON, events: cfg.EVENTS, limits: cfg.LIMITS },
+      } },
+      chrome: { storage: { local } },
+      fetch: async () => ({ ok: true, status: 200 }),
+      MTTelemetry: {
+        enabled: async () => true,
+        track(name, props) { events.push({ name, props }); },
+        installId: async () => ({ id: '11111111-1111-4111-8111-111111111111' }),
+      },
+      LearnAuth: { currentStable: async () => ({ userId: 'u' }), lastLoadError: () => '' },
+    };
+    return { TS: loadSrc('src/app/telemetry-session.js', 'TelemetrySession', sandbox).TelemetrySession, events };
+  }
+
+  test('A1 · 首次失败 ⇒ 自动重试一次（共 2 次）且两次之间有退避', async () => {
+    const sleeps = [];
+    let attempts = 0;
+    const e = await rejects(Shell.runPackAttempts(async () => {
+      attempts++;
+      throw new Error('ensureAssets: offline');
+    }, { sleep: async (ms) => { sleeps.push(ms); } }), /offline/);
+    ok(e, '两次都失败必须把错误抛给失败态');
+    eq(attempts, 2, '自动重试不是「恰好再一次」—— 多了会循环，少了用户没有第二次机会');
+    eq(sleeps.length, 1, '两次尝试之间必须等一次退避，且只等一次');
+    ok(sleeps[0] >= 1000, '退避时间太短（<1s）—— 等于立刻重试');
+    const model = stripComments(read(MODEL));
+    const run = model.slice(model.indexOf('async function runFirstRunPacks'), model.indexOf('async function enterListen'));
+    ok(/runPackAttempts\(/.test(run) && /PACK_AUTO_RETRY_ATTEMPTS/.test(run),
+      'runFirstRunPacks 没有接自动重试（PACK_AUTO_RETRY_ATTEMPTS）');
+    ok(/PACK_AUTO_RETRY_DELAY_MS/.test(run), 'runFirstRunPacks 没把退避时间传给重试');
+  });
+
+  test('A2 · 两次失败后重试与跳过都可达（落盘/冷启由 B5–B7 真跑）', () => {
+    deepEq(Shell.packsFailureActions({ failed: true, busy: false, manage: false, phase: 'pick' }),
+      { retry: true, skip: true }, '第二次失败后两个出口必须同时可达');
+    for (const s of [
+      { failed: true, busy: true, phase: 'downloading' },
+      { failed: true, manage: true, phase: 'pick' },
+      { failed: true, phase: 'done' },
+      { failed: false, phase: 'pick' },
+    ]) {
+      deepEq(Shell.packsFailureActions(s), { retry: false, skip: false },
+        `这些状态不许露失败出口：${JSON.stringify(s)}`);
+    }
+    // 这里以前用假的 persist 自证「会落盘」，再 grep 源码补一层形状。两者在
+    // `writePacksDone` 的 storage.set 被删掉时都还是绿的（2026-11-15 质量变异）。
+    // 真实点击 #packs-skip、真实冷启分流写在 B5–B7；A2 只保留出口可达性。
+    // app_open 的生命周期/枚举由 B4 继续保持断言。
+  });
+
+  test('A3 · 成功路径不变：1 次尝试、不退避、不露失败出口', async () => {
+    let calls = 0;
+    let sleeps = 0;
+    const out = await Shell.runPackAttempts(async () => { calls++; return 'done'; }, {
+      sleep: async () => { sleeps++; },
+    });
+    eq(out, 'done');
+    eq(calls, 1, '成功路径跑了不止一次 —— 改变了成功行为');
+    eq(sleeps, 0, '成功路径不应退避');
+    deepEq(Shell.packsFailureActions({ failed: false, busy: false, manage: false, phase: 'pick' }),
+      { retry: false, skip: false }, '成功路径不应露失败出口');
+    const model = stripComments(read(MODEL));
+    const paint = model.slice(model.indexOf('function paintPackChrome'), model.indexOf('function statusText'));
+    ok(/firstrun_packs_retry/.test(paint) && /重试/.test(paint), '手动「重试」被改掉了');
+    ok(/firstrun_packs_skip/.test(paint) && /稍后补包，先进入/.test(paint),
+      '失败态缺「稍后补包，先进入」文案');
+  });
+
+  test('A4 · 两次都失败 ⇒ pack_download_start/fail 各 2，无 false ok / packs_ready', async () => {
+    const events = [];
+    const tel = {
+      packStart: async () => { events.push('start'); return 'setup'; },
+      packOk: async () => { events.push('ok'); },
+      packFail: async () => { events.push('fail'); },
+      packsReady: async () => { events.push('packs_ready'); },
+    };
+    await rejects(Shell.runPackAttempts(async () => {
+      await Shell.reportPackRun(tel, 'listen', async () => {
+        events.push('ensureAssets');
+        throw new Error('offline');
+      }, () => 'download');
+    }, { sleep: async () => {} }), /offline/);
+    deepEq(events, ['start', 'ensureAssets', 'fail', 'start', 'ensureAssets', 'fail'],
+      'start/fail 没有与两次尝试一一对应');
+    eq(events.filter((x) => x === 'start').length, 2);
+    eq(events.filter((x) => x === 'fail').length, 2);
+    eq(events.indexOf('ok'), -1, '失败路径发了 pack_download_ok');
+    eq(events.indexOf('packs_ready'), -1, '失败路径发了 packs_ready');
+    const model = stripComments(read(MODEL));
+    const run = model.slice(model.indexOf('async function runFirstRunPacks'), model.indexOf('async function enterListen'));
+    const catchAt = run.indexOf('} catch (e) {');
+    const ret = run.indexOf('return;', catchAt);
+    ok(catchAt > -1 && ret > catchAt, '切不出 runFirstRunPacks 的失败分支');
+    ok(!/probePacks\(\)/.test(run.slice(catchAt, ret)),
+      '失败分支仍 probePacks —— 会发 packs_ready');
+    const blockedAt = run.indexOf('if (blocked)');
+    const okAt = run.indexOf('packOk(packSurface)');
+    ok(blockedAt > -1 && okAt > blockedAt,
+      'pack_download_ok 必须在探包确认齐了之后才发');
+  });
+});
+
+
+// BEL-269 产品约束（同一分支的第二个 commit）：跳过包屏之后的**首页**行为。
+// 前一个 commit 只回答了「失败后能不能进去」；这里补三件用户真的会撞到的事：
+//   ① 包没齐这件事在首页要一直看得见，并给得回包页/设置两条路；
+//   ② 听译 / 实时字幕 / 设备朗读不能假装可用，也不能空转；
+//   ③ 心跳/重绘既不能把人拉回包屏，也不能再起一轮下载。
+// 遥测仍只用既有事件与枚举值；「没包也进来」用 app_open.surface='packs' 观测。
+describe('BEL-269 延伸 · 首页不假装包已就绪 + 路由/重试去重', () => {
+  const Shell = loadSrc('src/app/shell-model.js', 'ShellModel', {
+    window: {},
+    document: {},
+    chrome: { storage: { local: { get() {}, set() {} }, onChanged: { addListener() {} } } },
+    navigator: {},
+    localStorage: {},
+  }).ShellModel;
+  const FIRST = 'src/app/firstrun.js';
+  const FR = loadSrc(FIRST, 'FirstRun').FirstRun;
+
+  test('B1 · 跳过后首页横幅常驻；心跳/重绘再多次仍停在首页', async () => {
+    const afterSkip = {
+      session: true, packsDone: true, skipped: true,
+      asrPack: false, ttsPack: false, basePack: false,
+      packPhase: 'pick', packsManage: false,
+    };
+    // 路由：包没齐但 done=true ⇒ home，而且重复判定（心跳/重绘）不会翻转。
+    eq(Shell.firstRunScreenFor(afterSkip), 'home', '跳过后第一次判定不在首页');
+    for (let i = 0; i < 5; i++) {
+      await tick();
+      eq(Shell.firstRunScreenFor(afterSkip), 'home',
+        `第 ${i + 1} 次心跳/重绘把路由改回了包屏 —— 用户会被反复拉走`);
+    }
+    // 横幅：同一组输入每次都露；三样包齐了才收。
+    const banner = Shell.packsBannerView({ session: true, skipped: true, ready: false, screen: 'home' });
+    eq(banner.show, true, '跳过后首页横幅没露 —— 用户在假装包已就绪的首页上');
+    for (let i = 0; i < 5; i++) {
+      await tick();
+      eq(Shell.packsBannerView({ session: true, skipped: true, ready: false, screen: 'home' }).show, true,
+        '重绘一次横幅就消失了 —— 它不是常驻横幅');
+    }
+    eq(Shell.packsBannerView({ session: true, skipped: true, ready: true, screen: 'home' }).show, false,
+      '包真的齐了横幅还挂着');
+    eq(Shell.packsBannerView({ session: true, skipped: true, ready: false, screen: 'packs' }).show, false,
+      '包屏上还叠着首页横幅，会挡住下载按钮');
+    eq(FR.step({ loggedIn: true, packsDone: true, asrPack: false, ttsPack: false, basePack: false }), 'home',
+      'FirstRun.step 不认 skip 的 done —— 冷启还是会被拉回包屏');
+
+    // 两个入口都接在同一个 openPackManager 上；设置页原来的「管理」没有被替换。
+    const model = stripComments(read('src/app/shell-model.js'));
+    const shellSrc = read(SHELL);
+    for (const id of ['packs-pending', 'packs-pending-title', 'packs-pending-body',
+      'packs-pending-go', 'packs-pending-why', 'packs-pending-tts']) {
+      ok(shellSrc.includes(`id="${id}"`), `AppShell 缺 #${id}`);
+    }
+    ok(/\$\('set-pack-manage'\)\.addEventListener\('click', \(\) => \{ openPackManager\(\); \}\)/.test(model),
+      '设置页的「管理」没接包流程');
+    ok(/function paintPacksPending\(\)/.test(model), '没有画横幅的函数');
+    // 「去下载语言包」的接线、skip 的落盘、横幅的重画都由 B5–B7 真跑一遍，
+    // 这里不再 grep 调用形状（删掉 storage.set 时那些断言仍是绿的）。
+  });
+
+  test('B2 · 听译/实时字幕入口在包未就绪时明确不可用并给原因（不是静默/空转）', async () => {
+    // 复用 listen-model 的入口状态：探针说 ok（设备支持），但包没下完 ⇒ 仍必须挡住。
+    const gate = loadSrc('src/app/pack-pending.js', 'PackPending').PackPending;
+    deepEq(gate.packsEntryGate(true, true), { available: false, reasonKey: 'packs_pending_why', reason: 'packs' },
+      '探针 ok 时包未就绪仍被当成可用 —— 用户会点进一个空转的听译页');
+    eq(gate.packsEntryGate(false, true).available, true, '包齐了反而把入口挡了');
+    eq(gate.packsEntryGate(false, false).available, false, '探针失败时入口必须不可用');
+
+    const C = require('../app/listen-core.js');
+    const mkEl = () => ({ hidden: false, disabled: false, textContent: '', value: '', style: {},
+      classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
+      addEventListener() {}, setAttribute() {}, removeAttribute() {}, appendChild() {},
+      querySelector() { return mkEl(); }, querySelectorAll() { return []; }, getAttribute() { return ''; } });
+    function bootEntry(store) {
+      const tracked = [];
+      const sb = {
+        window: { addEventListener() {}, removeEventListener() {},
+          MT_TELEMETRY: { spec: { common: cfg.COMMON, events: cfg.EVENTS, limits: cfg.LIMITS } } },
+        document: { getElementById: () => mkEl(), querySelector: () => mkEl(), querySelectorAll: () => [],
+          addEventListener() {}, createElement: () => mkEl(), body: mkEl(), documentElement: mkEl(),
+          hidden: false, visibilityState: 'visible' },
+        navigator: { platform: 'MacIntel', maxTouchPoints: 0, language: 'zh-CN', userAgent: 'test' },
+        btoa: (x) => Buffer.from(x, 'binary').toString('base64'),
+        atob: (x) => Buffer.from(x, 'base64').toString('binary'),
+        chrome: { storage: { local: {
+          get: (k, cb) => {
+            const out = Object.assign({
+              listenOtherLang: 'en', listenMyLang: 'zh', listenAutoSpeak: false,
+              listenCapture: false, provider: 'deepseek', apiKey: 'k',
+            }, store);
+            if (typeof k === 'function') { k(out); return; }
+            cb && cb(out);
+          },
+          set: (_o, cb) => { if (cb) cb(); },
+          remove: (_k, cb) => { if (cb) cb(); },
+        }, onChanged: { addListener() {} } }, runtime: { getURL: (u) => u } },
+        ListenCore: C,
+        NativeAudio: { available: () => true, audioCaps: () => ({ system: 'ok' }), capsProbe: async () => ({ system: 'ok' }),
+          onEvent() {}, onTick() {} },
+        NativeSpeech: { available: () => true, probeResult: () => ({ ok: true, assets: 'missing' }),
+          probe: async () => ({ ok: true, assets: 'missing' }), quota: () => ({ max: 5, reserved: [] }) },
+        DiagLog: { push() {} },
+        MTTelemetry: { track: (n, p) => tracked.push([n, p || {}]), once() {} },
+        MTFeedback: {},
+        LearnNotes: { resolveConfig: () => ({}), shouldCapture: () => false, langAllowed: () => true },
+        LearnRules: { dominantScript: () => 'Han', langAllowed: () => true },
+        LearnDialog: { confirm: async () => true },
+        TranslationAPI: { resolveProvider: (id) => id, listenPass: async () => '{}', translate: async () => '' },
+        EngineState: { byId: () => ({ id: 'deepseek', type: 'chat-compat' }) },
+        WireFormat: { formatFor: () => 'chat-compat', resolveEndpoint: () => 'https://x', translationModelName: () => false },
+        Date: { now: () => 1700000000000 },
+        console, URL,
+      };
+      const ctx = loadSrc('src/app/listen-model.js', 'AppListen', sb);
+      return { A: ctx.AppListen, tracked };
+    }
+
+    const pending = bootEntry({ listenPacksSkipped: 1 });
+    await pending.A.refreshEntry();
+    const pe = pending.A.entryView('');
+    eq(pe.listen.disabled, true, '包未就绪时听译入口仍可点');
+    eq(pe.listen.needShown, true, '听译入口灰了但没给原因');
+    ok(/语言包未就绪/.test(pe.listen.why), '听译入口的原因不是「语言包未就绪」');
+    ok(/语言包未就绪/.test(pe.listen.hint), '听译卡说明位没写包未就绪');
+    eq(pe.subs.disabled, true, '包未就绪时实时字幕入口仍可点');
+    eq(pe.subs.needShown, true, '实时字幕灰了但没给原因');
+    ok(/语言包未就绪/.test(pe.subs.needWhy), '实时字幕的原因不是「语言包未就绪」');
+    // 「没包也进来」的既有口子：asr_entry{app_home,no_live}（与灰卡同一条语义）。
+    ok(pending.tracked.some(([n, p]) => n === 'asr_entry'
+      && p.surface === 'app_home' && p.result === 'no_live'),
+    '包未就绪时没有用既有 asr_entry/no_live 记下「听译入口不可用」');
+
+    const ready = bootEntry({});
+    await ready.A.refreshEntry();
+    eq(ready.A.entryView('').listen.disabled, false, '没跳过时探针 ok 的入口被误伤');
+    eq(ready.A.entryView('').subs.disabled, false, '没跳过时实时字幕被误伤');
+
+    // 设备朗读（TTS）：播客入口与设置页状态行都用同一句原因，不能写「已就绪」。
+    const driving = read('src/app/driving-model.js');
+    ok(/PackPending\.readPacksPending\(\)/.test(driving) && /showNeedSpeech\(true, 'packs'\)/.test(driving),
+      '设备朗读入口没按包未就绪门控');
+    ok(/packs_pending_tts/.test(driving), '设备朗读入口没给「语言包未就绪」原因');
+    const settingsView = read('src/app/settings-view.jsx');
+    ok(/PackPending\.packsPendingSync\(\)/.test(settingsView) && /packs_pending_tts/.test(settingsView),
+      '设置页设备朗读状态行仍会写「已就绪」');
+    const listenSrc = read('src/app/listen-model.js');
+    ok(/if \(PackPending\.packsPendingSync\(\)\) return;/.test(listenSrc),
+      'listen-model 的 warmPacks 还会在跳过之后后台自动补包');
+  });
+
+  test('B3 · 自动重试恰好一次且被去重：心跳/重绘起不了第二轮', async () => {
+    // 来源闸：只有用户手势 / 网络恢复能开始下载；后台重入一律 false。
+    eq(Shell.packAttemptAllowed({ busy: false, skipped: false, source: 'user' }), true);
+    eq(Shell.packAttemptAllowed({ busy: false, skipped: false, source: 'resume' }), true);
+    eq(Shell.packAttemptAllowed({ busy: false, skipped: false, source: 'heartbeat' }), false,
+      '心跳能开始一轮真实下载');
+    eq(Shell.packAttemptAllowed({ busy: false, skipped: false, source: 'repaint' }), false,
+      '重绘能开始一轮真实下载');
+    eq(Shell.packAttemptAllowed({ busy: true, skipped: false, source: 'user' }), false,
+      '下载中重复点击又起了一轮');
+    eq(Shell.packAttemptAllowed({ busy: false, skipped: true, source: 'heartbeat' }), false,
+      '跳过之后后台还能再试');
+    eq(Shell.packAttemptAllowed({ busy: false, skipped: true, source: 'user' }), true,
+      '跳过后用户主动去设置重试也被挡了');
+
+    // 一轮被作废时，第二次尝试连退避都不该发生。
+    let attempts = 0;
+    let sleeps = 0;
+    const e = await rejects(Shell.runPackAttempts(async () => {
+      attempts++;
+      throw new Error('offline');
+    }, { sleep: async () => { sleeps++; }, shouldContinue: () => false }), /offline/);
+    ok(e, '错误必须抛回失败态');
+    eq(attempts, 1, '心跳/重绘把自动重试又续了一轮');
+    eq(sleeps, 0, '这一轮已作废却还等了一次退避');
+
+    // 正常的自动重试仍是恰好一次（A1 的同一判据，这里再钉一遍 shouldContinue 不改变它）。
+    let normal = 0;
+    await rejects(Shell.runPackAttempts(async () => { normal++; throw new Error('offline'); },
+      { sleep: async () => {}, shouldContinue: () => true }), /offline/);
+    eq(normal, 2, '正常自动重试不是恰好再一次');
+
+    const model = stripComments(read('src/app/shell-model.js'));
+    const run = model.slice(model.indexOf('async function runFirstRunPacks'), model.indexOf('async function enterListen'));
+    ok(/packAttemptAllowed\(\{ busy: packsBusy, skipped: packsSkippedMem, source \}\)/.test(run),
+      'runFirstRunPacks 没接来源闸');
+    ok(/shouldContinue: \(\) => packRunSeq === runId && packsBusy/.test(run),
+      '自动重试没绑当前轮次 —— 心跳能续跑旧轮');
+    ok(!/runFirstRunPacks\('(?:heartbeat|repaint)'\)/.test(model), '代码里有心跳/重绘触发的下载');
+    const paint = model.slice(model.indexOf('function paintFirstRun'), model.indexOf('async function loadPackSelection'));
+    ok(!/runFirstRunPacks\(/.test(paint), 'paintFirstRun（每次重绘都跑）里直接起下载');
+  });
+
+  test('B4 · 「没包也进来」可观测（既有 asr_entry/no_live），且 start/fail 与真实尝试一一对应', async () => {
+    function loadTelemetry(store) {
+      const events = [];
+      const local = {
+        get(keys, cb) {
+          const out = {};
+          const list = Array.isArray(keys) ? keys : (typeof keys === 'string' ? [keys] : Object.keys(keys || {}));
+          for (const k of list) if (k in store) out[k] = store[k];
+          cb && cb(out);
+        },
+        set(obj, cb) { Object.assign(store, obj); cb && cb(); },
+        remove(keys, cb) {
+          for (const k of (Array.isArray(keys) ? keys : [keys])) delete store[k];
+          cb && cb();
+        },
+      };
+      const sandbox = {
+        window: { MT_TELEMETRY: {
+          url: 'https://ingest.test/functions/v1/bt-ingest',
+          spec: { common: cfg.COMMON, events: cfg.EVENTS, limits: cfg.LIMITS },
+        } },
+        chrome: { storage: { local } },
+        fetch: async () => ({ ok: true, status: 200 }),
+        MTTelemetry: {
+          enabled: async () => true,
+          track(name, props) { events.push({ name, props }); },
+          installId: async () => ({ id: '11111111-1111-4111-8111-111111111111' }),
+        },
+        LearnAuth: { currentStable: async () => ({ userId: 'u' }), lastLoadError: () => '' },
+      };
+      return { TS: loadSrc('src/app/telemetry-session.js', 'TelemetrySession', sandbox).TelemetrySession, events };
+    }
+    // 这条 branch 的 app_open 枚举只有五个功能面，没有 packs / app_home；不改白名单
+    // 的前提下，「没包也进来」用既有 asr_entry{surface:'app_home',result:'no_live'}
+    // 回答（listen-model 在包未就绪时发，B2 已做行为断言）。app_open 本身必须仍是
+    // 一条、且不能出现枚举外的 surface —— 否则整条会被服务端静默丢掉。
+    ok(cfg.EVENTS.asr_entry.result.includes('no_live'), '前提：asr_entry 没有 no_live');
+    ok(cfg.EVENTS.asr_entry.surface.includes('app_home'), '前提：asr_entry 没有 app_home');
+    ok(!cfg.EVENTS.app_open.surface.includes('packs'),
+      '这条 branch 的 app_open 枚举不该有 packs —— 有的话应改回用 app_open');
+    const store = { [Shell.PACKS_DONE_KEY]: 1, [Shell.PACKS_SKIPPED_KEY]: 1 };
+    const tel = loadTelemetry(store);
+    await tel.TS.appOpen();
+    eq(tel.events.length, 1, '跳过的冷启 app_open 不是一条');
+    eq(tel.events[0].name, 'app_open');
+    ok(!tel.events[0].props.surface || cfg.EVENTS.app_open.surface.includes(tel.events[0].props.surface),
+      'app_open.surface 出现枚举外的值 —— 整条会被白名单丢掉');
+
+    // 第一次失败、第二次成功：2 start / 1 fail / 1 ok，没有 packs_ready；
+    // 数字等于真实尝试次数，而不是「重试了一次就再记一条 ok」。
+    const events = [];
+    const t = {
+      packStart: async () => { events.push('start'); },
+      packOk: async () => { events.push('ok'); },
+      packFail: async () => { events.push('fail'); },
+      packsReady: async () => { events.push('packs_ready'); },
+    };
+    let n = 0;
+    await Shell.runPackAttempts(async () => {
+      n++;
+      await Shell.reportPackRun(t, 'listen', async () => {
+        events.push('ensureAssets');
+        if (n === 1) throw new Error('offline');
+      }, () => 'download');
+      if (n === 2) await t.packOk();
+    }, { sleep: async () => {} });
+    deepEq(events, ['start', 'ensureAssets', 'fail', 'start', 'ensureAssets', 'ok'],
+      'start/ok/fail 没有与两次真实尝试一一对应');
+    eq(events.filter((x) => x === 'start').length, 2, 'start 条数不等于尝试次数');
+    eq(events.filter((x) => x === 'fail').length, 1, 'fail 条数不等于失败次数');
+    eq(events.filter((x) => x === 'ok').length, 1, 'ok 条数不等于成功次数');
+    eq(events.indexOf('packs_ready'), -1, '单语言成功被记成了 packs_ready');
+  });
+
+  // ── BEL-269 行为门（2026-11-15）：真 boot + 真 chrome.storage + 真点击 ─────────
+  // 这一组不喂假 persist、不 grep writePacksDone 的调用形状。启动的是生产
+  // bootShell()，点的是它接的 #packs-skip，下一次冷启读的是这一次真的写下的字节。
+  // 质量变异：删掉 writePacksDone 里的 chrome.storage.local.set，B5 起必红。
+
+  // 一次真实的「冷启落在包屏 → 点击 #packs-skip」。返回点击后的 storage 与 DOM。
+  async function realSkip() {
+    const app = bootApp({ store: { onboardSeen: 1 }, ready: false });
+    app.boot();
+    const onPacks = await app.waitForScreen('packs');
+    // 等 boot 把包屏画完（#packs-skip 的 click 处理器在 boot 同步段就接好了）。
+    await tick(20);
+    app.el('packs-skip').click();
+    const wrote = await app.waitFor(() => (
+      app.store[Shell.PACKS_DONE_KEY] === 1 && app.store[Shell.PACKS_SKIPPED_KEY] === 1
+    ), 500);
+    await app.waitForScreen('home');
+    return { app, store: app.store, onPacks, wrote };
+  }
+
+  test('B5 · 真实 #packs-skip 点击把 listenPacksDone/listenPacksSkipped 落成 1', async () => {
+    const { app, store, onPacks, wrote } = await realSkip();
+    ok(onPacks, `冷启没落到包屏（实际 ${app.screen()}）—— 没有可点的跳过出口`);
+    ok(wrote, '点击 #packs-skip 后存储里没有 listenPacksDone=1 / listenPacksSkipped=1'
+      + `（实际 ${JSON.stringify({ done: store[Shell.PACKS_DONE_KEY], skipped: store[Shell.PACKS_SKIPPED_KEY] })}）`);
+    // 键名不发明：就是 App 的 listenPacksDone / listenPacksSkipped 两个导出常量，
+    // 值与成功路径/冷启读取同形（数字 1，不是 true / 字符串）。
+    eq(Shell.PACKS_DONE_KEY, 'listenPacksDone', '跳过的 done 键不再是 App 读的那个');
+    eq(Shell.PACKS_SKIPPED_KEY, 'listenPacksSkipped', '跳过的 skipped 键不再是 App 读的那个');
+    eq(store[Shell.PACKS_DONE_KEY], 1, '真实 skip 没把 listenPacksDone=1 落盘');
+    eq(store[Shell.PACKS_SKIPPED_KEY], 1, '真实 skip 没把 listenPacksSkipped=1 落盘');
+    eq(typeof store[Shell.PACKS_DONE_KEY], 'number', 'listenPacksDone 不是数字 1 的形状');
+    eq(typeof store[Shell.PACKS_SKIPPED_KEY], 'number', 'listenPacksSkipped 不是数字 1 的形状');
+    // 同一帧里已经进首页，且包未齐的横幅真的画出来了。
+    eq(app.el('firstrun-packs').hidden, true, '跳过之后包屏还露着');
+    eq(app.el('signed-in').hidden, false, '跳过之后首页没露');
+    eq(app.el('packs-pending').hidden, false, '跳过进首页后「语言包未就绪」横幅没露');
+    eq(app.el('packs-pending-title').textContent, '语言包未就绪', '横幅标题不是产品文案');
+  });
+
+  test('B6 · 下次冷启只按落盘的 skip 键分流：有 skip → home+横幅；无 skip → 包屏', async () => {
+    const { store: skippedStore, onPacks, wrote } = await realSkip();
+    ok(onPacks && wrote, '准备阶段：真实 skip 没有落盘，无法比较下一次冷启');
+    // 两个 case 的存储只差 skip 写下的那两个键；包探针、会话、其它字节完全相同。
+    const withSkip = Object.assign({}, skippedStore);
+    const withoutSkip = Object.assign({}, skippedStore);
+    delete withoutSkip[Shell.PACKS_DONE_KEY];
+    delete withoutSkip[Shell.PACKS_SKIPPED_KEY];
+
+    const homeApp = bootApp({ store: withSkip, ready: false });
+    homeApp.boot();
+    ok(await homeApp.waitForScreen('home'),
+      `有 skip 的下一次冷启没进首页（实际 ${homeApp.screen()}）—— 用户会被按回包屏`);
+    eq(homeApp.el('firstrun-packs').hidden, true, '有 skip 的冷启仍露着包屏');
+    eq(homeApp.el('packs-pending').hidden, false, '有 skip 的冷启首页没挂「语言包未就绪」横幅');
+    eq(homeApp.el('packs-pending-title').textContent, '语言包未就绪', '冷启横幅标题不是产品文案');
+
+    const packsApp = bootApp({ store: withoutSkip, ready: false });
+    packsApp.boot();
+    ok(await packsApp.waitForScreen('packs'),
+      `同样的包缺失、只是没有 skip 键，冷启却没回包屏（实际 ${packsApp.screen()}）—— skip 键没被读`);
+    eq(packsApp.el('firstrun-packs').hidden, false, '没有 skip 的冷启包屏没露');
+    eq(packsApp.el('signed-in').hidden, true, '没有 skip 的冷启把首页也露出来了 —— 硬门被绕开');
+    eq(packsApp.el('packs-pending').hidden, true, '没有 skip 的冷启却挂了首页横幅');
+  });
+
+  test('B7 · 探针三样齐了横幅自动收起', async () => {
+    const { store: skippedStore, onPacks, wrote } = await realSkip();
+    ok(onPacks && wrote, '准备阶段：真实 skip 没有落盘，无法验证就绪后收横幅');
+
+    // 冷启时探针已经全齐：同一个 skip 存储，横幅不该出现。
+    const readyApp = bootApp({ store: Object.assign({}, skippedStore), ready: true });
+    readyApp.boot();
+    ok(await readyApp.waitForScreen('home'), `三样都齐的冷启没进首页（实际 ${readyApp.screen()}）`);
+    eq(readyApp.el('packs-pending').hidden, true, '探针三样都齐了，横幅还挂着');
+
+    // 运行中由探针「缺 → 齐」：走 App 自己的回包页再返回，paintFirstRun 会重探；
+    // 齐了之后 skip 旗收回、横幅消失，不需要重启。
+    const app = bootApp({ store: Object.assign({}, skippedStore), ready: false });
+    app.boot();
+    ok(await app.waitForScreen('home'), `skip 后的冷启没进首页（实际 ${app.screen()}）`);
+    eq(app.el('packs-pending').hidden, false, '准备阶段：包未齐时横幅没露');
+    app.probe.ready = true;                      // 系统把三样包自己下齐了
+    app.el('packs-pending-go').click();          // 生产路径：重探包
+    ok(await app.waitFor(() => app.el('firstrun-packs').hidden === false, 600),
+      '重探包之后没有回到包页（无法验证收横幅）');
+    ok(await app.waitFor(() => app.store[Shell.PACKS_SKIPPED_KEY] === 0, 500),
+      '三样包齐了，listenPacksSkipped 没有收回 0');
+    app.el('packs-manage-back').click();         // 生产路径：从包页返回首页
+    ok(await app.waitFor(() => app.el('packs-pending').hidden === true, 500),
+      '包齐了之后横幅还挂着 —— 用户看到的是过期的「未就绪」');
+    eq(app.el('firstrun-packs').hidden, true, '收横幅后包屏还露着');
   });
 });

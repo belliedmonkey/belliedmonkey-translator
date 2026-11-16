@@ -1,0 +1,5 @@
+{
+  "ingest": [
+    "https://backend.invalid/functions/v1/bt-ingest"
+  ]
+}

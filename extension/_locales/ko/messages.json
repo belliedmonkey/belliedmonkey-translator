@@ -2158,6 +2158,22 @@
     "message": "Apple 로그인을 완료하지 못했습니다. 아래의 이메일이나 전화번호를 이용하세요.",
     "description": "Native Apple sign-in failed (not user cancel)"
   },
+  "app_apple_no_credential": {
+    "message": "Apple 인증 정보를 받지 못했습니다. Apple 로그인을 다시 시도하거나 이메일 / Google을 사용하세요.",
+    "description": "Native Apple sign-in returned no credential; offers retry and alternate sign-in"
+  },
+  "app_apple_retry": {
+    "message": "Apple 로그인 다시 시도",
+    "description": "Button: retry native Apple sign-in after a failure"
+  },
+  "app_apple_other": {
+    "message": "이메일 / Google 사용",
+    "description": "Button: switch away from Apple to email or Google"
+  },
+  "app_apple_canceled": {
+    "message": "Apple 로그인이 취소되었습니다. 다시 시도할 수 있습니다.",
+    "description": "Neutral copy after the user cancels the Apple sheet (not a failure)"
+  },
   "learn_empty_other_account": {
     "message": "이 기기에는 다른 계정의 학습 자료도 있습니다. 지금은 다른 계정으로 로그인되어 있습니다 — 사라진 것이 아니며, 원래 계정으로 로그인하면 돌아옵니다.",
     "description": "Empty review page while signed in as a different account than the one owning this device corpus"
@@ -4367,5 +4383,39 @@
   },
   "app_e1_note": {
     "message": "중국어(zh)에 한해 기본적으로 켜져 있습니다. 처음 사용할 때 모델을 백그라운드에서 다운로드합니다(약 160MB). 다운로드가 끝나기 전과 실패 시에는 시스템 받아쓰기를 사용하며, 완료 후 다음 세션부터 적용됩니다. 끄면 시스템 받아쓰기로 돌아갑니다."
+  },
+  "firstrun_packs_skip": {
+    "message": "나중에 팩을 받고 먼저 들어가기"
+  },
+  "packs_pending_title": {
+    "message": "언어 팩이 준비되지 않았습니다"
+  },
+  "packs_pending_body": {
+    "message": "언어 팩을 다운로드할 때까지 듣기, 실시간 자막, 오프라인 읽어 주기는 사용할 수 없습니다."
+  },
+  "packs_pending_go": {
+    "message": "언어 팩 다운로드"
+  },
+  "packs_pending_why": {
+    "message": "언어 팩이 준비되지 않았습니다 — 먼저 \"언어 팩\" 페이지에서 다운로드하세요"
+  },
+  "packs_pending_tts": {
+    "message": "오프라인 읽어 주기(기기 TTS)를 사용할 수 없습니다: 언어 팩이 준비되지 않았습니다"
+  },
+  "listen_perm_explain_title": {
+    "message": "마이크가 필요합니다",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_explain_body": {
+    "message": "통역은 마이크 소리를 설정한 전사 엔드포인트로 보냅니다. 다음에 시스템 권한 창이 뜨면 「허용」을 선택하면 시작됩니다.",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_title": {
+    "message": "마이크 권한이 꺼져 있습니다",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_body": {
+    "message": "시스템 설정에서 「마이크」를 켜고 여기로 돌아와 「다시 시도」를 누르면 시작됩니다. 앱을 다시 시작할 필요는 없습니다.",
+    "description": "BEL-273 microphone permission gate"
   }
 }

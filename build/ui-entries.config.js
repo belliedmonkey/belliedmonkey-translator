@@ -41,22 +41,14 @@ module.exports = { ENTRIES: [
   // src/shared/（§9.4 对账门按目录集合对两宿主，单侧组合根放 src/pages/ 与 popup 同族）。
   { entry: 'src/pages/review-host.js', out: 'learn/review.js' },
   { entry: 'src/pages/doc-view-host.js', out: 'learn/doc-view.js' },
-  // PR8a：字幕控制菜单的行渲染 —— content 的第一个 React root。**懒加载**：产物
-  // 是 ESM、不进 manifest 的 content_scripts 列表，subtitle-adapter.js 在用户第一
-  // 次点开菜单时 import(chrome.runtime.getURL(...))（web_accessible_resources 有
-  // 登记），同步注入面零新增字节；scripts/verify-content-inject.js 与 build.js 的
-  // 同步字节门守着这条边界（test/content-ui.test.js 咬「esm 产物不得进 js 列表」
-  // 的一致式）。
-  // PR9 按 #491 §② 收紧此条目的两个边界：
-  //   · 懒加载**仅许可菜单这一类条目** —— 它的降级不对称可接受（动态 import 失败 =
-  //     菜单开不出，FAB 还在，翻译功能无恙）。凡「失败即核心功能死」的注入面
-  //     （overlay 三站点，#491 的正主）静态与懒加载两条路都不走。
-  //   · **没有回退开关** —— 「改 format:'iife' 静态注入」与预算门互斥：bundle
-  //     677KB 进同步注入面，超 +150KB 预算 4 倍多，contentSyncBytesGate 直接红；
-  //     content-ui 的结构门也咬着 format==='esm'。这条路在设计上就不存在，不是
-  //     「Firefox/Safari 实测不过时再启用」的备用路 —— 若矩阵真的红了，要回答的
-  //     是「菜单改回命令式」这个新设计，不是翻开这行注释。
-  { entry: 'src/content/sub-menu.jsx', out: 'content/sub-menu.bundle.js', format: 'esm' },
+  // BEL-277（修订）：字幕控制菜单改为 **IIFE 静态 content_scripts 条目**。
+  // 旧实现（PR8a）是 ESM + 首次开菜单时 import(chrome.runtime.getURL(...))，
+  // 依赖 web_accessible_resources 且在有页面 CSP / 动态 import 不可用的宿主上
+  // 直接开不出。现在 esbuild 用 iife + globalName 把 host 挂到 isolated-world
+  // 全局（content/sub-menu.bundle.js），manifest 新增一条 bounded 的静态注入；
+  // subtitle-adapter 读同一个全局，读不到/抛错就走内置 DOM 回退菜单。
+  // 产物是纯 DOM（不再 import React），所以几 KB，过得了 contentSyncBytesGate。
+  { entry: 'src/content/sub-menu.jsx', out: 'content/sub-menu.bundle.js', format: 'iife', globalName: 'MTSubMenuBundle' },
   // BEL-155：官网外链 UTM。扩展 options/onboard/popup 在 feedback.js 之前挂
   // <script src="../learn/utm.js">；产物由本条目覆盖。App 经 main.jsx 副作用
   // import utm-host（§9.4 对账）。算法只在 src/shared/utm.js。

@@ -2158,6 +2158,22 @@
     "message": "O login com a Apple não foi concluído. Use o e-mail ou telefone abaixo.",
     "description": "Native Apple sign-in failed (not user cancel)"
   },
+  "app_apple_no_credential": {
+    "message": "A Apple não retornou credenciais. Tente entrar com a Apple novamente ou use e-mail / Google.",
+    "description": "Native Apple sign-in returned no credential; offers retry and alternate sign-in"
+  },
+  "app_apple_retry": {
+    "message": "Tentar entrar com a Apple novamente",
+    "description": "Button: retry native Apple sign-in after a failure"
+  },
+  "app_apple_other": {
+    "message": "Usar e-mail / Google",
+    "description": "Button: switch away from Apple to email or Google"
+  },
+  "app_apple_canceled": {
+    "message": "O login com a Apple foi cancelado. Você pode tentar de novo.",
+    "description": "Neutral copy after the user cancels the Apple sheet (not a failure)"
+  },
   "learn_empty_other_account": {
     "message": "Este aparelho também guarda o material de outra conta. Você entrou com uma conta diferente — nada se perdeu; entre de novo com a conta original e tudo volta.",
     "description": "Empty review page while signed in as a different account than the one owning this device corpus"
@@ -4367,5 +4383,39 @@
   },
   "app_e1_note": {
     "message": "Ativado por padrão apenas para chinês (zh). O modelo é baixado em segundo plano no primeiro uso (cerca de 160 MB); até a conclusão e em caso de falha, é usada a transcrição do sistema. A alteração entra em vigor na próxima sessão. Desativar volta à transcrição do sistema."
+  },
+  "firstrun_packs_skip": {
+    "message": "Baixar depois, continuar"
+  },
+  "packs_pending_title": {
+    "message": "Pacotes de idiomas não estão prontos"
+  },
+  "packs_pending_body": {
+    "message": "Escuta, legendas ao vivo e leitura em voz alta offline ficam indisponíveis até baixar os pacotes de idiomas."
+  },
+  "packs_pending_go": {
+    "message": "Baixar pacotes de idiomas"
+  },
+  "packs_pending_why": {
+    "message": "Os pacotes de idiomas não estão prontos — baixe-os primeiro na página “Pacotes de idiomas”"
+  },
+  "packs_pending_tts": {
+    "message": "Leitura em voz alta offline (TTS do dispositivo) indisponível: os pacotes de idiomas não estão prontos"
+  },
+  "listen_perm_explain_title": {
+    "message": "Microfone necessário",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_explain_body": {
+    "message": "A interpretação envia o áudio do microfone para o endpoint de transcrição que você configurou. A permissão do sistema aparece em seguida — escolha “Permitir” para começar.",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_title": {
+    "message": "Acesso ao microfone desativado",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_body": {
+    "message": "Ative “Microfone” nos ajustes do sistema, volte aqui e toque em “Tentar de novo” — não precisa reiniciar o app.",
+    "description": "BEL-273 microphone permission gate"
   }
 }
