@@ -57,6 +57,89 @@ var SubtitleAdapter = (() => {
   const ACQUIRE_TIMEOUT_MS = 20000;
   const TICK_MS = 250;
 
+  // ── 菜单宿主（BEL-277 修订）──────────────────────────────────────────────
+  // content/sub-menu.bundle.js 是**静态 IIFE 条目**，在本文件之前注入，把 host 挂
+  // 在 isolated-world 全局；不再有动态 getURL 的 import，也不需要 web_accessible。
+  // 读不到（条目没加载 / 旧缓存 / 宿主拒绝）或 host.open 抛错 ⇒ 用下面的纯 DOM
+  // 回退菜单，菜单必须还能开。行数据仍由 toggleMenu 一处生成，两种宿主只负责画。
+  function menuHost() {
+    try {
+      const api = (typeof window !== 'undefined') && window.MTSubMenuBundle;
+      const host = api && (api.default || api);
+      return host && typeof host.open === 'function' ? host : null;
+    } catch (_) { return null; }
+  }
+
+  function openFallbackMenu({ id, btn, rows, closeMenu }) {
+    const PAL = (typeof window !== 'undefined' && window.MT_PALETTE) || {};
+    const r = btn.getBoundingClientRect();
+    const right = Math.max(10, Math.round(window.innerWidth - r.right));
+    const openDown = r.top < window.innerHeight / 2;
+    const vpos = openDown
+      ? `top:${Math.max(10, Math.round(r.bottom + 8))}px`
+      : `bottom:${Math.max(10, Math.round(window.innerHeight - r.top + 8))}px`;
+    const menu = document.createElement('div');
+    menu.id = id;
+    menu.setAttribute('translate', 'no');
+    menu.style.cssText = `position:fixed;right:${right}px;${vpos};max-height:calc(100vh - 72px);overflow-y:auto;`
+      + `z-index:2147483000;min-width:210px;background:${PAL.overlayMenuBg || 'rgba(28,28,28,.97)'};`
+      + `border-radius:${PAL.overlayPanelRadius || '10px'};padding:6px 0;font-size:14px;`
+      + `color:${PAL.overlayMenuText || '#eee'};box-shadow:0 2px 12px rgba(0,0,0,.5);`;
+    const rowEl = (row) => {
+      const rr = document.createElement('div');
+      rr.style.cssText = 'display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;white-space:nowrap;';
+      rr.addEventListener('mouseenter', () => (rr.style.background = PAL.overlayMenuHover || 'rgba(255,255,255,.1)'));
+      rr.addEventListener('mouseleave', () => (rr.style.background = 'none'));
+      const tk = document.createElement('span');
+      tk.textContent = row.checked ? '✓' : '';
+      tk.style.cssText = 'width:12px;display:inline-block;color:' + (PAL.overlayTick || 'currentColor') + ';';
+      const t = document.createElement('span');
+      t.textContent = row.label == null ? '' : String(row.label);
+      t.style.flex = '1';
+      rr.appendChild(tk); rr.appendChild(t);
+      rr.addEventListener('click', (e) => {
+        e.stopPropagation();
+        try { row.onClick(); } catch (_) {}
+      });
+      return rr;
+    };
+    for (const row of rows || []) {
+      if (row.kind === 'sep') {
+        const sep = document.createElement('div');
+        sep.style.cssText = 'height:1px;background:' + (PAL.overlayMenuSep || 'rgba(255,255,255,.12)') + ';margin:5px 0;';
+        menu.appendChild(sep);
+      } else if (row.kind === 'head') {
+        const head = document.createElement('div');
+        head.textContent = row.label == null ? '' : String(row.label);
+        head.style.cssText = 'padding:6px 16px 2px;font-size:11px;color:' + (PAL.overlayMenuDim || '#9a9a9a') + ';';
+        menu.appendChild(head);
+      } else {
+        menu.appendChild(rowEl(row));
+      }
+    }
+    document.body.appendChild(menu);
+    setTimeout(() => {
+      const off = (e) => {
+        if (!menu.contains(e.target) && e.target.id !== btn.id) {
+          closeMenu();
+          document.removeEventListener('click', off);
+        }
+      };
+      document.addEventListener('click', off);
+    }, 0);
+  }
+
+  function openMenu(opts) {
+    const host = menuHost();
+    if (host) {
+      try { host.open(opts); return 'bundle'; }
+      catch (e) { console.warn('[mt] sub-menu bundle failed, using DOM fallback:', e && e.message); }
+    }
+    document.getElementById(opts.id)?.remove();   // host 半途抛错时的残留
+    openFallbackMenu(opts);
+    return 'fallback';
+  }
+
   function createSubtitleUI(spec) {
     const ID = spec.ids;
     let settings = {};
@@ -422,31 +505,13 @@ var SubtitleAdapter = (() => {
       // the active video — §2.3.6/§5). Backends without the hook keep the body-fixed default.
       if (spec.anchorButton) spec.anchorButton(btn);
     }
-    // ── 菜单 → React root（PR8a）────────────────────────────────────────
-    // 行渲染翻转进 src/content/sub-menu.jsx（content/sub-menu.bundle.js，React）；
-    // 行序/文案/勾选判据留在 toggleMenu（逐字未动）。bundle 不进 manifest 的
-    // content_scripts 列表 —— 第一次点开菜单才动态 import，同步注入面零新增字节。
-    // import 失败（个别宿主内容脚本动态 import 不受支持，PR8b 矩阵实测）⇒ 菜单
-    // 开不出 + console 警告；回退开关（IIFE 静态注入）见 build/ui-entries.config.js。
-    let menuHost = null;
-    let menuBundlePromise = null;
-    function loadMenuBundle() {
-      if (!menuBundlePromise) {
-        menuBundlePromise = import(chrome.runtime.getURL('content/sub-menu.bundle.js'))
-          .then((m) => {
-            menuHost = (m && m.default) || null;
-            if (!menuHost) throw new Error('sub-menu bundle exports no default host');
-            return menuHost;
-          })
-          .catch((e) => { menuBundlePromise = null; throw e; });
-      }
-      return menuBundlePromise;
-    }
+    // ── 菜单 → 静态宿主 / DOM 回退（BEL-277 修订）────────────────────────
+    // 行序/文案/勾选判据仍只在 toggleMenu 一处；content/sub-menu.bundle.js 是
+    // manifest 里的静态 IIFE 条目，openMenu 读到全局就用它，读不到/抛错就用
+    // 内置纯 DOM 回退 —— 菜单不再依赖动态 import、WAR 或 scripting 权限。
     function closeMenu() {
-      // 宿主已就位走 React 卸载；否则兜底直接摘节点（import 竞态窗口里也要能关，
-      // 与旧实现同一行）。
-      if (menuHost) { menuHost.close(); return; }
-      document.getElementById(ID.menu)?.remove();
+      try { const host = menuHost(); if (host && typeof host.close === 'function') host.close(); } catch (_) {}
+      document.getElementById(ID.menu)?.remove();   // 回退菜单 / host 半途失败的残留
     }
     function toggleMenu(btn) {
       if (document.getElementById(ID.menu)) { closeMenu(); return; }
@@ -475,8 +540,7 @@ var SubtitleAdapter = (() => {
       rows.push({ kind: 'sep' });
       rows.push({ kind: 'row', label: T('yt_download_srt', '下载字幕 (.srt)'), onClick: () => { downloadSrt(); closeMenu(); } });
       rows.push({ kind: 'row', label: T('settings', '设置'), onClick: () => { openSettings(); closeMenu(); } });
-      loadMenuBundle().then((host) => host.open({ id: ID.menu, btn, rows, closeMenu }))
-        .catch((e) => console.warn('[mt] sub-menu bundle unavailable:', e && e.message));
+      openMenu({ id: ID.menu, btn, rows, closeMenu });
     }
     function setMode(mode) { displayMode = mode; clearOverlay(); closeMenu(); tick(); }
 
@@ -583,6 +647,6 @@ var SubtitleAdapter = (() => {
     };
   }
 
-  return { createSubtitleUI, playbackLatch };
+  return { createSubtitleUI, playbackLatch, _openMenu: openMenu, _openFallbackMenu: openFallbackMenu };
 
 })();

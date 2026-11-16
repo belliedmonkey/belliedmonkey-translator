@@ -149,6 +149,23 @@
         "styles/floating-button.css"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "*://*.youtube.com/*",
+        "*://*.youtube-nocookie.com/*",
+        "*://*.x.com/*",
+        "*://*.twitter.com/*",
+        "*://open.spotify.com/*",
+        "*://podcasts.apple.com/*",
+        "*://*.xiaoyuzhoufm.com/*",
+        "*://*.substack.com/*"
+      ],
+      "js": [
+        "content/sub-menu.bundle.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ],
   "action": {
@@ -172,14 +189,6 @@
     "<all_urls>"
   ],
   "web_accessible_resources": [
-    {
-      "resources": [
-        "content/sub-menu.bundle.js"
-      ],
-      "matches": [
-        "<all_urls>"
-      ]
-    },
     {
       "resources": [
         "content/content-injected.js"

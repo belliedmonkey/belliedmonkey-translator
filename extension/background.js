@@ -135,6 +135,7 @@ function headerCarriesGrant(headers) {
 function hostOfUrl(url) {
   try { return new URL(String(url)).hostname.toLowerCase(); } catch (_) { return ''; }
 }
+
 {
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // 「在吗」探针。内容脚本用它在**发第一个请求之前**判断后台是否可达，从而选路
@@ -204,4 +205,86 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     });
     return true;
   }
+});
+
+// ─── BEL-277: 内容脚本遥测改由 SW 代发 ──────────────────────────────────────
+//
+// 为什么：页面 CSP 的 `connect-src` 可以拦掉内容脚本的 fetch（宿主网页的一句话
+// 就能让匿名用量整批丢）。事件本身没有凭证，但「发去哪儿」不能听调用方的 ——
+// 一个被注入的页面若能借我们的 SW 发任意 URL，SW 就成了代理。所以：
+//   · URL 必须逐字命中本 build 的 ingest 端点（origin + pathname 完全相等，
+//     不允许 query/hash —— 端点本来就没有参数，带了就是别的东西）；
+//   · body 必须 ≤64KB；
+//   · 端点清单由 build 生成（content/providers.gen.js 旁的 telemetry-endpoints.json，
+//     与 MT_TELEMETRY.url 同源）。SW 自己读它，不信任消息里的任何「允许列表」。
+// 失败（非 2xx / 超时 / 不可达）返回 {ok:false}，内容脚本据此把批次放回队列。
+const TELEMETRY_BODY_MAX = 64 * 1024;
+const TELEMETRY_TIMEOUT_MS = 15000;
+const TELEMETRY_ENDPOINTS_FILE = 'telemetry-endpoints.json';
+
+function telemetryBytes(str) {
+  let n = 0;
+  for (let i = 0; i < str.length; i += 1) {
+    const c = str.charCodeAt(i);
+    if (c < 0x80) n += 1;
+    else if (c < 0x800) n += 2;
+    else if (c >= 0xd800 && c <= 0xdbff) { n += 4; i += 1; }
+    else n += 3;
+  }
+  return n;
+}
+
+let ingestAllowFlight = null;
+function ingestAllowlist() {
+  if (ingestAllowFlight) return ingestAllowFlight;
+  ingestAllowFlight = (async () => {
+    try {
+      const r = await fetch(chrome.runtime.getURL(TELEMETRY_ENDPOINTS_FILE));
+      if (!r || !r.ok) return [];
+      const data = await r.json();
+      const list = data && Array.isArray(data.ingest) ? data.ingest : [];
+      // 只接受 https 的绝对 URL；空清单 = fail closed（内容脚本保留队列）。
+      return list.filter((u) => {
+        try { return typeof u === 'string' && new URL(u).protocol === 'https:'; }
+        catch (_) { return false; }
+      });
+    } catch (_) { return []; }
+  })();
+  return ingestAllowFlight;
+}
+
+function isAllowedIngestUrl(url, allow) {
+  let u;
+  try { u = new URL(String(url)); } catch (_) { return false; }
+  if (u.protocol !== 'https:' || u.username || u.password || u.search || u.hash) return false;
+  return (allow || []).some((raw) => {
+    let a;
+    try { a = new URL(String(raw)); } catch (_) { return false; }
+    return a.protocol === 'https:' && u.origin === a.origin && u.pathname === a.pathname;
+  });
+}
+
+async function handleTelemetrySend(msg) {
+  const init = (msg && msg.init) || {};
+  const body = init.body;
+  if (typeof msg.url !== 'string' || typeof body !== 'string') return { ok: false, error: 'bad_request' };
+  if (telemetryBytes(body) > TELEMETRY_BODY_MAX) return { ok: false, error: 'body_too_large' };
+  const allow = await ingestAllowlist();
+  if (!isAllowedIngestUrl(msg.url, allow)) return { ok: false, error: 'url_not_allowed' };
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), TELEMETRY_TIMEOUT_MS);
+  try {
+    const r = await fetch(msg.url, Object.assign({}, init, { signal: ctrl.signal }));
+    return { ok: !!(r && r.ok), status: (r && r.status) || 0 };
+  } catch (e) {
+    return { ok: false, error: String((e && e.name) || (e && e.message) || e) };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (!msg || msg.action !== 'telemetrySend') return;
+  handleTelemetrySend(msg).then(sendResponse, () => sendResponse({ ok: false, error: 'internal' }));
+  return true;
 });

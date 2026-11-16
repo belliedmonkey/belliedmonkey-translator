@@ -17,11 +17,17 @@
 //
 // 传输：事件先入 chrome.storage.local 的队列（上限 200，满了丢最旧），满 10 条、或
 // 距上次 ≥ 60 s、或扩展页打开时 flush 一次。请求体用 text/plain —— 简单请求，不触发
-// 预检；边缘函数按 JSON 解析正文，不看这个头。内容脚本里 fetch 走页面 origin，
-// 端点返回 ACAO:*，且**不带任何 key**（build.js 的铁律：anon key 不进内容脚本）。
+// 预检；边缘函数按 JSON 解析正文，不看这个头。**http/https 内容脚本不直接 fetch**
+// （页面 CSP 的 connect-src 会把它拦掉）：经 SW 的 telemetrySend 代发，SW 只放行本
+// build 的 ingest 端点；扩展页 / App 仍直连。端点**不带任何 key**（build.js 的铁律：
+// anon key 不进内容脚本）。
 var MTTelemetry = (() => {
-  const K = { on: 'tm:on', id: 'tm:id', queue: 'tm:queue', day: 'tm:day', once: 'tm:once', last: 'tm:last' };
+  const K = { on: 'tm:on', id: 'tm:id', queue: 'tm:queue', day: 'tm:day', once: 'tm:once', last: 'tm:last', dropped: 'mtTelemetryDropped' };
   const FLUSH_AT = 10, FLUSH_MS = 60 * 1000, QUEUE_CAP = 200;
+  // BEL-277：http/https 内容脚本不再直接 fetch（页面 CSP 的 connect-src 可以把它
+  // 整个拦掉），改由 service worker 代发。扩展页 / App 仍走直连 —— 只有网页上下文
+  // 的 fetch 会被页面 CSP 管。两个上限与 SW 侧同一组数字。
+  const SW_TIMEOUT_MS = 15000, BODY_MAX = 64 * 1024;
   const STR_MAX = 64;
   let flushTimer = null;
 
@@ -57,6 +63,61 @@ var MTTelemetry = (() => {
       const s = storage(); if (!s) return resolve();
       try { s.remove(keys, () => resolve()); } catch (_) { resolve(); }
     });
+  }
+
+  // UTF-8 字节数（不依赖 TextEncoder —— vm/旧宿主里不一定有）。队列上限与 SW 的
+  // 64KB 体限用同一把尺子。
+  function byteLen(str) {
+    let n = 0;
+    for (let i = 0; i < str.length; i += 1) {
+      const c = str.charCodeAt(i);
+      if (c < 0x80) n += 1;
+      else if (c < 0x800) n += 2;
+      else if (c >= 0xd800 && c <= 0xdbff) { n += 4; i += 1; }
+      else n += 3;
+    }
+    return n;
+  }
+
+  // 内容脚本 vs 扩展页 / App：只有 http(s) 页面里的 fetch 受页面 CSP 管。
+  // `location.protocol` 是宿主事实，不是 UA 猜测。
+  function inWebPage() {
+    try { return typeof location !== 'undefined' && (location.protocol === 'http:' || location.protocol === 'https:'); }
+    catch (_) { return false; }
+  }
+
+  // SW 不可用 / 非 2xx / 超时 ⇒ false，调用方把批次放回队列。回调式与 Promise 式
+  // 两种 sendMessage 都接；两种都不到就由 SW_TIMEOUT_MS 兜底，绝不悬着。
+  function sendViaRuntime(url, init) {
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = (ok) => { if (done) return; done = true; clearTimeout(timer); resolve(ok); };
+      const timer = setTimeout(() => finish(false), SW_TIMEOUT_MS);
+      try {
+        const runtime = (typeof chrome !== 'undefined' && chrome && chrome.runtime) || null;
+        if (!runtime || typeof runtime.sendMessage !== 'function') return finish(false);
+        const ret = runtime.sendMessage({ action: 'telemetrySend', url, init }, (resp) => {
+          let lastError = null;
+          try { lastError = runtime.lastError; } catch (_) {}
+          if (lastError) return finish(false);
+          finish(!!(resp && resp.ok));
+        });
+        if (ret && typeof ret.then === 'function') {
+          ret.then((resp) => finish(!!(resp && resp.ok)), () => finish(false));
+        }
+      } catch (_) { finish(false); }
+    });
+  }
+
+  // 丢弃不是静默的：本机计数器（storage，不冒充事件）+ 控制台警告。
+  async function noteDropped(n) {
+    if (!n || n < 1) return;
+    try {
+      const r = await sget([K.dropped]);
+      const prev = Number(r[K.dropped]) || 0;
+      await sset({ [K.dropped]: prev + n });
+    } catch (_) {}
+    try { console.warn('[mt] telemetry dropped', n); } catch (_) {}
   }
 
   function uuid() {
@@ -211,8 +272,10 @@ var MTTelemetry = (() => {
       const r = await sget([K.queue]);
       const q = Array.isArray(r[K.queue]) ? r[K.queue] : [];
       q.push(e);
-      while (q.length > QUEUE_CAP) q.shift();
+      let dropped = 0;
+      while (q.length > QUEUE_CAP) { q.shift(); dropped += 1; }
       await sset({ [K.queue]: q });
+      if (dropped) await noteDropped(dropped);
       if (q.length >= FLUSH_AT) flush(); else schedule();
       return true;
     } catch (_) { return false; }
@@ -247,8 +310,13 @@ var MTTelemetry = (() => {
   async function send(events) {
     const sp = spec(); if (!sp || !sp.url) return false;
     const body = JSON.stringify(events);
+    if (byteLen(body) > BODY_MAX) return false;
+    const init = { method: 'POST', body, keepalive: true, headers: { 'content-type': 'text/plain' } };
+    // 网页内容脚本：SW 代发（页面 CSP connect-src 'none' 也发得出去）。
+    // 扩展页 / App：保持直连 —— 它们的 fetch 不受页面 CSP 管。
+    if (inWebPage()) return sendViaRuntime(sp.url, init);
     try {
-      const r = await fetch(sp.url, { method: 'POST', body, keepalive: true, headers: { 'content-type': 'text/plain' } });
+      const r = await fetch(sp.url, init);
       return !!(r && r.ok);
     } catch (_) { return false; }
   }
@@ -273,12 +341,24 @@ var MTTelemetry = (() => {
       // 先清再发：发失败放回队尾。
       await sset({ [K.queue]: [], [K.last]: Date.now() });
       const { id } = await installId();
-      const batch = q.slice(0, 50).map((e) => envelope(id, e));
+      // 一批 ≤50 条，且编码后 ≤64KB —— SW 的体限不是「发送后才发现」的失败。
+      // 正常事件（单条 ≤1KB 白名单值上限）远到不了，这里守的是异常膨胀。
+      const batch = [];
+      let bytes = 2;                                   // "[]"
+      for (const e of q.slice(0, 50)) {
+        const row = envelope(id, e);
+        const rowBytes = byteLen(JSON.stringify(row)) + (batch.length ? 1 : 0);
+        if (batch.length && bytes + rowBytes > BODY_MAX) break;
+        batch.push(row); bytes += rowBytes;
+      }
       const ok = await send(batch);
       if (!ok) {
         const r2 = await sget([K.queue]);
         const q2 = Array.isArray(r2[K.queue]) ? r2[K.queue] : [];
-        await sset({ [K.queue]: q.concat(q2).slice(-QUEUE_CAP) });
+        const merged = q.concat(q2);
+        const over = Math.max(0, merged.length - QUEUE_CAP);
+        await sset({ [K.queue]: over ? merged.slice(over) : merged });
+        if (over) await noteDropped(over);
       }
       return ok;
     } catch (_) { return false; }
@@ -292,7 +372,7 @@ var MTTelemetry = (() => {
     if (r[K.id]) {
       await send([envelope(r[K.id], { name: 'telemetry_off', props: {}, ts: ts() })]);
     }
-    await sremove([K.id, K.queue, K.once, K.day, K.last]);
+    await sremove([K.id, K.queue, K.once, K.day, K.last, K.dropped]);
     await sset({ [K.on]: false });
     idFlight = null;                           // 下次打开要生成新 id，不能复用内存里的旧的
     initFlight = null;
@@ -377,6 +457,7 @@ var MTTelemetry = (() => {
     track, once, flush, init, enabled, setEnabled, installId, relayHeaders, dwell,
     // 测试与调试
     _shape: shape, _envelope: envelope, host, device, KEYS: K, FLUSH_AT, QUEUE_CAP,
+    SW_TIMEOUT_MS, BODY_MAX,
     // 本机诊断（没有遥测规格时的 auth_fail）：只读出口，给测试与设备容器回读用。
     _diag: diag, DIAG_KEY: DIAG_KEY, DIAG_CAP: DIAG_CAP,
   };
