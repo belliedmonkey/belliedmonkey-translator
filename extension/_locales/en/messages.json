@@ -4401,5 +4401,21 @@
   },
   "packs_pending_tts": {
     "message": "Offline read-aloud (device TTS) is unavailable: language packs aren’t ready"
+  },
+  "listen_perm_explain_title": {
+    "message": "Microphone needed",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_explain_body": {
+    "message": "To interpret, your microphone audio is sent to the transcription endpoint you configured. The system permission prompt appears next — choose “Allow” to start.",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_title": {
+    "message": "Microphone access is off",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_body": {
+    "message": "Turn on Microphone in System Settings, then come back and tap “Retry” — no need to restart the app.",
+    "description": "BEL-273 microphone permission gate"
   }
 }

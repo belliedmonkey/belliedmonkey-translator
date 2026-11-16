@@ -266,6 +266,7 @@ const EVENTS = {
   asr_fail: {
     fail_reason: ['permission', 'interrupted', 'socket', 'assets', 'device', 'os',
       'capture', 'locale', 'quota', 'timeout', 'other'],
+    native_code: 'id',
     engine: 'id',
     locale_pair: 'id',
   },

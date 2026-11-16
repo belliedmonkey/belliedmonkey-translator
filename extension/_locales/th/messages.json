@@ -4214,5 +4214,21 @@
   },
   "packs_pending_tts": {
     "message": "การอ่านออกเสียงออฟไลน์ (TTS ของอุปกรณ์) ใช้ไม่ได้: แพ็กภาษาไม่พร้อม"
+  },
+  "listen_perm_explain_title": {
+    "message": "ต้องใช้ไมโครโฟน",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_explain_body": {
+    "message": "การแปลสดจะส่งเสียงจากไมโครโฟนไปยังปลายทางการถอดเสียงที่คุณตั้งไว้ จากนั้นระบบจะถามสิทธิ์ — เลือก «อนุญาต» เพื่อเริ่ม",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_title": {
+    "message": "สิทธิ์ใช้ไมโครโฟนปิดอยู่",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_body": {
+    "message": "เปิด «ไมโครโฟน» ในการตั้งค่าระบบ แล้วกลับมาที่นี่แล้วแตะ «ลองอีกครั้ง» — ไม่ต้องรีสตาร์ทแอป",
+    "description": "BEL-273 microphone permission gate"
   }
 }

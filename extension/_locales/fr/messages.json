@@ -4401,5 +4401,21 @@
   },
   "packs_pending_tts": {
     "message": "Lecture à voix haute hors ligne (TTS de l’appareil) indisponible : les paquets de langues ne sont pas prêts"
+  },
+  "listen_perm_explain_title": {
+    "message": "Microphone requis",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_explain_body": {
+    "message": "L’interprétation envoie l’audio du microphone vers le point de transcription que vous avez configuré. La demande d’autorisation système apparaît ensuite — choisissez « Autoriser » pour commencer.",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_title": {
+    "message": "Accès au microphone désactivé",
+    "description": "BEL-273 microphone permission gate"
+  },
+  "listen_perm_denied_body": {
+    "message": "Activez « Microphone » dans les réglages système, revenez ici et touchez « Réessayer » — inutile de relancer l’app.",
+    "description": "BEL-273 microphone permission gate"
   }
 }
