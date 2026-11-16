@@ -9,7 +9,7 @@
 const { loadModule, describe, test, ok, eq, deepEq } = require('./harness');
 const cfg = require('../build/telemetry.config.js');
 
-function load({ china = false, sends = [], flavor = null, telemetry = undefined, providers = [], crypto = require('crypto').webcrypto } = {}) {
+function load({ china = false, sends = [], flavor = null, telemetry = undefined, providers = [], crypto = require('crypto').webcrypto, userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 Version/26.0 Mobile/15E148 Safari/604.1' } = {}) {
   const store = {};
   const ls = {};                       // WKWebView / 页面里的 localStorage（本机诊断落在它上面）
   const tel = telemetry !== undefined ? telemetry : (china ? null : {
@@ -30,7 +30,7 @@ function load({ china = false, sends = [], flavor = null, telemetry = undefined,
       setItem: (k, v) => { ls[k] = String(v); },
       removeItem: (k) => { delete ls[k]; },
     },
-    navigator: { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 Version/26.0 Mobile/15E148 Safari/604.1', platform: 'iPhone', language: 'zh-CN' },
+    navigator: { userAgent, platform: 'iPhone', language: 'zh-CN' },
     crypto,
     fetch: async (url, init) => { sends.push({ url, body: JSON.parse(init.body) }); return { ok: true }; },
     chrome: { i18n: { getUILanguage: () => 'zh-CN' }, storage: { local: {
@@ -146,6 +146,16 @@ describe('MTTelemetry — relayHeaders 只给自家中继带归因头（BEL-224/
     await T.installId();
     deepEq(await T.relayHeaders('https://api.openai.com/v1/chat/completions'), {});
     deepEq(await T.relayHeaders('https://vendor.example/chat/completions'), {});
+  });
+
+  // BEL-279 reverse direction: the native bridge is the ONLY App signal. A Chrome
+  // extension page has no webkit.messageHandlers and its UA contains "Safari" too —
+  // it must stay 'chrome', never be swept into 'app' by the mtQuick widening.
+  test('Chrome 扩展（无原生桥）⇒ host() === chrome，不把浏览器误判成 App', () => {
+    const CHROME_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+      + 'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+    const { T } = load({ userAgent: CHROME_UA });
+    eq(T.host(), 'chrome');
   });
 });
 

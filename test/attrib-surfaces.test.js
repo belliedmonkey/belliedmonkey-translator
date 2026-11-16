@@ -118,10 +118,13 @@ async function loadDocPageHost(fx) {
 }
 
 // ── quick: the REAL Mac panel model, driven through its native entry point ───
-function loadQuickPanel(fx) {
+function loadQuickPanel(fx, win) {
   const { API, fetch } = loadTranslationAPI(fx);
   const posted = [];
-  const win = {
+  // A caller may pass the same window telemetry was loaded with (the quick-panel
+  // test does): it already carries the mtQuick bridge, so keep it rather than
+  // replacing it with a fixture-only stub.
+  win = win || {
     HandoffCore,
     location: { hash: '#quick' },
     webkit: { messageHandlers: { mtQuick: { postMessage: (m) => posted.push(m) } } },
@@ -196,13 +199,30 @@ describe('BEL-267 — real relay surfaces reach the wire', () => {
     ok(m, "docs-model must pass { surface: 'doc' } to TranslationAPI.translate");
   });
 
-  test('quick: the Mac quick panel passes surface=quick', async () => {
-    const fx = makeTelemetry();
-    const { api, fetch } = loadQuickPanel(fx);
+  test('quick: the Mac quick panel sends surface=quick and host=app', async () => {
+    // The quick panel is a SECOND WKWebView: it registers only mtQuick, no controller
+    // (app/native/quick-panel.swift). Load telemetry against the SAME window the panel
+    // posts through; otherwise host() sees no native bridge and x-mt-host falls back
+    // to the UA branch — 'chrome' in production (BEL-279).
+    const posted = [];
+    const win = {
+      HandoffCore,
+      location: { hash: '#quick' },
+      webkit: { messageHandlers: { mtQuick: { postMessage: (m) => posted.push(m) } } },
+    };
+    const fx = makeTelemetry({ window: win, host: 'app' });
+    const { api, fetch } = loadQuickPanel(fx, win);
+    api.boot();
+    eq(posted.filter((m) => m && m.type === 'quick-ready').length, 1,
+      'quick: the mtQuick bridge on the shared window is live');
     api._fromNative({ type: 'quick-show', origin: 'selection', text: 'hello' });
     for (let i = 0; i < 200 && fetch.calls.length === 0; i++) await new Promise((r) => setTimeout(r, 5));
     eq(fetch.calls.length, 1, 'quick: one relay request');
-    assertSurfaceHeaders(fetch.calls[0].opts.headers, 'quick', fx, 'Mac quick panel', 'chat');
+    const headers = fetch.calls[0].opts.headers;
+    // The assertion is on the header fetch actually received, not on host() directly.
+    eq(headers['x-mt-host'], 'app', 'quick: x-mt-host must be app on the real request');
+    assertSurfaceHeaders(headers, 'quick', fx, 'Mac quick panel', 'chat');
+    eq(deriveGrantEvent(headers, 'chat').host, 'app', 'quick: grant_debited host must be app');
     eq(fx.relayCalls[0].surface, 'quick', 'quick: relayHeaders argv surface');
   });
 

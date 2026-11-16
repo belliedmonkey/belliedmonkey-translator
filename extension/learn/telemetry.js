@@ -131,7 +131,10 @@ var MTTelemetry = (() => {
   // 宿主判定与 learn/feedback.js 同一套判据（原生桥 → Firefox 的 browser 对象 → UA）。
   // 不直接依赖 MTFeedback：内容脚本不加载它。
   function host() {
-    try { if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.controller) return 'app'; } catch (_) {}
+    try {
+      const mh = window.webkit && window.webkit.messageHandlers;
+      if (mh && (mh.controller || mh.mtQuick)) return 'app';
+    } catch (_) {}
     try { if (typeof browser !== 'undefined' && browser.runtime && browser.runtime.getBrowserInfo) return 'firefox'; } catch (_) {}
     const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
     if (/Firefox/i.test(ua)) return 'firefox';
