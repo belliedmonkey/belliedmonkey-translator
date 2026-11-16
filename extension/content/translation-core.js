@@ -46,8 +46,10 @@ var TranslationCore = (() => {
   ]);
   const FAIL_CODE_SET = new Set(FAIL_CODES);
   // 一次失败就停泵。timeout 不在这里 —— 它要连续 TIMEOUT_STREAK_MAX 次单元级失败。
+  // no_base：这个引擎要求填地址而现在是空的（BEL-274）。重试多少次地址还是空的，
+  // 所以它和额度/鉴权那一族一样是终态：第一次就停，后面的段落不再发请求。
   const HALT_IMMEDIATE = Object.freeze([
-    'credit_exhausted', 'grant_unavailable', 'model_not_allowed', 'auth',
+    'credit_exhausted', 'no_base', 'grant_unavailable', 'model_not_allowed', 'auth',
   ]);
   const HALT_IMMEDIATE_SET = new Set(HALT_IMMEDIATE);
   // 令牌坏了 / 被停用 / 我们配错了：不是「你用完了」，停机码归到池子不可用。
@@ -348,15 +350,15 @@ var TranslationCore = (() => {
     return { pageize, destroy };
   }
 
-  // 免费额度停机时，页面上那一行说什么（learning-design §8.10）。
+  // 引擎停机时，页面上那一行说什么（learning-design §8.10 / BEL-274）。
   //
   // **两个渲染器共用一份**：网页翻译（content-webpage.js）与字幕叠层
   // （subtitle-adapter.js）都要说这句话，而两份实现会漂 —— 这个仓库里已经有过
   // 一次（DeepSeek 的提示写死了模型名，API 早就不认了还在那儿）。
   //
-  // 只分两句，不是七句。这一行只有一行的地方，「是不是你的问题」比「具体哪种原因」
-  // 重要得多：说错方向会让用户去查自己的账户，而那边根本没有问题。
-  // 七句完整的解释在设置页那张卡上，点过去就看得到。
+  // 一行只放一句结论，不铺七种原因。额度「你用完了」/「不是你的问题」/ key 被拒 /
+  // 端点地址缺失各一句：说错方向会让用户去查自己的账户或 key，而那边根本没有问题。
+  // 完整的解释在设置页那张卡上，点过去就看得到。
   function haltMessage(code) {
     if (!code) return '';
     if (code === 'credit_exhausted') {
@@ -366,11 +368,23 @@ var TranslationCore = (() => {
     if (code === 'auth') {
       return i18n('auth_page_halt', '这把 key 被服务商拒绝了（HTTP 401/403）—— 点此检查');
     }
+    // no_base（BEL-274）：这个引擎要填地址而现在是空的。复用系统翻译那条已经写好的
+    // 可操作文案（「打开……填一次」），不再掉进额度池那句 —— 那句会让人去查账户，
+    // 而账户没有问题，缺的是端点地址。不新增 enum，也不新增 i18n 键。
+    if (code === 'no_base') {
+      return i18n('sys_fail_no_base', '这个引擎要填地址，而现在是空的。打开大肚猴翻译填一次。');
+    }
     return i18n('grant_page_halt_ours', '免费额度暂时用不了（不是你用完了）—— 点此看怎么继续');
   }
   const grantHaltMessage = haltMessage;   // 旧名保留：verify-grant.js 与 grant-errors.test.js 在用
-  // 停机码 → 设置页锚点。额度那一族去快速卡（#grant），key 被拒去引擎块（#engine）。
-  function haltAnchor(code) { return code === 'auth' ? '#engine' : '#grant'; }
+  // 停机码 → 设置页锚点。额度那一族去快速卡（#grant），key 被拒/端点缺失去引擎块（#engine）。
+  function haltAnchor(code) { return (code === 'auth' || code === 'no_base') ? '#engine' : '#grant'; }
+
+  // BEL-274: 每次翻译运行一个递增 token。翻译引擎是「一次运行」的天然边界
+  // （网页 enable → disable、字幕一个媒体会话、文档一页），所以 token 长在
+  // createEngine 里，而不是由每个适配器自己造一份。跨引擎唯一只是为了断言/排障时
+  // 能区分两次运行；它不上线，也不进任何事件。
+  let nextRunId = 1;
 
   // ─── Generic translation engine: per-unit state machine + retry ───────
   // units: [{text, ...payload}]. The engine adds `tr` (the translation) plus private
@@ -387,26 +401,52 @@ var TranslationCore = (() => {
   // Rendering stays in the adapter. This is the shared core for BOTH the webpage
   // path and the subtitle path (see docs/domain-design.md).
   function createEngine(cfg) {
-    // 引擎级停机。即停四码（HALT_IMMEDIATE）一次就停；timeout 要连续 TIMEOUT_STREAK_MAX
+    // 引擎级停机。即停五码（HALT_IMMEDIATE）一次就停；timeout 要连续 TIMEOUT_STREAK_MAX
     // 次单元级失败。http / network / 429 仍走每单元的重试计数，不升格。
     let halted = false;
     let haltCode = '';
     // 「连续超时」的计数：任一单元成功即清零。它是 halted 的另一种触发器
-    // （即停的是 HALT_IMMEDIATE 四码）—— 见下面 catch 里的注释。
+    // （即停的是 HALT_IMMEDIATE 五码）—— 见下面 catch 里的注释。
     let timeoutStreak = 0;
+    // BEL-274：一次运行 = 一个 token + 一份「已经报过的 code」。
+    // 旧行为是每个段落失败都发一条 translate_fail，402 时一页 60 段就是 60 行；
+    // 现在同一运行、同一种失败只发第一条，保留它的 ms/status/route（第一条就是
+    // 用户实际撞上的那一次，后面的重复没有新信息）。
+    //
+    // 边界由引擎生命周期定义：token 在第一拍 pump() 时建立，reset()/retry() 结束旧运行。
+    // 于是「新的一页/新的一段字幕/用户点重试」会重新计数，而同一页里追加的段落、
+    // 同一段字幕里陆续到货的句子仍是同一次运行 —— 后者正是放大发生的地方。
+    // 键里带 kind：同一 token 下网页/字幕/文档各自一条（kind 由适配器传入，
+    // 缺省 page）。引擎实例本身只服务一种 kind，带上它是为了让契约可断言。
+    const failKind = cfg.kind || 'page';
+    let runId = 0;
+    let failCodes = new Set();
+    function beginRun() {
+      if (!runId) { runId = nextRunId++; failCodes = new Set(); }
+      return runId;
+    }
+    function endRun() { runId = 0; failCodes = new Set(); }
     function enterHalt(code) {
       if (halted) return;
       halted = true;
       haltCode = code || '';
     }
-    // onFail 只看见封闭码表里的码。grant 位只留给即停四码，免得 429/busy 被渲染器当成停机。
+    // onFail 只看见封闭码表里的码。grant 位只留给即停码，免得 429/busy 被渲染器当成停机。
+    // BEL-274：同一次运行里同一个 code 只放行第一条。这条闸放在引擎里而不是遥测里 ——
+    // 引擎知道运行的边界（reset/retry），而 telemetry 只看见一条条互不相干的事件。
     function noteFail(e, code) {
       if (e && code && e.code !== code) e.code = code;
       if (e && code && !HALT_IMMEDIATE_SET.has(code)) {
         e.grant = false;
         e.halt = false;
       }
-      if (cfg.onFail) { try { cfg.onFail(e); } catch (_) {} }
+      if (!cfg.onFail) return;
+      beginRun();
+      const emitted = (e && typeof e.code === 'string' && e.code) || code || 'network';
+      const key = failKind + ':' + emitted;
+      if (failCodes.has(key)) return;
+      failCodes.add(key);
+      try { cfg.onFail(e); } catch (_) {}
     }
     const translate = cfg.translate;
     const selectActive = cfg.selectActive || ((u) => u);
@@ -445,6 +485,7 @@ var TranslationCore = (() => {
 
     function pump() {
       if (!units.length) return;
+      beginRun();
       const active = selectActive(units) || [];
       const targetLang = targetLangOf();
       // Loop-invariant for this tick — hoisted so the script-family regexes aren't
@@ -529,14 +570,14 @@ var TranslationCore = (() => {
           // 烧配额。所以直接进 error 态，把重试交给用户点一下。
           it._err = true;
           it._tries = 0;
-          if (cfg.onFail) { try { cfg.onFail({ code: 'reasoning_starved' }); } catch (_) {} }
+          noteFail({ code: 'reasoning_starved' }, 'reasoning_starved');
         }).catch((e) => {
           // BEL-257：preflight（凭证/归属/端点守卫）不是一次 provider 失败 ——
           // 请求根本没发出去。直接进 error 态给「去配置」的出口，不计数、不重试、
           // **不进 translate_fail**（那会让「配置错误」冒充「翻译失败」）。
           if (e && e.preflight) { it._err = true; it._tries = 0; return; }
           const code = classifyFail(e);
-          // 即停四码：一次就停泵，不再计重试（§8.10 / 第八期 / N26）。
+          // 即停五码：一次就停泵，不再计重试（§8.10 / 第八期 / N26 / BEL-274 no_base）。
           // 判据是码，不是 e.grant / e.halt —— 429 的 busy 也带 grant 位，但它必须留在行上重试。
           if (code && HALT_IMMEDIATE_SET.has(code) && !(e && e.stalled)) {
             enterHalt(code);
@@ -544,7 +585,7 @@ var TranslationCore = (() => {
             noteFail(e, code);
             return;
           }
-          if (e && e.stalled) { it._err = true; it._tries = 0; if (cfg.onFail) { try { cfg.onFail({ code: 'stalled' }); } catch (_) {} } return; }  // 卡死 → 直接可重试，不进连续超时（code 独立，不是 timeout）
+          if (e && e.stalled) { it._err = true; it._tries = 0; noteFail({ code: 'stalled' }, 'stalled'); return; }  // 卡死 → 直接可重试，不进连续超时（code 独立，不是 timeout）
           it._tries = (it._tries || 0) + 1;
           if (it._tries >= win.MAX_RETRIES) {
             it._err = true;   // exhausted → error UI
@@ -577,8 +618,10 @@ var TranslationCore = (() => {
     }
 
     // 用户点重试 = 他自己决定再试一次（可能刚配好自带 key），解锁停机。
-    function retry(it) { halted = false; haltCode = ''; timeoutStreak = 0; if (it) { it._err = false; it._tries = 0; } }
+    // 这也是一次新运行：旧运行里已经报过的 code 不能把重试后的失败吞掉（BEL-274）。
+    function retry(it) { endRun(); halted = false; haltCode = ''; timeoutStreak = 0; if (it) { it._err = false; it._tries = 0; } }
     function reset() {
+      endRun();
       halted = false; haltCode = ''; timeoutStreak = 0;
       units.forEach((it) => {
         it.tr = ''; it._fetching = false; it._done = false; it._err = false; it._tries = 0; it._pg = null;
@@ -587,7 +630,8 @@ var TranslationCore = (() => {
     }
 
     return { setUnits, appendUnits, setWindow, pump, stateOf, retry, reset,
-      get halted() { return halted; }, get haltCode() { return haltCode; }, get units() { return units; } };
+      get halted() { return halted; }, get haltCode() { return haltCode; }, get units() { return units; },
+      get runId() { return runId; }, get failKind() { return failKind; } };
   }
 
   // ─── Subtitle engine: createEngine specialized with a time-window scheduler ──
@@ -603,6 +647,7 @@ var TranslationCore = (() => {
     const engine = createEngine({
       translate: cfg.translate,
       window: win,
+      kind: cfg.kind || 'subtitle',
       targetLang: cfg.targetLang,   // string or getter — passed through, read late
       detect: cfg.detect,
       onOk: cfg.onOk, onFail: cfg.onFail,   // 用量事件的两个钩子（docs/telemetry-design.md §3），可缺省
@@ -645,6 +690,7 @@ var TranslationCore = (() => {
       setItems: engine.setUnits, appendItems: engine.appendUnits, setWindow, pump: engine.pump, activeAt, stateOf,
       retry: engine.retry, reset: engine.reset, get items() { return engine.units; },
       get halted() { return engine.halted; }, get haltCode() { return engine.haltCode; },
+      get runId() { return engine.runId; }, get failKind() { return engine.failKind; },
       get window() { return win; },
     };
   }

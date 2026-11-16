@@ -606,6 +606,21 @@ describe('TranslationAPI — retry & fallback', () => {
     eq(fetch.calls.length, 0, '一个请求都不发；更不该有第 4 次 Google');
   });
 
+  test('missing endpoint (no_base) is terminal — zero fetch, zero retries (BEL-274)', async () => {
+    // custom_chat has no defaultEndpoint. 地址没填是配置事实，重试三次只是把同一个
+    // 失败推迟一秒多；引擎那边还会把后面的段落一起停下。
+    const { API, fetch } = loadAPI([]);
+    const t0 = Date.now();
+    const e = await rejects(
+      API.translate('hello world', 'zh-CN', 'custom_chat', 'KEY', ''),
+      /missing endpoint/,
+    );
+    eq(e.code, 'no_base');
+    eq(e.retryable, false);
+    eq(fetch.calls.length, 0, '一个请求都不该发出去');
+    ok(Date.now() - t0 < 500, `no_base 应当立刻失败，实测 ${Date.now() - t0}ms —— 退避重试回来了`);
+  });
+
   test('Google failing on all retries rejects (no fallback loop)', async () => {
     const { API } = loadAPI([errJson(500), errJson(500), errJson(500)]);
     await rejects(API.translate('hello', 'zh-CN', 'google', '', ''));

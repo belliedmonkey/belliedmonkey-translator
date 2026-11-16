@@ -523,7 +523,7 @@ Rules:
     }
     const url = WireFormat.resolveEndpoint(baseUrl, p);
     if (diag) diag.url = url;
-    if (!url) { const e = new Error(`${p.label || provider}: missing endpoint URL`); e.status = 0; e.code = 'no_base'; throw e; }
+    if (!url) { const e = new Error(`${p.label || provider}: missing endpoint URL`); e.status = 0; e.code = 'no_base'; e.retryable = false; throw e; }
     // Registry `type` is the default shape; the address refines it (domain-design §7).
     // 三个 adapter 塌成一次调用：请求体长什么样由 request-shape.js 一处决定，
     // 翻译与解析两条链路从此共用同一份实现（原来是两份逐字重复的）。
@@ -755,7 +755,7 @@ Rules:
       const p = providerById(provider);
       if (!p) { const e = new Error(`Unknown provider: ${provider}`); e.status = 0; e.code = 'unknown_provider'; e.retryable = false; throw e; }
       const url = WireFormat.resolveEndpoint(baseUrl, p);
-      if (!url) { const e = new Error(`${p.label || provider}: missing endpoint URL`); e.status = 0; e.code = 'no_base'; throw e; }
+      if (!url) { const e = new Error(`${p.label || provider}: missing endpoint URL`); e.status = 0; e.code = 'no_base'; e.retryable = false; throw e; }
       const mdl = model || p.defaultModel;
       const fmt = WireFormat.formatFor(url, p.type, mdl);
       const req = RequestShape.build(fmt, { url, apiKey, model: mdl, providerId: provider, needsKey: EngineState.needsKey({ provider }), keyOwner: RequestShape.ownerOf('chat'), system: OCR_SYSTEM, user: 'Transcribe the text in this image.', image: dataUri, budget: MAX_OUT_TRANSLATION * 2 });
@@ -794,7 +794,7 @@ Rules:
       const p = providerById(provider);
       if (!p) { const e = new Error(`Unknown provider: ${provider}`); e.status = 0; e.code = 'unknown_provider'; e.retryable = false; throw e; }
       const url = WireFormat.resolveEndpoint(baseUrl, p);
-      if (!url) { const e = new Error(`${p.label || provider}: missing endpoint URL`); e.status = 0; e.code = 'no_base'; throw e; }
+      if (!url) { const e = new Error(`${p.label || provider}: missing endpoint URL`); e.status = 0; e.code = 'no_base'; e.retryable = false; throw e; }
       const mdl = model || p.defaultModel;
       const fmt = WireFormat.formatFor(url, p.type, mdl);
       const req = RequestShape.build(fmt, { url, apiKey, model: mdl, providerId: provider, needsKey: EngineState.needsKey({ provider }), keyOwner: RequestShape.ownerOf('chat'), system: prompt.system, user: prompt.user, budget: o.budget != null ? o.budget : MAX_OUT_TRANSLATION });
