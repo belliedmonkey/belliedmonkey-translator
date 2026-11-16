@@ -45,6 +45,7 @@ import * as ASRQuota from './asr-quota.js';   // 识别语言名额的本机记�
 import * as TelemetrySession from './telemetry-session.js';   // BEL-223/225/226 的冷启会话
 import * as PackPending from './pack-pending.js';   // BEL-269：首页「语言包未就绪」的共享真值
 import { withUtm } from '../shared/utm.js'; // BEL-155 官网外链 UTM
+import { createAppleFailureUi, classifyAppleResult } from './apple-native.js'; // BEL-272 原生 Apple 失败出口
 
 // BEL-197: Google provider callbacks land on `scheme://auth` (intl `belliedmonkey`,
 // CN `belliedmonkeycn`). On macOS the native side now opens the system default
@@ -3206,7 +3207,10 @@ export function bootShell() {
   // 「正在登录…」的验证等待（Apple 验证是秒级链路）—— 窗口期 Apple/Google/邮箱全都
   // 还能点，双开登录流。原则：从点击到流程终了（成功即离屏 / 失败与取消才解锁），
   // 这一屏的所有登录入口保持 disabled。
-  const LOGIN_ENTRY_IDS = ['btn-apple', 'btn-google', 'btn-signin', 'send', 'verify', 'app-use-pw', 'app-pw-login'];
+  const LOGIN_ENTRY_IDS = ['btn-apple', 'btn-google', 'btn-signin', 'send', 'verify', 'app-use-pw', 'app-pw-login',
+    // BEL-272：失败卡上的两个出口也属于「登录入口」—— 点击重试后、系统面板还在时，
+    // 不能让第二次指针再开一条流程。失败/取消落定后 setLoginBusy(false) 会把它们放开。
+    'btn-apple-retry', 'btn-apple-other'];
   // 入口 disabled 只挡指针；键盘回车不经过禁用按钮，所以发送函数还要一个**读得到的**
   // 进行中标志（1.23.3：发送中重复回车只能发一次）。setLoginBusy 是唯一写入口。
   let loginBusy = false;
@@ -3215,6 +3219,22 @@ export function bootShell() {
     for (const id of LOGIN_ENTRY_IDS) {
       const e = $(id);
       if (e) e.disabled = busy;
+    }
+  }
+
+  // BEL-272：首点与失败卡上的「重试 Apple 登录」走**同一个**入口。桥的 begin() 每次
+  // 都新建 ASAuthorizationController 并 performRequests()，所以面板关掉后还能再弹。
+  let appleFailure = null;
+  function startAppleSignIn() {
+    if (appleFailure) appleFailure.hide();
+    setLoginBusy(true);
+    say(t('app_apple_waiting', '正在打开 Apple 登录…'));
+    try {
+      window.webkit.messageHandlers.mtAppleSignIn.postMessage({});
+    } catch (err) {
+      setLoginBusy(false);
+      try { LearnAuth.noteAuthFail('apple', 'native', 'apple_post_failed'); } catch (_) {}
+      say(humanError(err), true);
     }
   }
 
@@ -3268,15 +3288,18 @@ export function bootShell() {
   if (appleBridge && Registry.backend() && Registry.backend().enabled && (Registry.backend().providers || []).includes('apple')) {
     paintProviderLabels();
     $('btn-apple').hidden = false;
-    $('btn-apple').addEventListener('click', () => {
-      setLoginBusy(true);
-      say(t('app_apple_waiting', '正在打开 Apple 登录…'));
-      try { window.webkit.messageHandlers.mtAppleSignIn.postMessage({}); } catch (err) {
-        setLoginBusy(false);
-        try { LearnAuth.noteAuthFail('apple', 'native', err); } catch (_) {}
-        say(humanError(err), true);
-      }
+    appleFailure = createAppleFailureUi({
+      $,
+      t,
+      say,
+      start: startAppleSignIn,
+      openOther: openEmailForms,
+      // 原生那一步的失败要留档（telemetry-design §3.14）：它发生在 id_token 之前，
+      // auth.js 看不到 —— 经同一个出口回 auth_fail，不另写白名单/归一化。
+      noteNative: (code) => { try { LearnAuth.noteAuthFail('apple', 'native', code); } catch (_) {} },
     });
+    appleFailure.wire();
+    $('btn-apple').addEventListener('click', startAppleSignIn);
   }
 
   // ── Google：系统鉴权会话（§8.4.1.2）────────────────────────────────────────
@@ -3319,17 +3342,31 @@ export function bootShell() {
 
   // 原生那边把结果送回来。冷启动时结果可能先到（同 deeplink 的形状），兜法同上。
   NativeBridge.onNative('apple-result', async (r) => {
-    try { DiagLog.push('auth', { provider: 'apple', phase: (r && r.error) ? 'fail' : 'done', code: String((r && r.error) || '') }); } catch (_) {}
-    if (!r || r.error) {
+    const outcome = classifyAppleResult(r);
+    try {
+      DiagLog.push('auth', {
+        provider: 'apple',
+        phase: outcome.kind === 'canceled' ? 'canceled' : (outcome.kind === 'failed' ? 'fail' : 'done'),
+        code: outcome.code || '',
+      });
+    } catch (_) {}
+    if (outcome.kind !== 'success') {
       setLoginBusy(false);
-      // 用户自己取消不是错误，别画成失败 —— 那会让人以为登录坏了。
-      if (r && r.error === 'canceled') { say(''); return; }
+      if (!appleFailure) {
+        say(outcome.kind === 'canceled' ? '' : t('app_apple_failed',
+          'Apple 登录没能完成。可以改用下面的邮箱或手机号。'), outcome.kind !== 'canceled');
+        return;
+      }
+      // 用户自己取消不是错误，别画成失败 —— 但它仍按既有的 canceled 语义留一条，
+      // 这样 dashboard 能把「取消」和「真的没拿到凭据」分开（不是 apple_failed）。
+      if (outcome.kind === 'canceled') { appleFailure.canceled(); return; }
       // 原生那一步的失败要留档（telemetry-design §3.14）：它发生在 id_token 之前，
       // auth.js 看不到 —— 经同一个出口回 auth_fail，不另写白名单/归一化。
-      try { LearnAuth.noteAuthFail('apple', 'native', (r && r.error) ? String(r.error) : 'native_error'); } catch (_) {}
-      say(t('app_apple_failed', 'Apple 登录没能完成。可以改用下面的邮箱或手机号。'), true);
+      // code 形如 apple_asauth_1000（域 + ASAuthorizationError.code），见 apple-native.js。
+      appleFailure.failed(r);
       return;
     }
+    if (appleFailure) appleFailure.hide();
     say(t('app_verifying', '正在登录…'));
     // 交换 / 「登录之后」分开埋（telemetry-design §3.14）：同 webauth-result 那条。
     let session = null;

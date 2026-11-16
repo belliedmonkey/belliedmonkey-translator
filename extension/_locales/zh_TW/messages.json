@@ -2159,6 +2159,22 @@
     "message": "Apple 登入沒能完成。可以改用下面的電子郵件或手機號。",
     "description": "Native Apple sign-in failed (not user cancel)"
   },
+  "app_apple_no_credential": {
+    "message": "沒有拿到 Apple 憑證。可以重試 Apple 登入，或改用電子郵件 / Google。",
+    "description": "Native Apple sign-in returned no credential; offers retry and alternate sign-in"
+  },
+  "app_apple_retry": {
+    "message": "重試 Apple 登入",
+    "description": "Button: retry native Apple sign-in after a failure"
+  },
+  "app_apple_other": {
+    "message": "改用電子郵件 / Google",
+    "description": "Button: switch away from Apple to email or Google"
+  },
+  "app_apple_canceled": {
+    "message": "已取消 Apple 登入，可以再點一次。",
+    "description": "Neutral copy after the user cancels the Apple sheet (not a failure)"
+  },
   "learn_empty_other_account": {
     "message": "這台裝置上還有另一個帳號的學習材料。你現在登入的是另一個帳號 —— 那些卡沒有丟，用原來的帳號登入就會回來。",
     "description": "Empty review page while signed in as a different account than the one owning this device corpus"

@@ -2158,6 +2158,22 @@
     "message": "La connexion Apple n’a pas abouti. Utilisez plutôt l’e-mail ou le téléphone ci-dessous.",
     "description": "Native Apple sign-in failed (not user cancel)"
   },
+  "app_apple_no_credential": {
+    "message": "Apple n’a pas fourni d’identifiants. Réessaie la connexion Apple ou utilise e-mail / Google.",
+    "description": "Native Apple sign-in returned no credential; offers retry and alternate sign-in"
+  },
+  "app_apple_retry": {
+    "message": "Réessayer la connexion Apple",
+    "description": "Button: retry native Apple sign-in after a failure"
+  },
+  "app_apple_other": {
+    "message": "Utiliser e-mail / Google",
+    "description": "Button: switch away from Apple to email or Google"
+  },
+  "app_apple_canceled": {
+    "message": "La connexion Apple a été annulée. Tu peux réessayer.",
+    "description": "Neutral copy after the user cancels the Apple sheet (not a failure)"
+  },
   "learn_empty_other_account": {
     "message": "Cet appareil contient aussi le matériel d’un autre compte. Vous êtes connecté avec un compte différent — rien n’est perdu ; reconnectez-vous avec le compte d’origine et tout revient.",
     "description": "Empty review page while signed in as a different account than the one owning this device corpus"
