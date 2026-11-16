@@ -125,7 +125,7 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `onboarding_done` | `surface: ext \| app \| app_resume` · `result: done \| skipped \| shown \| dismissed \| expired \| web_only` · `step`（离开时停在哪一屏，取值与两个宿主的屏序数组同源） · `dwell: 0-2 \| 3-9 \| 10-29 \| 30+`（从引导出现到离开的秒数，**分桶**；只有 `ext` / `app` 带，`app_resume` 没有停留可言） | 引导**离开**时 —— 走完与跳过都发，靠 `result` 分开（2026-09-22，§3.6）。`surface:'app_resume'` = App 首页「继续设置」卡：出现（`shown`，每次启动至多一条）· 点 ✕（`dismissed`）· 第 4 次启动自动收起（`expired`）（2026-09-22，§3.8）。`dwell` 分开「没读就跳」与「读了还是跳」（2026-09-24，§3.9 提案 A）。`result:'web_only'` = 第一屏那条「我只要网页翻译 →」，与 done / skipped **并列**，只有 `surface:'app'` 会发（2026-09-24，§3.9 提案 B）。**← 2026-10-02（#547）：那条出口撤了 ⇒ `web_only` 不再产生**（枚举照留，用来收老客户端的行） | `extension/onboard/onboard.js` `finish()` · `src/app/shell-model.js` `obFinish()` 与 `obResumeTrack()` |
 | `onboard_intent` | `goal: read \| listen \| both` | 迎新首屏「你想怎么用」的选择（2026-09-28，#486/#487，用户评审通过；`interaction-spec.md`「迎新页意图分叉」）。只记选择，不含任何内容。选 `listen` 的人首页不挂扩展横幅 | `src/app/shell-model.js`（用户选定时） |
 | `engine_set` | `provider` | **配置真的完成了**（不是「在下拉里选了一下」） | `options.js` 的 `saveAll()` 末尾（`maybeTrackEngineSet`）· `app/settings.js` 的 `trackEngineSet()`（一键卡**与领免费额度**两条路都走它，§3.4）。**判据是 `EngineState.needsSetup`**，两个宿主同一个出口，不另写一份。2026-09-16 修正：此前挂在 provider 的 `change` 上，点开下拉就记一条 —— 理由见 §3.3 |
-| `engine_test` | `slot: chat \| notes \| tts \| stt` · `result: ok \| fail` · `code`（失败时，**自己的**枚举，见 §3.3.1） | 用户点了一次「测试」并拿到结果（2026-09-16 用户裁定） | `learn/engine-test.js` 的**导出处**（`probe()` 包住四个方法）——设置页 / 字段行 / 一键卡 / 引导页都调这四个函数，包在这一层一处覆盖全部，也覆盖 App（该文件在 App 包里）。不带 key、不带端点、**不带 `serverMessage`**（它会引用用户输入，原则 1 明禁） |
+| `engine_test` | `slot: chat \| notes \| tts \| stt` · `result: ok \| fail` · `code`（失败时，**自己的**枚举，见 §3.3.1）· `http`（失败时，100–599 的整数；越界不写）· `route: direct \| proxy`（失败时，拿不到不写）· `provider`（失败时，本次测试的 cfg；`id` 规则同 `engine_set.provider`） | 用户点了一次「测试」并拿到结果（2026-09-16 用户裁定） | `learn/engine-test.js` 的**导出处**（`probe()` 包住四个方法）——设置页 / 字段行 / 一键卡 / 引导页都调这四个函数，包在这一层一处覆盖全部，也覆盖 App（该文件在 App 包里）。不带 key、不带端点、**不带 `serverMessage`**（它会引用用户输入，原则 1 明禁） |
 | `auth_fail` | `provider: apple \| google \| email \| phone \| unknown` · `stage: prepare \| authorize \| exchange \| id_token \| native \| otp \| verify \| password \| post_login \| unknown` · `code`（归一化的错误码，`id` 型）· `http`（int，没有响应就 0）· `attempt: 1 \| 2+`（**本页面/会话里第几次失败**，`1` = 第一次） | 一次登录失败（2026-10-02，§3.14；用户报「新账号第一次登录失败、第二次成功」，第三方登录，扩展与 App 都有）。此前登录失败只在用户眼前一闪，服务端零行 | `extension/learn/auth.js` 的六个断点（prepare / authorize / exchange / id_token / otp / verify）——两宿主同一份字节。App 原生那一步（`apple-result` 带 error）由 `src/app/shell-model.js` 调 `LearnAuth.noteAuthFail('apple','native',…)` |
 | `translate_ok` | `provider` `kind: page \| subtitle \| doc \| quick` `ms` `surface: listen \| live_caption \| quick \| doc \| web_caption`（BEL-223；`kind` 保留） | **once per page session** (first translation painted), never per paragraph | `content-webpage.js` `makeEngine().onOk`（`okSent` 每会话一次；2026-09-10 修正，此前写的 `tick()` 与代码不符）· `subtitle-adapter.js` `onOk` · `learn/doc-view.js` `onOk`（`kind:'doc'`，两宿主同一份字节）· **App 的听译/实时字幕（2026-09-16）**：`app/listen.js` 定稿出译文处，`kind:'subtitle'` —— **不新增 kind**，理由见 §3.3 |
 | `translate_fail` | `provider` `kind: page \| subtitle \| doc \| quick`（与 `translate_ok` **同一枚举**，BEL-247） `code` `status` (number only) `route` `ms`（**这一次请求**的耗时；与 `translate_ok.ms` 含义不同，后者是「从开启到第一段译文」—— 2026-09-24，§3.11 A 提案，落地前它量的是页面会话已开多久，**历史数据不可用于延迟分析**） | a request fails for good | `translation-core.js` where `it._err = true`; `code` ∈ `timeout / network / http / reasoning_starved / no_base / unknown_provider / credit_exhausted / grant_unavailable / model_not_allowed / auth / stalled`（`stalled` = 单单元 120 s 不落地；BEL-247） from `translation-api.js`（`credit_*`/`grant_*`/`model_*` 来自免费额度中继，§8.10；**`auth`** = 2026-09-10 加：HTTP 401/403 且请求带了**非空、非额度令牌**的 key —— 「这把 key 被服务商拒绝」，引擎停机，见 §3.1） · **2026-09-19（§3.4 裁定 A、B）**：`app/listen.js` 定稿句译文失败处（每会话每 code 一条）· `learn/doc-view.js` 的 `onFail`（每页一条，两宿主同一份字节） |
@@ -353,6 +353,22 @@ key 一个字没填也记一条。而本仓早就写明过判据（`quick-setup.
 `node scripts/gen-telemetry.js` 重新生成 → 服务端 `bt-ingest` 随之更新 →
 `test/telemetry-registry.test.js` 钉两边一致。判断 1、2 与 `engine_set` / `capture_first`
 两处缺口**不动白名单**，已在 PR #293 先行落地。
+
+**2026-11-16（BEL-284）补失败切片。** `engine_test` 上线两个月后，失败行只有 `code`：
+401/403 在传输层早已具名为 `auth`，但本事件的白名单没有它，`track()` 把它压成 `other` ——
+「key 被服务商拒绝」与「没归类的失败」在表上同一行；404 与 429 也只能共用一个 `http`。
+本轮给 `code` 增加 `auth / model_not_allowed / credit_exhausted / grant_unavailable /
+stalled`，并新增三个可缺字段：
+
+- `http`：这个错误的 HTTP status（100–599 的整数）。注册表只有 `'int'` 一种整数规则，
+  服务端不校验范围；**100–599 的闸门在客户端**（`learn/engine-test.js` 只写范围内的整数，
+  越界/非整数直接省略）。
+- `route`：`direct | proxy`；拿不到、空串、未知一律不写（不写空串）。
+- `provider`：本次测试真正用的 `cfg.provider`，复用 `engine_set.provider` 的 `'id'` 规则，
+  不新造枚举。
+
+成功行仍是 `{slot, result}`，四个失败字段一个都不写。key / 完整端点 / `serverMessage` /
+host 哈希仍然禁入 —— 字段变多不等于边界放宽。
 
 ### 3.3.2 2026-09-17：去 App 的那两处点击要有自己的名字
 

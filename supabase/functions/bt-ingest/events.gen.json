@@ -96,8 +96,19 @@
         "empty_audio",
         "reasoning_starved",
         "device_no_file",
-        "other"
+        "other",
+        "auth",
+        "model_not_allowed",
+        "credit_exhausted",
+        "grant_unavailable",
+        "stalled"
       ],
+      "http": "int",
+      "route": [
+        "direct",
+        "proxy"
+      ],
+      "provider": "id",
       "launch_id": "id",
       "surface": [
         "listen",
