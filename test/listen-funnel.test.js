@@ -118,10 +118,16 @@ test('白名单：四条新事件的枚举是短码，信封不另造 app_versio
   ok(FAIL.every((x) => x.length <= 16 && !/\s/.test(x)), 'fail_reason 里有空格或长文');
   eq(cfg.EVENTS.mic_permission.kind.join(','), 'mic,system');
   ok(!cfg.EVENTS.asr_start.app_version && !cfg.EVENTS.asr_start.platform, '版本和平台已经在公共信封的 v / device 上');
-  for (const ev of ['mic_permission', 'asr_start', 'asr_fail', 'translate_start']) {
+  for (const ev of ['mic_permission', 'asr_start', 'asr_fail']) {
     ok(cfg.SEAMS[ev].some((s) => s.host === 'app' && s.file), ev + ' 没有 App 发送点');
     ok(cfg.SEAMS[ev].some((s) => s.host === 'ext' && s.none), ev + ' 不该为扩展另开漏斗');
   }
+  // BEL-290：translate_start 不再是「扩展没有这一跳」—— 页面翻译也在 enable() 发
+  // kind:'page' 的 start；发送点属于拍 B，所以拍 A 先登记目标文件 + pending。
+  ok(cfg.SEAMS.translate_start.some((s) => s.host === 'app' && s.file === 'src/app/listen-model.js'),
+    'translate_start 没有 App 发送点');
+  ok(cfg.SEAMS.translate_start.some((s) => s.host === 'ext' && s.file === 'extension/content/content-webpage.js'),
+    'translate_start 的扩展发送点不在 content-webpage.js');
 });
 
 test('客户端白名单会丢掉长 fail_reason，收短枚举', async () => {
