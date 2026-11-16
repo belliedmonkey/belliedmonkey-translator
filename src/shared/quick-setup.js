@@ -30,6 +30,7 @@
 // （src-boundaries 门禁）；reg 覆盖参数保留（grant.plan 与旧测试都从它过）。
 
 import Registry from '../lib/registry.js';
+import { ownerFor } from './owner.js';
 
 const hostOf = (url) => (typeof WireFormat !== 'undefined'
   ? WireFormat.hostOf(url)
@@ -297,7 +298,7 @@ function plan(input) {
     if (p.custom && !has(input.baseUrl)) return { writes: {}, skipped, tests: [], replaced };
     writes.provider = p.chat.id;
     writes.apiKey = key;
-    marks.apiKeyOwner = p.chat.id;
+    marks.apiKeyOwner = ownerFor('chat', key, p.chat.id);
     // 非自定义平台写空 = 走注册表默认（wire-format 两分支合同）；自定义写用户填的那一条。
     writes.apiBaseUrl = p.custom ? String(input.baseUrl).trim() : '';
     writes.apiModel = pinModel ? (p.chat.defaultModel || '') : '';
@@ -311,7 +312,7 @@ function plan(input) {
   } else if (st.tts === 'empty') {
     writes.ttsEngine = ttsEngine;
     writes.ttsApiKey = key;
-    marks.ttsKeyOwner = ttsEngine;
+    marks.ttsKeyOwner = ownerFor('tts', key, ttsEngine);
     writes.ttsBaseUrl = '';
     writes.ttsModel = pinModel ? (p.tts.defaultModel || '') : '';
     writes.ttsVoice = '';
@@ -334,7 +335,7 @@ function plan(input) {
   } else if (st.stt === 'empty') {
     writes.sttEngine = sttEngine;
     writes.sttApiKey = key;
-    marks.sttKeyOwner = sttEngine;
+    marks.sttKeyOwner = ownerFor('stt', key, sttEngine);
     writes.sttBaseUrl = '';
     writes.sttModel = pinModel ? (p.stt.defaultModel || '') : '';
     tests.push('stt');
