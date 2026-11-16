@@ -107,7 +107,10 @@ const EVENTS = {
       'auth',
       // stalled（BEL-247）：单单元 120 s 不落地。与 timeout 分开 —— 「promise 没回来」
       // 和「请求超时」不是同一种病，混一列会让连续超时熔断读错。
-      'stalled'],
+      'stalled',
+      // 中继的 400 请求形状错误（BEL-270）：响应正文仍是 `error: 'bad_request'`，
+      // 新增的 `reason` 只用来选这四个码。未知/缺失 reason 仍归 http + status 400。
+      'relay_bad_json', 'relay_bad_messages', 'relay_bad_audio', 'relay_bad_input'],
     status: 'int',
     route: ['direct', 'proxy', ''],
     ms: 'int',

@@ -136,7 +136,11 @@
         "grant_unavailable",
         "model_not_allowed",
         "auth",
-        "stalled"
+        "stalled",
+        "relay_bad_json",
+        "relay_bad_messages",
+        "relay_bad_audio",
+        "relay_bad_input"
       ],
       "status": "int",
       "route": [
