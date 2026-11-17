@@ -4379,12 +4379,6 @@
   "settings_value_follow": {
     "message": "跟随界面语言"
   },
-  "app_e1_label": {
-    "message": "中文听译 SenseVoice"
-  },
-  "app_e1_note": {
-    "message": "默认开启，仅中文（zh）。首次使用会在后台下载约 160MB；下载完成前及失败时仍用系统听写，完成后的下一次会话生效。关闭后回到系统听写。"
-  },
   "firstrun_packs_skip": {
     "message": "稍后补包，先进入"
   },
@@ -4418,5 +4412,11 @@
   "listen_perm_denied_body": {
     "message": "在系统设置里打开「麦克风」权限，回到这里点「重试」就能开始，不用重开 App。",
     "description": "BEL-273 microphone permission gate"
+  },
+  "app_e1_label": {
+    "message": "中文听译 SenseVoice"
+  },
+  "app_e1_note": {
+    "message": "默认开启，仅中文（zh）。首次使用会在后台下载约 160MB；下载完成前及失败时仍用系统听写，完成后的下一次会话生效。关闭后回到系统听写。"
   }
 }

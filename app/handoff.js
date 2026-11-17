@@ -128,7 +128,7 @@
     const withMs = (o) => { if (ms != null) o.ms = ms; return o; };
     try {
       if (m.ok === true) {
-        T.track('translate_ok', withMs({ provider, kind: 'quick' }));
+        T.track('translate_ok', withMs({ provider, kind: 'quick', surface: 'quick' }));
         // 收获时刻（telemetry-design §3.12 ④）：Mac 快速翻译出了译文。
         try { if (typeof MTFeedback !== 'undefined' && MTFeedback.noteValueMoment) MTFeedback.noteValueMoment('quick').catch(() => {}); } catch (_) {}
         return 'ok';

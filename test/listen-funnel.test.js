@@ -45,12 +45,16 @@ function mkEl() {
     querySelector() { return mkEl(); }, querySelectorAll() { return []; }, getAttribute() { return ''; } };
 }
 
-function boot() {
+function boot(opts) {
+  const o = opts || {};
+  const probe = o.probe || { ok: true, reason: '', assets: 'installed', locales: [] };
   const tracked = [];
+  const flushes = [];
   const captured = { h: null, native: null, reads: 0 };
   const clk = fakeClock();
   const NativeAudio = {
     available: () => true, suspends: () => false, audioCaps: () => ({ system: 'ok', sources: ['mic', 'system'] }),
+    capsProbe: async () => ({ system: 'ok', sources: ['mic', 'system'] }),
     micStart: (_rate, h) => { captured.h = h; return true; }, micStop: () => {}, recordMode: () => {},
     sessionStart: () => {}, sessionStop: () => {},
     onEvent: (fn) => { captured.native = fn; }, onTick: () => {},
@@ -59,13 +63,14 @@ function boot() {
     subtitleShow: () => {}, subtitleState: () => {}, subtitleConfig: () => {}, subtitleHide: () => {}, subtitleFloat: () => {},
   };
   const sb = {
-    window: { addEventListener() {}, removeEventListener() {} },
+    window: { addEventListener() {}, removeEventListener() {},
+      MT_TELEMETRY: { spec: { common: cfg.COMMON, events: cfg.EVENTS, limits: cfg.LIMITS } } },
     document: {
       getElementById: () => mkEl(), querySelector: () => mkEl(), querySelectorAll: () => [],
       addEventListener() {}, createElement: () => mkEl(), body: mkEl(), documentElement: mkEl(),
       hidden: false, visibilityState: 'visible',
     },
-    navigator: { platform: 'MacIntel', maxTouchPoints: 0, language: 'zh-CN', userAgent: 'test' },
+    navigator: { platform: o.platform || 'MacIntel', maxTouchPoints: 0, language: 'zh-CN', userAgent: o.userAgent || 'test' },
     btoa: (s) => Buffer.from(s, 'binary').toString('base64'),
     atob: (s) => Buffer.from(s, 'base64').toString('binary'),
     chrome: { storage: { local: {
@@ -74,10 +79,10 @@ function boot() {
     }, onChanged: { addListener() {} } }, runtime: { getURL: (u) => u } },
     ListenCore: C,
     NativeAudio,
-    NativeSpeech: {
+    NativeSpeech: Object.assign({
       available: () => true,
-      probeResult: () => ({ ok: true, reason: '', assets: 'installed', locales: [] }),
-      probe: async () => ({ ok: true, reason: '', assets: 'installed', locales: [] }),
+      probeResult: () => probe,
+      probe: async () => probe,
       ensureAssets: async () => ({ ok: true }),
       ensureLid: async () => ({ ok: true }),
       ensureVad: async () => ({ ok: true }),
@@ -85,9 +90,15 @@ function boot() {
       onLid: () => () => {},
       sttOpen: (x) => { captured.onStt = x.onEvent; return { sendPcm: () => true, close() {}, cut() {} }; },
       quota: () => ({ max: 5, reserved: [] }),
-    },
+    }, o.NativeSpeech || {}),
+    // BEL-290：两处裸 ensureVad 的测试要注入 VAD 清单；默认没有清单 ⇒ 不下载。
+    mtDeviceVadFor: o.vadModel ? () => o.vadModel : (() => null),
     DiagLog: { push: () => {} },
-    MTTelemetry: { track: (n, p) => { tracked.push([n, p || {}]); }, once: () => {} },
+    MTTelemetry: {
+      track: (n, p) => { tracked.push([n, p || {}]); },
+      once: () => {},
+      flush: () => { flushes.push(tracked.length); return Promise.resolve(true); },
+    },
     MTFeedback: {},
     LearnNotes: { resolveConfig: () => ({ provider: 'deepseek', apiKey: 'k', baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat' }), shouldCapture: () => false, langAllowed: () => true },
     LearnRules: { dominantScript: (t) => (/[\u4e00-\u9fff]/.test(String(t || '')) ? 'Han' : 'Latin'), langAllowed: () => true },
@@ -105,7 +116,7 @@ function boot() {
     console, URL,
   };
   const ctx = loadSrc('src/app/listen-model.js', 'AppListen', sb);
-  return { A: ctx.AppListen, tracked, captured, clk };
+  return { A: ctx.AppListen, tracked, flushes, captured, clk, sb };
 }
 
 test('白名单：四条新事件的枚举是短码，信封不另造 app_version / platform', () => {
@@ -114,10 +125,16 @@ test('白名单：四条新事件的枚举是短码，信封不另造 app_versio
   ok(FAIL.every((x) => x.length <= 16 && !/\s/.test(x)), 'fail_reason 里有空格或长文');
   eq(cfg.EVENTS.mic_permission.kind.join(','), 'mic,system');
   ok(!cfg.EVENTS.asr_start.app_version && !cfg.EVENTS.asr_start.platform, '版本和平台已经在公共信封的 v / device 上');
-  for (const ev of ['mic_permission', 'asr_start', 'asr_fail', 'translate_start']) {
+  for (const ev of ['mic_permission', 'asr_start', 'asr_fail']) {
     ok(cfg.SEAMS[ev].some((s) => s.host === 'app' && s.file), ev + ' 没有 App 发送点');
     ok(cfg.SEAMS[ev].some((s) => s.host === 'ext' && s.none), ev + ' 不该为扩展另开漏斗');
   }
+  // BEL-290：translate_start 不再是「扩展没有这一跳」—— 页面翻译也在 enable() 发
+  // kind:'page' 的 start；发送点属于拍 B，所以拍 A 先登记目标文件 + pending。
+  ok(cfg.SEAMS.translate_start.some((s) => s.host === 'app' && s.file === 'src/app/listen-model.js'),
+    'translate_start 没有 App 发送点');
+  ok(cfg.SEAMS.translate_start.some((s) => s.host === 'ext' && s.file === 'extension/content/content-webpage.js'),
+    'translate_start 的扩展发送点不在 content-webpage.js');
 });
 
 test('客户端白名单会丢掉长 fail_reason，收短枚举', async () => {
@@ -167,16 +184,94 @@ test('打开听译页只发 asr_entry；开麦才发 asr_start；权限按状态
   captured.native({ type: 'mic-perm', state: 'not_determined', kind: 'mic' });
   eq(names(tracked, 'mic_permission').length, 1, '同一状态不重发');
   eq(names(tracked, 'mic_permission')[0][1].permission_state, 'not_determined');
+  eq(names(tracked, 'mic_permission')[0][1].surface, 'listen', '权限读数带功能面');
 
   A.open('conv');
   await clk.runTo(0);
   eq(names(tracked, 'asr_entry').length, 1);
   eq(names(tracked, 'asr_entry')[0][1].result, 'started');
+  eq(names(tracked, 'asr_entry')[0][1].surface, 'listen', '对话页打开记 listen');
   eq(names(tracked, 'asr_start').length, 0, '只打开页面不算开麦');
 
   A.open('subtitle');
   await clk.runTo(0);
+  eq(names(tracked, 'asr_entry').length, 2);
+  eq(names(tracked, 'asr_entry')[1][1].surface, 'live_caption', '字幕页打开记 live_caption');
   eq(names(tracked, 'asr_start').length, 0, '字幕页停在准备态，还没点开始');
+});
+
+test('首页入口判定发 live_gate：成功也记 ok，两个入口分开 surface', async () => {
+  const { A, tracked, clk } = boot();
+  A.wire();
+  await clk.runTo(0);
+  const gates = names(tracked, 'live_gate');
+  ok(gates.length >= 2, '对话与实时字幕两个入口各一条，实际 ' + gates.length);
+  const listen = gates.find((e) => e[1].surface === 'listen');
+  const sub = gates.find((e) => e[1].surface === 'live_caption');
+  ok(listen && sub, '两个 surface 都要有');
+  eq(listen[1].result, 'ok', '探测成功也要记 result=ok');
+  eq(listen[1].ok, 'true');
+  eq(listen[1].window, 'main');
+  eq(listen[1].first_refresh, 'true');
+  eq(listen[1].reused_prior_state, 'false');
+  eq(listen[1].reason_copy_class, 'other');
+  eq(sub[1].result, 'ok');
+});
+
+test('BEL-223：iOS ≥26 而识别器没开放 ⇒ no_transcriber + os_meets_min=true', async () => {
+  const { A, tracked, clk } = boot({
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15',
+    platform: 'iPhone',
+    probe: { ok: false, reason: 'os', assets: 'installed', locales: [] },
+  });
+  A.wire();
+  await clk.runTo(0);
+  const gates = names(tracked, 'live_gate');
+  for (const surface of ['listen', 'live_caption']) {
+    const g = gates.find((e) => e[1].surface === surface);
+    ok(g, surface + ' 没有 live_gate');
+    eq(g[1].result, 'no_transcriber', surface + ' result');
+    eq(g[1].os_meets_min, 'true', surface + ' os_meets_min');
+    eq(g[1].reason_copy_class, 'need_os', surface + ' reason_copy_class');
+  }
+  const listen = gates.find((e) => e[1].surface === 'listen');
+  eq(listen[1].os_version, 'ios_26_0', 'UA 版本仍照发');
+});
+
+test('BEL-223：iOS <26 ⇒ os_below_min + os_meets_min=false', async () => {
+  const { A, tracked, clk } = boot({
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15',
+    platform: 'iPhone',
+    probe: { ok: false, reason: 'os', assets: 'installed', locales: [] },
+  });
+  A.wire();
+  await clk.runTo(0);
+  const gates = names(tracked, 'live_gate');
+  for (const surface of ['listen', 'live_caption']) {
+    const g = gates.find((e) => e[1].surface === surface);
+    ok(g, surface + ' 没有 live_gate');
+    eq(g[1].result, 'os_below_min', surface + ' result');
+    eq(g[1].os_meets_min, 'false', surface + ' os_meets_min');
+    eq(g[1].reason_copy_class, 'need_os', surface + ' reason_copy_class');
+  }
+});
+
+test('BEL-223：Mac UA 读不到版本 + 同一探针 ⇒ os_below_min，不编 os_version', async () => {
+  const { A, tracked, clk } = boot({
+    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15',
+    platform: 'MacIntel',
+    probe: { ok: false, reason: 'os', assets: 'installed', locales: [] },
+  });
+  A.wire();
+  await clk.runTo(0);
+  const gates = names(tracked, 'live_gate');
+  for (const surface of ['listen', 'live_caption']) {
+    const g = gates.find((e) => e[1].surface === surface);
+    ok(g, surface + ' 没有 live_gate');
+    eq(g[1].result, 'os_below_min', surface + ' result');
+    eq(g[1].os_meets_min, 'false', surface + ' os_meets_min');
+    ok(!('os_version' in g[1]), surface + ' 不该编 os_version');
+  }
 });
 
 test('开麦之后：granted、asr_start、失败短码、翻译开始', async () => {
@@ -190,6 +285,7 @@ test('开麦之后：granted、asr_start、失败短码、翻译开始', async (
   ok(toggled !== false, '点了听译键却没接上');
   ok(names(tracked, 'asr_start').length >= 1, '开麦没发 asr_start，已有事件 ' + tracked.slice(before).map((e) => e[0]).join(','));
   const startProps = names(tracked, 'asr_start')[0][1];
+  eq(startProps.surface, 'listen', '开麦是 listen 面');
   if (startProps.engine) ok(/^[a-z0-9_-]{1,32}$/.test(startProps.engine), startProps.engine);
   if (startProps.locale_pair) ok(/^[a-z0-9_-]{1,32}$/.test(startProps.locale_pair), startProps.locale_pair);
 
@@ -206,6 +302,19 @@ test('开麦之后：granted、asr_start、失败短码、翻译开始', async (
   eq(fails.length, 1, JSON.stringify(fails));
   eq(fails[0][1].fail_reason, 'capture');
   ok(!/Domain|locales|Error/.test(JSON.stringify(fails[0][1])), JSON.stringify(fails[0][1]));
+});
+
+test('麦克风权限按功能面分开去重：字幕页同一状态另记一条 live_caption', async () => {
+  const { A, tracked, captured, clk } = boot();
+  A.wire();
+  captured.native({ type: 'mic-perm', state: 'granted', kind: 'mic' });
+  await clk.runTo(0);
+  A.open('subtitle');
+  await clk.runTo(0);
+  captured.native({ type: 'mic-perm', state: 'granted', kind: 'mic' });
+  const perms = names(tracked, 'mic_permission');
+  eq(perms.filter((e) => e[1].surface === 'listen').length, 1);
+  eq(perms.filter((e) => e[1].surface === 'live_caption').length, 1, '字幕页的同一状态不能被 listen 的去重吞掉');
 });
 
 test('权限拒绝记 permission，不把系统文案写进事件', async () => {
@@ -240,5 +349,105 @@ test('听出字并且翻译请求发出去 ⇒ translate_start，每场一次', 
   ok(starts.length === 1, 'translate_start 条数 ' + starts.length
     + ' 事件 ' + tracked.map((e) => e[0]).join(',')
     + ' phase ' + d.phase + ' rows ' + d.rows.length + ' seg ' + JSON.stringify(d.seg && { route: d.seg.route, calls: d.seg.calls }));
-  eq(names(tracked, 'translate_ok').length <= 1, true);
+  // BEL-290：App 侧补 kind 与 surface；engine 仍只在合法时带（本场是 deepseek）。
+  eq(starts[0][1].kind, 'subtitle', 'translate_start 要带 kind:subtitle');
+  eq(starts[0][1].surface, 'listen', '对话听译的 surface');
+  eq(starts[0][1].engine, 'deepseek', '合法引擎 id 仍要带');
+  const oks = names(tracked, 'translate_ok');
+  eq(oks.length <= 1, true);
+  if (oks.length) {
+    eq(oks[0][1].surface, 'listen', 'translate_ok 要能分开 listen / live_caption');
+    eq(oks[0][1].kind, 'subtitle', '旧 kind 保留');
+  }
+});
+
+// BEL-290：两处裸 NativeSpeech.ensureVad 接上 reportPackUnit。判据是**事件正文**：
+// pack_kind=vad、start/fail 共用 download_id、fail 有归一化 reason/code、并强制 flush。
+const VAD_SPEC = {
+  id: 'vad',
+  files: [{ url: 'https://api.belliedmonkey.com/models/silero_vad.onnx', size: 643854 }],
+};
+
+test('BEL-290 预热 VAD：reject 发 fail（同 download_id、reason=hash），surface=listen，且 flush', async () => {
+  const bad = new Error('sha256 mismatch');
+  bad.reason = 'hash';
+  const { A, tracked, flushes, clk } = boot({
+    vadModel: VAD_SPEC,
+    NativeSpeech: {
+      vadProbe: async () => ({ ok: false }),
+      ensureVad: async () => { throw bad; },
+    },
+  });
+  A.wire();
+  A.open('conv');
+  await clk.runTo(0);
+  await clk.runTo(0);
+
+  const starts = tracked.filter((e) => e[0] === 'pack_download_start' && e[1].pack_kind === 'vad');
+  const fails = tracked.filter((e) => e[0] === 'pack_download_fail' && e[1].pack_kind === 'vad');
+  eq(starts.length, 1, '预热 VAD 没有 start（事件 ' + tracked.map((e) => e[0]).join(',') + '）');
+  eq(fails.length, 1, '预热 VAD reject 没有 fail');
+  eq(starts[0][1].surface, 'listen', 'warmBody 只在对话页跑（mode=subtitle 提前 return）');
+  eq(starts[0][1].source, 'other', '中继地址看不见托管方 ⇒ other');
+  eq(fails[0][1].download_id, starts[0][1].download_id, 'fail 必须复用 start 的 download_id');
+  eq(fails[0][1].reason, 'hash');
+  eq(fails[0][1].code, 'download_vad');
+  ok(flushes.length >= 1, 'VAD fail 必须调用 flush');
+});
+
+test('BEL-290 实时听译首启 VAD：成功发 ok；surface 按当前面 live_caption；不误发 fail', async () => {
+  const { A, tracked, clk } = boot({
+    vadModel: VAD_SPEC,
+    NativeSpeech: { ensureVad: async () => ({ ok: true }) },
+  });
+  A.wire();
+  A.open('subtitle');
+  await clk.runTo(0);
+  const started = A.start();
+  await clk.runTo(0);
+  await clk.runTo(0);
+  await started;
+
+  const starts = tracked.filter((e) => e[0] === 'pack_download_start' && e[1].pack_kind === 'vad');
+  const oks = tracked.filter((e) => e[0] === 'pack_download_ok' && e[1].pack_kind === 'vad');
+  const fails = tracked.filter((e) => e[0] === 'pack_download_fail' && e[1].pack_kind === 'vad');
+  eq(starts.length, 1, '首启 VAD 没有 start（事件 ' + tracked.map((e) => e[0]).join(',') + '）');
+  eq(oks.length, 1, 'ensureVad 成功没有 ok');
+  eq(fails.length, 0, '成功路径不得发 fail');
+  eq(oks[0][1].download_id, starts[0][1].download_id, 'ok 必须复用 start 的 download_id');
+  eq(starts[0][1].surface, 'live_caption', 'ensurePacksForPair 被字幕页共用 ⇒ 按当前面报');
+});
+
+test('BEL-290 实时听译首启 VAD（对话页）：surface=listen，成功发 ok', async () => {
+  const bad = new Error('sha256 mismatch');
+  bad.reason = 'hash';
+  let calls = 0;
+  const { A, tracked, clk } = boot({
+    vadModel: VAD_SPEC,
+    NativeSpeech: {
+      vadProbe: async () => ({ ok: false }),
+      ensureVad: async () => {
+        calls += 1;
+        if (calls === 1) throw bad;   // 预热失败，让首启路径还能再遇到一次缺 VAD
+        return { ok: true };
+      },
+    },
+  });
+  A.wire();
+  A.open('conv');
+  await clk.runTo(0);
+  await clk.runTo(0);
+  eq(tracked.filter((e) => e[0] === 'pack_download_fail' && e[1].pack_kind === 'vad').length, 1,
+    '预热 VAD 应先失败一次');
+
+  const started = A.start();
+  await clk.runTo(0);
+  await clk.runTo(0);
+  await started;
+  const starts = tracked.filter((e) => e[0] === 'pack_download_start' && e[1].pack_kind === 'vad');
+  const oks = tracked.filter((e) => e[0] === 'pack_download_ok' && e[1].pack_kind === 'vad');
+  eq(starts.length, 2, '预热 + 首启各一条 start');
+  eq(oks.length, 1, '重试成功必须发 ok');
+  eq(oks[0][1].surface, 'listen', '对话页的开始走 ensurePacksForPair ⇒ surface=listen');
+  eq(oks[0][1].download_id, starts[1][1].download_id, 'ok 必须复用第二次 start 的 download_id');
 });

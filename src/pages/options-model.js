@@ -66,6 +66,17 @@ export async function saveKeyField(store, key, value, explicitVendor) {
   return owner;
 }
 
+// BEL-290：三处保存汇合点（saveNow / 一键卡 writes / 一键卡 owner flow）的写盘
+// 结果检查。SettingsStore.setMany 把失败放在 {ok:false} 里、不抛 —— 调用方不查
+// 就永远不会走到 setup_apply_fail{stage:'write'}，界面还会说「配好了」。
+// 错误固定是 Error('storage')：调用方只把它当「写盘失败」一个类别，e.message
+// 不进遥测。
+export async function setManyOrThrow(store, patch) {
+  const r = await store.setMany(patch);
+  if (r && r.ok === false) throw new Error('storage');
+  return r;
+}
+
 // 字号档位（原 SCALE_OPTS）。存量里出现的任何其它值（旧版写过的）一律落 1.0。
 export const SCALE_OPTS = ['0.8', '0.9', '1.0', '1.1', '1.25'];
 export function scaleValue(v) {

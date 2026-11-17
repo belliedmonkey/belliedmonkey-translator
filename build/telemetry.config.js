@@ -29,10 +29,59 @@ const COMMON = {
 // web_caption（网页字幕）。新增值 = 改提案 + 过评审 + 同步 docs §3，不是顺手加。
 const SURFACES = ['listen', 'live_caption', 'quick', 'doc', 'web_caption'];
 
+// BEL-226（2026-11-14）：语言包下载的入口面。与上面五个**功能面**并列登记：
+//   first_run_packs = 首启「下载并继续」那一屏
+//   settings_packs  = 设置页 › 语言包管理（openPackManager）
+// 旧 P0 客户端发的是功能面（listen / …），所以枚举是**并集**，不是替换 —— 删旧值会让
+// 1.23.3 老行在回读时被当成非法。值与 src/app/telemetry-session.js 的 PACK_SURFACES 同源。
+const PACK_SURFACES = SURFACES.concat(['first_run_packs', 'settings_packs']);
+
+// BEL-226：下载单元与失败原因。pack_kind 四种 = 票面；reason 六值 = 票面的错误分类。
+// pack_id 用 'id' 型（小写字母/数字/_/-, ≤32）：共享包 tts:zh-en 在这里写成 tts_zh_en
+// —— 扩展冻结的 okValue 只认 /^[a-z0-9_-]{1,32}$/，冒号会让**整条**事件被丢掉。
+const PACK_KINDS = ['asr', 'tts', 'lid', 'vad'];
+const PACK_SOURCES = ['system', 'github', 'modelscope', 'other'];
+const PACK_FAIL_REASONS = ['network', 'timeout', 'disk', 'hash', 'unsupported', 'other'];
+// BEL-293：失败发生在哪一级下载链。只有 LID/TTS 走 ModelSources 的真实 tier 链
+// （app/model-sources.js 的 source）；ASR 直调 ensureAssets、VAD 直调 ensureVad，
+// 没有可归因的换源层级 ⇒ **整个键省略**（不写 'none'：'none' 会被读成一种真实层级）。
+const PACK_TIERS = ['cache', 'server', 'server-alt', 'builtin', 'builtin-alt'];
+// BEL-293 定稿（2026-11-17）：detail 是**闭枚举（22 值，逐字定稿）**，只收原生
+// e.reason 里的协议码，不做前缀/包含匹配。sha / offline / http / load 在六值 reason
+// 里会被压成 hash / network / timeout / other，所以 detail 必须在 packFailReason()
+// **之前**取。locale 与 locales 是两个原生码，不合并；连字符保持 no-engine / no-bridge。
+// 兜底只有 'other'：不允许 failed / format / enospc —— 磁盘满靠 reason='disk' 表达，
+// 不靠 detail（原生 enospc 会落 other）。sha_mismatch 是客户端 alias → sha，不进枚举、
+// 不另立值。blocked / superseded / lang 为 TTS/ASR 后续复用预留，当前 pack-download
+// 路径不产生。不在表内的其它值一律 'other'。
+const PACK_DETAILS = ['sha', 'offline', 'http', 'load', 'timeout', 'cancelled',
+  'no-bridge', 'no-engine', 'locales', 'locale', 'analyzer', 'assets', 'format', 'os',
+  'download', 'failed', 'lang', 'unsupported', 'probe', 'blocked', 'superseded', 'other'];
+
+// BEL-225（2026-11-14）：`app_open.surface` 换成「打开时落在哪一屏」，不是功能面。
+//   login     = 面对登录墙（auth_state=signed_out）
+//   packs     = 已登录，但首启包屏还没走完（FirstRun.step === 'packs'）
+//   app_home  = 已登录且包屏已过 / 已就绪
+// `unknown` 与 quick 面板**不带**这个键（不猜屏）。
+//
+// 这里保留旧五面做**联合枚举**：1.23.3 老客户端仍会发 listen / live_caption / quick /
+// doc / web_caption，删掉会让这些历史行与老包整条被白名单拒收；新客户端只发上面三个
+// 屏值。`auth_ok` / `live_gate` 仍用 SURFACES，本票不动。
+const APP_OPEN_SURFACES = SURFACES.concat(['login', 'packs', 'app_home']);
+
 // BEL-247（2026-11-13）：translate_ok 与 translate_fail 共用的**同一个** kind 枚举。
 // 以前只有 ok 有 kind，失败那条无法按功能面拆成功率；复制一份枚举就是下一次漂移的起点，
 // 所以抽成常量、两边引用。加一个值 = 改这里 + docs/telemetry-design.md §3。
 const TRANSLATE_KINDS = ['page', 'subtitle', 'doc', 'quick'];
+
+// BEL-290（2026-11-17，产品定稿）：一键设定的三个归属面。ext_settings = 扩展设置页，
+// app_feature = App 设置页，onboard = 引导页。只回答「在哪一屏点的」，不是入口。
+const SETUP_SURFACES = ['ext_settings', 'app_feature', 'onboard'];
+// BEL-290：engine_test.surface 从五个功能面追加一键设定的三个归属面（枚举扩值，不替换）。
+const ENGINE_TEST_SURFACES = SURFACES.concat(['setup_quick', 'setup_fields', 'setup_onboard']);
+// BEL-290：settings_open 只回答「打开设置时落在哪一屏」。app_home / app_onboard /
+// app_feature 是 App 侧三个入口，ext_settings 是扩展设置页；不猜屏就不带这个键。
+const SETTINGS_SURFACES = ['app_home', 'app_onboard', 'app_feature', 'ext_settings'];
 
 const EVENTS = {
   installed: {},
@@ -85,13 +134,49 @@ const EVENTS = {
     result: ['ok', 'fail'],
     code: ['no_key', 'no_base', 'no_path', 'bad_url', 'no_engine', 'unknown_provider',
       'network', 'timeout', 'http', 'bad_output', 'empty_output', 'empty_audio',
-      'reasoning_starved', 'device_no_file', 'other'],
+      'reasoning_starved', 'device_no_file', 'other',
+      // BEL-284（2026-11-16）：把传输层已有的失败码接进来，与 translate_fail 的语义
+      // 同一套。auth = 401/403 且带了真 key；model_not_allowed / credit_exhausted /
+      // grant_unavailable = 中继的具名拒绝；stalled = 单单元 120 s 不落地。
+      // 不写 serverMessage / 完整 URL / host / key —— engine-test 的隐私红线不变。
+      'auth', 'model_not_allowed', 'credit_exhausted', 'grant_unavailable', 'stalled'],
+    // 四个失败字段（BEL-284）：都可缺；成功时不写。
+    // http 是**这个错误**的 HTTP status，不是 code='http' 的布尔。注册表只有 'int'
+    // 这一种整数规则（非负、≤10 位），服务端不校验 100–599；**范围闸门在客户端**
+    // （learn/engine-test.js 只写 100–599 的整数，越界/非整数直接省略）。
+    http: 'int',
+    // route：只认两条真实通路。拿不到、空串、未知一律不写（不写空串）。
+    route: ['direct', 'proxy'],
+    // provider 复用 engine_set.provider 的 'id' 规则，不新造枚举。
+    provider: 'id',
     // BEL-223（2026-11-08）：从哪个功能面发起测试、哪次启动。键可缺。
     // launch_id = 32 位小写十六进制（uuid 去掉连字符），与 UUID 同义；用 'id' 规则见 app_open。
     launch_id: 'id',
-    surface: SURFACES,
+    surface: ENGINE_TEST_SURFACES,
   },
-  translate_ok: { provider: 'id', kind: TRANSLATE_KINDS, ms: 'int' },   // doc：文档翻译（2026-09-11，learning-design §9.7）
+  // BEL-290（2026-11-17，产品定稿）：一键设定的成功/失败面。三面共用
+  // src/shared/quick-setup-view.jsx 一处发送点（扩展设置页 / App 设置页 / 引导页）。
+  // 没有 ok 只有 fail 就算不出失败率；ok 带 wrote/replaced 把「点了但三槽早已配好」
+  // 的 no-op 与「真的写了 / 顶掉了免费额度」分开。
+  setup_apply_ok: {
+    surface: SETUP_SURFACES,
+    wrote: ['none', 'any'],
+    replaced: ['none', 'grant'],
+  },
+  // stage 只做 precheck / read / write；verify 已被 engine_test 覆盖，不再双计。
+  // code 是闭枚举：quick-setup-view 的 e.message 绝不能进遥测。
+  setup_apply_fail: {
+    surface: SETUP_SURFACES,
+    stage: ['precheck', 'read', 'write'],
+    code: ['no_key', 'no_base', 'storage', 'unknown'],
+  },
+  // BEL-290：设置页打开的归属面。app_home / app_onboard / app_feature = App 三个
+  // 入口；ext_settings = 扩展设置页。dwell 不做（产品定稿），不在这里留半条。
+  settings_open: { surface: SETTINGS_SURFACES },
+  // BEL-290：站点访问权限被拒。只从扩展 popup 发，零 props —— permission 只有
+  // host、surface 只有 popup 两个常量，公共信封的 host/device 已经够拆。
+  perm_denied: {},
+  translate_ok: { provider: 'id', kind: TRANSLATE_KINDS, ms: 'int', surface: SURFACES },   // doc：文档翻译（2026-09-11，learning-design §9.7）
   translate_fail: {
     provider: 'id',
     // BEL-247：与 translate_ok 共用 TRANSLATE_KINDS —— 「哪个功能面的失败」必须能
@@ -155,7 +240,9 @@ const EVENTS = {
   // `entry_kind` **没有约定 ⇒ 不加**（研发令明确：没约定就不带）。
   app_open: {
     launch_id: 'id',
-    surface: SURFACES,                 // home / 登录墙这种不在这五面时**不带这个键**（props 可缺）
+    // 屏幕值 login / packs / app_home；旧五面保留收 1.23.3 老客户端（见 APP_OPEN_SURFACES）。
+    // unknown 与 quick 面板**不带这个键**（props 可缺）。
+    surface: APP_OPEN_SURFACES,
     auth_state: ['signed_in', 'signed_out', 'unknown'],
   },
   // 登录成功（BEL-223）。P3 要求「signup / signin 各一次」⇒ method 必须能分开这两种；
@@ -163,19 +250,41 @@ const EVENTS = {
   // 服务端另写第一方 bt_auth_ok（含 user_id），这条匿名事件不带 user_id；两边可由
   // install_id 对上（仅支持与滥用排查，不进第三方）。
   auth_ok: {
-    surface: SURFACES,
+    // BEL-223：登录成功这个动作发生在**登录面**，不是五个功能面之一 —— 加 `login`，
+    // 旧五值照留（1.23.3 老客户端仍可能发功能面）。`launch_id` 与同一次冷启的其他
+    // 事件共用一个 32-hex id；method 的口径不变（本机首见 = signup，缺口见 RESULT）。
+    surface: SURFACES.concat(['login']),
     provider: ['apple', 'google', 'email', 'phone', 'unknown'],
     method: ['signup', 'signin'],
+    launch_id: 'id',
   },
-  // 实时字幕的开门判定（BEL-223）：`ok` 是这次判定过没过。注册表没有 bool 类型，
-  // 所以钉成字符串枚举 'true' / 'false'；P1 发之前自己 String(ok)，不要发 JSON 布尔。
-  live_gate: { surface: SURFACES, ok: ['true', 'false'] },
-  // 领取失败（BEL-223）。code 的七个值来自 extension 的 grant_err_* 文案键
-  // （exhausted / unavailable / misconfigured / revoked / invalid / model / busy）——
-  // 与 translate_fail.code 同一条纪律：不在枚举里的码会被服务端整条拒，宁可先钉全。
+  // 实时字幕 / 首页入口的开门判定（BEL-223）：`ok` 是旧 P0 的过没过（保留以收老行），
+  // `result` 才是原因拆分。注册表没有 bool 类型，两个布尔都钉成字符串枚举。
+  // `os_version` / `probe_locale` 用 id 型（小写、≤32）：扩展冻结，okValue 只认
+  // 数组 / int / id —— 带点的大写 `iOS_26.0.1` 会被客户端整条丢掉，所以发送口归一化成
+  // `ios_26_0_1` / `en-us` 这种形状（原始版本串不进事件）。
+  live_gate: {
+    surface: SURFACES,
+    ok: ['true', 'false'],
+    result: ['script_missing', 'channel_missing', 'os_below_min', 'no_transcriber',
+      'locale_unsupported', 'probe_timeout', 'ok'],
+    os_version: 'id',
+    os_meets_min: ['true', 'false'],
+    probe_locale: 'id',
+    reason_copy_class: ['need_os', 'switch_locale', 'other'],
+    window: ['main', 'quick', 'other'],
+    launch_id: 'id',
+    first_refresh: ['true', 'false'],
+    reused_prior_state: ['true', 'false'],
+  },
+  // 领取失败（BEL-223）。code 是旧 P0 的七个文案键（保留以收 1.23.3 老行）；
+  // reason / copy_class / path 是本轮补的真实原因、文案类别与入口路径。
   grant_claim_fail: {
     surface: SURFACES,
     code: ['exhausted', 'unavailable', 'misconfigured', 'revoked', 'invalid', 'model', 'busy'],
+    reason: ['network', 'busy', 'server', 'revoked', 'other'],
+    copy_class: ['revoked', 'retryable'],
+    path: ['silent', 'manual'],
   },
   // 语言包下载（BEL-226）。`setup_id` 是一条「把包配齐」的流程 id，**跨启动保持不变**，
   // 所以「上次没下完、这次接着下」能串成一条；start/ok/fail 用同一个 setup_id。
@@ -183,16 +292,85 @@ const EVENTS = {
   // （uuid 去掉连字符的 32-hex 同义标识）。**卡面写 UUID，因扩展冻结只能用 id 规则** ——
   // 36 字符带连字符的 uuid 过不了扩展的 /^[a-z0-9_-]{1,32}$/，pack_* / packs_ready 会被
   // 整条丢掉；旧 uuid 值由 App 迁移成 32-hex（同一标识，不换新的）。
-  // fail 的 code 用 id 型（小写字母/数字/_/-, ≤32），不塞系统长文或路径。
-  pack_download_start: { setup_id: 'id', surface: SURFACES },
-  pack_download_ok: { setup_id: 'id', surface: SURFACES },
-  pack_download_fail: { setup_id: 'id', surface: SURFACES, code: 'id' },
-  // 「包齐了」的过渡（BEL-226）：按过渡去重（同一 setup_id + ready_kind 只发一次）。
-  // ready_kind 取 `src/app/firstrun.js` readiness() 的分项 kind（base / asr / tts）加
-  // `all`（全就绪）；required / ready 是这一轮要求数与已就绪数，用整数，不记语言名单。
+  //
+  // 2026-11-14（BEL-226 补全）：每个**真正去下的资源**一条 start/ok/fail，不按字节进度发。
+  //   pack_kind  asr / tts / lid / vad
+  //   pack_id    短标识；共享包（中英朗读）用显式共享 id `tts_zh_en`，泰语 `tts_th`，
+  //              识别包 `asr_<lang>`。用 'id' 型（不是 uuid）：见上面 32-hex 那条。
+  //   locale     语言短码（共享包写 zh-en；lid / vad 没有语言，键可缺）
+  //   download_id 本次下载尝试的 32-hex；start/ok/fail 三态共用
+  //   launch_id  本次打开 App 的 32-hex
+  //   source     system（系统语音资产）/ github / modelscope / other（含自家中继：
+  //              真实托管由服务端按 IP 选，客户端看不见 ⇒ 只报 other，不猜）
+  //   attempt    同一 setup 内同一 pack_id 的第几次尝试（持久化、跨启动继续）
+  // 旧 P0 属性 `setup_id` / `surface` 照发；`code` 在 fail 上保留，收 1.23.3 老客户端的行。
+  pack_download_start: {
+    setup_id: 'id',
+    surface: PACK_SURFACES,
+    pack_kind: PACK_KINDS,
+    pack_id: 'id',
+    locale: 'id',
+    download_id: 'id',
+    launch_id: 'id',
+    source: PACK_SOURCES,
+    attempt: 'int',
+  },
+  pack_download_ok: {
+    setup_id: 'id',
+    surface: PACK_SURFACES,
+    pack_kind: PACK_KINDS,
+    pack_id: 'id',
+    locale: 'id',
+    download_id: 'id',
+    launch_id: 'id',
+    source: PACK_SOURCES,
+    attempt: 'int',
+  },
+  pack_download_fail: {
+    setup_id: 'id',
+    surface: PACK_SURFACES,
+    pack_kind: PACK_KINDS,
+    pack_id: 'id',
+    locale: 'id',
+    download_id: 'id',
+    launch_id: 'id',
+    source: PACK_SOURCES,
+    attempt: 'int',
+    // 六值真实原因；`code` 是旧 P0 的 id 型码（timeout / tts_failed / base_failed /
+    // download …），过渡期同发。原始报错 / URL 永远不进 reason 或 code。
+    reason: PACK_FAIL_REASONS,
+    code: 'id',
+    // BEL-293：失败归因四元组。
+    //   tier     这次失败落在哪一级下载链。只有 LID/TTS 有真实换源链；ASR/VAD
+    //            直调原生 ⇒ **键省略**（不写 'none'，见 PACK_TIERS）
+    //   detail   原生 e.reason 的协议码，**闭枚举**（PACK_DETAILS）。只在
+    //            packFailReason() 之前取 —— 六值归一后 sha/offline/http/load 就没了；
+    //            绝不含 message / URL / 原文，未知值写 'other'
+    //   size     这个包的声明大小（字节；系统 ASR 包由系统决定 ⇒ 0）
+    //   progress 失败时最后一次进度回调的百分比（0–100；没有进度回调 ⇒ 0）
+    tier: PACK_TIERS,
+    detail: PACK_DETAILS,
+    size: 'int',
+    progress: 'int',
+  },
+  // 「包齐了」的过渡（BEL-226）：**整套所需资源**都校验就绪时记一条；单语言下完不能代替。
+  // 按 setup_id + selection_id 的就绪过渡去重（同一 selection 只发一次；未齐不发；
+  // 从不齐再变齐可再记）。旧 P0 的 ready_kind（base/asr/tts/all）与 required/ready 保留，
+  // 新客户端发 downloaded/preexisting/mixed + 分项计数；旧值仍在枚举里收老行。
   packs_ready: {
     setup_id: 'id',
-    ready_kind: ['base', 'asr', 'tts', 'all'],
+    selection_id: 'id',       // 所需 kind/id/locale 集合的稳定派生（32-hex）
+    launch_id: 'id',
+    surface: PACK_SURFACES,
+    ready_kind: ['base', 'asr', 'tts', 'all', 'downloaded', 'preexisting', 'mixed'],
+    asr_required: 'int',
+    asr_ready: 'int',
+    tts_required: 'int',
+    tts_ready: 'int',
+    base_ready: ['true', 'false'],
+    required_count: 'int',
+    ready_count: 'int',
+    // 旧 P0 字段（1.23.3 老客户端）：整批要求数 / 已就绪数。
     required: 'int',
     ready: 'int',
   },
@@ -247,7 +425,10 @@ const EVENTS = {
   // `gesture_needed` **保留但不再产生**：Safari 页内手势那套机制随 Tier B 一起下掉了
   // （domain-design §2.4 第 3 条）。枚举留着是因为历史行还在表里，删掉会让旧数据读不回来。
   asr_entry: {
-    surface: ['popup', 'notice', 'pill', 'app_home', 'popup_app_row'],
+    // BEL-223：`started` 要能分开「对话听译」与「实时字幕」两个页面，所以 surface
+    // 补 listen / live_caption；旧入口值（popup / notice / pill / app_home /
+    // popup_app_row）全部保留 —— `app_home` 仍是灰卡 no_live 的值。
+    surface: ['popup', 'notice', 'pill', 'app_home', 'popup_app_row', 'listen', 'live_caption'],
     result: ['started', 'no_media', 'no_engine', 'no_live', 'gesture_needed', 'to_app'],
     // BEL-223：这里的 surface 是「入口」，不是功能面五值；只补 launch_id。
     launch_id: 'id',
@@ -273,7 +454,9 @@ const EVENTS = {
     engine: 'id',
     locale_pair: 'id',
   },
-  translate_start: { engine: 'id', locale_pair: 'id' },
+  // BEL-290：页面翻译也发 start（kind:'page'，每会话一条）；App 侧补 kind 与 surface。
+  // 两者都可缺：老客户端不发；页面侧不带 surface（kind 已经精确表达了页面翻译）。
+  translate_start: { engine: 'id', locale_pair: 'id', kind: TRANSLATE_KINDS, surface: SURFACES },
   // Mac 完整视频离线字幕（domain-design §2.8 / telemetry-design §3.15，BEL-103）。
   // 不进听译漏斗。成功不带 code。code 里没有路径和原文。
   offline_video_asr_task: {
@@ -303,6 +486,11 @@ const EVENTS = {
 //                            MODULES 里：「同名模块进了包」与「接上了」是两件事，两件都核。
 //   { host, none: '理由' }   这个宿主**有意**不发。不许留空 ——「不做」也要有机器可读的形状。
 //                            可带 surface 标出是哪个表面（同一宿主另有发送点时）。
+//   { host, file, match?, pending: '理由' }
+//                            发送点属于下一拍、客户端尚未落码（BEL-290 拍 A/B 拆分）。只登记
+//                            目标文件与字面量；门禁核对理由后跳过「文件里真的有调用」。pending
+//                            不是 none：它表示「将要发」，下一拍接上后必须删掉 pending，否则
+//                            门禁会一直把它当未落码而放过。pending 集合由测试逐个钉死。
 //
 // 新增事件、新增宿主、挪动发送点 = 改这里。门禁红了先问「接上了吗」，不是改门禁。
 const SHARED = (file, extra) => [Object.assign({ host: 'ext', file }, extra), Object.assign({ host: 'app', file }, extra)];
@@ -335,6 +523,20 @@ const SEAMS = {
     { host: 'app', file: 'src/app/settings-model.js' },
   ],
   engine_test: SHARED('extension/learn/engine-test.js'),
+  // BEL-290：一键设定三宿主共用 src/shared/quick-setup-view.jsx。拍 B 已接上：
+  // 成功一条在 await onApply 之后；失败在 precheck / read / write 三个分支各一条。
+  setup_apply_ok: SHARED('src/shared/quick-setup-view.jsx'),
+  setup_apply_fail: SHARED('src/shared/quick-setup-view.jsx'),
+  // BEL-290：扩展设置页 boot 在 src/pages/options.jsx；App openSettings 在 shell-model。
+  settings_open: [
+    { host: 'ext', file: 'src/pages/options.jsx' },
+    { host: 'app', file: 'src/app/shell-model.js' },
+  ],
+  // BEL-290：只有扩展 popup 能看见「内容脚本没注入」，App 侧没有这个观测点。
+  perm_denied: [
+    { host: 'ext', file: 'src/pages/popup.jsx' },
+    { host: 'app', none: '站点访问权限只在浏览器扩展里存在；App 没有这条观测点（BEL-290 定稿）' },
+  ],
   // auth_fail（§3.14）：两个宿主都走 extension/learn/auth.js 的同一份字节（该文件在 App 包的
   // MODULES 里）。App 原生那一步（apple-result 带 error）另外经 LearnAuth.noteAuthFail 报，
   // 仍落在这个文件里 —— 发送点只有一处，与「登录即注册」只有一份实现同一条纪律。
@@ -342,10 +544,12 @@ const SEAMS = {
   translate_ok: [
     { host: 'ext', file: 'extension/content/content-webpage.js', match: "kind: 'page'" },
     { host: 'ext', file: 'extension/content/subtitle-adapter.js', match: "kind: 'subtitle'" },
-    ...SHARED('src/shared/doc-view.js', { match: "kind: 'doc'" }),
+    { host: 'ext', file: 'extension/content/subtitle-adapter.js', match: "surface: 'web_caption'" },
+    ...SHARED('src/shared/doc-view.js', { match: "surface: 'doc'" }),
     { host: 'app', file: 'src/app/listen-model.js', match: "kind: 'subtitle'" },
+    { host: 'app', file: 'src/app/listen-model.js', match: "surface: funnelSurface()" },
     // quick：Mac 快速翻译（telemetry-design §3.5）。面板页不初始化遥测，经 mtQuick 中继到主页面，由 handoff.js 代发。
-    { host: 'app', file: 'app/handoff.js', match: "kind: 'quick'" },
+    { host: 'app', file: 'app/handoff.js', match: "surface: 'quick'" },
     { host: 'ext', surface: 'translate-fill', none: '补译文是学习层给已捕获的卡片补一个译文，不是一次用户发起的翻译会话（§3.3 裁定 2）' },
     { host: 'app', surface: 'translate-fill', none: '同一份 translate-fill.js，同一条裁定：后台补译文不算翻译会话' },
   ],
@@ -396,15 +600,15 @@ const SEAMS = {
   ],
   auth_ok: [
     { host: 'ext', none: 'extension/ 在本拍冻结（CWS 1.23.3 在审）；auth_ok 只接 App' },
-    { host: 'app', file: 'src/app/telemetry-session.js', match: "track('auth_ok'" },
+    { host: 'app', file: 'src/app/telemetry-session.js', match: "surface: 'login'" },
   ],
   live_gate: [
     { host: 'ext', none: 'extension/ 在本拍冻结（CWS 1.23.3 在审）；live_gate 只接 App' },
-    { host: 'app', file: 'src/app/telemetry-session.js', match: "track('live_gate'" },
+    { host: 'app', file: 'src/app/telemetry-session.js', match: "result: result" },
   ],
   grant_claim_fail: [
     { host: 'ext', none: 'extension/ 在本拍冻结（CWS 1.23.3 在审）；grant_claim_fail 只接 App' },
-    { host: 'app', file: 'src/app/telemetry-session.js', match: "track('grant_claim_fail'" },
+    { host: 'app', file: 'src/app/telemetry-session.js', match: "reason: reason" },
   ],
   pack_download_start: [
     { host: 'ext', none: '扩展没有 App 的离线语言包下载流程；BEL-226 只接 App' },
@@ -461,7 +665,8 @@ const SEAMS = {
     { host: 'app', file: 'src/app/listen-model.js', match: "track('asr_fail'" },
   ],
   translate_start: [
-    { host: 'ext', none: '网页翻译没有「听出字再开翻」这一跳；成功与失败仍是 translate_ok / translate_fail' },
+    // BEL-290：页面翻译也发 start（kind:'page'，每会话一条）；App 侧补 kind/surface。
+    { host: 'ext', file: 'extension/content/content-webpage.js', match: "kind: 'page'" },
     { host: 'app', file: 'src/app/listen-model.js', match: "track('translate_start'" },
   ],
   offline_video_asr_task: [
@@ -477,4 +682,4 @@ const FORBIDDEN_KEY_WORDS = ['url', 'href', 'text', 'title', 'email', 'user', 'u
 
 const LIMITS = { batch: 50, eventBytes: 1024, bodyBytes: 64 * 1024, perMinute: 60, strMax: 64 };
 
-module.exports = { COMMON, EVENTS, SEAMS, FORBIDDEN_KEY_WORDS, LIMITS, TRANSLATE_KINDS, SURFACES };
+module.exports = { COMMON, EVENTS, SEAMS, FORBIDDEN_KEY_WORDS, LIMITS, TRANSLATE_KINDS, SURFACES, PACK_SURFACES, PACK_KINDS, PACK_SOURCES, PACK_FAIL_REASONS, PACK_TIERS, PACK_DETAILS };

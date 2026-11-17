@@ -409,7 +409,7 @@ async function claimAndApply(opts) {
     // BEL-271：这里收到的是**最终**失败（瞬时类已经重试过一次）；每次失败不各记
     // 一条，否则「重试成功」也会留下一条 fail。成功路径也不会走进来 —— grant.js
     // 只在 claim() 真正成功时记 grant_claimed，重试成功后仍只有一条。
-    try { TelemetrySession.grantClaimFail(e && e.code); } catch (_) {}
+    try { TelemetrySession.grantClaimFail(e, o.path); } catch (_) {}
     throw e;
   }
   // 账号变了 ⇒ 整段作废：不读设置、不写盘、不 trackEngineSet。返回值带 stale，

@@ -142,59 +142,46 @@ test('BEL-273 状态机：未决定 → 先解释 → 请求；拒绝 → 设置
   eq(M.canStart(d), true, '从设置回来重试必须能开，不要求重启');
 });
 
-test('BEL-273 接线：进听译先读权限；未决定显示解释，继续后才发 mic-start', async () => {
+test('BEL-273 接线：进听译不再显示权限卡；点开始直接发 mic-start', async () => {
   const { A, captured, clk } = boot();
   A.wire();
   captured.native({ type: 'mic-perm', state: 'not_determined', kind: 'mic' });
   const reads0 = captured.reads;
   A.open('conv');
   await clk.runTo(0);
-  ok(captured.reads > reads0, '进入听译页要再读一次真实权限（只读）');
+  ok(captured.reads > reads0, '进入听译页仍要静默读一次真实权限（探测保留）');
 
   const pv = A.permView();
-  eq(pv.shown, true);
-  eq(pv.gate, 'explain');
-  eq(A.pttToggle('other'), false, '未决定时不能直接开麦');
-  eq(captured.starts, 0, '解释之前不该触发系统请求');
-  eq(A._debug().perm.pending.kind, 'ptt');
-
-  A.permAct('primary');
+  eq(pv.shown, false, '进听译不再显示独立权限卡');
+  eq(pv.primary, null, '没有「继续」按钮可点');
+  eq(A._debug().perm.pending, null, '没有待放行的开始');
+  eq(A.pttToggle('other'), true, '未决定时点开始直接放行，不再画门');
   await clk.runTo(0);
-  eq(captured.starts, 1, '点「继续」后系统请求才发（mic-start 触发原生框）');
-  eq(A._debug().perm.gate, 'requesting');
+  eq(captured.starts, 1, '点开始直接发 mic-start（由系统弹授权框）');
 });
 
-test('BEL-273 接线：拒绝显示「去设置」，回来授权后重试直接开始', async () => {
+test('BEL-273 接线：拒绝后仍不出现独立屏；开始走原生请求/既有 fail 文案', async () => {
   const { A, tracked, captured, clk } = boot();
   A.wire();
-  captured.native({ type: 'mic-perm', state: 'not_determined', kind: 'mic' });
+  captured.native({ type: 'mic-perm', state: 'denied', kind: 'mic' });
   A.open('conv');
   await clk.runTo(0);
-  eq(A.pttToggle('other'), false, '未决定时先被解释门挡住');
+  eq(A.permView().shown, false, '拒绝态也不再有独立权限屏');
+  eq(A.pttToggle('other'), true, '拒绝后点开始仍放行，交给原生请求/失败');
   await clk.runTo(0);
-  A.permAct('primary');          // 「继续」→ 系统框 → 用户拒绝
-  await clk.runTo(0);
-  ok(captured.h, '继续之后应该已经发过 mic-start，原生才有 h 回调');
+  eq(captured.starts, 1, '点开始直接发 mic-start');
+  ok(captured.h, 'mic-start 之后原生才有 h 回调');
+
+  // 原生拒绝：走既有 fail 文案，不再有「去设置」独立屏。
   captured.h.onState('denied', '', 'mic');
   await clk.runTo(0);
-
-  const pv = A.permView();
-  eq(pv.gate, 'denied');
-  ok(pv.primary && pv.primary.action === 'settings' && pv.primary.label, '拒绝卡必须有可点的「去设置」');
-  ok(pv.secondary && pv.secondary.action === 'retry', '拒绝卡还要有「重试」');
+  eq(A.permView().shown, false, '原生拒绝后仍不画独立屏');
+  eq(captured.settings, 0, '不再由权限屏触发设置深链');
+  ok(/麦克风被拒绝/.test(A.noteView().text), '拒绝仍走既有 fail 文案');
   eq(names(tracked, 'asr_fail')[0][1].fail_reason, 'permission', '拒绝的统计仍是 permission');
-
-  A.permAct('primary');
-  eq(captured.settings, 1, '「去设置」必须走原生设置深链，不是一段文字');
-  eq(A._debug().perm.settingsOpened, true);
-
-  // 从设置回来：原生回读 granted。不重启 App，直接重试。
-  captured.native({ type: 'mic-perm', state: 'granted', kind: 'mic' });
-  eq(A._debug().perm.gate, '', '授权后门要清掉');
-  const starts0 = captured.starts;
-  A.permAct('secondary');
-  await clk.runTo(0);
-  ok(captured.starts > starts0, '回来点重试必须真的重新开麦，不要求杀掉进程');
+  ok(names(tracked, 'mic_permission').some((e) => e[1].permission_state === 'denied'),
+    'mic_permission 遥测保留');
+  eq(A._debug().perm.state, 'denied', '静默探测的状态仍收敛到 denied');
 });
 
 test('BEL-273 接线：已授权直接开始，不显示权限门', async () => {

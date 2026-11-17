@@ -9,7 +9,7 @@
 const { loadModule, describe, test, ok, eq, deepEq } = require('./harness');
 const cfg = require('../build/telemetry.config.js');
 
-function load({ china = false, sends = [], flavor = null, telemetry = undefined, crypto = require('crypto').webcrypto } = {}) {
+function load({ china = false, sends = [], flavor = null, telemetry = undefined, providers = [], crypto = require('crypto').webcrypto, userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 Version/26.0 Mobile/15E148 Safari/604.1' } = {}) {
   const store = {};
   const ls = {};                       // WKWebView / 页面里的 localStorage（本机诊断落在它上面）
   const tel = telemetry !== undefined ? telemetry : (china ? null : {
@@ -20,15 +20,17 @@ function load({ china = false, sends = [], flavor = null, telemetry = undefined,
     MT_VERSION: '9.9.9',
     MT_FLAVOR: flavor || (china ? 'china' : 'global'),
     MT_TELEMETRY: tel,
+    MT_PROVIDERS: providers,
   };
   const sandbox = {
     window,
+    URL,
     localStorage: {
       getItem: (k) => (Object.prototype.hasOwnProperty.call(ls, k) ? ls[k] : null),
       setItem: (k, v) => { ls[k] = String(v); },
       removeItem: (k) => { delete ls[k]; },
     },
-    navigator: { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 Version/26.0 Mobile/15E148 Safari/604.1', platform: 'iPhone', language: 'zh-CN' },
+    navigator: { userAgent, platform: 'iPhone', language: 'zh-CN' },
     crypto,
     fetch: async (url, init) => { sends.push({ url, body: JSON.parse(init.body) }); return { ok: true }; },
     chrome: { i18n: { getUILanguage: () => 'zh-CN' }, storage: { local: {
@@ -119,6 +121,42 @@ describe('MTTelemetry — relayHeaders 只给自家中继带归因头（BEL-224/
     await T.installId();
     deepEq(await T.relayHeaders('https://api.openai.com/v1/chat/completions', 'web_caption'), {});
   });
+
+  // BEL-279：CN 中继是 SCF 默认域名 + `/chat/completions`，URL 里没有 `/bt-relay`。
+  // 命中按主机判，host 由生成注册表的 grant 条目派生 —— 测试只改注册表，
+  // 不把主机写进 telemetry.js。
+  const CN_HOST = '1320551096-7zvs1q2ggu.ap-beijing.tencentscf.com';
+  const CN_RELAY = 'https://' + CN_HOST;
+  const CN_PROVIDERS = [{ id: 'grant', grantOnly: true, defaultEndpoint: CN_RELAY + '/chat/completions' }];
+
+  test('CN 新主机（/chat/completions）⇒ 命中 relayHeaders，带齐 x-mt-*', async () => {
+    const { T } = load({ providers: CN_PROVIDERS });
+    const { id } = await T.installId();
+    const h = await T.relayHeaders(CN_RELAY + '/chat/completions', 'web_caption');
+    eq(h['x-mt-install-id'], id);
+    eq(h['x-mt-v'], '9.9.9');
+    eq(h['x-mt-host'], 'safari');
+    eq(h['x-mt-flavor'], 'global');
+    eq(h['x-mt-surface'], 'web_caption');
+    ok(Object.keys(h).length >= 7, 'CN 中继应带齐归因头');
+  });
+
+  test('vendor 主机（注册表里另有 CN grant）⇒ {} —— 零头', async () => {
+    const { T } = load({ providers: CN_PROVIDERS });
+    await T.installId();
+    deepEq(await T.relayHeaders('https://api.openai.com/v1/chat/completions'), {});
+    deepEq(await T.relayHeaders('https://vendor.example/chat/completions'), {});
+  });
+
+  // BEL-279 reverse direction: the native bridge is the ONLY App signal. A Chrome
+  // extension page has no webkit.messageHandlers and its UA contains "Safari" too —
+  // it must stay 'chrome', never be swept into 'app' by the mtQuick widening.
+  test('Chrome 扩展（无原生桥）⇒ host() === chrome，不把浏览器误判成 App', () => {
+    const CHROME_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+      + 'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+    const { T } = load({ userAgent: CHROME_UA });
+    eq(T.host(), 'chrome');
+  });
 });
 
 describe('MTTelemetry — 白名单在客户端就守住', () => {
@@ -148,6 +186,26 @@ describe('MTTelemetry — 白名单在客户端就守住', () => {
     eq(Object.keys(env).sort().join(','), 'device,flavor,host,install_id,name,props,ts,ui,v');
     eq(env.host, 'safari'); eq(env.device, 'iPhone'); eq(env.ui, 'zh'); eq(env.v, '9.9.9'); eq(env.flavor, 'global');
   });
+});
+
+test('BEL-223 新属性全部过真 shape：live_gate / auth_ok / grant_claim_fail / translate_ok', async () => {
+  const { T, store } = load();
+  eq(await T.track('live_gate', {
+    surface: 'listen', ok: 'true', result: 'ok', os_version: 'ios_26_0_1',
+    os_meets_min: 'true', probe_locale: 'zh-cn', reason_copy_class: 'other',
+    window: 'main', launch_id: '0123456789abcdef0123456789abcdef',
+    first_refresh: 'true', reused_prior_state: 'false',
+  }), true);
+  eq(await T.track('auth_ok', {
+    surface: 'login', provider: 'google', method: 'signin',
+    launch_id: '0123456789abcdef0123456789abcdef',
+  }), true);
+  eq(await T.track('grant_claim_fail', {
+    surface: 'listen', code: 'revoked', reason: 'revoked', copy_class: 'revoked', path: 'manual',
+  }), true);
+  eq(await T.track('translate_ok', { provider: 'deepseek', kind: 'subtitle', surface: 'live_caption' }), true);
+  const names = q(store, T).map((e) => e.name);
+  eq(names.join(','), 'live_gate,auth_ok,grant_claim_fail,translate_ok');
 });
 
 describe('MTTelemetry — 开关与心跳', () => {

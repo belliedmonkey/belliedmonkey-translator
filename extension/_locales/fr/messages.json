@@ -4378,12 +4378,6 @@
   "settings_value_follow": {
     "message": "Suivre la langue de l'interface"
   },
-  "app_e1_label": {
-    "message": "Transcription chinoise avec SenseVoice"
-  },
-  "app_e1_note": {
-    "message": "Activé par défaut pour le chinois (zh) uniquement. Le modèle se télécharge en arrière-plan à la première utilisation (environ 160 Mo) ; jusqu'à la fin du téléchargement et en cas d'échec, la dictée du système est utilisée. La modification prend effet à la session suivante. La désactivation rétablit la dictée du système."
-  },
   "firstrun_packs_skip": {
     "message": "Télécharger plus tard, continuer"
   },
@@ -4417,5 +4411,11 @@
   "listen_perm_denied_body": {
     "message": "Activez « Microphone » dans les réglages système, revenez ici et touchez « Réessayer » — inutile de relancer l’app.",
     "description": "BEL-273 microphone permission gate"
+  },
+  "app_e1_label": {
+    "message": "Transcription chinoise avec SenseVoice"
+  },
+  "app_e1_note": {
+    "message": "Activé par défaut pour le chinois (zh) uniquement. Le modèle se télécharge en arrière-plan à la première utilisation (environ 160 Mo) ; jusqu'à la fin du téléchargement et en cas d'échec, la dictée du système est utilisée. La modification prend effet à la session suivante. La désactivation rétablit la dictée du système."
   }
 }

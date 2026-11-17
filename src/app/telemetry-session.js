@@ -16,6 +16,10 @@
 //
 // 本文件是 ESM、无 JSX、无 React，`test/harness.js` 的 loadSrc() 能直接跑。
 import Registry from '../lib/registry.js';
+// 首屏三段式的**既有**判定（纯函数，不读存储/不摸 DOM）；app_open 只借用它，
+// 不在这里另写一套包屏状态机。见 firstrun.js 的 step()。
+import * as FirstRun from './firstrun.js';
+import { PACKS_SKIPPED_KEY } from './pack-pending.js';
 
 // BEL-223 的五个功能面（build/telemetry.config.js 的 SURFACES 同源）。
 //   listen       对话 · 实时听译页
@@ -25,20 +29,29 @@ import Registry from '../lib/registry.js';
 //   web_caption  网页字幕入口 —— **App 没有这个面**（扩展的 subtitle-adapter 才发），
 //                所以 App 侧只登记、不产生；缺口写进 RESULT。
 export const SURFACES = ['listen', 'live_caption', 'quick', 'doc', 'web_caption'];
-// 冷启默认面：首页的主功能是「对话 · 实时听译」，所以没有上次面时记 listen。
-// 有上次面（tm:lastSurface）时用上次面 —— 这是 BEL-225 的「冷启按首页/上次面判定」规则。
-// 登录墙本身不是五个功能面之一：登录墙前的 app_open 仍用这个规则给 surface。
+// 冷启默认面（其它事件用）：首页的主功能是「对话 · 实时听译」，所以没有上次面时记 listen。
+// BEL-225 起 app_open 不再用这个功能面：它记的是「打开时落在哪一屏」
+// （login / packs / app_home，见 appOpenScreen）。DEFAULT_SURFACE 仍供 auth_ok /
+// live_gate 等按功能面出数的事件使用。
 export const DEFAULT_SURFACE = 'listen';
+
+// BEL-223：live_gate 的取值与发送口映射（注册表同源）。放在这里是为了让「桥 / 探针
+// 的原始 reason → 票面 result」只有一处翻译表；listen-model 只报它看到的原始状态。
+const LIVE_GATE_RESULTS = ['script_missing', 'channel_missing', 'os_below_min', 'no_transcriber',
+  'locale_unsupported', 'probe_timeout', 'ok'];
+const LIVE_GATE_WINDOWS = ['main', 'quick', 'other'];
+const LIVE_GATE_COPY = ['need_os', 'switch_locale', 'other'];
 
 const K = {
   lastSurface: 'tm:lastSurface',
   setupId: 'tm:setupId',
   packsReady: 'tm:packsReady',
+  packAttempts: 'tm:packAttempts',
+  packDownloaded: 'tm:packDownloaded',
   authSeen: 'tm:authSeen',
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const ID_RE = /^[a-z0-9_-]{1,32}$/;
 const HEX32_RE = /^[0-9a-f]{32}$/;
 
 // 32-hex 同义标识：uuid 去掉连字符。**卡面写 UUID，因扩展冻结只能用 id 规则** ——
@@ -154,6 +167,30 @@ function track(name, props) {
   } catch (_) { /* 埋点永远不能挡住产品 */ }
   return false;
 }
+
+// BEL-290：fail 的强制 flush。track() 只负责入队；MTTelemetry.trackOne() 自己
+// 只 schedule 一个 60s 定时器（或凑满 10 条才发）。App 在 reject 后随即退出时，
+// 这条 fail 就留在 tm:queue 里等下一次冷启的 init({flushNow:true}) —— 08:12 的
+// 现场正是「start 随冷启 flush 发出、fail 没有下一班车」。
+//
+// 这里必须等 track() 的入队完成再 flush：规格未就位时 track() 返回 waitForSpec()
+// 的 Promise，立刻 flush 会抢在写队列之前。整个动作不 await、全部 catch ——
+// packFail 仍要立刻把产品错误抛回去，埋点绝不能挡产品。
+function flushAfterTrack(queued) {
+  const flush = () => {
+    try {
+      const t = telemetry();
+      if (t && typeof t.flush === 'function') {
+        const r = t.flush();
+        if (r && typeof r.catch === 'function') r.catch(() => {});
+      }
+    } catch (_) { /* 埋点永远不能挡住产品 */ }
+  };
+  try {
+    if (queued && typeof queued.then === 'function') queued.then(flush, flush);
+    else flush();
+  } catch (_) { /* 埋点永远不能挡住产品 */ }
+}
 function debug(msg, err) {
   // 只记事件名 / 状态 / 错误名 —— 永不记 Authorization、token、邮箱、正文。
   try {
@@ -195,6 +232,53 @@ let currentSurface = '';
 let surfaceFlight = null;
 function validSurface(s) { return SURFACES.indexOf(s) >= 0 && s !== 'web_caption'; }
 
+// BEL-223 live_gate.window：主窗口 / Mac 快译第二窗 / 其它。快译面板是同一个页面以
+// #quick 加载（AppQuick.isQuickMode），它**不走首页这道闸** —— 所以 liveGate() 在
+// quick 窗口里直接不发，避免把第二窗记成「首页灰卡」。
+function isQuickWindow() {
+  try {
+    return !!(typeof AppQuick !== 'undefined' && AppQuick
+      && typeof AppQuick.isQuickMode === 'function' && AppQuick.isQuickMode());
+  } catch (_) { return false; }
+}
+export function windowKind() {
+  if (isQuickWindow()) return 'quick';
+  return 'main';   // App 目前只有主窗与快译第二窗；'other' 留给以后的新窗口
+}
+
+// 注册表 id 型：小写字母 / 数字 / _ / -，≤32。os_version 与 probe_locale 都走
+// 这条（扩展侧 okValue 只认 数组 / int / id，带点的大写串会整条丢掉）。
+function idValue(v) {
+  return String(v == null ? '' : v).toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '_')
+    .replace(/^[_-]+|[_-]+$/g, '')
+    .slice(0, 32);
+}
+
+// os_version：只用能从 UA 可靠读到版本的平台（iOS/iPadOS）。macOS 的 UA 冻结在
+// 10_15_x，读了会得到一个假版本，所以 Mac 上宁可省略并在 RESULT 记「原生桥没报
+// 系统版本」的缺口 —— 不编一个值。
+function osVersionId() {
+  try {
+    const ua = String((typeof navigator !== 'undefined' && navigator.userAgent) || '');
+    if (!/iPhone|iPad|iPod/.test(ua)) return '';
+    const m = /OS (\d+)[._](\d+)(?:[._](\d+))?/.exec(ua);
+    if (!m) return '';
+    return idValue('ios_' + m[1] + '_' + m[2] + (m[3] ? '_' + m[3] : ''));
+  } catch (_) { return ''; }
+}
+function osMajor() {
+  const m = /^ios_(\d+)/.exec(osVersionId());
+  return m ? Number(m[1]) : null;
+}
+
+function liveCopyClass(result) {
+  if (result === 'locale_unsupported') return 'switch_locale';
+  if (result === 'os_below_min' || result === 'no_transcriber'
+      || result === 'script_missing' || result === 'channel_missing') return 'need_os';
+  return 'other';   // ok / probe_timeout：这一刻没有一句新的灰态文案
+}
+
 /** 同步读当前面（还没进过任何面时是首页默认面）。 */
 export function currentSurfaceSync() { return currentSurface || DEFAULT_SURFACE; }
 
@@ -229,13 +313,69 @@ export function currentSurfaceAsync() {
 //   signed_out = 读成功、确实没有会话
 //   unknown    = 读失败（读不到 ≠ 已退出，同 LearnAuth 的既有判据）
 // 这个事件不 await 登录流程、也不在登录成功后再补发 —— 它就在冷启这一刻。
+//
+// surface（BEL-225）= 打开时落在哪一屏，不是功能面：
+//   signed_out → login（面对登录墙）
+//   signed_in  → FirstRun.step() 判包屏：packs（首启包未完成）或 app_home
+//   unknown    → 不带（不猜）
+//   quick 面板 → 不带（它是独立快捷窗，不属这三屏）
+// 包屏判定只读**既有**的两个落盘信号：shell-model 写的 `listenPacksDone`，以及
+// telemetry-session.packsReady() 在最近一次探包后写的 `tm:packsReady.kinds` 快照；
+// 再交给 FirstRun.step() 判。没有快照 = 这台设备还没探过包（首启）⇒ packs。
+//
+// BEL-269：「稍后补包，先进入」把 done 写成 true（否则每次冷启都会被拉回包屏），
+// 于是只看 done 的话，「没包也进了首页」在数据里完全看不见。这里读 shell 另写的
+// `listenPacksSkipped`：**值仍用既有的 `packs`**（没有新事件、没有新枚举值），
+// 因为它最接近的语义就是「这次冷启时包屏没过」。它记录的是包门状态，不是字面屏；
+// 实际路由仍由 done 决定、测试另行钉住停在首页。这是本票的口径选择，写进 RESULT。
+const PACKS_DONE_KEY = 'listenPacksDone';
+
+async function appOpenScreen(authState) {
+  // quick 面板不是 login / packs / app_home 这三屏；main.jsx 在 quick 冷启时会先
+  // enter('quick')，这里同步就能看到。
+  if (currentSurfaceSync() === 'quick') return '';
+  if (authState === 'signed_out') return 'login';
+  if (authState !== 'signed_in') return '';
+  let packsDone = false;
+  let packsSkipped = false;
+  let snapshot = null;
+  try {
+    const r = await sget([PACKS_DONE_KEY, PACKS_SKIPPED_KEY, K.packsReady]);
+    packsDone = !!r[PACKS_DONE_KEY];
+    packsSkipped = !!r[PACKS_SKIPPED_KEY];
+    const v = r[K.packsReady];
+    if (v && v.kinds && typeof v.kinds === 'object') snapshot = v.kinds;
+  } catch (_) { /* 读不到就按首启包屏处理 */ }
+  // 跳过的冷启：包门仍未满足。用既有 'packs' 让「entered without packs」可观测；
+  // 路由没有被改（shell 仍按 done 判 home），所以不会把用户拉回包屏。
+  if (packsDone && packsSkipped) {
+    // 若最近一次探包快照已经三样都齐（系统后来自己下好了），就不要继续报 packs ——
+    // 这一个键只回答「现在包门过没过」，不是「历史上跳过一次」。
+    const allReady = !!(snapshot
+      && snapshot.asr !== false && snapshot.tts !== false && snapshot.base !== false);
+    return allReady ? 'app_home' : 'packs';
+  }
+  if (packsDone) return 'app_home';
+  // 没探过包（全新安装 / 刚升级）⇒ 首启包屏还没走完。
+  if (!snapshot) return 'packs';
+  // 快照里缺席的 kind = 上次探包时「这一档没有需求」，不是「未就绪」；
+  // 因此只有显式 false 才算缺包。等价于 FirstRun.step 的包判据。
+  const screen = FirstRun.step({
+    loggedIn: true,
+    packsDone: false,
+    asrPack: snapshot.asr !== false,
+    ttsPack: snapshot.tts !== false,
+    basePack: snapshot.base !== false,
+  });
+  return screen === 'packs' ? 'packs' : 'app_home';
+}
+
 let appOpenFlight = null;
 export function appOpen() {
   if (appOpenFlight) return appOpenFlight;
   appOpenFlight = (async () => {
     // 冷启第一件事先读开关：关掉时连 track() 都不调，队列里不会多出一条 app_open。
     if (!(await telemetryOn())) return false;
-    const surface = await currentSurfaceAsync();
     let authState = 'unknown';
     try {
       if (typeof LearnAuth !== 'undefined' && LearnAuth && typeof LearnAuth.currentStable === 'function') {
@@ -244,19 +384,25 @@ export function appOpen() {
         authState = session ? 'signed_in' : (loadErr ? 'unknown' : 'signed_out');
       }
     } catch (_) { authState = 'unknown'; }
-    track('app_open', { launch_id: LAUNCH_ID, surface, auth_state: authState });
+    const surface = await appOpenScreen(authState);
+    const props = { launch_id: LAUNCH_ID, auth_state: authState };
+    if (surface) props.surface = surface;   // unknown / quick：键缺席，不猜
+    track('app_open', props);
     return true;
   })().catch(() => false);
   return appOpenFlight;
 }
 
 // ── auth_ok：登录成功后的匿名事件 + 第一方窄口 ─────────────────────────────
-// method 的判定：注册表只给 signup / signin，而 GoTrue 的会话对象没有可靠的
-// 「这次是新建还是登录」字段（bt-auth-ok 的实现注释也明说不要拿时间差猜）。
-// App 里「登录即注册」（邮箱验证码 create_user）与 Apple / Google / 密码登录都会
-// 产生会话，所以本模块用**本机首次见到的账号**作 signup：同一台设备第一次成功登录
-// 这个 userId ⇒ signup，之后再登 ⇒ signin。它是本机口径，不是服务端出生证明 ——
-// 换设备的第一次登录会记成 signup（缺口如实写进 RESULT）。
+// method 的判定分三层（BEL-223 2026-11-14 产品口径）：
+//   1. 调用方在登录响应里用 GoTrue 的 created_at / last_sign_in_at 当场判出了
+//      signup / signin（src.method）→ 直接用；
+//   2. 调用方明确说「判过了」（src.methodResolved === true）但 method 为空
+//      （时间戳缺失/不可解析）→ **不猜**，method 留空；
+//   3. 老调用方既没 method 也没 methodResolved → 才走下面的本机首见启发式兜底。
+// 兜底口径只为本机旧调用方保留：同一台设备第一次成功登录这个 userId ⇒ signup，
+// 之后再登 ⇒ signin。它是本机口径，不是服务端出生证明 —— 换设备的第一次登录会
+// 记成 signup（缺口如实写进 RESULT）。
 async function classifyMethod(userId) {
   if (!userId) return 'signin';
   try {
@@ -297,7 +443,8 @@ async function reportAuthOk(o) {
   if (installId) headers['x-mt-install-id'] = installId;
   const body = {
     install_id: installId,
-    method: o.method,
+    // bt_auth_ok.method 是 not null default ''：空串是「不知道」，不是省略。
+    method: String(o.method || ''),
     host: 'app',
     flavor: flavor(),
     provider: o.provider,
@@ -329,20 +476,89 @@ export function noteAuthOk(o) {
     // 两条路共用同一个开关：关掉时必须**两条都不做** —— 不记匿名 auth_ok，也不写
     // 第一方 bt-auth-ok（否则「关了还留着账号关联」就是假话）。开关状态现读，不缓存。
     if (!(await telemetryOn())) return false;
-    const method = src.method === 'signup' || src.method === 'signin'
-      ? src.method : await classifyMethod(src.userId);
-    const surface = currentSurfaceSync();
-    track('auth_ok', { surface, provider, method });
-    // 开关打开时才写第一方窄口；与上面的匿名事件同进同退。
+    let method;
+    if (src.method === 'signup' || src.method === 'signin') {
+      method = src.method;
+    } else if (src.methodResolved === true) {
+      // 登录回执已经判过：时间戳缺失/不可解析就是「不知道」，宁可留空也不拿
+      // 本机历史猜。空串不在注册表枚举里，所以下面发事件时整个 method 键省略。
+      method = '';
+    } else {
+      method = await classifyMethod(src.userId);
+    }
+    // BEL-223：登录成功发生在登录面 —— surface 钉成 login，不再沿用「上次功能面」。
+    // launch_id 与同一次冷启的其他事件共用一个 32-hex id（installLaunchId 也会补，
+    // 这里显式带上是让发送口自身完整、可单测）。
+    const event = { surface: 'login', provider, launch_id: LAUNCH_ID };
+    // auth_ok.method 只收 signup / signin；空串不在枚举里，会被服务端整条拒收。
+    if (method) event.method = method;
+    track('auth_ok', event);
+    // 开关打开时才写第一方窄口；与上面的匿名事件同进同退。bt_auth_ok.method 是
+    // not null default ''，所以这边空值传空串（不是省略）。
     return reportAuthOk({ accessToken: src.accessToken, provider, method });
   })().catch(() => false);
 }
 
 // ── 门 / 领取失败 ──────────────────────────────────────────────────────────
-export function liveGate(surface, ok) {
-  const s = validSurface(surface) ? surface : currentSurfaceSync();
-  // 注册表没有 bool 类型：钉成字符串枚举 'true' / 'false'，不要发 JSON 布尔。
-  track('live_gate', { surface: s, ok: (ok === true || ok === 'true') ? 'true' : 'false' });
+//
+// BEL-223 live_gate：首页入口判定。调用方只报**原始状态**（桥在不在、探针 reason、
+// 这次探针是否复用了上次结论），result / reason_copy_class 的映射收在这一处，
+// 保证「票面 result 枚举 → 代码」只有一张表：
+//   bridgeState: 'script_missing' | 'channel_missing' | 'ok'
+//   probeReason: NativeSpeech.probe() 的 reason（os / locale / timeout / no-bridge / ''）
+// 判断顺序 = 现网：先桥后探针（桥都没有就不探）。
+export function liveGate(info) {
+  const o = (info && typeof info === 'object') ? info : {};
+  // Mac 快译第二窗故意不装识别桥，也不是首页 —— 它不走这道闸，一条都不发。
+  if (isQuickWindow()) return false;
+  const surface = validSurface(o.surface) ? o.surface : currentSurfaceSync();
+  const bridge = (o.bridgeState === 'script_missing' || o.bridgeState === 'channel_missing')
+    ? o.bridgeState : '';
+  let result = LIVE_GATE_RESULTS.indexOf(o.result) >= 0 ? o.result : '';
+  if (!result) {
+    if (bridge) {
+      result = bridge;
+    } else if (o.ok === true || o.ok === 'true') {
+      result = 'ok';
+    } else {
+      const reason = String(o.probeReason || '');
+      if (reason === 'timeout') result = 'probe_timeout';
+      else if (reason === 'locale') result = 'locale_unsupported';
+      else if (reason === 'no-bridge') result = 'channel_missing';
+      // 原生 reason:'os' 同时覆盖「系统低于 26」与「SpeechTranscriber.isAvailable=false」。
+      // UA 能读到 iOS 主版本时，≥26 就归 no_transcriber，否则（含 Mac 读不到版本）归
+      // os_below_min —— 原生桥没有分开报这两个原因，缺口见 RESULT。
+      else if (reason === 'os') result = (osMajor() != null && osMajor() >= 26) ? 'no_transcriber' : 'os_below_min';
+      else result = 'no_transcriber';
+    }
+  }
+  const p = {
+    surface,
+    // 旧 P0 属性照发（1.23.3 老客户端收这个）；result 才是本轮的原因拆分。
+    ok: result === 'ok' ? 'true' : 'false',
+    result: result,
+    window: LIVE_GATE_WINDOWS.indexOf(o.window) >= 0 ? o.window : windowKind(),
+    first_refresh: (o.firstRefresh === true || o.firstRefresh === 'true') ? 'true' : 'false',
+    reused_prior_state: (o.reusedPriorState === true || o.reusedPriorState === 'true') ? 'true' : 'false',
+    launch_id: LAUNCH_ID,
+    reason_copy_class: LIVE_GATE_COPY.indexOf(o.reasonCopyClass) >= 0
+      ? o.reasonCopyClass : liveCopyClass(result),
+  };
+  const osv = idValue(o.osVersion || osVersionId());
+  if (osv) p.os_version = osv;
+  // os_meets_min：调用方能从探针确定就显式给；没给时只按 result 能确定的填，
+  // 桥/超时这种「不知道」就省略键 —— 不发一个猜的布尔。
+  // no_transcriber 的前提是系统已够新（只是识别器没开放），所以也归 true。
+  let meets = o.osMeetsMin;
+  if (meets === undefined) {
+    if (result === 'ok' || result === 'locale_unsupported' || result === 'no_transcriber') meets = true;
+    else if (result === 'os_below_min') meets = false;
+  }
+  if (meets === true || meets === 'true') p.os_meets_min = 'true';
+  else if (meets === false || meets === 'false') p.os_meets_min = 'false';
+  const loc = idValue(o.probeLocale);
+  if (loc) p.probe_locale = loc;
+  return track('live_gate', p);
 }
 
 // 领取失败的七个码来自 extension 的 grant_err_* 文案键。服务端/传输层会抛更细的
@@ -360,8 +576,47 @@ export function grantClaimCode(code) {
   if (raw === 'busy' || raw === 'rate_limited' || raw === '429') return 'busy';
   return 'unavailable';
 }
-export function grantClaimFail(code) {
-  track('grant_claim_fail', { surface: currentSurfaceSync(), code: grantClaimCode(code) });
+
+// 真实原因（票面五值）。分类依据 = LearnGrant.claim() 抛的 code 与 HTTP status：
+//   offline / network / timeout                    → network
+//   busy / rate_limited / 429                      → busy
+//   revoked / grant_revoked / signed_out / 401/403 → revoked
+//   server（无具名 error 的 5xx）                    → server
+//   unavailable / grant_unavailable / grant_misconfigured / 其余 → other
+//
+// 2026-11-15（BEL-271）：池子空了（`unavailable` / `grant_unavailable`）原来被并进
+// `server`，于是「池子空了」与「服务器 5xx」在票面上分不开，UI 又把任何
+// `grant_unavailable` 当成池子空了。现在只有**真正的 5xx**（没有具名 error）才是
+// server；池子空了归 other。legacy `code` 七值不变（grantClaimCode 仍是那张表）。
+const GRANT_REASONS = ['network', 'busy', 'server', 'revoked', 'other'];
+
+export function grantClaimReason(err) {
+  const given = String((err && typeof err === 'object' ? err.reason : '') || '').toLowerCase();
+  if (GRANT_REASONS.indexOf(given) >= 0) return given;
+  const code = String((err && typeof err === 'object') ? (err.code || '') : (err || '')).toLowerCase();
+  const status = Number(err && typeof err === 'object' ? err.status : 0) || 0;
+  if (code === 'offline' || code === 'network' || code === 'timeout' || code === 'fetch') return 'network';
+  if (code === 'busy' || code === 'rate_limited' || status === 429) return 'busy';
+  if (code === 'revoked' || code === 'grant_revoked' || code === 'signed_out'
+      || code === 'auth' || status === 401 || status === 403) return 'revoked';
+  // 池子空了 / 我们这边配错：服务端**明确具名**，不是 5xx，也不是用户用完。
+  if (code === 'unavailable' || code === 'grant_unavailable' || code === 'grant_misconfigured'
+      || (err && typeof err === 'object' && err.poolEmpty === true)) return 'other';
+  if (code === 'server' || status >= 500) return 'server';
+  return 'other';
+}
+export function grantClaimFail(err, path) {
+  const reason = grantClaimReason(err);
+  track('grant_claim_fail', {
+    surface: currentSurfaceSync(),
+    // 旧 P0 属性：code 七值照发（1.23.3 老客户端收这个），过渡期两套并存。
+    code: grantClaimCode((err && typeof err === 'object') ? err.code : err),
+    reason: reason,
+    // 文案类别：revoked 走「这份免费额度已经停用了」（票面明确不改）；其余归 retryable。
+    copy_class: reason === 'revoked' ? 'revoked' : 'retryable',
+    // silent = 登录/换号后的自动领取；manual = 设置页按钮。
+    path: path === 'manual' ? 'manual' : 'silent',
+  });
 }
 
 // ── 语言包：setup_id / start / ok / fail / packs_ready ─────────────────────
@@ -398,44 +653,402 @@ export function setupId() {
   return setupFlight;
 }
 
-function packSurface(surface) { return validSurface(surface) ? surface : currentSurfaceSync(); }
-export async function packStart(surface) {
-  const setup = await setupId();
-  track('pack_download_start', { setup_id: setup, surface: packSurface(surface) });
-  return setup;
+// BEL-226：下载入口面 + 单元字段的客户端归一化。注册表同源（build/telemetry.config.js）。
+const PACK_SURFACES = SURFACES.concat(['first_run_packs', 'settings_packs']);
+const PACK_KINDS = ['asr', 'tts', 'lid', 'vad'];
+const PACK_SOURCES = ['system', 'github', 'modelscope', 'other'];
+const PACK_FAIL_REASONS = ['network', 'timeout', 'disk', 'hash', 'unsupported', 'other'];
+// BEL-293 定稿：与 build/telemetry.config.js 的 PACK_TIERS 同源。只有 LID/TTS 的
+// ModelSources 有真实换源层级；ASR/VAD 直调原生 ⇒ 键省略（不是 'none'）。
+const PACK_TIERS = ['cache', 'server', 'server-alt', 'builtin', 'builtin-alt'];
+// detail 是闭枚举（22 值，见 build/telemetry.config.js 的 PACK_DETAILS）。
+const PACK_DETAILS = ['sha', 'offline', 'http', 'load', 'timeout', 'cancelled',
+  'no-bridge', 'no-engine', 'locales', 'locale', 'analyzer', 'assets', 'format', 'os',
+  'download', 'failed', 'lang', 'unsupported', 'probe', 'blocked', 'superseded', 'other'];
+// 枚举成员表：detail 只认表里的值，不做 id 正则 / 前缀 / 包含匹配；表外一律 other。
+const PACK_DETAIL_MEMBERS = Object.create(null);
+for (const d of PACK_DETAILS) PACK_DETAIL_MEMBERS[d] = true;
+// 客户端 alias：原生码 sha_mismatch 就是 sha，不另立枚举值。先 alias 再判成员；
+// 不在表内的一律 other。config 只存闭枚举，不存 alias（它只描述线上值）。
+const PACK_DETAIL_ALIASES = Object.assign(Object.create(null), { sha_mismatch: 'sha' });
+
+function packTierValue(v) {
+  const s = String(v == null ? '' : v).trim().toLowerCase();
+  return PACK_TIERS.indexOf(s) >= 0 ? s : '';
 }
-export async function packOk(surface) {
-  const setup = await setupId();
-  track('pack_download_ok', { setup_id: setup, surface: packSurface(surface) });
-  return setup;
+// 'int' 型：非负整数、≤10 位（与注册表同一规则）；未知/越界回 0。
+function packIntValue(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(Math.floor(n), 9999999999);
 }
-export async function packFail(surface, code) {
-  const setup = await setupId();
-  const c = String(code || '').toLowerCase();
-  // 注册表是 'id' 型（小写字母/数字/_/-，≤32）。不塞系统长文或路径。
-  const safe = ID_RE.test(c) ? c : 'download';
-  track('pack_download_fail', { setup_id: setup, surface: packSurface(surface), code: safe });
-  return setup;
+// progress 只允许 0–100；失败时没有进度回调就是 0（不新增轮询）。
+function packProgressValue(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(Math.round(n), 100);
+}
+// BEL-293：detail 只收原生协议码，且必须是闭枚举里的值（20 值）。先别名
+// （sha_mismatch→sha），再查枚举成员表；表外的 URL、message、failed、format、
+// enospc 都 ⇒ 'other'。locale / locales 是两个原生码，不合并。
+function packDetailValue(v) {
+  const s = String(v == null ? '' : v).trim().toLowerCase();
+  const raw = PACK_DETAIL_ALIASES[s] || s;
+  return PACK_DETAIL_MEMBERS[raw] === true ? raw : 'other';
+}
+function packFailDetail(err) {
+  // 只读原生 e.reason；不读 e.code / e.why / e.detail / message。TTS 的 why 由调用方
+  // 显式写进 reason（shell-model 的 mtTtsFailed 分支），所以这里不需要第二来源。
+  if (err && typeof err === 'object') return packDetailValue(err.reason);
+  return packDetailValue(err);
 }
 
-// 一条流程的齐态缓存：先把上次落盘的「哪些 kind 已经齐过」读回来，再逐 kind 比较。
-// 只在 false → true 的那一次发；true → false 只更新缓存（不发）；之后再变齐可以再发。
-// 这样同一 setup 从「未齐」到「齐」只记一条，从「齐」变「不齐」再变「齐」可再记。
+function packSurface(surface) {
+  const s = String(surface || '');
+  // 旧 P0 客户端发功能面（listen / …）；枚举是并集，所以这里也接受，不把老的行变成非法。
+  if (PACK_SURFACES.indexOf(s) >= 0) return s;
+  return 'first_run_packs';
+}
+function packKindOf(id, kind) {
+  if (PACK_KINDS.indexOf(kind) >= 0) return kind;
+  const p = String(id || '');
+  if (p.indexOf('tts') === 0) return 'tts';
+  if (p.indexOf('asr') === 0) return 'asr';
+  if (p.indexOf('lid') === 0) return 'lid';
+  if (p.indexOf('vad') === 0) return 'vad';
+  return 'asr';
+}
+// 'id' 型：小写字母 / 数字 / _ / -，≤32。共享包 tts:zh-en 在这里是 tts_zh_en ——
+// 冒号过不了冻结扩展的 okValue，整条事件会被丢（setup_id 32-hex 同一条理由）。
+function packIdValue(v, kind) {
+  const s = String(v == null ? '' : v).toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '_')
+    .replace(/^[_-]+|[_-]+$/g, '')
+    .slice(0, 32);
+  return s || (kind === 'tts' ? 'tts' : kind);
+}
+// locale 也走 'id' 型；没有语言（lid / vad）就是空串，不编一个值。
+function packLocaleValue(v) {
+  return String(v == null ? '' : v).toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '_')
+    .replace(/^[_-]+|[_-]+$/g, '')
+    .slice(0, 32);
+}
+function sourceValue(source) {
+  return PACK_SOURCES.indexOf(source) >= 0 ? source : 'other';
+}
+function packInfo(info) {
+  // 兼容旧调用形状 packStart('listen')（1.23.3 只有 surface）。新调用传完整对象。
+  const i = (typeof info === 'string') ? { surface: info } : (info || {});
+  const kind = packKindOf(i.pack_id, i.pack_kind);
+  const p = {
+    pack_kind: kind,
+    pack_id: packIdValue(i.pack_id, kind),
+    locale: packLocaleValue(i.locale),
+    surface: packSurface(i.surface),
+    source: sourceValue(i.source),
+    // BEL-293：只随 token 到失败出口；pack_download_start/ok 的 packFields 不发它们。
+    // tier 判不出（ASR/VAD 没有换源链）时**整个键省略**，不写 'none'。
+    size: packIntValue(i.size),
+    progress: packProgressValue(i.progress),
+  };
+  const tier = packTierValue(i.tier);
+  if (tier) p.tier = tier;
+  return p;
+}
+function packFields(info, setup, downloadId, attempt) {
+  const p = {
+    setup_id: setup,
+    surface: info.surface,
+    pack_kind: info.pack_kind,
+    pack_id: info.pack_id,
+    download_id: downloadId,
+    launch_id: LAUNCH_ID,
+    source: info.source,
+    attempt: attempt,
+  };
+  if (info.locale) p.locale = info.locale;
+  return p;
+}
+
+// attempt：同一 setup 内按 pack_id 递增，落盘 ⇒ 跨启动继续（上次断在第 2 次，这次是 3）。
+let attemptCache = null;
+let attemptChain = Promise.resolve();
+async function attemptCacheOnce() {
+  if (attemptCache) return attemptCache;
+  const r = await sget([K.packAttempts]);
+  const v = r[K.packAttempts];
+  const sid = normalizeSetupId(v && v.setup_id);
+  attemptCache = (sid && v && v.counts && typeof v.counts === 'object')
+    ? { setup_id: sid, counts: Object.assign({}, v.counts) }
+    : { setup_id: '', counts: {} };
+  return attemptCache;
+}
+async function nextAttempt(setup, packId) {
+  const run = attemptChain.then(async () => {
+    const c = await attemptCacheOnce();
+    if (c.setup_id !== setup) { c.setup_id = setup; c.counts = {}; }
+    const n = (Number(c.counts[packId]) || 0) + 1;
+    c.counts[packId] = n;
+    await sset({ [K.packAttempts]: c });
+    return n;
+  });
+  attemptChain = run.catch(() => {});
+  return run;
+}
+
+// 本次 setup 内哪些 pack 是**新下的**（pack_download_ok 过）：packs_ready 的 ready_kind
+// 靠它分 downloaded / preexisting / mixed。持久化 ⇒ 跨启动仍知道「上次下过这个包」。
+let downloadedCache = null;
+let downloadedChain = Promise.resolve();
+async function downloadedCacheOnce() {
+  if (downloadedCache) return downloadedCache;
+  const r = await sget([K.packDownloaded]);
+  const v = r[K.packDownloaded];
+  const sid = normalizeSetupId(v && v.setup_id);
+  downloadedCache = (sid && v && Array.isArray(v.ids))
+    ? { setup_id: sid, ids: v.ids.map(String) }
+    : { setup_id: '', ids: [] };
+  return downloadedCache;
+}
+async function markDownloaded(setup, packId) {
+  const run = downloadedChain.then(async () => {
+    const c = await downloadedCacheOnce();
+    if (c.setup_id !== setup) { c.setup_id = setup; c.ids = []; }
+    if (c.ids.indexOf(packId) < 0) c.ids.push(packId);
+    await sset({ [K.packDownloaded]: c });
+  });
+  downloadedChain = run.catch(() => {});
+  return run;
+}
+async function downloadedIds(setup) {
+  const c = await downloadedCacheOnce();
+  return c.setup_id === setup ? c.ids.slice() : [];
+}
+
+/**
+ * 一次下载尝试开始。返回的 token（含 download_id / attempt / setup_id）必须原样传给
+ * packOk / packFail —— 同一个 download_id 串起三态。失败永远不抛给产品。
+ */
+export async function packStart(info) {
+  try {
+    const i = packInfo(info);
+    const setup = await setupId();
+    const download_id = hex32(uuid());
+    const attempt = await nextAttempt(setup, i.pack_id);
+    track('pack_download_start', packFields(i, setup, download_id, attempt));
+    return Object.assign({}, i, { setup_id: setup, download_id, attempt });
+  } catch (_) { return null; }
+}
+
+/** 安装 / 就绪校验通过后才调；进度 100% 不能代替（调用方在 await 下载之后才进来）。 */
+export async function packOk(token) {
+  try {
+    const i = packInfo(token);
+    const setup = (token && token.setup_id) || await setupId();
+    const download_id = (token && token.download_id) || hex32(uuid());
+    const attempt = (token && Number(token.attempt)) || 0;
+    await markDownloaded(setup, i.pack_id);
+    track('pack_download_ok', packFields(i, setup, download_id, attempt));
+    return setup;
+  } catch (_) { return ''; }
+}
+
+// HTTP 状态只从**结构化字段**读，不扫 message/why/body 等自由文本（那里出现 "503"
+// 也不猜）。当前调用链里可能出现的形状：
+//   fetch 包装 / URLSession 包装 → e.status
+//   Node/Chromium 的 http 错误   → e.statusCode
+//   带响应对象的错误             → e.response.status
+//   其它调用方                   → e.httpStatus
+// 原生 ensureAssets 目前仍只 reject {reason}（协议码），所以这条链上没有数字状态；
+// 保留这几种形状是给真正带 HTTP 响应的调用方用的，不把 reason 再当状态猜一遍。
+function packFailStatus(e) {
+  const vals = [e.status, e.statusCode, e.response && e.response.status, e.httpStatus];
+  for (const v of vals) {
+    let n = 0;
+    if (typeof v === 'number') n = v;
+    else if (typeof v === 'string' && /^\d{3}$/.test(v.trim())) n = Number(v);
+    if (Number.isInteger(n) && n >= 100 && n <= 599) return n;
+  }
+  return 0;
+}
+
+// 六值里的具体原因（hash/disk/network/unsupported）。noGenericHttp：4xx 下只看真正
+// 指向失败原因的词；单独一个 "http" 只是协议名，不能把 404 记成 network。
+function packFailTextReason(raw, noGenericHttp) {
+  if (/sha|hash|checksum|integrity|mismatch/.test(raw)) return 'hash';
+  if (/disk|enospc|no[ _-]?space|storage[ _-]?full|quota/.test(raw)) return 'disk';
+  const net = noGenericHttp
+    ? /offline|network|dns|connect|socket|unreachable|not connected|econn|fetch/
+    : /offline|network|http|dns|connect|socket|unreachable|not connected|econn|fetch/;
+  if (net.test(raw)) return 'network';
+  if (/unsupported|no[ _-]?bridge|not[ _-]?supported|not[ _-]?device|^locale$|^os$|\blocale\b/.test(raw)) return 'unsupported';
+  return '';
+}
+
+// 六值归一化。只看错误对象里的结构化取消/超时标志、结构化 HTTP 状态与
+// reason/code/why/name/message，**不**把原始报错或 URL 发出去。
+// 顺序：显式取消/中止 → timeout(含 408/504) → 5xx → hash → disk → network →
+// unsupported → other(4xx 没有更具体原因时也落这里)。
+// 显式取消必须最先判：取消串里常带 connect/network，不能把「用户取消」记成网络失败。
+export function packFailReason(err) {
+  const e = (err && typeof err === 'object') ? err : { message: String(err || '') };
+  const lower = (v) => String(v == null ? '' : v).toLowerCase();
+  // 取消词只认 reason/code 两个结构化字段，不看自由文本。
+  const isCancelWord = (v) => /^(cancelled|canceled|abort)$/.test(lower(v));
+  const raw = [e.reason, e.code, e.why, e.name, e.message].filter(Boolean).join(' ').toLowerCase();
+  const timeout = !!e.mtSttTimeout || /timeout|timed[ _-]?out|stt-timeout/.test(raw);
+  const status = packFailStatus(e);
+  // 显式取消一律 other（六值里没有 cancelled）：即使 message 里带 connect/timeout，
+  // 也不能记成 network/timeout。AbortError 只在没有 timeout 标志时才算取消。
+  if (e.cancelled === true || e.canceled === true || e.mtCancelled === true ||
+      isCancelWord(e.reason) || isCancelWord(e.code) ||
+      (lower(e.name) === 'aborterror' && !timeout)) return 'other';
+  // 408 是请求超时；504 是网关等上游超时。它们必须先于 5xx/4xx 的默认映射。
+  if (timeout || status === 408 || status === 504) return 'timeout';
+  // 5xx = 传输/服务端失败；六值里没有 server，按既有语义记 network。
+  if (status >= 500 && status <= 599) return 'network';
+  // 4xx 默认 other，但错误自己带了更具体的既有原因（hash/disk/network/unsupported）
+  // 时保留；4xx 下单独的 "http" 不算具体原因，避免 404 被文本猜成 network。
+  const is4xx = status >= 400 && status <= 499;
+  // 缺资产（assets / download / load / failed）是下载没成，不是「系统不支持」。
+  return packFailTextReason(raw, is4xx) || 'other';
+}
+function failReasonValue(reason) {
+  if (PACK_FAIL_REASONS.indexOf(reason) >= 0) return reason;
+  if (typeof reason === 'string') {
+    const r = reason.toLowerCase();
+    if (PACK_FAIL_REASONS.indexOf(r) >= 0) return r;
+    return packFailReason({ reason: r });
+  }
+  return packFailReason(reason);
+}
+function legacyCode(code, fallback) {
+  // 只认「本来就是 id 型」的码（packFailCode 已经归一化过）。长文/路径/URL 不许被
+  // 下划线化后混进事件 —— 判据是**原样**过 id 规则，不是洗一遍再看。
+  const raw = String(code == null ? '' : code).trim().toLowerCase();
+  return /^[a-z0-9_-]{1,32}$/.test(raw) ? raw : (fallback || 'download');
+}
+
+/**
+ * 失败。token 来自 packStart；也接受旧调用 packFail(surface, reason, code)（会现造 token）。
+ * `reason` 可以是原始错误对象（带 mtSttTimeout / mtTtsFailed 等优先级标志），也可以只是
+ * 原生 reject 的 `e.reason` 字符串；两种形状都归一成下方六值。`code` 是旧 P0 的 id 型码，
+ * 过渡期同发；BEL-268 的下载阶段已编码进这个 code（download_asr 等），不另发属性。
+ */
+export async function packFail(token, reason, code) {
+  try {
+    const i = packInfo(token);
+    const setup = (token && token.setup_id) || await setupId();
+    const download_id = (token && token.download_id) || hex32(uuid());
+    let attempt = (token && Number(token.attempt)) || 0;
+    if (!attempt) {
+      try { attempt = await nextAttempt(setup, i.pack_id); } catch (_) { attempt = 0; }
+    }
+    // BEL-293 增补 2：detail 必须在 packFailReason() **之前**取 —— 六值归一后
+    // sha/offline/http/load 就被压成 hash/network/timeout/other 了。
+    const detail = packFailDetail(reason);
+    // 对象优先：超时/取消标志参与判断，e.reason 也在这张表里映射；字符串按 e.reason 处理。
+    const r = failReasonValue((reason && typeof reason === 'object') ? reason : { reason });
+    const c = legacyCode(code, r);
+    const e = (reason && typeof reason === 'object') ? reason : null;
+    const p = packFields(i, setup, download_id, attempt);
+    p.reason = r;
+    p.code = c;
+    // BEL-293：失败归因。tier / size / progress 可来自调用方 info（token）或失败对象
+    // （TTS/LID 的换源层级要等 fn 返回才确定）；detail 永远只取结构化 e.reason。
+    // tier 判不出时**整个键省略**，不写 'none'。
+    const tier = packTierValue(e && e.tier != null ? e.tier : i.tier);
+    if (tier) p.tier = tier;
+    p.detail = detail;
+    p.size = packIntValue(e && e.size != null ? e.size : i.size);
+    p.progress = packProgressValue(e && e.progress != null ? e.progress : i.progress);
+    // BEL-290：fail 不等 60s 定时器 / 下一次冷启 —— 入队完成后立刻试发一次。
+    const queued = track('pack_download_fail', p);
+    flushAfterTrack(queued);
+    return setup;
+  } catch (_) { return ''; }
+}
+
+/**
+ * ASR 语种系统不支持：**不是**下载成功，也不该假装经历了一次下载尝试。
+ * 只记 fail{reason:'unsupported'}，不记 start / ok（票面「另记，不要标成下载成功」）。
+ */
+export async function packUnsupported(info) {
+  try {
+    const i = packInfo(info);
+    const setup = await setupId();
+    const download_id = hex32(uuid());
+    const attempt = await nextAttempt(setup, i.pack_id);
+    const p = packFields(i, setup, download_id, attempt);
+    p.reason = 'unsupported';
+    p.code = 'unsupported';
+    // BEL-293：系统不支持不是一次换源失败。detail 仍只取原生 reason（调用方把
+    // probe 的 reason='locale' 透传进来）；reason 六值仍是 'unsupported'。
+    // tier 判不出就省略（ASR 直调原生，没有换源链）。
+    const tier = packTierValue(i.tier);
+    if (tier) p.tier = tier;
+    p.detail = packDetailValue(info && typeof info === 'object' ? info.reason : '');
+    p.size = packIntValue(i.size);
+    p.progress = packProgressValue(i.progress);
+    // 与 packFail 同一个 fail 出口：入队后立刻 flush，别让 not-supported 也等下一班车。
+    const queued = track('pack_download_fail', p);
+    flushAfterTrack(queued);
+    return setup;
+  } catch (_) { return ''; }
+}
+
+// ── packs_ready：整套所需资源都校验就绪时记一条 ─────────────────────────────
+// selection_id = 所需 kind/id/locale 集合的稳定派生（32-hex）。集合一变就换新：同一台
+// 机器上换语言、勾/去朗读包都会产生新的 selection，旧的「已齐」不能替新的作数。
+function selectionId(items) {
+  const key = (items || []).map((it) => String((it && it.id) || '')).filter(Boolean).sort().join(',');
+  return hash32(key);
+}
+function hash32(s) {
+  let out = '';
+  const seeds = [0x811c9dc5, 0x01000193, 0x9e3779b9, 0x85ebca6b];
+  for (const seed of seeds) {
+    let h = seed >>> 0;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    out += h.toString(16).padStart(8, '0');
+  }
+  return out.slice(0, 32);
+}
+function stateItems(state) {
+  const raw = (state && Array.isArray(state.items)) ? state.items : [];
+  const out = [];
+  for (const it of raw) {
+    const id = packIdValue(it && it.id, 'asr');
+    if (!id || out.some((x) => x.id === id)) continue;
+    out.push({ id: id, kind: (it && it.kind) || packKindOf(id, '') });
+  }
+  if (out.length) return out;
+  // 旧调用形状（只有 base/asr/tts/all 计数）：仍能按 kind 派生一个 selection。
+  for (const kind of ['base', 'asr', 'tts']) {
+    if (Number(state && state[kind] && state[kind].required) > 0) out.push({ id: kind, kind: kind === 'base' ? 'vad' : kind });
+  }
+  return out;
+}
+
+// 一条流程的齐态缓存：按 setup_id + selection_id 记「这一套已经齐过」。
+// 只在 false → true 的那一次发；true → false 只更新缓存（不发）；之后同 selection 再变齐
+// 可再发。跨启动从存储读回，重复探不发（旧实现按 kind 存，这里改成按 selection）。
 let packsCache = null;
 let packsChain = Promise.resolve();
 async function packsCacheOnce() {
   if (packsCache) return packsCache;
   const r = await sget([K.packsReady]);
   const v = r[K.packsReady];
-  // 缓存里的 setup_id 也按同一套规则归一化（旧 uuid → 32-hex），这样升级后
-  // setupId() 迁移出来的新写法仍能和旧的「已经齐过」缓存对上，不重复发 packs_ready。
-  const cached = normalizeSetupId(v && v.setup_id);
-  packsCache = (cached && v && v.kinds && typeof v.kinds === 'object')
-    ? { setup_id: cached, kinds: Object.assign({}, v.kinds) }
-    : { setup_id: '', kinds: {} };
+  const sid = normalizeSetupId(v && v.setup_id);
+  const sel = (v && typeof v.selection_id === 'string' && HEX32_RE.test(v.selection_id)) ? v.selection_id : '';
+  packsCache = { setup_id: sid, selection_id: sel, ready: !!(v && v.ready) };
   return packsCache;
 }
-/** state = { base:{required,ready}, asr:{...}, tts:{...}, all:{...} }（kind 可缺）。 */
+/** state = {items:[{id,kind,locale}], base/asr/tts/all:{required,ready}, surface}（kind 可缺）。 */
 export async function packsReady(state) {
   const run = packsChain.then(() => packsReadyOne(state), () => packsReadyOne(state));
   packsChain = run.catch(() => {});
@@ -445,25 +1058,48 @@ async function packsReadyOne(state) {
   try {
     const setup = await setupId();
     const cache = await packsCacheOnce();
-    // 换了 setup_id（理论上只会发生在清数据后）⇒ 旧 cache 作废，重新按过渡记。
-    const prev = cache.setup_id === setup ? cache.kinds : {};
-    const next = Object.assign({}, prev);
-    let changed = false;
-    for (const kind of ['base', 'asr', 'tts', 'all']) {
-      const s = state && state[kind];
-      if (!s) continue;
-      const required = Math.max(0, Number(s.required) || 0);
-      const ready = Math.max(0, Math.min(required, Number(s.ready) || 0));
-      // 没有这一类需求（required 0）不算一次「齐」的过渡，不发空计数。
-      if (!required) continue;
-      const isReady = ready >= required;
-      if (isReady && prev[kind] !== true) {
-        track('packs_ready', { setup_id: setup, ready_kind: kind, required, ready });
-      }
-      if (next[kind] !== isReady) { next[kind] = isReady; changed = true; }
+    const items = stateItems(state);
+    if (!items.length) return true;
+    const selection_id = selectionId(items);
+    const num = (o, k) => Math.max(0, Number(o && o[k]) || 0);
+    const allReq = num(state.all, 'required');
+    const allReady = Math.min(allReq, num(state.all, 'ready'));
+    const isReady = allReq > 0 && allReady >= allReq;
+    const same = cache.setup_id === setup && cache.selection_id === selection_id;
+    if (isReady && !(same && cache.ready)) {
+      // ready_kind：这一套里哪些是本次 setup 内新下的 vs 之前已有。
+      const ids = items.map((it) => it.id);
+      const have = (await downloadedIds(setup)).filter((id) => ids.indexOf(id) >= 0);
+      const ready_kind = have.length === 0 ? 'preexisting'
+        : (have.length === ids.length ? 'downloaded' : 'mixed');
+      const asrReq = num(state.asr, 'required');
+      const asrReady = Math.min(asrReq, num(state.asr, 'ready'));
+      const ttsReq = num(state.tts, 'required');
+      const ttsReady = Math.min(ttsReq, num(state.tts, 'ready'));
+      const baseReq = num(state.base, 'required');
+      const baseReady = Math.min(baseReq, num(state.base, 'ready'));
+      track('packs_ready', {
+        setup_id: setup,
+        selection_id: selection_id,
+        launch_id: LAUNCH_ID,
+        surface: packSurface(state.surface),
+        ready_kind: ready_kind,
+        asr_required: asrReq,
+        asr_ready: asrReady,
+        tts_required: ttsReq,
+        tts_ready: ttsReady,
+        base_ready: (baseReq > 0 && baseReady >= baseReq) ? 'true' : 'false',
+        required_count: allReq,
+        ready_count: allReady,
+        // 旧 P0 字段照发（1.23.3 老客户端/旧看板）：整批 required / ready。
+        required: allReq,
+        ready: allReady,
+      });
     }
-    packsCache = { setup_id: setup, kinds: next };
-    if (changed || cache.setup_id !== setup) await sset({ [K.packsReady]: packsCache });
+    if (cache.setup_id !== setup || cache.selection_id !== selection_id || cache.ready !== isReady) {
+      packsCache = { setup_id: setup, selection_id: selection_id, ready: isReady };
+      await sset({ [K.packsReady]: packsCache });
+    }
     return true;
   } catch (_) { return false; }
 }
@@ -471,11 +1107,17 @@ async function packsReadyOne(state) {
 // 测试/调试出口（不进产物面）：不改变线上行为。
 export const _KEYS = K;
 export const _track = track;
+// 客户端 detail 闭枚举（测试用它和 config 的 PACK_DETAILS 做逐值比对）。
+export const _PACK_DETAILS = PACK_DETAILS;
 export const _resetForTest = () => {
   appOpenFlight = null;
   setupFlight = null;
   packsCache = null;
   packsChain = Promise.resolve();
+  attemptCache = null;
+  attemptChain = Promise.resolve();
+  downloadedCache = null;
+  downloadedChain = Promise.resolve();
   surfaceFlight = null;
   currentSurface = '';
   launchPatched = false;

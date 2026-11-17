@@ -4378,12 +4378,6 @@
   "settings_value_follow": {
     "message": "인터페이스 언어 따르기"
   },
-  "app_e1_label": {
-    "message": "중국어 음성 인식 SenseVoice"
-  },
-  "app_e1_note": {
-    "message": "중국어(zh)에 한해 기본적으로 켜져 있습니다. 처음 사용할 때 모델을 백그라운드에서 다운로드합니다(약 160MB). 다운로드가 끝나기 전과 실패 시에는 시스템 받아쓰기를 사용하며, 완료 후 다음 세션부터 적용됩니다. 끄면 시스템 받아쓰기로 돌아갑니다."
-  },
   "firstrun_packs_skip": {
     "message": "나중에 팩을 받고 먼저 들어가기"
   },
@@ -4417,5 +4411,11 @@
   "listen_perm_denied_body": {
     "message": "시스템 설정에서 「마이크」를 켜고 여기로 돌아와 「다시 시도」를 누르면 시작됩니다. 앱을 다시 시작할 필요는 없습니다.",
     "description": "BEL-273 microphone permission gate"
+  },
+  "app_e1_label": {
+    "message": "중국어 음성 인식 SenseVoice"
+  },
+  "app_e1_note": {
+    "message": "중국어(zh)에 한해 기본적으로 켜져 있습니다. 처음 사용할 때 모델을 백그라운드에서 다운로드합니다(약 160MB). 다운로드가 끝나기 전과 실패 시에는 시스템 받아쓰기를 사용하며, 완료 후 다음 세션부터 적용됩니다. 끄면 시스템 받아쓰기로 돌아갑니다."
   }
 }

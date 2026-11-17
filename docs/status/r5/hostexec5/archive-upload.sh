@@ -24,6 +24,9 @@ OUT=/tmp/r1194-r5; mkdir -p "$OUT"
 run build-global node build.js || exit 1
 run build-china node build.js --flavor china || exit 1
 run app-sync npm run app:sync || exit 1
+# BEL-692 发版硬闸：归档前先确认没有任何 dist*/.not-shippable。SKIP_ZIP / 占位逃生
+# 构建产出的树只能测、不能发；这里不放行，后面每次 altool 前还会再拦一次。
+node scripts/check-shippable.js || exit 1
 pbxcheck
 P="safari-project/BelliedMonkey Translator/BelliedMonkey Translator.xcodeproj"
 C="safari-project-china/BelliedMonkey Translator CN/BelliedMonkey Translator CN.xcodeproj"
@@ -47,12 +50,12 @@ for spec in "${LINES[@]}"; do case "$spec" in *TBD) die "build 号未填";; esac
 fail=0
 for spec in "${LINES[@]}"; do
   IFS='|' read -r n bn <<< "$spec"
-  case $n in intl-ios) proj=$P; scheme="BelliedMonkey Translator (iOS)"; plat=iOS; t=ios;;
-             intl-mac) proj=$P; scheme="BelliedMonkey Translator (macOS)"; plat=macOS; t=macos;;
-             cn-ios) proj=$C; scheme="BelliedMonkey Translator CN (iOS)"; plat=iOS; t=ios;;
-             cn-mac) proj=$C; scheme="BelliedMonkey Translator CN (macOS)"; plat=macOS; t=macos;; esac
-  ar="$OUT/$n.xcarchive"; ex="$OUT/out-$n"; rm -rf "$ar" "$ex"
-  TAILN=3 run "archive-$n" xcodebuild -project "$proj" -scheme "$scheme" -configuration Release -destination "generic/platform=$plat" -archivePath "$ar" DEVELOPMENT_TEAM=X2Q85MABWK CURRENT_PROJECT_VERSION=$bn -allowProvisioningUpdates archive || { fail=1; continue; }
+  case $n in intl-ios) proj=$P; scheme="BelliedMonkey Translator (iOS)"; plat=iOS; t=ios; fl=global;;
+             intl-mac) proj=$P; scheme="BelliedMonkey Translator (macOS)"; plat=macOS; t=macos; fl=global;;
+             cn-ios) proj=$C; scheme="BelliedMonkey Translator CN (iOS)"; plat=iOS; t=ios; fl=china;;
+             cn-mac) proj=$C; scheme="BelliedMonkey Translator CN (macOS)"; plat=macOS; t=macos; fl=china;; esac
+  ar="$OUT/$n.xcarchive"; ex="$OUT/out-$n"; dd="$OUT/dd-$n"; rm -rf "$ar" "$ex" "$dd"
+  TAILN=3 run "archive-$n" xcodebuild -project "$proj" -scheme "$scheme" -configuration Release -destination "generic/platform=$plat" -archivePath "$ar" -derivedDataPath "$dd" DEVELOPMENT_TEAM=X2Q85MABWK CURRENT_PROJECT_VERSION=$bn -allowProvisioningUpdates archive || { fail=1; continue; }
   app=$(ls -d "$ar"/Products/Applications/*.app | head -1)
   if [ -d "$app/Contents" ]; then pl="$app/Contents/Info.plist"; else pl="$app/Info.plist"; fi
   chmod -R a+rX "$app"; nr=$(find "$app" ! -perm -o=r | wc -l | tr -d " "); echo "$n 非全员可读文件数=$nr"; [ "$nr" = 0 ] || { fail=1; continue; }
@@ -60,6 +63,9 @@ for spec in "${LINES[@]}"; do
   codesign -d --entitlements :- "$app" 2>/dev/null | plutil -convert json -o - -- - 2>/dev/null | grep -oE 'applesignin|app-sandbox|audio-input' | sort -u | tr '\n' ' '; echo
   TAILN=3 run "export-$n" xcodebuild -exportArchive -archivePath "$ar" -exportOptionsPlist "$OUT/export-local.plist" -exportPath "$ex" || { fail=1; continue; }
   pkg=$(ls "$ex"/*.ipa "$ex"/*.pkg 2>/dev/null | head -1); [ -n "$pkg" ] || { echo "$n 导出产物不存在"; fail=1; continue; }
+  # BEL-692：就在 altool 之前再硬拦一次（marker + 归档进来的 .appex/marker 一致性）。
+  # 非零只置 fail 并跳过本行，绝不调用 altool。
+  node scripts/check-shippable.js --verify-ios "$dd" --flavor "$fl" || { echo "$n check-shippable 未通过：拒绝上传"; fail=1; continue; }
   TAILN=4 run "upload-$n" xcrun altool --upload-app -f "$pkg" -t $t --apiKey "$KI" --apiIssuer "$II"
   grep -q "No errors uploading" "$(ls -t "$HX"/logs/*-upload-$n.log | head -1)" && echo "$n UPLOAD OK" || { echo "$n UPLOAD 未见 No errors uploading"; fail=1; }
 done

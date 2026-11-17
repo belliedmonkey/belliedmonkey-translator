@@ -465,6 +465,17 @@ describe('改稿 F / 改稿 G · 多选语言包与听译准备中（2026-10-11�
     deepEq(FR.ttsLangsFor(['zh', 'en'], false, undefined), ['zh', 'en']);
   });
 
+  // BEL-226：设备上的朗读包只有三个模型（device-models.config.js：th / zh / en）。
+  // 旧路径 ensureDeviceReady(firstRunLocales) 本来就按模型过滤，其它语言没有包可下；
+  // 这两条把「无包语言不产出、有包语言才保留」钉死，防止以后有人加 catch-all。
+  test('TTS 语言覆盖：没有设备包的语言不产出朗读包（ja/fr/de/ko，即便开了泰语朗读）', () => {
+    deepEq(FR.ttsLangsFor(['ja', 'fr', 'de', 'ko'], true, undefined), []);
+  });
+
+  test('TTS 语言覆盖：只保留有设备包的语言（ja + zh ⇒ 只有 zh）', () => {
+    deepEq(FR.ttsLangsFor(['ja', 'zh'], true, undefined), ['zh']);
+  });
+
   test('就绪含基础组件：语种识别和人声检测都要在；说话键不看朗读包', () => {
     const need = FR.firstRunNeed(['zh', 'en'], { thaiTts: false });
     eq(need.base, true);
@@ -594,69 +605,6 @@ describe('改稿 F / 改稿 G · 多选语言包与听译准备中（2026-10-11�
   });
 });
 
-// BEL-268：main 的 pack_download_fail 白名单没有 reason 枚举（只有 code），所以只把失败
-// 阶段编码进既有 code 后缀；不新增 stage 属性，否则 bt-ingest 整条拒收。
-describe('BEL-268 pack_download_fail 的阶段后缀（main）', () => {
-  function packFailCodeFn() {
-    const src = stripComments(read('src/app/shell-model.js'));
-    const start = src.indexOf('function packFailCode(');
-    ok(start >= 0, 'shell-model.js 里找不到 packFailCode()');
-    let depth = 0;
-    for (let i = src.indexOf('{', start); i < src.length; i++) {
-      if (src[i] === '{') depth++;
-      else if (src[i] === '}') {
-        depth--;
-        if (depth === 0) {
-          const body = src.slice(start, i + 1);
-          return new Function(body + '; return packFailCode;')();
-        }
-      }
-    }
-    throw new Error('packFailCode() 源码括号不配对');
-  }
-
-  test('阶段编码进 code 后缀；未知阶段退回 download；旧 code 不被改写', () => {
-    const packFailCode = packFailCodeFn();
-    const cases = [
-      [{ reason: 'hash', stage: 'asr' }, undefined, 'download_asr'],
-      [{ reason: 'network' }, undefined, 'download'],
-      [{ reason: 'hash' }, 'asr', 'download_asr'],
-      [{ reason: 'network' }, 'base', 'download_base'],
-      [{ reason: 'disk' }, 'tts', 'download_tts'],
-      [{ reason: 'unsupported' }, 'vad', 'download_vad'],
-      [{ reason: 'hash', stage: 'tts' }, 'asr', 'download_tts'],
-      [{ reason: 'hash', stage: 'wat' }, 'asr', 'download_asr'],
-      [{ reason: 'hash' }, 'wat', 'download'],
-      [new Error('download failed'), undefined, 'download'],
-      [{ mtSttTimeout: true, reason: 'timeout' }, 'asr', 'timeout'],
-      [{ mtTtsFailed: true, reason: 'network' }, 'tts', 'tts_failed'],
-      [{ mtBaseFailed: true, reason: 'disk' }, 'base', 'base_failed'],
-      [{ code: 'econnreset' }, 'asr', 'econnreset'],
-      [{ code: 'download' }, 'asr', 'download_asr'],
-    ];
-    for (const [err, stage, want] of cases) {
-      eq(packFailCode(err, stage), want, JSON.stringify(err) + ' / stage=' + stage);
-    }
-  });
-
-  test('下载各阶段写到 packFailStage，catch 交给 packFailCode', () => {
-    const src = stripComments(read('src/app/shell-model.js'));
-    ok(/let packFailStage = '';/.test(src), '没有记住本次失败阶段');
-    const segments = [
-      ['base/vad', /packFailStage = 'vad';[\s\S]{0,500}packFailStage = 'base';/],
-      ['tts', /packFailStage = 'tts';[\s\S]{0,200}ensureDeviceReady/],
-      ['asr', /packFailStage = 'asr';[\s\S]{0,1200}ensureAssets\('stt'/],
-    ];
-    for (const [name, re] of segments) {
-      ok(re.test(src), name + ' 下载阶段没有写进 packFailStage');
-    }
-    ok(/reportPackRun\(TelemetrySession, packSurface,[\s\S]{0,400}packFailCode\(e, packFailStage\)/.test(src),
-      '失败上报没把 packFailStage 交给 packFailCode');
-    ok(!/pack_download_fail[\s\S]{0,200}\bstage\s*:/.test(src),
-      '事件字段里出现了 stage —— 白名单没有这个键，bt-ingest 会整条拒收');
-  });
-});
-
 // BEL-269（P0）：首启包下载失败不能只剩「重试」。下面的判据是**行为**：
 // 自动重试一次（带退避）→ 仍失败时「重试」与「稍后补包，先进入」都可达 →
 // 跳过把 listenPacksDone 落盘并进首页，下次冷启动 app_open 直接 app_home。
@@ -738,7 +686,6 @@ describe('BEL-269 · 首启包失败：自动重试一次 + 可继续进入', ()
     // 这里以前用假的 persist 自证「会落盘」，再 grep 源码补一层形状。两者在
     // `writePacksDone` 的 storage.set 被删掉时都还是绿的（2026-11-15 质量变异）。
     // 真实点击 #packs-skip、真实冷启分流写在 B5–B7；A2 只保留出口可达性。
-    // app_open 的生命周期/枚举由 B4 继续保持断言。
   });
 
   test('A3 · 成功路径不变：1 次尝试、不退避、不露失败出口', async () => {
@@ -762,13 +709,13 @@ describe('BEL-269 · 首启包失败：自动重试一次 + 可继续进入', ()
   test('A4 · 两次都失败 ⇒ pack_download_start/fail 各 2，无 false ok / packs_ready', async () => {
     const events = [];
     const tel = {
-      packStart: async () => { events.push('start'); return 'setup'; },
+      packStart: async () => { events.push('start'); return { id: 'unit' }; },
       packOk: async () => { events.push('ok'); },
       packFail: async () => { events.push('fail'); },
       packsReady: async () => { events.push('packs_ready'); },
     };
     await rejects(Shell.runPackAttempts(async () => {
-      await Shell.reportPackRun(tel, 'listen', async () => {
+      await Shell.reportPackUnit(tel, { pack_kind: 'asr', pack_id: 'asr_zh' }, async () => {
         events.push('ensureAssets');
         throw new Error('offline');
       }, () => 'download');
@@ -786,10 +733,6 @@ describe('BEL-269 · 首启包失败：自动重试一次 + 可继续进入', ()
     ok(catchAt > -1 && ret > catchAt, '切不出 runFirstRunPacks 的失败分支');
     ok(!/probePacks\(\)/.test(run.slice(catchAt, ret)),
       '失败分支仍 probePacks —— 会发 packs_ready');
-    const blockedAt = run.indexOf('if (blocked)');
-    const okAt = run.indexOf('packOk(packSurface)');
-    ok(blockedAt > -1 && okAt > blockedAt,
-      'pack_download_ok 必须在探包确认齐了之后才发');
   });
 });
 
@@ -920,7 +863,7 @@ describe('BEL-269 延伸 · 首页不假装包已就绪 + 路由/重试去重', 
     eq(pe.subs.disabled, true, '包未就绪时实时字幕入口仍可点');
     eq(pe.subs.needShown, true, '实时字幕灰了但没给原因');
     ok(/语言包未就绪/.test(pe.subs.needWhy), '实时字幕的原因不是「语言包未就绪」');
-    // 「没包也进来」的既有口子：asr_entry{app_home,no_live}（与灰卡同一条语义）。
+    // 「没包也进来」的第二个既有口子：asr_entry{app_home,no_live}（与灰卡同一条语义）。
     ok(pending.tracked.some(([n, p]) => n === 'asr_entry'
       && p.surface === 'app_home' && p.result === 'no_live'),
     '包未就绪时没有用既有 asr_entry/no_live 记下「听译入口不可用」');
@@ -986,7 +929,7 @@ describe('BEL-269 延伸 · 首页不假装包已就绪 + 路由/重试去重', 
     ok(!/runFirstRunPacks\(/.test(paint), 'paintFirstRun（每次重绘都跑）里直接起下载');
   });
 
-  test('B4 · 「没包也进来」可观测（既有 asr_entry/no_live），且 start/fail 与真实尝试一一对应', async () => {
+  test('B4 · 「没包也进来」可观测（既有 app_open/packs），且 start/fail 与真实尝试一一对应', async () => {
     function loadTelemetry(store) {
       const events = [];
       const local = {
@@ -1018,27 +961,34 @@ describe('BEL-269 延伸 · 首页不假装包已就绪 + 路由/重试去重', 
       };
       return { TS: loadSrc('src/app/telemetry-session.js', 'TelemetrySession', sandbox).TelemetrySession, events };
     }
-    // 这条 branch 的 app_open 枚举只有五个功能面，没有 packs / app_home；不改白名单
-    // 的前提下，「没包也进来」用既有 asr_entry{surface:'app_home',result:'no_live'}
-    // 回答（listen-model 在包未就绪时发，B2 已做行为断言）。app_open 本身必须仍是
-    // 一条、且不能出现枚举外的 surface —— 否则整条会被服务端静默丢掉。
-    ok(cfg.EVENTS.asr_entry.result.includes('no_live'), '前提：asr_entry 没有 no_live');
-    ok(cfg.EVENTS.asr_entry.surface.includes('app_home'), '前提：asr_entry 没有 app_home');
-    ok(!cfg.EVENTS.app_open.surface.includes('packs'),
-      '这条 branch 的 app_open 枚举不该有 packs —— 有的话应改回用 app_open');
+    // 口子选择：app_open.surface 的既有值 `packs` = 这次冷启时包门没过。
+    // 不新增事件、不新增枚举值；路由仍由 done 决定（B1 已钉住停在首页）。
+    ok(cfg.EVENTS.app_open.surface.includes('packs'), '前提：app_open 的既有枚举里没有 packs');
     const store = { [Shell.PACKS_DONE_KEY]: 1, [Shell.PACKS_SKIPPED_KEY]: 1 };
     const tel = loadTelemetry(store);
     await tel.TS.appOpen();
     eq(tel.events.length, 1, '跳过的冷启 app_open 不是一条');
     eq(tel.events[0].name, 'app_open');
-    ok(!tel.events[0].props.surface || cfg.EVENTS.app_open.surface.includes(tel.events[0].props.surface),
-      'app_open.surface 出现枚举外的值 —— 整条会被白名单丢掉');
+    eq(tel.events[0].props.surface, 'packs',
+      '「没包也进来」在数据里看不见 —— app_open 仍说 app_home');
+    // 探包快照已经三样都齐（系统后来自己下好了）⇒ 仍报 app_home，不拿历史跳过当现状。
+    const telReady = loadTelemetry({
+      [Shell.PACKS_DONE_KEY]: 1, [Shell.PACKS_SKIPPED_KEY]: 1,
+      'tm:packsReady': { kinds: { asr: true, tts: true, base: true } },
+    });
+    await telReady.TS.appOpen();
+    eq(telReady.events[0].props.surface, 'app_home', '包已经齐了却还在报 packs');
+    // 对照：正常完成包屏的冷启仍是 app_home（旧行为不被改写）。
+    const doneOnly = { [Shell.PACKS_DONE_KEY]: 1 };
+    const tel2 = loadTelemetry(doneOnly);
+    await tel2.TS.appOpen();
+    eq(tel2.events[0].props.surface, 'app_home', '正常完成包屏的 app_open 被改成了 packs');
 
     // 第一次失败、第二次成功：2 start / 1 fail / 1 ok，没有 packs_ready；
     // 数字等于真实尝试次数，而不是「重试了一次就再记一条 ok」。
     const events = [];
     const t = {
-      packStart: async () => { events.push('start'); },
+      packStart: async () => { events.push('start'); return { id: 'u' }; },
       packOk: async () => { events.push('ok'); },
       packFail: async () => { events.push('fail'); },
       packsReady: async () => { events.push('packs_ready'); },
@@ -1046,11 +996,10 @@ describe('BEL-269 延伸 · 首页不假装包已就绪 + 路由/重试去重', 
     let n = 0;
     await Shell.runPackAttempts(async () => {
       n++;
-      await Shell.reportPackRun(t, 'listen', async () => {
+      await Shell.reportPackUnit(t, { pack_kind: 'asr', pack_id: 'asr_zh' }, async () => {
         events.push('ensureAssets');
         if (n === 1) throw new Error('offline');
       }, () => 'download');
-      if (n === 2) await t.packOk();
     }, { sleep: async () => {} });
     deepEq(events, ['start', 'ensureAssets', 'fail', 'start', 'ensureAssets', 'ok'],
       'start/ok/fail 没有与两次真实尝试一一对应');
@@ -1152,5 +1101,84 @@ describe('BEL-269 延伸 · 首页不假装包已就绪 + 路由/重试去重', 
     ok(await app.waitFor(() => app.el('packs-pending').hidden === true, 500),
       '包齐了之后横幅还挂着 —— 用户看到的是过期的「未就绪」');
     eq(app.el('firstrun-packs').hidden, true, '收横幅后包屏还露着');
+  });
+});
+
+// BEL-268：pack_download_fail 以前只读 e.code，而 NativeSpeech.ensureAssets 只 reject
+// {reason}（没有 code），所以 116 行全是 code=download。这里钉住两件事：
+//   ① 失败阶段只编码进既有 code（download_asr 等），不新增 stage 属性；
+//   ② reason 六值仍由 TelemetrySession.packFailReason 从 e.reason 映射。
+describe('BEL-268 pack_download_fail 的 reason / 阶段后缀', () => {
+  // packFailCode 已抽到 pack-unit.js（listen-model 的 VAD 单元共用）；npm test 没有
+  // DOM，所以像本文件其它用例一样从源码里取出这个纯函数按真值表跑（不是复制实现）。
+  function packFailCodeFn() {
+    const src = stripComments(read('src/app/pack-unit.js'));
+    const start = src.indexOf('function packFailCode(');
+    ok(start >= 0, 'pack-unit.js 里找不到 packFailCode()');
+    let depth = 0;
+    for (let i = src.indexOf('{', start); i < src.length; i++) {
+      if (src[i] === '{') depth++;
+      else if (src[i] === '}') {
+        depth--;
+        if (depth === 0) {
+          const body = src.slice(start, i + 1);
+          return new Function(body + '; return packFailCode;')();
+        }
+      }
+    }
+    throw new Error('packFailCode() 源码括号不配对');
+  }
+
+  test('阶段编码进 code 后缀；未知阶段退回 download；旧 code 不被改写', () => {
+    const packFailCode = packFailCodeFn();
+    const cases = [
+      // 原生 ensureAssets reject 的形状：只有 reason，阶段由 runPackUnit 的第三个参数给。
+      [{ reason: 'hash', stage: 'asr' }, undefined, 'download_asr'],
+      [{ reason: 'network' }, undefined, 'download'],
+      [{ reason: 'hash' }, 'asr', 'download_asr'],
+      [{ reason: 'network' }, 'base', 'download_base'],
+      [{ reason: 'disk' }, 'tts', 'download_tts'],
+      [{ reason: 'unsupported' }, 'vad', 'download_vad'],
+      // e.stage 显式且合法时优先；不合法时退回调用方阶段。
+      [{ reason: 'hash', stage: 'tts' }, 'asr', 'download_tts'],
+      [{ reason: 'hash', stage: 'wat' }, 'asr', 'download_asr'],
+      [{ reason: 'hash' }, 'wat', 'download'],
+      // 旧路径与既有优先级：普通 Error / 超时 / TTS / base。
+      [new Error('download failed'), undefined, 'download'],
+      [{ mtSttTimeout: true, reason: 'timeout' }, 'asr', 'timeout'],
+      [{ mtTtsFailed: true, reason: 'network' }, 'tts', 'tts_failed'],
+      [{ mtBaseFailed: true, reason: 'disk' }, 'base', 'base_failed'],
+      // 旧的自定义 id 原样保留，不让这次增强改变既有看板口径。
+      [{ code: 'econnreset' }, 'asr', 'econnreset'],
+      [{ code: 'download' }, 'asr', 'download_asr'],
+    ];
+    for (const [err, stage, want] of cases) {
+      eq(packFailCode(err, stage), want, JSON.stringify(err) + ' / stage=' + stage);
+    }
+  });
+
+  test('runPackUnit 把阶段传到 packFailCode；四个下载单元各自标注', () => {
+    const src = stripComments(read('src/app/shell-model.js'));
+    const unit = stripComments(read('src/app/pack-unit.js'));
+    // BEL-269 之后 runPackUnit 只是 reportPackUnit 的薄包装；268 的 stage 必须闭包
+    // 进 failCode 回调，由 269 的 reportPackUnit 在唯一失败出口交给 packFail。
+    ok(/function runPackUnit\(info, fn, stage\)/.test(src),
+      'runPackUnit 没有接 stage —— 失败时不知道断在哪一阶段');
+    ok(/reportPackUnit\(TelemetrySession, info, fn, \(e\) => packFailCode\(e, stage\)\)/.test(src),
+      'runPackUnit 没把 stage 经 reportPackUnit 交给 packFailCode');
+    ok(/packFail\(token, e, failCode\(e\)\)/.test(unit),
+      'reportPackUnit 没把 failCode 的结果交给 packFail');
+    const segments = [
+      ['vad', /NativeSpeech\.ensureVad\(vad, onProg\), 'vad'\);/],
+      ['base', /}, 'base'\);/],
+      ['tts', /}, 'tts'\);/],
+      ['asr', /}, 'asr'\);/],
+    ];
+    for (const [name, re] of segments) {
+      ok(re.test(src), name + ' 下载单元没把阶段交给 runPackUnit');
+    }
+    // 事件字段不允许出现 stage（白名单没有这个键）。
+    ok(!/packFields[\s\S]{0,800}\bstage\s*:/.test(src),
+      'pack_download_fail 的字段里出现了 stage —— 未知属性会让 bt-ingest 整条拒收');
   });
 });

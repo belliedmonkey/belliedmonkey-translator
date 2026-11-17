@@ -893,7 +893,7 @@ export default function SettingsView() {
     }
     grantBusy.current = true; await paintGrant(session);
     try {
-      await settingsModel.claimAndApply({ overwrite: id === 'restore', say: hooks.say });
+      await settingsModel.claimAndApply({ overwrite: id === 'restore', say: hooks.say, path: 'manual' });
     } catch (e) {
       // BEL-271：只有服务端明确说池子空了才置「池子空了」。网络 / 超时 / 5xx
       // 是可重试的「连不上」，不是池子空了 —— 旧代码只看 grant_unavailable，
@@ -936,6 +936,8 @@ export default function SettingsView() {
       readSettings: () => settingsModel.get(settingsModel.KEYS),
       replaceKeyTail: () => new Promise((res) => chrome.storage.local.get(['grantTail'], (v) => res((v && v.grantTail) || ''))),
       targetLang: '',
+      // BEL-290：setup_apply_* 的归属面 —— 这是 App 设置页。
+      surface: 'app_feature',
       onApply: (plan) => applyQuickSetup(plan, session, say),
       // 自检跑完之后才给回执，并且**用卡自己的结果**，不再测第二遍。
       onResults: (plan, results) => {

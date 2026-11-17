@@ -234,6 +234,8 @@ function QuickIsland({ t, onApplied, hidden }) {
       // window.__mtTargetLang，于是永远测「译成 zh-CN」——一个把目标设成日文的人，
       // 自检通过了也说明不了他要的那条路通没通。
       targetLang: snap.targetLang,
+      // BEL-290：setup_apply_* 的归属面 —— 这是引导页。
+      surface: 'onboard',
       onApply: async (plan) => {
         await writePatch(plan.writes);
         onApplied();

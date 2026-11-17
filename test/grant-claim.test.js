@@ -129,7 +129,8 @@ describe('BEL-271 失败矩阵 —— reason 五值 + legacy code 七值', () =>
       eq(h.events.filter((e) => e.name === 'grant_claim_fail').length, 1, '最终失败只记一条');
       eq(h.events.filter((e) => e.name === 'grant_claimed').length, 0, '失败路径绝不能有 grant_claimed');
       const ev = h.events.find((e) => e.name === 'grant_claim_fail');
-      eq(ev.props.code, code, '旧 code 同发（main 的票面还没有 reason 属性）');
+      eq(ev.props.reason, reason, '事件里的真实 reason');
+      eq(ev.props.code, code, '旧 code 同发');
     });
   }
 });
