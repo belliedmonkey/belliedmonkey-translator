@@ -666,9 +666,9 @@ const PACK_TIERS = ['cache', 'server', 'server-alt', 'builtin', 'builtin-alt'];
 // 连字符保持 no-engine / no-bridge。兜底只有 other（没有 failed / format / enospc；
 // 磁盘满靠 reason='disk'，原生 enospc 会落 other）。blocked / superseded / lang 为
 // TTS/ASR 后续复用预留，当前 pack-download 路径不产生。
-const PACK_DETAILS = ['sha', 'offline', 'http', 'load', 'download', 'assets', 'locale',
-  'locales', 'os', 'analyzer', 'no-engine', 'lang', 'timeout', 'cancelled', 'no-bridge',
-  'probe', 'blocked', 'superseded', 'unsupported', 'other'];
+const PACK_DETAILS = ['sha', 'offline', 'http', 'load', 'timeout', 'cancelled',
+  'no-bridge', 'no-engine', 'locales', 'locale', 'analyzer', 'assets', 'format', 'os',
+  'download', 'failed', 'lang', 'unsupported', 'probe', 'blocked', 'superseded', 'other'];
 // 枚举成员表：detail 只认表里的值，不做 id 正则 / 前缀 / 包含匹配；表外一律 other。
 const PACK_DETAIL_MEMBERS = Object.create(null);
 for (const d of PACK_DETAILS) PACK_DETAIL_MEMBERS[d] = true;

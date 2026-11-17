@@ -71,20 +71,20 @@ async function failWith(reason, info, code) {
 }
 
 describe('BEL-293 定稿 pack_download_fail 归因字段', () => {
-  test('detail 20 值闭枚举：客户端 = config = events.gen（逐值）；alias / 未知 reason', async () => {
+  test('detail 22 值闭枚举：客户端 = config = events.gen（逐值）；alias / 未知 reason', async () => {
     const { TS } = load();
-    const want = ['sha', 'offline', 'http', 'load', 'download', 'assets', 'locale',
-      'locales', 'os', 'analyzer', 'no-engine', 'lang', 'timeout', 'cancelled', 'no-bridge',
-      'probe', 'blocked', 'superseded', 'unsupported', 'other'];
+    const want = ['sha', 'offline', 'http', 'load', 'timeout', 'cancelled',
+      'no-bridge', 'no-engine', 'locales', 'locale', 'analyzer', 'assets', 'format', 'os',
+      'download', 'failed', 'lang', 'unsupported', 'probe', 'blocked', 'superseded', 'other'];
     // 三处逐值比对：不只键集合，顺序也必须一致；客户端的私有数组经 _PACK_DETAILS 出口。
     deepEq(cfg.PACK_DETAILS, want, 'config 的 detail 枚举漂了');
     deepEq(TS._PACK_DETAILS, cfg.PACK_DETAILS, '客户端 detail 列表必须逐值等于 config 的 PACK_DETAILS');
-    eq(want.length, 20, 'detail 闭枚举定稿 20 值');
+    eq(want.length, 22, 'detail 闭枚举定稿 22 值');
     deepEq(gen.events.pack_download_fail.detail, cfg.PACK_DETAILS, 'events.gen 与 config 的 detail 枚举不一致');
     deepEq(gen.events.pack_download_fail.tier, ['cache', 'server', 'server-alt', 'builtin', 'builtin-alt'],
       'events.gen 的 tier 枚举不该再有 none');
 
-    // 20 个值逐个走真实发送路径：detail 原样落库。
+    // 22 个值逐个走真实发送路径：detail 原样落库。
     for (const d of want) {
       const p = await failWith({ reason: d });
       eq(p.detail, d, 'detail=' + d);
@@ -105,8 +105,8 @@ describe('BEL-293 定稿 pack_download_fail 归因字段', () => {
     }
 
     // 闭枚举 = 不做前缀/包含/白名单外匹配。这些都不是表内值，一律 other。
-    // failed / format / enospc 都已删：兜底只有 other。
-    for (const bad of ['failed', 'format', 'enospc', 'https://example.test/a.zip',
+    // enospc 不在表内：兜底 other（failed / format 已按用户裁定回到枚举）。
+    for (const bad of ['enospc', 'https://example.test/a.zip',
       'load failed', 'not-a-reason', '']) {
       eq((await failWith({ reason: bad })).detail, 'other', '非法 reason 必须 other：' + JSON.stringify(bad));
     }
@@ -117,10 +117,10 @@ describe('BEL-293 定稿 pack_download_fail 归因字段', () => {
     eq((await failWith({ reason: 'SHA' })).detail, 'sha');
   });
 
-  test('未知 reason 仍发事件：detail=other，且断言事件条数（含 failed / enospc）', async () => {
+  test('未知 reason 仍发事件：detail=other，且断言事件条数（enospc / URL / 空串）', async () => {
     const { TS, events } = load();
     const registered = Object.keys(cfg.EVENTS.pack_download_fail);
-    for (const reason of ['failed', 'enospc', 'ENOSPC', 'format', 'load failed',
+    for (const reason of ['enospc', 'ENOSPC', 'load failed',
       'https://example.test/a.zip', '', 'not-a-reason']) {
       const tok = await TS.packStart(unit);
       const before = events.length;
@@ -136,7 +136,7 @@ describe('BEL-293 定稿 pack_download_fail 归因字段', () => {
     }
   });
 
-  test('native-speech 的 msg.reason || "failed" 兜底：仍走 packFail 发事件，detail=other', async () => {
+  test('native-speech 的 msg.reason || "failed" 兜底：仍走 packFail 发事件，detail=failed', async () => {
     const NS = nativeSpeech();
 
     // stt-state failed 不带 reason ⇒ native-speech 兜底 'failed'，不在闭枚举里。
@@ -163,7 +163,7 @@ describe('BEL-293 定稿 pack_download_fail 归因字段', () => {
       await TS.packFail(tok, { reason: raw }, 'download_vad');
       eq(events.length, before + 1, '兜底 failed 必须发一条 fail：' + raw);
       eq(events[events.length - 1].name, 'pack_download_fail');
-      eq(events[events.length - 1].props.detail, 'other', '兜底 failed 的 detail 必须 other');
+      eq(events[events.length - 1].props.detail, 'failed', '兜底 failed 已在闭枚举内，detail 保留 failed');
     }
   });
 

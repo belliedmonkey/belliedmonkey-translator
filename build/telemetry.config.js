@@ -54,9 +54,9 @@ const PACK_TIERS = ['cache', 'server', 'server-alt', 'builtin', 'builtin-alt'];
 // 不靠 detail（原生 enospc 会落 other）。sha_mismatch 是客户端 alias → sha，不进枚举、
 // 不另立值。blocked / superseded / lang 为 TTS/ASR 后续复用预留，当前 pack-download
 // 路径不产生。不在表内的其它值一律 'other'。
-const PACK_DETAILS = ['sha', 'offline', 'http', 'load', 'download', 'assets', 'locale',
-  'locales', 'os', 'analyzer', 'no-engine', 'lang', 'timeout', 'cancelled', 'no-bridge',
-  'probe', 'blocked', 'superseded', 'unsupported', 'other'];
+const PACK_DETAILS = ['sha', 'offline', 'http', 'load', 'timeout', 'cancelled',
+  'no-bridge', 'no-engine', 'locales', 'locale', 'analyzer', 'assets', 'format', 'os',
+  'download', 'failed', 'lang', 'unsupported', 'probe', 'blocked', 'superseded', 'other'];
 
 // BEL-225（2026-11-14）：`app_open.surface` 换成「打开时落在哪一屏」，不是功能面。
 //   login     = 面对登录墙（auth_state=signed_out）
