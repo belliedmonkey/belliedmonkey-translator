@@ -36,6 +36,7 @@ import * as PackProgress from './pack-progress.js';
 import * as ASRQuota from './asr-quota.js';   // 识别语言名额的本机记忆（第 5 轮 A / 改稿 H）
 import * as MicPerm from './mic-permission.js';   // BEL-273：进听译前的麦克风权限状态机
 import * as TelemetrySession from './telemetry-session.js';   // BEL-223/225/226 的 launch_id/surface/gate
+import { reportPackUnit, packFailCode, packSourceFromSpec } from './pack-unit.js';   // BEL-290：两处裸 ensureVad 的 start→ok/fail
 import * as PackPending from './pack-pending.js';   // BEL-269：跳过包屏后入口必须说「包未就绪」
 import { createHalt, meterText, failSurface } from './n26-session.js';
 import * as Quota from '../shared/quota.js';   // P1-1：余额的唯一运行时来源（刷新 / stale / 同口径）
@@ -1641,7 +1642,13 @@ const listenModel = (() => {
         const vm = vadModel();
         if (vm && NativeSpeech.ensureVad) {
           showPrep(job, PackProgress.beginLangProgress('vad', baseName));
-          const p = cancellable(NativeSpeech.ensureVad(vm, stampBase));
+          // BEL-290：预热/开麦前的裸 ensureVad 也要有 start→ok/fail。warmBody 开头
+          // `mode === 'subtitle'` 已 return，所以这条只在对话听译页 ⇒ surface=listen。
+          // cancellable / racePack / inflight 的语义不变：包的等待仍可被下一次 warm 取消，
+          // 原生 ensureVad 本身照旧不因取消而中断。
+          const p = cancellable(reportPackUnit(TelemetrySession, {
+            pack_kind: 'vad', pack_id: 'vad', surface: 'listen', source: packSourceFromSpec(vm),
+          }, () => NativeSpeech.ensureVad(vm, stampBase), (e) => packFailCode(e, 'vad')));
           inflight = p;
           await racePack(p);
           if (warmJob !== job) return;
@@ -2776,12 +2783,17 @@ const listenModel = (() => {
       if (vm) {
         const baseName = t('firstrun_packs_base', '基础组件');
         try {
-          await NativeSpeech.ensureVad(vm, (m) => {
+          // BEL-290：实时听译首启的裸 ensureVad 也接同一条 start→ok/fail。
+          // ensurePacksForPair 被对话与实时字幕的 beginPipeline 共用（start() 不分模式），
+          // 所以面按当前页面报：对话 listen / 字幕 live_caption（funnelSurface 的既有判据）。
+          await reportPackUnit(TelemetrySession, {
+            pack_kind: 'vad', pack_id: 'vad', surface: funnelSurface(), source: packSourceFromSpec(vm),
+          }, () => NativeSpeech.ensureVad(vm, (m) => {
             const named = FirstRun.nameProgress(Object.assign({}, m, { name: baseName }), baseName);
             dlLang = named.name;
             prep.name = named.name;
             if (typeof named.fraction === 'number') prep.pct = Math.round(named.fraction * 100);
-          });
+          }), (e) => packFailCode(e, 'vad'));
           prep.assets.vad = true;
           // BEL-188 Q7：VAD **不计入**这一轮的 dlGen。ensureVad 成功不等于这一轮真下过
           // （模型本来就在时它照样回成功、进度回调也可能回一帧 100%），而 VAD 本来就不拦

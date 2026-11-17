@@ -42,6 +42,7 @@ function load(opts) {
   const o = opts || {};
   const s = o.store || store();
   const events = [];
+  const flushes = [];
   const window = o.window || {};
   // 默认给一份规格：本组测的是事件正文/返回值，不是「spec 未到」。要测等 spec 的
   // 三条新用例显式传 telemetrySpec:null，再按需要把 window.MT_TELEMETRY 补上。
@@ -56,6 +57,7 @@ function load(opts) {
     MTTelemetry: o.telemetry || {
       enabled: async () => true,
       track(name, props) { events.push({ name, props }); },
+      flush() { flushes.push({ at: events.length }); return Promise.resolve(true); },
       installId: async () => ({ id: INSTALL }),
     },
   };
@@ -69,7 +71,7 @@ function load(opts) {
   if (o.backend) sandbox.window.MT_BACKEND = o.backend;
   if (o.flavor) sandbox.window.MT_FLAVOR = o.flavor;
   const ctx = loadSrc(MOD, 'TelemetrySession', sandbox);
-  return { TS: ctx.TelemetrySession, events, store: s, sandbox };
+  return { TS: ctx.TelemetrySession, events, flushes, store: s, sandbox };
 }
 
 // 真 MTTelemetry（extension/learn/telemetry.js）+ 本模块，共用同一个 storage / fetch 桩。
@@ -680,6 +682,44 @@ describe('BEL-226 pack_download_* / packs_ready', () => {
       ok(Object.keys(gen.common).concat(Object.keys(gen.events.pack_download_fail)).indexOf(k) >= 0,
         'pack_download_fail 出现未登记属性：' + k);
     }
+  });
+
+  test('BEL-290：packFail / packUnsupported 在 fail 入队后强制 flush（不挡产品）', async () => {
+    const a = load();
+    const tok = await a.TS.packStart({
+      pack_kind: 'vad', pack_id: 'vad', surface: 'listen', source: 'other',
+    });
+    eq(a.events[0].name, 'pack_download_start');
+    // VAD 的 sha 校验失败：reason 归一到 hash，code 由 packFailCode 编码成 download_vad。
+    await a.TS.packFail(tok, { reason: 'hash' }, 'download_vad');
+    eq(a.events[1].name, 'pack_download_fail');
+    eq(a.events[1].props.pack_kind, 'vad');
+    eq(a.events[1].props.reason, 'hash');
+    eq(a.events[1].props.code, 'download_vad');
+    eq(a.events[1].props.download_id, a.events[0].props.download_id, 'fail 必须复用 start 的 download_id');
+    eq(a.flushes.length, 1, 'packFail 必须调用 flush');
+    eq(a.flushes[0].at, 2, 'flush 必须在 fail 入队之后（不是抢在 track 写队列之前）');
+
+    // ASR 不支持也走同一个 fail 出口，同样强制 flush。
+    const b = load();
+    await b.TS.packUnsupported({ pack_kind: 'asr', pack_id: 'asr_xx', locale: 'xx', surface: 'listen', source: 'system' });
+    eq(b.events[0].name, 'pack_download_fail');
+    eq(b.events[0].props.reason, 'unsupported');
+    eq(b.flushes.length, 1, 'packUnsupported 也必须调用 flush');
+
+    // flush 自己抛错/拒绝时，packFail 仍返回 setup、fail 事件仍在 —— 埋点不挡产品。
+    const throws = load({
+      telemetry: {
+        enabled: async () => true,
+        installId: async () => ({ id: INSTALL }),
+        track(name, props) { this.events = (this.events || []).concat({ name, props }); },
+        flush() { throw new Error('flush exploded'); },
+      },
+    });
+    const t2 = await throws.TS.packStart({ pack_kind: 'vad', pack_id: 'vad', surface: 'listen', source: 'other' });
+    const setup = await throws.TS.packFail(t2, { reason: 'network' }, 'download_vad');
+    ok(setup, 'flush 抛错不能影响 packFail 的返回值');
+    eq(throws.sandbox.MTTelemetry.events[1].name, 'pack_download_fail');
   });
 
   test('packs_ready 只在整套齐时发一次；重复探/跨启动不发；再变齐可再发', async () => {
