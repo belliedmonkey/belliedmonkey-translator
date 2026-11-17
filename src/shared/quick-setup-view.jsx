@@ -50,6 +50,26 @@ function injectStyle(doc) {
   styled = true;
 }
 
+// BEL-290：一键设定的遥测。三个宿主（扩展设置页 / App 设置页 / 引导页）共用这
+// 一处发送点，surface 由宿主传进来；不传 / 传表外值就整条不发（客户端白名单会
+// 把带非法枚举的整条事件丢掉，静默失败比不发更难查）。
+const SETUP_SURFACES = ['ext_settings', 'app_feature', 'onboard'];
+function setupSurfaceOk(surface) { return SETUP_SURFACES.indexOf(surface) >= 0; }
+function trackSetupApplyOk(surface, props) {
+  try {
+    if (!setupSurfaceOk(surface)) return;
+    if (typeof MTTelemetry === 'undefined') return;
+    MTTelemetry.track('setup_apply_ok', Object.assign({ surface }, props));
+  } catch (_) { /* 遥测绝不能影响配不配得通 */ }
+}
+function trackSetupApplyFail(surface, stage, code) {
+  try {
+    if (!setupSurfaceOk(surface)) return;
+    if (typeof MTTelemetry === 'undefined') return;
+    MTTelemetry.track('setup_apply_fail', { surface, stage, code });
+  } catch (_) {}
+}
+
 const SLOTS = ['chat', 'tts', 'stt'];
 // 写成函数而不是 [key, 兜底串] 的表：兜底串放在数据结构里，
 // test/no-hardcoded-copy.test.js 认不出它是兜底位。而那条门禁曾经**看不见这一段**
@@ -217,9 +237,11 @@ export function render(box, opts) {
 
   btn.addEventListener('click', async () => {
     const k = key.value.trim();
-    if (!k) { key.focus(); return; }
+    if (!k) { trackSetupApplyFail(opts.surface, 'precheck', 'no_key'); key.focus(); return; }
     // 自定义平台没有默认端点：地址是构成要件，缺了就什么都别写（plan 里也再挡一次）。
-    if (current.custom && !base.value.trim()) { base.focus(); return; }
+    if (current.custom && !base.value.trim()) {
+      trackSetupApplyFail(opts.surface, 'precheck', 'no_base'); base.focus(); return;
+    }
     // **点下去那一刻才读设置。** 原来这里用的是 render 时传进来的快照，而那份快照
     // 在 options 上是页面加载时读的、之后永不更新（s0）。后果不是显示不对，是丢数据：
     // 用户在「详细」里敲了 key → 点这个按钮 → state() 按旧快照判「没配过」→ 覆盖那把
@@ -229,8 +251,23 @@ export function render(box, opts) {
     // 读失败**什么都不写** —— 一个读不出设置的时刻不该被当成「用户没配过」。
     let cur = opts.settings || {};
     if (typeof opts.readSettings === 'function') {
-      const r = await opts.readSettings();
+      let r;
+      // 读设置抛错与「返回 {ok:false}」是同一种失败：读不出来就不许写。BEL-290 的
+      // setup_apply_fail{stage:'read'} 必须把两者都算进去 —— 只接返回值会让抛错那
+      // 一半在线上完全不可见。
+      try { r = await opts.readSettings(); } catch (_) {
+        trackSetupApplyFail(opts.surface, 'read', 'storage');
+        btn.disabled = false;
+        res.hidden = false;
+        res.textContent = '';
+        const li = doc.createElement('li');
+        li.append(el('span', 'qs-bad', t('settings_read_failed_short',
+          '读不到已保存的设置，请稍后再试')));
+        res.append(li);
+        return;
+      }
       if (!r || r.ok === false) {
+        trackSetupApplyFail(opts.surface, 'read', 'storage');
         btn.disabled = false;
         res.hidden = false;
         res.textContent = '';
@@ -276,6 +313,9 @@ export function render(box, opts) {
     }
 
     try { await opts.onApply(p); } catch (e) {
+      // 写盘失败的 props 只有 {surface, stage:'write', code:'storage'} ——
+      // e.message 留给屏幕上的那一行，**绝不**进遥测（可能带路径 / 存储键名）。
+      trackSetupApplyFail(opts.surface, 'write', 'storage');
       for (const slot of p.tests) {
         rows[slot].className = 'qs-bad';
         rows[slot].textContent = '✗ ' + ((e && e.message) || 'save failed');
@@ -283,6 +323,12 @@ export function render(box, opts) {
       btn.disabled = false;
       return;
     }
+    // 成功一条：wrote 把「点了但三槽早已配好」的 no-op 分开，replaced 把「顶掉了
+    // 免费额度」分开。都以 plan 为准 —— plan 为空 / 没有写入就报 none。
+    trackSetupApplyOk(opts.surface, {
+      wrote: (p.writes && Object.keys(p.writes).length) ? 'any' : 'none',
+      replaced: (Array.isArray(p.replaced) && p.replaced.length) ? 'grant' : 'none',
+    });
 
     const results = await Promise.all(p.tests.map((slot) =>
       runOne(slot, p, current, rows[slot], t, doc, opts.targetLang)));
@@ -324,12 +370,15 @@ async function runOne(slot, p, platform, cell, t, doc, targetLang) {
         // 没有任何一处赋值**，所以自检永远测 zh-CN。缺省仍回落到默认目标语言，
         // 但那是「调用方没传」的兜底，不是唯一的路。
         targetLang: targetLang || Registry.defaultTargetLang() || 'zh-CN',
+        // BEL-290：一键卡的自检归属面固定是 setup_quick —— 与 setup_apply_* 的
+        // 宿主面（ext_settings / app_feature / onboard）是两套口径。
+        surface: 'setup_quick',
       });
     }
     if (slot === 'tts') {
-      return EngineTest.tts({ engineId: w.ttsEngine, apiKey: w.ttsApiKey, baseUrl: w.ttsBaseUrl, model: w.ttsModel, voice: w.ttsVoice });
+      return EngineTest.tts({ engineId: w.ttsEngine, apiKey: w.ttsApiKey, baseUrl: w.ttsBaseUrl, model: w.ttsModel, voice: w.ttsVoice, surface: 'setup_quick' });
     }
-    return EngineTest.stt({ engineId: w.sttEngine, apiKey: w.sttApiKey, baseUrl: w.sttBaseUrl, model: w.sttModel });
+    return EngineTest.stt({ engineId: w.sttEngine, apiKey: w.sttApiKey, baseUrl: w.sttBaseUrl, model: w.sttModel, surface: 'setup_quick' });
   };
   cell.className = 'qs-idle';
   cell.textContent = t('qs_testing', '测试中…');

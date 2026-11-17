@@ -46,6 +46,11 @@ import * as TelemetrySession from './telemetry-session.js';   // BEL-223/225/226
 import * as PackPending from './pack-pending.js';   // BEL-269：首页「语言包未就绪」的共享真值
 import { withUtm } from '../shared/utm.js'; // BEL-155 官网外链 UTM
 import { createAppleFailureUi, classifyAppleResult } from './apple-native.js'; // BEL-272 原生 Apple 失败出口
+// BEL-226/268 的下载单元遥测（start → ok/fail + 失败 code 表）。抽到 pack-unit.js
+// 是因为 listen-model 的两处裸 ensureVad 也要用同一份契约；这里 re-export 保持
+// shell-model 的既有出口（测试与调用点都从 ShellModel.reportPackUnit 读）。
+import { reportPackUnit, packFailCode, packSourceFromSpec, packSizeFromSpec, packTierFromAttempts } from './pack-unit.js';
+export { reportPackUnit };
 
 // BEL-197: Google provider callbacks land on `scheme://auth` (intl `belliedmonkey`,
 // CN `belliedmonkeycn`). On macOS the native side now opens the system default
@@ -54,6 +59,24 @@ import { createAppleFailureUi, classifyAppleResult } from './apple-native.js'; /
 // `auth` and falls into the account branches with the code dropped (the 11-04
 // deadlock, with `auth` instead of `oauth`).
 export const GOOGLE_AUTH_WAIT_MS = 5 * 60 * 1000;
+
+// BEL-290：settings_open.surface 的推导。App 只有一个打开设置页的漏斗
+// （openSettings），锚点回答「他是从哪条路进来的」：
+//   无锚点                    → app_home（首页齿轮 / 继续设置卡）
+//   sec-engines / set-pack-manage / sec-account
+//                             → app_onboard（首启引导的三个深链落点）
+//   其余控件锚点              → app_feature（正常使用中的设置项）
+// 不在表里的锚点按 app_feature 处理：那仍然是「从某个功能处打开设置」，不是首页。
+const SETTINGS_ONBOARD_ANCHORS = ['sec-engines', 'set-pack-manage', 'sec-account'];
+const SETTINGS_FEATURE_ANCHORS = ['engine', 'tts-engine', 'notes-provider', 'quick-setup-card'];
+export function settingsSurfaceFor(anchorId) {
+  const a = String(anchorId || '');
+  if (!a) return 'app_home';
+  if (SETTINGS_ONBOARD_ANCHORS.indexOf(a) >= 0) return 'app_onboard';
+  if (SETTINGS_FEATURE_ANCHORS.indexOf(a) >= 0) return 'app_feature';
+  // 其余可见控件（例如 g-quick）也是功能面入口；未来新增锚点不需要改这张表。
+  return 'app_feature';
+}
 
 // ── BEL-269：首启包失败后的唯一一条前进路 ────────────────────────────────
 // 首启包屏仍是硬门（成功路径不变），但下载**失败**后不能再只剩「重试」：一次自动
@@ -79,6 +102,7 @@ export function packAttemptAllowed(state) {
 
 // 首屏判定的唯一纯函数（paintFirstRun 用它，重绘/心跳也用它）。抽出来是为了让
 // 「跳过之后再画 N 次仍停在首页」能在测试里被直接断言，而不是靠读 DOM 猜测。
+// 包屏/下载/完成态会主动回来（用户正在管理包），其余一律由 FirstRun.step 判。
 export function firstRunScreenFor(input) {
   const i = input || {};
   if (!i.session) return 'login';
@@ -99,9 +123,10 @@ export function packsBannerView(input) {
   return PackPending.packsBannerState(input);
 }
 
-// 跑一遍下载，失败后**只**再试一次；两次之间等 delayMs。上限恒为 2，不可能无限重试。
-// shouldContinue 让调用方在第二次尝试前再确认一次「这一轮还是当前这一轮」—— 心跳/重绘
-// 不能续跑一轮旧下载。
+// 跑一遍下载，失败后**只**再试一次；两次之间等 delayMs。没有循环上限之外的路径
+// （attempts 恒为 2），所以不可能无限重试。返回最后一次成功值，两次都失败则抛最后
+// 一个错误（调用方据此画失败态）。shouldContinue 让调用方在第二次尝试前再确认一次
+// 「这一轮还是当前这一轮」—— 心跳/重绘/手动切走都不能续跑一轮旧下载。
 export async function runPackAttempts(run, opts) {
   const o = opts || {};
   const limit = (Number.isFinite(o.attempts) && o.attempts > 0)
@@ -120,7 +145,7 @@ export async function runPackAttempts(run, opts) {
       // 先问「还要不要第二次」，再退避：心跳/重绘/切走把这一轮作废时，连等待都不该发生。
       if (typeof o.shouldContinue === 'function' && !o.shouldContinue(attempt + 1)) break;
       if (typeof o.onRetry === 'function') {
-        try { o.onRetry(attempt, e, delayMs); } catch (_) {}
+        try { o.onRetry(attempt, e, delayMs); } catch (_) { /* 进度文案失败不挡重试 */ }
       }
       await sleep(delayMs);
     }
@@ -129,7 +154,7 @@ export async function runPackAttempts(run, opts) {
 }
 
 // 失败态该露哪些出口。retry 是既有 #packs-go（文案仍是「重试」），skip 是
-// #packs-skip；下载中 / 管理屏 / 完成态都不露。
+// #packs-skip；下载中 / 管理屏 / 完成态都不露，避免把失败出口带进别的步骤。
 export function packsFailureActions(state) {
   const s = state || {};
   const blocked = !!s.busy || !!s.manage
@@ -139,6 +164,7 @@ export function packsFailureActions(state) {
 }
 
 // 失败后「稍后补包，先进入」：先落 skip（同一个 listenPacksDone），再进首页。
+// 落盘失败也放行 —— 卡在包屏是最坏结果；能不卡住比多一次探包重要。
 export async function skipPacksToHome(deps) {
   const d = deps || {};
   let persisted = false;
@@ -147,21 +173,12 @@ export async function skipPacksToHome(deps) {
   } catch (_) { persisted = false; }
   try {
     if (typeof d.enterHome === 'function') await d.enterHome({ persisted });
-  } catch (_) {}
+  } catch (_) { /* 进首页失败由调用方的界面兜底 */ }
   return { persisted };
 }
 
-// main 这条线的包下载 telemetry 是「一次流程 = 一条 start → ok/fail」（release 线
-// 已改成按单元上报）。抽成导出，BEL-269 的自动重试才能证明两次尝试 = 2 start / 2 fail。
-export async function reportPackRun(telemetry, surface, run, failCode) {
-  try { await telemetry.packStart(surface); } catch (_) {}
-  try {
-    return await run();
-  } catch (e) {
-    try { await telemetry.packFail(surface, failCode(e)); } catch (_) {}
-    throw e;
-  }
-}
+// BEL-226 的单次下载单元上报已抽到 pack-unit.js（listen-model 的两处裸 ensureVad
+// 也要用同一份 start → ok/fail 契约）；这里只保留 re-export，见文件顶部。
 
 // Only the exact provider callback belongs here. `://oauth/mcp/callback` is
 // handled earlier and is NOT this shape; `isOAuthCallback('belliedmonkey://auth')`
@@ -500,6 +517,11 @@ export function bootShell() {
         provider,
         userId: session && session.userId,
         accessToken: session && session.accessToken,
+        // BEL-223 2026-11-14：method 由登录响应里的 GoTrue 服务端时间戳当场判定，
+        // 随 session 一起带到这里（不落存储）。methodResolved 明确告诉发送口
+        // 「已经判过了」——即使 method 为空也不要再拿本机首见历史猜。
+        method: session && session.authMethod,
+        methodResolved: true,
       });
     } catch (_) { return null; }
   }
@@ -871,6 +893,7 @@ export function bootShell() {
   let packAsrByLang = {};   // 短码 → 这门识别包是否已落地（只经 asrInstalled 写入）
   let packTtsProbeLangs = [];   // 最近一次朗读包探测覆盖的短码
   let packTtsReady = false;
+  let packTtsLangs = [];        // 最近一次 ttsProbe 报的已装语言（packs_ready 分项用）
   let packAsrUnsupported = false;   // 该语种系统不支持识别 ⇒ 唯一允许的降级口
   let packLidReady = false;
   let packVadReady = false;
@@ -970,21 +993,55 @@ export function bootShell() {
     return asrPlan().keep;
   }
 
+  // BEL-226：下载入口面（票面只有两个值）。source 判定与失败 code 表在
+  // pack-unit.js（listen-model 的 VAD 单元共用同一份）。
+  function packSurfaceNow() {
+    return packsManage ? 'settings_packs' : 'first_run_packs';
+  }
+  // 朗读包的实际下载单元：中英共用一行（一个包），泰语一行。locale 用短码，共享包写 zh-en。
+  function ttsUnitDefs(s) {
+    const langs = firstRunLocales(s).map((x) => FirstRun.baseCode(x));
+    const units = [];
+    const kokoro = langs.filter((c) => c === 'zh' || c === 'en');
+    if (kokoro.length) units.push({ pack_id: 'tts_zh_en', locale: 'zh-en', langs: kokoro });
+    if (langs.indexOf('th') >= 0) units.push({ pack_id: 'tts_th', locale: 'th', langs: ['th'] });
+    return units;
+  }
+  function ttsUnitReady(langs) {
+    if (packTtsReady) return true;
+    if (!packTtsLangs.length) return false;
+    return (langs || []).every((c) => packTtsLangs.indexOf(FirstRun.baseCode(c)) >= 0);
+  }
+  function ttsModelsForUnit(langs) {
+    try {
+      if (typeof mtDeviceTtsModelsFor !== 'function') return null;
+      return mtDeviceTtsModelsFor(flavorNow())
+        .filter((m) => (langs || []).indexOf(FirstRun.baseCode(m.lang)) >= 0);
+    } catch (_) { return null; }
+  }
+
   // BEL-226 packs_ready 的计数：与 FirstRun.readiness() 的分项同源（base / asr / tts），
   // 但这里只数「当前所需包数 / 已就绪数」，不记语言名单。tts 的中英共用一行，泰语单独
   // 一行（与 readiness() 的 items 一致）；base 是语种识别 + 人声检测这一项。
+  // items 给出实际下载单元 id：selection_id / ready_kind 都以它为准（base 拆成 lid+vad）。
   function packReadinessCounts(s) {
     const asrLangs = firstRunAsrLangs(s);
     const asrReady = packAsrUnsupported
-      ? asrLangs.length
+      ? 0   // 系统不支持 ≠ 下载成功：asr_ready 不虚报（另发 pack_download_fail{unsupported}）
       : asrLangs.filter((c) => !!packAsrByLang[FirstRun.baseCode(c)]).length;
-    const ttsLangs = firstRunLocales(s).map((x) => FirstRun.baseCode(x));
-    const kokoro = ttsLangs.some((c) => c === 'zh' || c === 'en');
-    const thai = ttsLangs.indexOf('th') >= 0;
-    const ttsRequired = (kokoro ? 1 : 0) + (thai ? 1 : 0);
-    const ttsReady = packTtsReady ? ttsRequired : 0;
+    const units = ttsUnitDefs(s);
+    const ttsRequired = units.length;
+    const ttsReady = units.filter((u) => ttsUnitReady(u.langs)).length;
     const baseReady = (packLidReady && packVadReady) ? 1 : 0;
+    const items = [{ id: 'lid', kind: 'lid' }, { id: 'vad', kind: 'vad' }];
+    for (const c of asrLangs) {
+      const code = FirstRun.baseCode(c);
+      if (code) items.push({ id: 'asr_' + code, kind: 'asr', locale: code });
+    }
+    for (const u of units) items.push({ id: u.pack_id, kind: 'tts', locale: u.locale });
     return {
+      items,
+      surface: packSurfaceNow(),
       base: { required: 1, ready: baseReady },
       asr: { required: asrLangs.length, ready: asrReady },
       tts: { required: ttsRequired, ready: ttsReady },
@@ -1094,8 +1151,10 @@ export function bootShell() {
         packTtsProbeLangs = firstRunLocales(s).map((x) => FirstRun.baseCode(x));
         const st = await LearnTTS.deviceStatus(DEVICE_TTS_ENGINE, firstRunLocales(s));
         packTtsReady = !!(st && st.ready);
-      } catch (_) { packTtsReady = false; }
-    } else { packTtsReady = false; packTtsProbeLangs = []; }
+        // ttsProbe 报的已装语言：packs_ready 的 tts 分项要按单元算，不能拿整批 ready 代替。
+        packTtsLangs = (st && Array.isArray(st.langs)) ? st.langs.map((x) => FirstRun.baseCode(x)) : [];
+      } catch (_) { packTtsReady = false; packTtsLangs = []; }
+    } else { packTtsReady = false; packTtsProbeLangs = []; packTtsLangs = []; }
     if (typeof NativeSpeech !== 'undefined' && NativeSpeech.probe) {
       try {
         const asrLangs = firstRunAsrLangs(s);
@@ -1166,7 +1225,7 @@ export function bootShell() {
 
   // BEL-269：首页「语言包未就绪」横幅。它不是一次性 toast —— 只要「上次是跳过进来」
   // 且包还没齐，每次重绘都重新露出来；包真齐 / 进了包屏才收。文案与判据分离：
-  // packsBannerState 只回答 show，画布只负责把原因写到固定叶子上。
+  // packsBannerState 只回答 show，画布只负责把四个原因写到固定叶子上。
   function paintPacksPending() {
     const sec = $('packs-pending');
     if (!sec) return;
@@ -1209,7 +1268,7 @@ export function bootShell() {
     }
     const seen = await readObSeen();
     let done = await readPacksDone();
-    await readPacksSkipped();
+    const skipped = await readPacksSkipped();
     const probed = Object.assign(packsState(session), { onboardingSeen: seen });
     // 1.19.3 升上来的老用户没有这个标记：这一次探针全齐就补记，下次冷启动不再看探针。
     if (!done && FirstRun.step(probed) === 'home') {
@@ -2072,7 +2131,7 @@ export function bootShell() {
   async function openPackManager() {
     packsManage = true;
     packPhase = 'pick';
-    await readPacksSkipped();
+    await readPacksSkipped();   // 冷启后第一次直接进设置也能知道「上次是跳过进来的」
     const settings = $('app-settings');
     if (settings) settings.hidden = true;
     await paintFirstRun(currentSession || true);
@@ -2092,29 +2151,69 @@ export function bootShell() {
 
   const ASR_PACK_TIMEOUT_MS = PackProgress.ASR_PACK_TIMEOUT_MS;
 
+  // BEL-226：一次真实下载单元 = 一条 start → ok/fail。token 里的 download_id 串起三态；
+  // ok 只在这个 await 正常返回（原生已安装/校验通过）之后发 —— 进度 100% 不触发。
+  // BEL-269：单次尝试仍是一条 start → ok/fail；自动重试是**再调用一次**这里，
+  // 所以两次都失败时 start/fail 各 2 条，且不会凭空发 ok。
+  // BEL-268：`stage` 是这次失败所属的下载阶段（base/asr/tts/vad）。它只编码进既有
+  // `code` 的 id 串（如 download_asr），不新增事件属性 —— 白名单没有 `stage`，
+  // 多一个键会让 bt-ingest 整条拒收（HTTP 200 静默丢）。失败 reason 仍走
+  // TelemetrySession.packFail 的六值归一（e.reason 在那里读）。
+  function runPackUnit(info, fn, stage) {
+    return reportPackUnit(TelemetrySession, info, fn, (e) => packFailCode(e, stage));
+  }
+
   async function downloadBase() {
     const name = t('firstrun_packs_base', '听译基础');
     if (packLidReady && packVadReady) { setRow('base', { phase: 'ready', pct: 100, name }); return; }
+    // BEL-293：当前单元的 info 就是失败归因上下文；onProg 把已有进度写进
+    // info.progress（不新增轮询），LID 失败时再补 ModelSources 的真实 tier。
+    let packInfo = null;
     const onProg = (m) => {
       const named = FirstRun.nameProgress(Object.assign({}, m, { name: name }), name);
       const pct = Math.round((Number(named.fraction) || 0) * 100);
+      if (packInfo) packInfo.progress = pct;
       setRow('base', { phase: 'downloading', pct, name: named.name });
     };
     if (!packVadReady && typeof NativeSpeech !== 'undefined' && NativeSpeech.ensureVad) {
       const vad = vadSpec();
-      if (vad) { packFailStage = 'vad'; await NativeSpeech.ensureVad(vad, onProg); }
+      if (vad) {
+        packInfo = {
+          pack_kind: 'vad', pack_id: 'vad', surface: packSurfaceNow(),
+          source: packSourceFromSpec(vad),
+          // VAD 直调原生，没有换源链 ⇒ 不写 tier（判不出就整键省略）。
+          size: packSizeFromSpec(vad), progress: 0,
+        };
+        await runPackUnit(packInfo, () => NativeSpeech.ensureVad(vad, onProg), 'vad');
+      }
       packVadReady = true;
     }
     if (!packLidReady && typeof NativeSpeech !== 'undefined' && NativeSpeech.ensureLid) {
       const lid = lidSpec();
       if (lid) {
-        packFailStage = 'base';
-        if (typeof ModelSources !== 'undefined' && ModelSources && typeof ModelSources.run === 'function') {
-          const r = await ModelSources.run([lid], flavorNow(), (spec) => NativeSpeech.ensureLid(spec[0], onProg));
-          if (r && r.ok === false) throw Object.assign(new Error(String(r.why || 'lid')), { mtBaseFailed: true });
-        } else {
-          await NativeSpeech.ensureLid(lid, onProg);
-        }
+        packInfo = {
+          pack_kind: 'lid', pack_id: 'lid', surface: packSurfaceNow(),
+          source: packSourceFromSpec(lid),
+          // LID 走 ModelSources 时 tier 在失败时才确定；直调路径不写 tier。
+          size: packSizeFromSpec(lid), progress: 0,
+        };
+        await runPackUnit(packInfo, async () => {
+          if (typeof ModelSources !== 'undefined' && ModelSources && typeof ModelSources.run === 'function') {
+            const r = await ModelSources.run([lid], flavorNow(), (spec) => NativeSpeech.ensureLid(spec[0], onProg));
+            if (r && r.ok === false) {
+              packInfo.tier = packTierFromAttempts(r.attempts);
+              throw Object.assign(new Error(String(r.why || 'lid')), {
+                mtBaseFailed: true,
+                reason: r.why || 'download',
+                tier: packInfo.tier,
+                size: packInfo.size,
+                progress: packInfo.progress,
+              });
+            }
+          } else {
+            await NativeSpeech.ensureLid(lid, onProg);
+          }
+        }, 'base');
       }
       packLidReady = true;
     }
@@ -2122,22 +2221,24 @@ export function bootShell() {
   }
 
   async function downloadTts(s) {
-    const langs = firstRunLocales(s);
-    if (!langs.length) { packTtsReady = true; return; }
+    const units = ttsUnitDefs(s);
+    if (!units.length) { packTtsReady = true; return; }
     if (packTtsReady) {
-      if (langs.indexOf('th') >= 0) setRow('tts:th', { phase: 'ready', pct: 100 });
-      if (langs.indexOf('zh') >= 0 || langs.indexOf('en') >= 0) setRow('tts:zh-en', { phase: 'ready', pct: 100 });
+      for (const u of units) setRow(u.pack_id === 'tts_th' ? 'tts:th' : 'tts:zh-en', { phase: 'ready', pct: 100 });
       return;
     }
     if (typeof LearnTTS === 'undefined' || !LearnTTS.ensureDeviceReady) return;
+    // BEL-293：当前 TTS 单元的归因上下文；onProg 只写已有 fraction，不新增轮询。
+    let packInfo = null;
     const onProg = (m) => {
       const el = $('pack-tts-state');
       if (m && m.state === 'switching') {
         if (el) el.textContent = t('tts_pack_fallback', '地址不可用，换一个重试…');
         return;
       }
-      const named = FirstRun.nameProgress(m, (m && m.locale) || langs[0] || 'tts');
+      const named = FirstRun.nameProgress(m, (m && m.locale) || units[0].langs[0] || 'tts');
       const pct = Math.round((Number(named.fraction) || 0) * 100);
+      if (packInfo) packInfo.progress = pct;
       const rowId = FirstRun.baseCode(named.locale) === 'th' ? 'tts:th' : 'tts:zh-en';
       setRow(rowId, { phase: 'downloading', pct, name: named.name });
       if (el) {
@@ -2145,19 +2246,61 @@ export function bootShell() {
           .replace('{lang}', named.name).replace('{pct}', String(pct));
       }
     };
-    packFailStage = 'tts';
-    const r = await LearnTTS.ensureDeviceReady(onProg, DEVICE_TTS_ENGINE, firstRunLocales(s));
-    if (r && r.ok === false) {
-      const why = String(r.why || r.reason || 'failed') + (r.attempts ? ' · ' + r.attempts : '');
-      throw Object.assign(new Error(why), { mtTtsFailed: true, why });
+    // 按单元逐次 ensureDeviceReady：中英共用一个包（一次），泰语单独一个包（一次）。
+    // 这样每个真正去下的资源都有自己的 download_id / attempt，失败也归得到具体单元；
+    // 仍然只传 firstRunLocales(s) 里的语言（#565：没勾的泰语不会被下）。
+    for (const u of units) {
+      const rowId = u.pack_id === 'tts_th' ? 'tts:th' : 'tts:zh-en';
+      if (ttsUnitReady(u.langs)) { setRow(rowId, { phase: 'ready', pct: 100 }); continue; }
+      packInfo = {
+        pack_kind: 'tts', pack_id: u.pack_id, locale: u.locale, surface: packSurfaceNow(),
+        source: packSourceFromSpec(ttsModelsForUnit(u.langs)),
+        // 真实换源层级要等 ensureDeviceReady 返回 attempts 才确定；判不出就不写。
+        size: packSizeFromSpec(ttsModelsForUnit(u.langs)), progress: 0,
+      };
+      await runPackUnit(packInfo, async () => {
+        const r = await LearnTTS.ensureDeviceReady(onProg, DEVICE_TTS_ENGINE, u.langs);
+        if (r && r.ok === false) {
+          // BEL-293：code 仍是 tts_failed（看板前缀不变），why 进 detail；
+          // message 仍带 attempts，只给人看，不参与遥测。
+          const why = String(r.why || r.reason || 'failed');
+          const tier = packTierFromAttempts(r.attempts);
+          packInfo.tier = tier;
+          throw Object.assign(new Error(why + (r.attempts ? ' · ' + r.attempts : '')), {
+            mtTtsFailed: true,
+            why,
+            reason: why,
+            tier,
+            size: packInfo.size,
+            progress: packInfo.progress,
+          });
+        }
+        return r;
+      }, 'tts');
+      for (const c of u.langs) if (packTtsLangs.indexOf(FirstRun.baseCode(c)) < 0) packTtsLangs.push(FirstRun.baseCode(c));
+      setRow(rowId, { phase: 'ready', pct: 100 });
     }
-    if (langs.indexOf('th') >= 0) setRow('tts:th', { phase: 'ready', pct: 100 });
-    if (langs.indexOf('zh') >= 0 || langs.indexOf('en') >= 0) setRow('tts:zh-en', { phase: 'ready', pct: 100 });
+    packTtsReady = true;
   }
 
   async function downloadAsr(s) {
     if (packAsrReady || packAsrUnsupported) {
-      for (const loc of firstRunAsrLangs(s)) setRow('asr:' + loc, { phase: 'ready', pct: 100, name: endonym(loc) });
+      for (const loc of firstRunAsrLangs(s)) {
+        const code = FirstRun.baseCode(loc);
+        setRow('asr:' + loc, { phase: 'ready', pct: 100, name: endonym(loc) });
+        // 系统不支持这门识别语种：另记 fail{unsupported}，绝不当成下载成功（也不发 start）。
+        if (packAsrUnsupported && !packAsrByLang[code]) {
+          try {
+            await TelemetrySession.packUnsupported({
+              pack_kind: 'asr', pack_id: 'asr_' + code, locale: code,
+              surface: packSurfaceNow(), source: 'system',
+              // ASR 直调 ensureAssets：没有换源链（tier 省略）；系统包大小 ⇒ 未知 0。
+              // 原生判据是 probe reason='locale'，透传给 detail（只认原生 reason）。
+              reason: 'locale', size: 0, progress: 0,
+            });
+          } catch (_) {}
+        }
+      }
       return;
     }
     if (typeof NativeSpeech === 'undefined' || !NativeSpeech.ensureAssets) return;
@@ -2165,37 +2308,47 @@ export function bootShell() {
     for (const loc of langs) setRow('asr:' + loc, { phase: 'queued', pct: 0, name: endonym(loc) });
     for (const loc of langs) {
       const code = FirstRun.baseCode(loc);
-      // BEL-269：自动重试会重跑整段下载；已落地的这一门不能再下一次。
+      // BEL-269：自动重试会重跑整段下载；已落地的这一门不能再下一次，否则重试会
+      // 凭空多出 start/ok 两条事件，也会重复占用下载带宽。
       if (packAsrByLang[code]) {
         setRow('asr:' + loc, { phase: 'ready', pct: 100, name: endonym(loc) });
         continue;
       }
       setRow('asr:' + loc, { phase: 'downloading', pct: 0, name: endonym(loc) });
-      packFailStage = 'asr';
-      let timer = null;
-      let asrLast = '';
-      const timeout = new Promise((_res, rej) => {
-        timer = setTimeout(() => {
-          const e = new Error('stt-timeout');
-          e.mtSttTimeout = true;
-          e.mtAsrLast = asrLast;
-          rej(e);
-        }, ASR_PACK_TIMEOUT_MS);
-      });
-      try {
-        await Promise.race([NativeSpeech.ensureAssets('stt', [speechLocale(loc)], (m) => {
-          if (!m) return;
-          const named = FirstRun.nameProgress(Object.assign({}, m, { name: endonym(loc) }), endonym(loc));
-          const pct = (typeof named.fraction === 'number') ? Math.round(named.fraction * 100) : 0;
-          const extra = [];
-          if (m.status) extra.push('status=' + m.status);
-          if (typeof m.total === 'number') extra.push('bytes=' + (m.completed || 0) + '/' + m.total);
-          asrLast = String(named.state || '') + ' ' + pct + '%' + (extra.length ? ' · ' + extra.join(' ') : '');
-          setRow('asr:' + loc, { phase: 'downloading', pct, name: named.name });
-          const el = $('pack-asr-state');
-          if (el) el.textContent = named.name + ' ' + pct + '%';
-        }), timeout]);
-      } finally { clearTimeout(timer); }
+      const asrInfo = {
+        pack_kind: 'asr', pack_id: 'asr_' + code, locale: code,
+        surface: packSurfaceNow(), source: 'system',
+        // ASR 直调 ensureAssets：没有换源链（tier 省略）；系统包大小 ⇒ 未知 0。
+        size: 0, progress: 0,
+      };
+      await runPackUnit(asrInfo, async () => {
+        let timer = null;
+        let asrLast = '';
+        const timeout = new Promise((_res, rej) => {
+          timer = setTimeout(() => {
+            const e = new Error('stt-timeout');
+            e.mtSttTimeout = true;
+            e.mtAsrLast = asrLast;
+            rej(e);
+          }, ASR_PACK_TIMEOUT_MS);
+        });
+        try {
+          await Promise.race([NativeSpeech.ensureAssets('stt', [speechLocale(loc)], (m) => {
+            if (!m) return;
+            const named = FirstRun.nameProgress(Object.assign({}, m, { name: endonym(loc) }), endonym(loc));
+            const pct = (typeof named.fraction === 'number') ? Math.round(named.fraction * 100) : 0;
+            asrInfo.progress = pct;
+            const extra = [];
+            if (m.status) extra.push('status=' + m.status);
+            if (typeof m.total === 'number') extra.push('bytes=' + (m.completed || 0) + '/' + m.total);
+            asrLast = String(named.state || '') + ' ' + pct + '%' + (extra.length ? ' · ' + extra.join(' ') : '');
+            setRow('asr:' + loc, { phase: 'downloading', pct, name: named.name });
+            const el = $('pack-asr-state');
+            if (el) el.textContent = named.name + ' ' + pct + '%';
+          }), timeout]);
+        } finally { clearTimeout(timer); }
+      }, 'asr');
+      // BEL-269：重试幂等键用 baseCode；BEL-268 只改 code 后缀，不改这个键。
       packAsrByLang[code] = true;
       setRow('asr:' + loc, { phase: 'ready', pct: 100, name: endonym(loc) });
     }
@@ -2228,9 +2381,12 @@ export function bootShell() {
 
   // BEL-269：失败后的备用出口。写的就是 listenPacksDone（与成功同一个键），所以
   // 下次冷启动 FirstRun.step 直接 home；先进首页，不打开听译页。
+  // 另写 listenPacksSkipped：路由仍只看 done（不会被拉回包屏），但首页要知道
+  // 「包还没齐」，从而挂横幅、把听译/字幕/朗读入口画成不可用并说明原因。
   async function onPacksSkip() {
     if (packsBusy || packsManage) return;
     const err = $('packs-err');
+    // 重试/手动重试一开始就收掉上一次的失败态（含 #packs-skip），下载中不露失败出口。
     if (err) err.hidden = true;
     const skip = $('packs-skip');
     if (skip) skip.hidden = true;
@@ -2243,27 +2399,8 @@ export function bootShell() {
     });
   }
 
-  // 下载 → 重新探 → 齐态自动进首页/回来源（D-03）。失败留在这一屏，不跳。
-  // BEL-226：pack_download_fail 的 code 只发 id 型（注册表 'id'）。不塞系统长文/路径。
-  // BEL-268：main 这条线的 pack_download_fail 白名单只有 setup_id/surface/code（没有
-  // reason 枚举），所以把失败阶段编码进既有 code 的后缀：download_asr / base / tts / vad。
-  // 仍以 download 开头，老看板按前缀统计不换口径；阶段未知就退回 download。不新增属性
-  // （events.gen.json 没有 stage，bt-ingest 会整条拒收）。
-  function packFailCode(e, stage) {
-    if (!e) return 'download';
-    if (e.mtSttTimeout) return 'timeout';
-    if (e.mtTtsFailed) return 'tts_failed';
-    if (e.mtBaseFailed) return 'base_failed';
-    const code = String(e.code || '').toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 32);
-    const base = /^[a-z0-9_-]+$/.test(code) ? code : 'download';
-    const stages = ['base', 'asr', 'tts', 'vad'];
-    const explicit = String(e.stage || '').toLowerCase();
-    const fallback = String(stage || '').toLowerCase();
-    const st = stages.indexOf(explicit) >= 0 ? explicit
-      : (stages.indexOf(fallback) >= 0 ? fallback : '');
-    if (!st || base !== 'download') return base;
-    return (base + '_' + st).slice(0, 32);
-  }
+  // BEL-226/268 失败 code 的归一化（download → download_<stage>）在 pack-unit.js。
+  // 这里保留注释锚点：四个下载单元仍各自把阶段经 runPackUnit 的第 3 个参数传进去。
 
   async function runFirstRunPacks(source) {
     // 心跳/重绘没有用户手势，不允许开始一轮真实下载；跳过之后后台也不许自动再试。
@@ -2272,29 +2409,27 @@ export function bootShell() {
     packsBusy = true;
     const runId = ++packRunSeq;
     packPhase = 'downloading';
-    // 一条「把包配齐」的流程 = 一个 setup_id（跨启动不变，见 telemetry-session.js）。
-    // 每次尝试各发一条 start（失败再发 fail）；ok 仍只在探包确认齐了之后发。
-    const packSurface = TelemetrySession.currentSurfaceSync();
+    // BEL-226：不再按「整批」发一条 start/ok/fail —— 每个真正下载的单元由 download*()
+    // 里的 runPackUnit() 各自发 start → ok/fail（同一个 download_id）。这里只负责编排。
     // 把当前这一对**落盘**（#564）：选「默认值」不触发 change 时，重画不能按「未设置」重算。
     try { chrome.storage.local.set({ listenMyLang: langPair[0], listenOtherLang: langPair[1], listenPackLangs: packLangs.slice(), listenPackThaiTts: !!packThaiTts, listenPackKokoro: packKokoroOff ? false : true }, () => {}); } catch (_) {}
     const err = $('packs-err');
     // 重试/手动重试一开始就收掉上一次的失败态（含 #packs-skip），下载中不露失败出口。
     if (err) err.hidden = true;
-    packFailStage = '';
     try { await paintFirstRun(currentSession); } catch (_) {}
     try {
-      // BEL-269：整段下载失败后自动再跑**一次**（固定退避），上限恒为 2。
+      // BEL-269：整段下载失败后自动再跑**一次**（固定退避）。runPackAttempts 的上限
+      // 恒为 2，第二次失败就抛给下面画失败态，不会无限重试。成功路径仍然只跑一次。
       await runPackAttempts(async () => {
-        await reportPackRun(TelemetrySession, packSurface, async () => {
-          const s = await readObSettings();
-          await downloadBase();
-          await downloadTts(s);
-          await downloadAsr(s);
-        }, (e) => packFailCode(e, packFailStage));
+        const s = await readObSettings();
+        await downloadBase();
+        await downloadTts(s);
+        await downloadAsr(s);
       }, {
         attempts: PACK_AUTO_RETRY_ATTEMPTS,
         delayMs: PACK_AUTO_RETRY_DELAY_MS,
-        // 第二次尝试前再确认：还是同一轮、仍在下载。心跳/重绘改不了这个判据。
+        // 第二次尝试前再确认：还是同一轮、仍在下载。心跳/重绘改不了这个判据，所以
+        // 它们既不会开始新一轮，也不会把旧轮次的二次尝试续上。
         shouldContinue: () => packRunSeq === runId && packsBusy,
       });
     } catch (e) {
@@ -2325,7 +2460,6 @@ export function bootShell() {
       await paintFirstRun(currentSession);
       return;
     }
-    try { await TelemetrySession.packOk(packSurface); } catch (_) {}
     packPhase = 'done';
     // 下载完成就记；齐态立刻 dismiss（D-03），不停留完成页。
     try { await writePacksDone(); } catch (_) {}
@@ -3737,7 +3871,17 @@ export function bootShell() {
     $('signed-in').hidden = true;
     $('signed-out').hidden = true;
     $('review-view').hidden = true;
+    const settingsWasHidden = $('app-settings').hidden;
     $('app-settings').hidden = false;
+    // BEL-290：只在 hidden → visible 的那一刻发一条。openSettings 也可能在人已经
+    // 在设置页里时被调用（深链 / 卡片按钮）；那种情况不是一次「打开设置」。
+    if (settingsWasHidden) {
+      try {
+        if (typeof MTTelemetry !== 'undefined') {
+          MTTelemetry.track('settings_open', { surface: settingsSurfaceFor(anchorId) });
+        }
+      } catch (_) {}
+    }
     // 旧 AppSettings.paint(session, say) 的时序位：现在走通知制 —— 视图订阅
     // onSettingsShown，这里等所有订阅者的重画 promise 收齐（「paint 之后再滚」不变）。
     await settingsModel.notifySettingsShown(currentSession);
@@ -4043,7 +4187,8 @@ export function bootShell() {
               } catch (_) { byok = false; grant = false; }
               const base = {
                 login: !!(currentSession && currentSession.userId),
-                // 跳过的用户 done=true，但包并没有齐 —— 对宿主必须报 false。
+                // 跳过的用户 done=true，但包并没有齐 —— 对宿主必须报 false，不能
+                // 用「包屏不再拦」冒充「包已就绪」。
                 packs: !!packs && !packsSkippedMem,
                 // Host key is read by the stdio process. Here, own key beats grant.
                 // Unmeasured storage stays null so a read failure is not "no key".

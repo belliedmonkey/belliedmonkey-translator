@@ -18,6 +18,30 @@ const { execSync } = require('child_process');
 const argv = process.argv.slice(2);
 const TARGET = argv.includes('firefox') ? 'firefox' : 'chrome';
 
+// CI package smoke is a BUILD-ONLY flag, not an environment string. It is an
+// exact argv token (no trim, no case folding, no near-match) and it only opts
+// into the placeholder gate so a runner without backend secrets can exercise
+// the manifest / compliance gates. It is never shippable: the build forces
+// SKIP_ZIP and writes .not-shippable into dist and dist-app*.
+// releaseReason() still refuses a plain CI build; the raw-exact ci-package-smoke
+// context is the only CI allowance it carries.
+const CI_PACKAGE_SMOKE = argv.includes('--ci-package-smoke');
+
+function envTruthy(v) {
+  return typeof v === 'string' && v.trim() !== '' && !/^(0|false|no|off)$/i.test(v.trim());
+}
+
+if (CI_PACKAGE_SMOKE) {
+  if (process.env.MT_RELEASE === '1') {
+    err('--ci-package-smoke refused: MT_RELEASE=1 is a release build');
+    process.exit(1);
+  }
+  if (!envTruthy(process.env.CI)) {
+    err('--ci-package-smoke is CI-only: process.env.CI must be truthy');
+    process.exit(1);
+  }
+}
+
 function readFlavor() {
   const i = argv.findIndex((a) => a === '--flavor');
   if (i >= 0 && argv[i + 1]) return argv[i + 1];
@@ -55,12 +79,14 @@ let SKIP_ZIP = null;
 // BEL-259: local-preview escape hatch. Exactly the string "1"; refused in any
 // release-like context. When it is on, SKIP_ZIP is forced and .not-shippable is
 // written into BOTH dist and dist-app*. See backendInject.placeholderMode().
+// --ci-package-smoke is the separate BUILD-ONLY opt-in for CI: it is validated
+// above, forces its own non-shippable marker, and does not change releaseReason().
 const PLACEHOLDER = backendInject.placeholderMode(process.env);
-if (PLACEHOLDER.enabled && PLACEHOLDER.refused) {
+if (!CI_PACKAGE_SMOKE && PLACEHOLDER.enabled && PLACEHOLDER.refused) {
   err(`MT_ALLOW_PLACEHOLDER_BACKEND=1 is local-preview only, but this looks like a release build (${PLACEHOLDER.refused})`);
   process.exit(1);
 }
-const ALLOW_PLACEHOLDER = PLACEHOLDER.enabled;
+const ALLOW_PLACEHOLDER = CI_PACKAGE_SMOKE || PLACEHOLDER.enabled;
 
 // RETIRED as of Gate B (v1.4.0, 2026-08-09): the source switch is now true, so
 // `MT_SYNC=on` is a no-op kept only so old muscle memory / scripts don't fail.
@@ -1313,7 +1339,11 @@ console.log(`\n\x1b[1mBuilding Mobile Translator — ${isFirefox ? 'Firefox' : '
 //
 // `previousUrl` is intentionally not part of this call: it is the BEL-260
 // sentinel, not a backend the client talks to.
-if (ALLOW_PLACEHOLDER) {
+if (CI_PACKAGE_SMOKE) {
+  SKIP_ZIP = 'CI package smoke (non-shippable)';
+  log('\x1b[33m--ci-package-smoke — CI package smoke only；no zip/xpi, '
+    + '.not-shippable markers will be written\x1b[0m');
+} else if (ALLOW_PLACEHOLDER) {
   SKIP_ZIP = 'placeholder backend allowed for local preview (MT_ALLOW_PLACEHOLDER_BACKEND=1)';
   log('\x1b[33mMT_ALLOW_PLACEHOLDER_BACKEND=1 — placeholder backend allowed for LOCAL PREVIEW ONLY；'
     + 'no zip/xpi, .not-shippable markers will be written\x1b[0m');

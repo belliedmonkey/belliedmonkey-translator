@@ -143,9 +143,13 @@ var EngineTest = (() => {
   // LearnNotes.resolveConfig），所以「该检查哪个地址」只有解析完才知道。此前这一支
   // 根本不检查，靠 options.js 在外面自己猜一次（`notes-provider` 非空就查 notes 的框）
   // —— App 没有那一份，于是 App 上的地址错全部落进 http 404。四条传输现在一致。
-  async function notes(settings) {
+  async function notes(settings, meta) {
     if (typeof LearnNotes === 'undefined') throw missing('LearnNotes');
     const cfg = LearnNotes.resolveConfig(settings || {});
+    // BEL-284：provider 要从**这次真正用的** cfg 来（解析组可以跟随翻译组），
+    // 所以由 notes() 自己把结果交给 probe() 的 catch，而不是在外面再解析一遍。
+    // 放在 assertEndpointShape / assertKey 之前：no_path / no_key 也知道是哪个引擎。
+    if (meta) meta.provider = cfg.provider;
     assertEndpointShape(cfg.baseUrl);
     assertKey(cfg.provider, cfg.apiKey);
     LearnNotes.configure(cfg);
@@ -204,27 +208,55 @@ var EngineTest = (() => {
   // 的失败」，也不要让那一条失败从统计里消失（同 credit_exhausted 那条教训）。
   const TRACK_CODES = ['no_key', 'no_base', 'no_path', 'bad_url', 'no_engine', 'unknown_provider',
     'network', 'timeout', 'http', 'bad_output', 'empty_output', 'empty_audio',
-    'reasoning_starved'];   // device_no_file 留在白名单里给历史行读回，客户端自 2026-09-17 起不再产生
-  function track(slot, result, code) {
+    'reasoning_starved', 'auth', 'model_not_allowed', 'credit_exhausted', 'grant_unavailable',
+    'stalled'];   // device_no_file 留在白名单里给历史行读回，客户端自 2026-09-17 起不再产生
+  // 与 engine_set.provider 的 'id' 规则同一把尺子（telemetry.config.js）。不另造枚举。
+  const PROVIDER_ID = /^[a-z0-9_-]{1,32}$/;
+  // BEL-290：surface 与注册表 ENGINE_TEST_SURFACES 同源（五个旧功能面 + 三个设定面）。
+  // 不在表里的值不写 —— 客户端白名单是整条丢弃，静默消失比少一个键更难查。
+  // 与 build/telemetry.config.js 的一致性由 test/bel290-*.test.js 钉住。
+  const ENGINE_TEST_SURFACES = ['listen', 'live_caption', 'quick', 'doc', 'web_caption',
+    'setup_quick', 'setup_fields', 'setup_onboard'];
+  function track(slot, result, err, provider, surface) {
     try {
       if (typeof MTTelemetry === 'undefined') return;
       const props = { slot, result };
-      if (result === 'fail') props.code = TRACK_CODES.indexOf(code) >= 0 ? code : 'other';
+      if (typeof surface === 'string' && ENGINE_TEST_SURFACES.indexOf(surface) >= 0) props.surface = surface;
+      if (result === 'fail') {
+        const e = (err && typeof err === 'object') ? err : null;
+        const code = (e && e.code) || (typeof err === 'string' ? err : '');
+        props.code = TRACK_CODES.indexOf(code) >= 0 ? code : 'other';
+        // 只写 HTTP status 本身（100–599 的整数）。注册表的 'int' 不校验范围，
+        // 所以越界/非整数在这里就丢掉 —— 不写 0、不写空串。
+        const http = e && e.status;
+        if (Number.isInteger(http) && http >= 100 && http <= 599) props.http = http;
+        // 只认两条真实通路；空串/未知不写。
+        const route = e && e.route;
+        if (route === 'direct' || route === 'proxy') props.route = route;
+        // 本次测试用的 cfg.provider；'id' 规则之外不写。
+        if (typeof provider === 'string' && PROVIDER_ID.test(provider)) props.provider = provider;
+      }
       MTTelemetry.track('engine_test', props);
     } catch (_) {}
   }
   // 成功/失败都记，且**不改变**调用方看到的东西：原样 return、原样 throw。
-  async function probe(slot, run) {
-    try { const r = await run(); track(slot, 'ok'); return r; }
-    catch (e) { track(slot, 'fail', (e && e.code) || ''); throw e; }
+  // providerOf 是函数：notes() 要等 resolveConfig() 之后才知道 provider。
+  // surface 是可缺的：不传时 props 保持 {slot,result}（旧形状），调用方无需改。
+  async function probe(slot, run, providerOf, surface) {
+    try { const r = await run(); track(slot, 'ok', null, null, surface); return r; }
+    catch (e) { track(slot, 'fail', e, typeof providerOf === 'function' ? providerOf() : providerOf, surface); throw e; }
   }
 
   return {
     reason, serverLine, assertEndpointShape, shapeHint, format,
-    translation: (cfg) => probe('chat', () => translation(cfg)),
-    notes: (settings) => probe('notes', () => notes(settings)),
-    stt: (cfg) => probe('stt', () => stt(cfg)),
-    tts: (cfg) => probe('tts', () => tts(cfg)),
+    translation: (cfg) => probe('chat', () => translation(cfg), () => cfg && cfg.provider, cfg && cfg.surface),
+    notes: (settings, surface) => {
+      const meta = {};
+      const sf = typeof surface === 'string' ? surface : (settings && settings.surface);
+      return probe('notes', () => notes(settings, meta), () => meta.provider, sf);
+    },
+    stt: (cfg) => probe('stt', () => stt(cfg), () => cfg && cfg.provider, cfg && cfg.surface),
+    tts: (cfg) => probe('tts', () => tts(cfg), () => cfg && cfg.provider, cfg && cfg.surface),
     device: (locales, timeoutMs) => probe('stt', () => device(locales, timeoutMs)),
   };
 })();

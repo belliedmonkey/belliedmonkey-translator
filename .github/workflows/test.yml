@@ -64,11 +64,11 @@ jobs:
       matrix:
         include:
           - flavor: global
-            cmd: node build.js
+            cmd: node build.js --ci-package-smoke
           - flavor: china
-            cmd: node build.js --flavor china
+            cmd: node build.js --flavor china --ci-package-smoke
           - flavor: firefox
-            cmd: node build.js firefox
+            cmd: node build.js firefox --ci-package-smoke
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -80,10 +80,12 @@ jobs:
       # `data_collection_permissions` assertion (issue #53) and the china-flavor
       # compliance grep over dist-china/. A green build IS the gate here; the
       # zip it produces is a byproduct we throw away.
-      # The placeholder hatch is the only way a runner with no backend secrets
-      # can package at all. It forces SKIP_ZIP and writes .not-shippable into
-      # dist and dist-app*, so nothing here is shippable. ci-package-smoke is an
-      # exact-string context that releaseReason allows; CI=true alone stays refused.
+      # The runner has no backend secrets, so every command opts into the
+      # CI-only --ci-package-smoke flag. It forces SKIP_ZIP and writes
+      # .not-shippable into dist and dist-app*, so nothing here is shippable.
+      # The flag is an exact argv token and is refused unless CI is truthy.
+      # releaseReason() still refuses a plain CI build; the raw-exact
+      # ci-package-smoke context is its only allowance. GitHub Actions sets CI=true.
       - run: ${{ matrix.cmd }}
         env:
           MT_ALLOW_PLACEHOLDER_BACKEND: '1'

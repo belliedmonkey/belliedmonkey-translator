@@ -4378,12 +4378,6 @@
   "settings_value_follow": {
     "message": "Der Oberflächensprache folgen"
   },
-  "app_e1_label": {
-    "message": "Chinesische Spracherkennung mit SenseVoice"
-  },
-  "app_e1_note": {
-    "message": "Standardmäßig aktiviert, nur für Chinesisch (zh). Das Modell wird bei der ersten Nutzung im Hintergrund heruntergeladen (ca. 160 MB). Bis zum Abschluss und bei Fehlern wird die Systemdiktierung verwendet. Die Änderung gilt ab der nächsten Sitzung. Ausschalten kehrt zur Systemdiktierung zurück."
-  },
   "firstrun_packs_skip": {
     "message": "Später nachladen, jetzt fortfahren"
   },
@@ -4417,5 +4411,11 @@
   "listen_perm_denied_body": {
     "message": "Aktiviere „Mikrofon“ in den Systemeinstellungen und tippe hier anschließend auf „Erneut versuchen“ — die App muss nicht neu gestartet werden.",
     "description": "BEL-273 microphone permission gate"
+  },
+  "app_e1_label": {
+    "message": "Chinesische Spracherkennung mit SenseVoice"
+  },
+  "app_e1_note": {
+    "message": "Standardmäßig aktiviert, nur für Chinesisch (zh). Das Modell wird bei der ersten Nutzung im Hintergrund heruntergeladen (ca. 160 MB). Bis zum Abschluss und bei Fehlern wird die Systemdiktierung verwendet. Die Änderung gilt ab der nächsten Sitzung. Ausschalten kehrt zur Systemdiktierung zurück."
   }
 }

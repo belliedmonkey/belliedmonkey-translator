@@ -247,7 +247,7 @@ describe('backend.config.js — build-time injection (BEL-172)', () => {
     // BEL-188: this CN release branch intentionally pins the live relay host. It is a
     // public SCF endpoint, not a secret; intl keeps the BEL-172 placeholder + injection.
     const cnRelay = new URL(CFG.grant.china.relayUrl);
-    eq(cnRelay.hostname, '1320551096-573eoa6wc4.ap-beijing.tencentscf.com');
+    eq(cnRelay.hostname, '1320551096-7zvs1q2ggu.ap-beijing.tencentscf.com');
     ok(!code.replace(cnRelay.hostname, '').includes('tencentscf.com'),
       'backend.config.js 出现了非现网入口的 tencentscf.com 主机');
   });
@@ -257,7 +257,7 @@ describe('backend.config.js — build-time injection (BEL-172)', () => {
     eq(new URL(CFG.china.url).hostname, 'cn.backend.invalid');
     ok(!/^eyJ/.test(CFG.anonKey), 'anonKey 占位符不该长得像真 key');
     ok(!/^eyJ/.test(CFG.china.anonKey));
-    eq(new URL(CFG.grant.china.relayUrl).hostname, '1320551096-573eoa6wc4.ap-beijing.tencentscf.com');
+    eq(new URL(CFG.grant.china.relayUrl).hostname, '1320551096-7zvs1q2ggu.ap-beijing.tencentscf.com');
   });
 
   test('apply() 注入后占位符消失', () => {
@@ -272,7 +272,7 @@ describe('backend.config.js — build-time injection (BEL-172)', () => {
       if (s === INJECT.SENTINEL.chinaRelay) continue;   // pinned on this branch
       ok(!out.includes(s), `占位符 ${s} 还在`);
     }
-    ok(out.includes('https://1320551096-573eoa6wc4.ap-beijing.tencentscf.com'),
+    ok(out.includes('https://1320551096-7zvs1q2ggu.ap-beijing.tencentscf.com'),
       'CN 中继字面值被注入覆盖或丢失');
   });
 

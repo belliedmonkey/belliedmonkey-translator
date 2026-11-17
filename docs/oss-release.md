@@ -80,7 +80,9 @@ MT_BACKEND_URL=https://<intl-host>
 MT_BACKEND_ANON_KEY=<publishable anon key>
 MT_CHINA_BACKEND_URL=https://<china-host>
 MT_CHINA_BACKEND_ANON_KEY=<publishable anon key>
-MT_CHINA_RELAY_URL=https://<china-relay-host>
+# 不要设 MT_CHINA_RELAY_URL：CN 中继 URL 是 extension/learn/backend.config.js 里的
+# 字面值（BEL-188/279）。源码没有 https://relay.invalid 占位，设了会让构建报
+# "placeholder appears 0 time(s)"。
 EOF
 
 # 或 CI secret → 同名环境变量
@@ -89,6 +91,8 @@ node build.js
 
 - 没有注入时构建仍成功，但产物指向 `*.invalid`，`build.js` 会打黄字。这是有意的：
   一个没有 secret 的 OSS 构建**不应该**悄悄连到生产后端。
+- CN 中继 URL 是发布分支上的字面值（`grant.china.relayUrl`），**不**走环境变量；
+  换 host 只改那一处，再重跑 `npm run models` 与 CN `/spec` 构建门。
 - `build/backend-inject.js` 拒绝 `service_role` JWT、非 https、以及两个 flavor 共用同一后端。
 - **CI 只打 mock**：`mocks/hosted-gateway/`（`npm run mock:hosted-gateway`）。真 grant 密钥
   永不进 CI。

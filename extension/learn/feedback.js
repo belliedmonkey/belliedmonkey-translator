@@ -74,10 +74,12 @@ var MTFeedback = (() => {
   }
 
   // 'app' | 'safari' | 'firefox' | 'chrome'。宿主 App 先判：WKWebView 的 UA 在 macOS 上
-  // 也带 Safari 字样，靠 UA 分不出来；它有而浏览器没有的是原生桥。
+  // 也带 Safari 字样，靠 UA 分不出来；它有而浏览器没有的是原生桥。快速面板是第二个
+  // WKWebView，只注册 mtQuick 没有 controller —— 两个都算 App（BEL-279）。
   function host() {
     try {
-      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.controller) return 'app';
+      const mh = window.webkit && window.webkit.messageHandlers;
+      if (mh && (mh.controller || mh.mtQuick)) return 'app';
     } catch (_) {}
     try {
       if (typeof browser !== 'undefined' && browser.runtime && browser.runtime.getBrowserInfo) return 'firefox';

@@ -36,6 +36,7 @@ import * as PackProgress from './pack-progress.js';
 import * as ASRQuota from './asr-quota.js';   // 识别语言名额的本机记忆（第 5 轮 A / 改稿 H）
 import * as MicPerm from './mic-permission.js';   // BEL-273：进听译前的麦克风权限状态机
 import * as TelemetrySession from './telemetry-session.js';   // BEL-223/225/226 的 launch_id/surface/gate
+import { reportPackUnit, packFailCode, packSourceFromSpec, packSizeFromSpec } from './pack-unit.js';   // BEL-290：两处裸 ensureVad 的 start→ok/fail
 import * as PackPending from './pack-pending.js';   // BEL-269：跳过包屏后入口必须说「包未就绪」
 import { createHalt, meterText, failSurface } from './n26-session.js';
 import * as Quota from '../shared/quota.js';   // P1-1：余额的唯一运行时来源（刷新 / stale / 同口径）
@@ -328,6 +329,53 @@ const listenModel = (() => {
   // 本机转写（§9.6.1）是这一页**唯一**的转写路（2026-09-17 起，learning-design §9.6 门控修订）：
   // 没有云端 socket、没有引擎下拉、没有 key。桥在不在由 NativeSpeech 探过才知道。
   function deviceBridge() { return typeof NativeSpeech !== 'undefined' && NativeSpeech.available(); }
+  // BEL-223：把「桥 / 探针」的原始状态报给 TelemetrySession.liveGate()，由它翻成票面
+  // result。script_missing = 桥脚本不在包里；channel_missing = 脚本在、mtSpeech 通道不在。
+  function bridgeState() {
+    if (typeof NativeSpeech === 'undefined') return 'script_missing';
+    return NativeSpeech.available() ? 'ok' : 'channel_missing';
+  }
+  // 五个功能面里的两个：这个页面的会话是「对话听译」还是「实时字幕」。
+  function funnelSurface() { return mode === 'subtitle' ? 'live_caption' : 'listen'; }
+  function gateCopyClass(result) {
+    if (result === 'locale_unsupported') return 'switch_locale';
+    if (result === 'os_below_min' || result === 'no_transcriber'
+        || result === 'script_missing' || result === 'channel_missing') return 'need_os';
+    return 'other';
+  }
+  // 原生 reason:'os' 不区分「低于 26」与「SpeechTranscriber.isAvailable=false」。
+  // UA 能读到 iOS 主版本时 ≥26 ⇒ no_transcriber；读不到（Mac / 非 iOS UA）按
+  // os_below_min 记 —— 原生桥缺字段，宁可偏保守，缺口写进 RESULT。
+  function gateOsResult(probe) {
+    if (probe && probe.reason === 'os') {
+      try {
+        const ua = String((typeof navigator !== 'undefined' && navigator.userAgent) || '');
+        const m = /OS (\d+)[._]/.exec(ua);
+        if (m && Number(m[1]) >= 26) return 'no_transcriber';
+      } catch (_) {}
+    }
+    return 'os_below_min';
+  }
+  function gateResult(probe, ok) {
+    const bridge = bridgeState();
+    if (bridge !== 'ok') return bridge;
+    if (ok) return 'ok';
+    const r = probe || (typeof NativeSpeech !== 'undefined' ? NativeSpeech.probeResult() : null);
+    const why = String((r && r.reason) || '');
+    if (why === 'timeout') return 'probe_timeout';
+    if (why === 'locale') return 'locale_unsupported';
+    if (why === 'no-bridge') return 'channel_missing';
+    if (why === 'os') return gateOsResult(r);
+    return 'no_transcriber';
+  }
+  // BEL-223：no_transcriber 的前提就是 UA 已确认 iOS ≥26、只是识别器没开放 ——
+  // 所以 os_meets_min 必须为 true；只有 os_below_min 才是系统不达标。
+  // 超时 / 桥缺失（含字幕入口的 hidden）这类「不知道」的情况省略键。
+  function gateOsMeetsMin(result) {
+    if (result === 'no_transcriber' || result === 'ok' || result === 'locale_unsupported') return true;
+    if (result === 'os_below_min') return false;
+    return undefined;
+  }
   // 一个 locale 一路识别器：我方 + 对方（两边一样时只开一路）。
   function deviceLocales(c) {
     // 实时字幕只开「视频的语言」一路识别器（MODES.subtitle.recognizers = 1）
@@ -371,6 +419,7 @@ const listenModel = (() => {
       : t('listen_need_os', '对话 · 实时字幕需要 iOS 26 / macOS 26');
   }
   let trackedNoLive = false;
+  let gateRefreshSeen = false;
 
   // ── 首页入口（门控与播客模式同规矩：门不过入口不存在，留一条去设置的路）──────
   // 入口在登录前后两个首页上都有（对话不依赖账号：语料写本机，§9.6），同一门控。
@@ -380,19 +429,41 @@ const listenModel = (() => {
   async function refreshEntry() {
     let ok = false;
     let probe = null;
+    let locales = [];
+    const firstRefresh = !gateRefreshSeen;
+    gateRefreshSeen = true;
     // BEL-269：探针说「识别器可用」只代表硬件/系统这一层；包没下完时入口仍不可用。
     // 与探针分开读，避免把「包缺」误记成 no_live / locale_unsupported 的遥测结果。
     const packsPending = await PackPending.readPacksPending();
     try {
       const c = await readCfg();
+      locales = deviceLocales(c);
       // 先探桥（旧系统 / 语言不支持 / 资产缺失都在这里得到具名答案），再判门。
       // **用 probe() 的返回值**，不 `probeResult()` 回读全局：并发探针（首启包屏的逐门探针）
       // 会把全局结论换成别的 round 的（第 4 轮问题 1/4）。
-      probe = deviceBridge() ? await NativeSpeech.probe(deviceLocales(c)) : null;
+      probe = deviceBridge() ? await NativeSpeech.probe(locales) : null;
       ok = deviceBridge() && !!(probe && probe.ok);
     } catch (_) { ok = false; }
     try { canvas.view('langs'); } catch (_) {}   // 探到支持的语种清单 ⇒ 下拉只列支持的
     // 探针没落定（超时）**不是**「不可用」：保留上一次入口状态，别把已就绪的入口灰掉。
+    const reusedPrior = !!(probe && (probe.stale || (probe.reason === 'timeout' && entryState[''])));
+    // BEL-223 live_gate：首页入口判定（先桥后探针）。探测成功也记 result:'ok'；
+    // 失败原因拆分以这里为准，asr_entry.result:'no_live' 暂时继续记。
+    const gateRes = gateResult(probe, ok);
+    try {
+      TelemetrySession.liveGate({
+        surface: 'listen',
+        ok,
+        bridgeState: bridgeState(),
+        probeReason: probe && probe.reason,
+        result: gateRes,
+        osMeetsMin: gateOsMeetsMin(gateRes),
+        probeLocale: locales[0],
+        reasonCopyClass: gateCopyClass(gateRes),
+        firstRefresh,
+        reusedPriorState: reusedPrior,
+      });
+    } catch (_) {}
     // 超时保留上一次入口状态，但包未就绪是硬事实 —— 它不能沿用「上次可用」。
     if (!packsPending && probe && probe.reason === 'timeout' && entryState['']) return;
     const reason = ok ? '' : unavailableReason(probe);
@@ -403,9 +474,8 @@ const listenModel = (() => {
     // 也回答了「这个按钮为什么不能用」。播客模式仍按它自己的规矩（门不过不存在）。
     // 2026-09-17 起原因只有两句（系统 / 语言），都不是配置问题 ⇒ 「去设置里选择 →」常藏。
     // asr_entry{no_live}（telemetry §3.3.3）：含义改为「本机识别器不可用」，每次启动记一次。
-    // 包未就绪同样意味着「听译入口不可用」：沿用同一个既有 asr_entry/no_live。
-    // 这条 branch 的 app_open 枚举只有五个功能面（没有 packs/app_home），所以
-    // 「没包也进来」由这个既有事件/值回答，不改白名单、不加新值。
+    // 包未就绪同样意味着「听译入口不可用」：沿用同一个既有 asr_entry/no_live，
+    // 这样「没包也进来」在没有 app_open 屏序枚举的宿主上也是可观测的（无新事件/枚举）。
     if ((!ok || packsPending) && !trackedNoLive) {
       trackedNoLive = true;
       try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('asr_entry', { surface: 'app_home', result: 'no_live' }); } catch (_) {}
@@ -428,7 +498,9 @@ const listenModel = (() => {
         why: packsPending ? packWhy : (ok ? '' : needText(reason)),
       };
     }
-    await refreshSubtitleEntry(ok, reason, { packsPending });
+    await refreshSubtitleEntry(ok, reason, {
+      probe, locales, firstRefresh, reusedPrior, packsPending,
+    });
     canvas.entry();
   }
 
@@ -440,6 +512,32 @@ const listenModel = (() => {
     try { caps = bridged() ? await NativeAudio.capsProbe(1500) : null; } catch (_) { caps = null; }
     const reason = C.entryGate({ caps, deviceOk: ok, deviceReason });
     subsReason = reason;
+    // BEL-223 live_gate：实时字幕入口是首页第二道闸，与对话入口分开记 surface。
+    // entryGate 的顺序（本机识别器 → Mac 系统声音）保持不动，只在结论处翻译成票面 result。
+    const ctx = gateCtx || {};
+    let subResult;
+    if (bridgeState() !== 'ok') subResult = bridgeState();
+    else if (reason === '') subResult = 'ok';
+    else if (reason === 'locale') subResult = 'locale_unsupported';
+    else if (reason === 'hidden') subResult = 'channel_missing';
+    // 'device-os' / 'os'：与对话入口同一套 UA 判断，iOS ≥26 而识别器没开放也是
+    // no_transcriber（界面同样只说「需要 iOS 26」，os_meets_min 不能记反）。
+    else subResult = gateOsResult(ctx.probe);
+    const subCopy = gateCopyClass(subResult);
+    try {
+      TelemetrySession.liveGate({
+        surface: 'live_caption',
+        ok: subResult === 'ok',
+        bridgeState: bridgeState(),
+        probeReason: ctx.probe && ctx.probe.reason,
+        result: subResult,
+        osMeetsMin: gateOsMeetsMin(subResult),
+        probeLocale: ctx.locales && ctx.locales[0],
+        reasonCopyClass: subCopy,
+        firstRefresh: ctx.firstRefresh,
+        reusedPriorState: ctx.reusedPrior,
+      });
+    } catch (_) {}
     const ctxPacks = !!(gateCtx && gateCtx.packsPending);
     const packWhy = t('packs_pending_why', '语言包未就绪 —— 先去「语言包」页下载');
     for (const sfx of ENTRY_SUFFIXES) {
@@ -695,20 +793,10 @@ const listenModel = (() => {
     canvas.view('state');
   }
   // 返回 true = 可以开麦；false = 已经画好门并把这一次开始记在 pending 里。
+  // BEL-273 回退（UI 冻结）：单按钮交互。权限不再由独立屏拦截；点「开始」后仍由原生
+  // 请求权限，失败走既有 fail 文案。mic-perm-read 探测与 native_code 记录保留。
   function micPermCanStart(intent) {
-    if (!bridged()) return true;   // 无桥宿主：页内 getUserMedia 自己问权限
-    if (!micPermRequired()) return true;   // Mac 字幕听系统声音，不碰麦克风
-    if (MicPerm.canStart(micPerm)) return true;
-    if (micPerm.state === 'not_determined' && !micPerm.explained) {
-      micPerm = Object.assign({}, micPerm, { gate: 'explain' });
-    } else if (micPerm.state === 'denied' || micPerm.state === 'restricted') {
-      micPerm = Object.assign({}, micPerm, { gate: 'denied' });
-    } else if (micPerm.state === 'prompted') {
-      micPerm = Object.assign({}, micPerm, { gate: 'requesting' });
-    }
-    micPermPending = intent || { kind: 'start' };
-    canvas.view('state');
-    return false;
+    return true;
   }
   function micPermRunPending() {
     const p = micPermPending;
@@ -722,34 +810,7 @@ const listenModel = (() => {
     start();
   }
   function permView() {
-    const gate = micPerm.gate;
-    if (!gate || !micPermRequired()) {
-      return { shown: false, gate: '', title: '', next: '', primary: null, secondary: null };
-    }
-    if (gate === 'denied') {
-      return {
-        shown: true, gate,
-        title: t('listen_perm_denied_title', '麦克风权限未开启'),
-        next: t('listen_perm_denied_body', '在系统设置里打开「麦克风」权限，回到这里点「重试」就能开始，不用重开 App。'),
-        primary: { label: t('halt_open_settings', '去设置'), action: 'settings' },
-        secondary: { label: t('fail_retry', '重试'), action: 'retry' },
-      };
-    }
-    if (gate === 'requesting') {
-      return {
-        shown: true, gate,
-        title: t('listen_perm_explain_title', '需要使用麦克风'),
-        next: t('subtitle_bar_waiting', '等待系统授权 — 请在弹出的权限框里点「允许」'),
-        primary: null, secondary: null,
-      };
-    }
-    return {
-      shown: true, gate: 'explain',
-      title: t('listen_perm_explain_title', '需要使用麦克风'),
-      next: t('listen_perm_explain_body', '听译要把麦克风的声音送到你设置的转写端点。下一步会弹出系统授权框，点「允许」即可开始。'),
-      primary: { label: t('ob_next', '继续'), action: 'continue' },
-      secondary: null,
-    };
+    return { shown: false, gate: '', title: '', next: '', primary: null, secondary: null };
   }
   function permAct(which) {
     if (which === 'secondary') {
@@ -778,14 +839,19 @@ const listenModel = (() => {
   function trackPerm(state, kind) {
     const k = kind === 'system' ? 'system' : 'mic';
     if (['prompted', 'granted', 'denied', 'restricted', 'not_determined'].indexOf(state) < 0) return;
-    if (permSeen[k] === state) return;
-    permSeen[k] = state;
-    track('mic_permission', Object.assign({ permission_state: state, kind: k }, funnelProps()));
+    // BEL-223：去重键带上功能面 —— 否则开机时先记了 listen 的 granted，进实时字幕页
+    // 同状态就被吞掉，live_caption 这一面永远没有权限读数。同一面内仍按 kind+状态去重。
+    const surface = funnelSurface();
+    const sk = k + ':' + surface;
+    if (permSeen[sk] === state) return;
+    permSeen[sk] = state;
+    track('mic_permission', Object.assign({ permission_state: state, kind: k, surface }, funnelProps()));
   }
   function noteAsrStart() {
     if (!session || session.asrStartSent) return;
     session.asrStartSent = true;
-    track('asr_start', funnelProps());
+    // BEL-223：真正开始本机识别的这一刻，带可区分的功能面。
+    track('asr_start', Object.assign({ surface: funnelSurface() }, funnelProps()));
   }
   function noteAsrFail(reason, why) {
     if (!session || session.asrFailSent || reason === 'socket-retry') return;
@@ -805,14 +871,17 @@ const listenModel = (() => {
   function noteTranslateStart() {
     if (!session || session.tmStart) return;
     session.tmStart = true;
-    track('translate_start', funnelProps());
+    // BEL-290：与页面翻译的 kind:'page' 对齐，App 侧补 kind 与功能面。
+    // engine / locale_pair 仍由 funnelProps() 在合法时带上。
+    track('translate_start', Object.assign({ kind: 'subtitle', surface: funnelSurface() }, funnelProps()));
   }
   function tmOk() {
     if (!session || session.tmOk) return;
     session.tmOk = true;
     try {
       if (typeof MTTelemetry !== 'undefined') {
-        MTTelemetry.track('translate_ok', { provider: tmProvider(), kind: 'subtitle' });
+        // BEL-223：kind 保留（老口径），surface 是新分析口径 —— 两个都发。
+        MTTelemetry.track('translate_ok', { provider: tmProvider(), kind: 'subtitle', surface: funnelSurface() });
       }
     } catch (_) {}
   }
@@ -1529,17 +1598,34 @@ const listenModel = (() => {
     prep.stalled = false;
     canvas.view('state');
     const baseName = t('firstrun_packs_base', '基础组件');
+    // BEL-293：当前 VAD 单元的归因上下文（无换源链 ⇒ 不写 tier；progress 来自已有回调）。
+    let vadInfo = null;
     const stampBase = (m) => {
       if (warmJob !== job) return;
       const named = FirstRun.nameProgress(Object.assign({}, m, { name: baseName }), baseName);
-      showPrep(job, { name: named.name, pct: Math.round((Number(named.fraction) || 0) * 100), code: '', stalled: false });
+      const pct = Math.round((Number(named.fraction) || 0) * 100);
+      if (vadInfo) vadInfo.progress = pct;
+      showPrep(job, { name: named.name, pct, code: '', stalled: false });
     };
     try {
       if (!prep.assets.vad) {
         const vm = vadModel();
         if (vm && NativeSpeech.ensureVad) {
           showPrep(job, PackProgress.beginLangProgress('vad', baseName));
-          const p = cancellable(NativeSpeech.ensureVad(vm, stampBase));
+          // BEL-290：预热/开麦前的裸 ensureVad 也要有 start→ok/fail。warmBody 开头
+          // `mode === 'subtitle'` 已 return，所以这条只在对话听译页 ⇒ surface=listen。
+          // cancellable / racePack / inflight 的语义不变：包的等待仍可被下一次 warm 取消，
+          // 原生 ensureVad 本身照旧不因取消而中断。
+          const vadUnitInfo = {
+            pack_kind: 'vad', pack_id: 'vad', surface: 'listen', source: packSourceFromSpec(vm),
+            // VAD 直调 ensureVad：没有换源链 ⇒ tier 省略；大小取清单声明值。
+            size: packSizeFromSpec(vm), progress: 0,
+          };
+          const p = cancellable(reportPackUnit(TelemetrySession, vadUnitInfo, () => {
+            // stampBase 与 info 是同一个对象：失败时 reportPackUnit 会读到最后的 progress。
+            vadInfo = vadUnitInfo;
+            return NativeSpeech.ensureVad(vm, stampBase);
+          }, (e) => packFailCode(e, 'vad')));
           inflight = p;
           await racePack(p);
           if (warmJob !== job) return;
@@ -2535,15 +2621,9 @@ const listenModel = (() => {
     lastAsrNativeCode = '';
     pttAbort();            // 新一场：按住态与强制语言清零（含原生「恢复判定」）
     cfg = await readCfg();
-    // BEL-223 live_gate：这里是「能不能开」的判定点（点击开始之后、建会话之前）。
-    // listen 看本机识别器是否可用；live_caption 还要看系统声音/麦克风来源能不能拿到。
-    // ok 在注册表里是字符串枚举，TelemetrySession.liveGate 负责 String 化。
-    const gateSurface = mode === 'subtitle' ? 'live_caption' : 'listen';
-    let gateOk = liveCapable();
-    if (gateOk && mode === 'subtitle') {
-      try { gateOk = !!(C.captureSource && C.captureSource(NativeAudio.audioCaps())); } catch (_) { gateOk = false; }
-    }
-    try { TelemetrySession.liveGate(gateSurface, gateOk); } catch (_) {}
+    // BEL-223 live_gate 已移到首页入口判定（refreshEntry / refreshSubtitleEntry）：
+    // 那里才有探针的完整结论（桥 / os / locale / timeout），且能分开 listen 与
+    // live_caption。这里不再重复发一条只有 ok 的门事件。
     if (!liveCapable()) { note(needText(unavailableReason()), true); return; }
     session = C.newSession(now(), Math.random(), mode);
     lidOn();   // 新会话：LID 语言从头判（§9.6.1.3，半句/定稿归属的唯一判据）
@@ -2699,13 +2779,25 @@ const listenModel = (() => {
       const vm = vadModel();
       if (vm) {
         const baseName = t('firstrun_packs_base', '基础组件');
+        // BEL-293：这次 VAD 单元的归因上下文；进度仍来自既有 onProg。
+        const vadUnitInfo = {
+          pack_kind: 'vad', pack_id: 'vad', surface: funnelSurface(), source: packSourceFromSpec(vm),
+          // VAD 直调 ensureVad：没有换源链 ⇒ tier 省略。
+          size: packSizeFromSpec(vm), progress: 0,
+        };
         try {
-          await NativeSpeech.ensureVad(vm, (m) => {
+          // BEL-290：实时听译首启的裸 ensureVad 也接同一条 start→ok/fail。
+          // ensurePacksForPair 被对话与实时字幕的 beginPipeline 共用（start() 不分模式），
+          // 所以面按当前页面报：对话 listen / 字幕 live_caption（funnelSurface 的既有判据）。
+          await reportPackUnit(TelemetrySession, vadUnitInfo, () => NativeSpeech.ensureVad(vm, (m) => {
             const named = FirstRun.nameProgress(Object.assign({}, m, { name: baseName }), baseName);
             dlLang = named.name;
             prep.name = named.name;
-            if (typeof named.fraction === 'number') prep.pct = Math.round(named.fraction * 100);
-          });
+            if (typeof named.fraction === 'number') {
+              prep.pct = Math.round(named.fraction * 100);
+              vadUnitInfo.progress = prep.pct;
+            }
+          }), (e) => packFailCode(e, 'vad'));
           prep.assets.vad = true;
           // BEL-188 Q7：VAD **不计入**这一轮的 dlGen。ensureVad 成功不等于这一轮真下过
           // （模型本来就在时它照样回成功、进度回调也可能回一帧 100%），而 VAD 本来就不拦
@@ -3053,10 +3145,14 @@ const listenModel = (() => {
     try { TelemetrySession.enter(mode === 'subtitle' ? 'live_caption' : 'listen'); } catch (_) {}
     // asr_entry（telemetry-design §3，surface 'app_home' 是 2026-09-16 加的枚举）：
     // 两张模式卡的**共同落点**，一处覆盖「对话 · 实时听译」与「实时字幕」。
+    // BEL-223：started 是「打开了听译页 / 字幕页」，不是开麦；surface 用功能面
+    // listen / live_caption 分开（灰卡 no_live 仍是 app_home）。
     // 只可能是 started —— 灰态时按钮是 disabled，不发 click；「想用但被挡住」那一下
     // 记在 app.js 的 need-live-go 上（result:'no_live'）。
     try {
-      if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('asr_entry', { surface: 'app_home', result: 'started' });
+      if (typeof MTTelemetry !== 'undefined') {
+        MTTelemetry.track('asr_entry', { surface: funnelSurface(), result: 'started' });
+      }
     } catch (_) {}
     cameFrom = sourceNow();
     $(cameFrom).hidden = true;
