@@ -116,7 +116,7 @@ function report(ok, e, provider, ms) {
   const code = ok ? '' : ((e && e.code) || 'network');
   if (ok ? sess.ok : sess.failed[code]) return;
   if (ok) sess.ok = true; else sess.failed[code] = true;
-  post({ type: 'quick-result', ok, code, provider, ms, status: e && Number.isInteger(e.status) ? e.status : 0, route: (e && e.route) || '' });
+  post({ type: 'quick-result', ok, code, provider, ms, ...(e && Number.isInteger(e.status) ? { status: e.status } : {}), route: (e && e.route) || '' });
 }
 
 async function show(msg) {
