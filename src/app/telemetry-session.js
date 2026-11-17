@@ -975,12 +975,12 @@ export async function packUnsupported(info) {
     const p = packFields(i, setup, download_id, attempt);
     p.reason = 'unsupported';
     p.code = 'unsupported';
-    // BEL-293：系统不支持不是一次换源失败。原生判据是 probe reason='locale'，
-    // 所以 detail 记 'locale'（闭枚举内）；reason 六值仍是 'unsupported'。
+    // BEL-293：系统不支持不是一次换源失败。detail 仍只取原生 reason（调用方把
+    // probe 的 reason='locale' 透传进来）；reason 六值仍是 'unsupported'。
     // tier 判不出就省略（ASR 直调原生，没有换源链）。
     const tier = packTierValue(i.tier);
     if (tier) p.tier = tier;
-    p.detail = 'locale';
+    p.detail = packDetailValue(info && typeof info === 'object' ? info.reason : '');
     p.size = packIntValue(i.size);
     p.progress = packProgressValue(i.progress);
     // 与 packFail 同一个 fail 出口：入队后立刻 flush，别让 not-supported 也等下一班车。

@@ -160,13 +160,17 @@ describe('BEL-293 增补 2 pack_download_fail 归因字段', () => {
     eq(p.progress, 100, 'progress 上限 100');
     eq(p.size, 0, '未知 size 仍写 0（fail 上键必须存在）');
 
-    // packUnsupported：原生判据是 locale，detail 记 locale，tier 省略。
-    await TS.packUnsupported(Object.assign({}, unit, { pack_kind: 'asr', pack_id: 'asr_xx' }));
-    const up = events[events.length - 1].props;
+    // packUnsupported：原生判据是 locale；调用方透传后 detail 记 locale，tier 省略。
+    await TS.packUnsupported(Object.assign({}, unit, { pack_kind: 'asr', pack_id: 'asr_xx', reason: 'locale' }));
+    let up = events[events.length - 1].props;
     eq(up.detail, 'locale', 'ASR 不支持的原生码是 locale');
     ok(!('tier' in up), 'ASR 直调原生 ⇒ tier 省略');
     eq(up.size, 0);
     eq(up.progress, 0);
+    // 没有原生 reason 时不能猜一个值：闭枚举的兜底是 other。
+    await TS.packUnsupported(Object.assign({}, unit, { pack_kind: 'asr', pack_id: 'asr_yy' }));
+    up = events[events.length - 1].props;
+    eq(up.detail, 'other', '没有原生 reason 时 detail=other');
 
     // 纯函数：没有 attempts / 不认识的 source ⇒ 空串；最后一个合法层级胜出。
     const PU = packUnit();

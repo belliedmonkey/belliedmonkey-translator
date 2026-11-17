@@ -2291,7 +2291,8 @@ export function bootShell() {
               pack_kind: 'asr', pack_id: 'asr_' + code, locale: code,
               surface: packSurfaceNow(), source: 'system',
               // ASR 直调 ensureAssets：没有换源链（tier 省略）；系统包大小 ⇒ 未知 0。
-              size: 0, progress: 0,
+              // 原生判据是 probe reason='locale'，透传给 detail（只认原生 reason）。
+              reason: 'locale', size: 0, progress: 0,
             });
           } catch (_) {}
         }
