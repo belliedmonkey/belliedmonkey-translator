@@ -6,10 +6,11 @@
   去重的视图；`download_id IS NULL` 的 1.23.3 老行原样透传并标 `dedupe='legacy'`，
   老行缺 `detail` 就是 NULL，不回填成 `other`。非 NULL 才 `row_number()=1`
   （按 `received_at desc`）。
-- `bt_events_rejected.sql` — ingest 拒收聚合表：只记 `name` /
-  非法键名集合 `invalid_keys`（排序去重、最多 8 个、每个 ≤64 字符）/ 计数 `n`，
-  唯一键 `(name, invalid_keys)`，**不设小时桶**；`bt_event_rejected_bump()` 是唯一
-  写入口，upsert 累加。**不记任何值 / install_id / 原始 body。**
+- `bt_events_rejected.sql` — ingest 拒收聚合表：按小时桶
+  `hour = date_trunc('hour', now())` 只记 `name` / 非法键名集合 `invalid_keys`
+  （排序去重、最多 8 个、每个 ≤64 字符）/ 计数 `n`，唯一键
+  `(hour, name, invalid_keys)`；`bt_event_rejected_bump()` 是唯一写入口，upsert 累加。
+  **不记任何值 / install_id / 原始 body。**
 
 `supabase/schema.sql` 与 hosted 仓 `schema/schema.sql` 的这两段是同一条 SQL；
 `bt_rollup_day` 也从去重视图读，否则 `bt_daily` 仍会把同一次下载尝试算两次。

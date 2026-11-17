@@ -1,7 +1,7 @@
 // test/bel293-pack-attrib.test.js — BEL-293 定稿：pack_download_fail 的归因字段。
 //
 // 五件事：
-//   ① detail 是 21 值闭枚举（逐字定稿），config / events.gen / 客户端三处逐值一致；
+//   ① detail 是 20 值闭枚举（逐字定稿），config / events.gen / 客户端三处逐值一致；
 //      客户端先把 sha_mismatch alias 成 sha，未知 reason → other；
 //   ② detail 在 packFailReason() 六值归一**之前**取到（sha/offline/http/load 不被吃掉）；
 //   ③ tier 只有五个真实层级，判不出时**整个键省略**（不是 'none'）；
@@ -10,7 +10,7 @@
 //   ⑤ 每个下载单元调用点都带 stage —— 新增调用点漏 stage 就红。
 const fs = require('fs');
 const path = require('path');
-const { describe, test, ok, eq, deepEq, loadSrc } = require('./harness');
+const { describe, test, ok, eq, deepEq, loadSrc, loadModule } = require('./harness');
 const cfg = require('../build/telemetry.config.js');
 const gen = require('../supabase/functions/bt-ingest/events.gen.json');
 
@@ -55,6 +55,12 @@ function packUnit() {
   return loadSrc('src/app/pack-unit.js', 'PackUnit', {}).PackUnit;
 }
 
+function nativeSpeech() {
+  const posted = [];
+  const window = { webkit: { messageHandlers: { mtSpeech: { postMessage: (m) => posted.push(m) } } } };
+  return loadModule('../app/native-speech.js', { window }).NativeSpeech;
+}
+
 const unit = { pack_kind: 'vad', pack_id: 'vad', surface: 'listen', source: 'other' };
 
 async function failWith(reason, info, code) {
@@ -65,20 +71,20 @@ async function failWith(reason, info, code) {
 }
 
 describe('BEL-293 定稿 pack_download_fail 归因字段', () => {
-  test('detail 21 值闭枚举：客户端 = config = events.gen（逐值）；alias / 未知 reason', async () => {
+  test('detail 20 值闭枚举：客户端 = config = events.gen（逐值）；alias / 未知 reason', async () => {
     const { TS } = load();
     const want = ['sha', 'offline', 'http', 'load', 'download', 'assets', 'locale',
       'locales', 'os', 'analyzer', 'no-engine', 'lang', 'timeout', 'cancelled', 'no-bridge',
-      'probe', 'blocked', 'superseded', 'enospc', 'unsupported', 'other'];
+      'probe', 'blocked', 'superseded', 'unsupported', 'other'];
     // 三处逐值比对：不只键集合，顺序也必须一致；客户端的私有数组经 _PACK_DETAILS 出口。
     deepEq(cfg.PACK_DETAILS, want, 'config 的 detail 枚举漂了');
     deepEq(TS._PACK_DETAILS, cfg.PACK_DETAILS, '客户端 detail 列表必须逐值等于 config 的 PACK_DETAILS');
-    eq(want.length, 21, 'detail 闭枚举定稿 21 值');
+    eq(want.length, 20, 'detail 闭枚举定稿 20 值');
     deepEq(gen.events.pack_download_fail.detail, cfg.PACK_DETAILS, 'events.gen 与 config 的 detail 枚举不一致');
     deepEq(gen.events.pack_download_fail.tier, ['cache', 'server', 'server-alt', 'builtin', 'builtin-alt'],
       'events.gen 的 tier 枚举不该再有 none');
 
-    // 21 个值逐个走真实发送路径：detail 原样落库。
+    // 20 个值逐个走真实发送路径：detail 原样落库。
     for (const d of want) {
       const p = await failWith({ reason: d });
       eq(p.detail, d, 'detail=' + d);
@@ -86,14 +92,21 @@ describe('BEL-293 定稿 pack_download_fail 归因字段', () => {
         'reason 必须仍是六值：' + JSON.stringify(p));
     }
 
-    // 表驱动 alias：sha_mismatch 是客户端的 sha 别名，不另立值；enospc 保留。
-    for (const [raw, detail] of [['sha_mismatch', 'sha'], ['SHA_MISMATCH', 'sha'], ['enospc', 'enospc'], ['ENOSPC', 'enospc']]) {
+    // 表驱动 alias：sha_mismatch 是客户端的 sha 别名，不另立值。
+    for (const [raw, detail] of [['sha_mismatch', 'sha'], ['SHA_MISMATCH', 'sha']]) {
       eq((await failWith({ reason: raw })).detail, detail, 'alias/大小写：' + raw);
+    }
+    // enospc 已从 detail 删除：磁盘满靠六值 reason='disk' 表达，detail 落 other。
+    // 这条断言钉住「reason 与 detail 各管各的」，不靠 detail 猜磁盘。
+    for (const raw of ['enospc', 'ENOSPC']) {
+      const p = await failWith({ reason: raw });
+      eq(p.reason, 'disk', '磁盘满必须靠 reason=disk 表达：' + raw);
+      eq(p.detail, 'other', 'enospc 不在 detail 闭枚举里，必须落 other：' + raw);
     }
 
     // 闭枚举 = 不做前缀/包含/白名单外匹配。这些都不是表内值，一律 other。
-    // failed / format 已删：兜底只有 other。
-    for (const bad of ['failed', 'format', 'https://example.test/a.zip',
+    // failed / format / enospc 都已删：兜底只有 other。
+    for (const bad of ['failed', 'format', 'enospc', 'https://example.test/a.zip',
       'load failed', 'not-a-reason', '']) {
       eq((await failWith({ reason: bad })).detail, 'other', '非法 reason 必须 other：' + JSON.stringify(bad));
     }
@@ -102,6 +115,56 @@ describe('BEL-293 定稿 pack_download_fail 归因字段', () => {
     eq((await failWith({ reason: 'locales' })).detail, 'locales');
     // 大小写归一仍按原生码处理。
     eq((await failWith({ reason: 'SHA' })).detail, 'sha');
+  });
+
+  test('未知 reason 仍发事件：detail=other，且断言事件条数（含 failed / enospc）', async () => {
+    const { TS, events } = load();
+    const registered = Object.keys(cfg.EVENTS.pack_download_fail);
+    for (const reason of ['failed', 'enospc', 'ENOSPC', 'format', 'load failed',
+      'https://example.test/a.zip', '', 'not-a-reason']) {
+      const tok = await TS.packStart(unit);
+      const before = events.length;
+      await TS.packFail(tok, { reason }, 'download_vad');
+      eq(events.length, before + 1, '未知 reason 也必须发一条 fail：' + JSON.stringify(reason));
+      const e = events[events.length - 1];
+      eq(e.name, 'pack_download_fail', '事件名必须是 fail：' + JSON.stringify(reason));
+      for (const k of Object.keys(e.props)) {
+        ok(registered.indexOf(k) >= 0, '事件形状不合法：未登记键 ' + k + '（' + JSON.stringify(reason) + '）');
+      }
+      eq(e.props.detail, 'other', '未知 reason 的 detail 必须 other：' + JSON.stringify(reason));
+      ok(cfg.PACK_DETAILS.indexOf(e.props.detail) >= 0, 'detail 必须落在闭枚举内');
+    }
+  });
+
+  test('native-speech 的 msg.reason || "failed" 兜底：仍走 packFail 发事件，detail=other', async () => {
+    const NS = nativeSpeech();
+
+    // stt-state failed 不带 reason ⇒ native-speech 兜底 'failed'，不在闭枚举里。
+    const sttSeen = [];
+    NS.sttOpen({ locales: ['en-US'], onEvent: (k, p) => sttSeen.push([k, p]) });
+    NS._fromNative({ type: 'stt-state', state: 'failed' });
+    const sttErr = sttSeen.find(([k]) => k === 'error');
+    ok(sttErr, 'stt-state failed 必须触发 error');
+    eq(sttErr[1].reason, 'failed', 'stt failed 无原生 reason 时兜底 failed');
+
+    // tts-failed 不带 reason ⇒ 同一个 'failed' 兜底（第 185/186 行）。
+    const job = NS.speak({ id: 'bel293-tts', text: 'x', lang: 'en' });
+    NS._fromNative({ type: 'tts-failed', id: 'bel293-tts' });
+    let ttsErr = null;
+    await job.done.then(() => {}, (e) => { ttsErr = e; });
+    const ttsReason = ttsErr && typeof ttsErr === 'object' ? ttsErr.reason : String(ttsErr || '');
+    eq(ttsReason, 'failed', 'tts failed 无原生 reason 时兜底 failed');
+
+    // 两个兜底值走真实 telemetry 出口：事件照发、detail 落 other（不是丢事件）。
+    const { TS, events } = load();
+    for (const raw of [sttErr[1].reason, ttsReason]) {
+      const tok = await TS.packStart(unit);
+      const before = events.length;
+      await TS.packFail(tok, { reason: raw }, 'download_vad');
+      eq(events.length, before + 1, '兜底 failed 必须发一条 fail：' + raw);
+      eq(events[events.length - 1].name, 'pack_download_fail');
+      eq(events[events.length - 1].props.detail, 'other', '兜底 failed 的 detail 必须 other');
+    }
   });
 
   test('detail 在六值归一前取到；只读 e.reason，不读 code / why / detail / message', async () => {

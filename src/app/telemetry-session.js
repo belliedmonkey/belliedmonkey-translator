@@ -661,15 +661,20 @@ const PACK_FAIL_REASONS = ['network', 'timeout', 'disk', 'hash', 'unsupported', 
 // BEL-293 定稿：与 build/telemetry.config.js 的 PACK_TIERS 同源。只有 LID/TTS 的
 // ModelSources 有真实换源层级；ASR/VAD 直调原生 ⇒ 键省略（不是 'none'）。
 const PACK_TIERS = ['cache', 'server', 'server-alt', 'builtin', 'builtin-alt'];
-// detail 是闭枚举（21 值定稿）：只收原生 e.reason 的协议码。sha/offline/http/load
+// detail 是闭枚举（20 值定稿）：只收原生 e.reason 的协议码。sha/offline/http/load
 // 会被六值归一吃掉，所以必须在 packFailReason() 之前取；locale 与 locales 不合并；
-// 连字符保持 no-engine / no-bridge。兜底只有 other（没有 failed / format）。
+// 连字符保持 no-engine / no-bridge。兜底只有 other（没有 failed / format / enospc；
+// 磁盘满靠 reason='disk'，原生 enospc 会落 other）。blocked / superseded / lang 为
+// TTS/ASR 后续复用预留，当前 pack-download 路径不产生。
 const PACK_DETAILS = ['sha', 'offline', 'http', 'load', 'download', 'assets', 'locale',
   'locales', 'os', 'analyzer', 'no-engine', 'lang', 'timeout', 'cancelled', 'no-bridge',
-  'probe', 'blocked', 'superseded', 'enospc', 'unsupported', 'other'];
+  'probe', 'blocked', 'superseded', 'unsupported', 'other'];
+// 枚举成员表：detail 只认表里的值，不做 id 正则 / 前缀 / 包含匹配；表外一律 other。
+const PACK_DETAIL_MEMBERS = Object.create(null);
+for (const d of PACK_DETAILS) PACK_DETAIL_MEMBERS[d] = true;
 // 客户端 alias：原生码 sha_mismatch 就是 sha，不另立枚举值。先 alias 再判成员；
 // 不在表内的一律 other。config 只存闭枚举，不存 alias（它只描述线上值）。
-const PACK_DETAIL_ALIASES = { sha_mismatch: 'sha' };
+const PACK_DETAIL_ALIASES = Object.assign(Object.create(null), { sha_mismatch: 'sha' });
 
 function packTierValue(v) {
   const s = String(v == null ? '' : v).trim().toLowerCase();
@@ -687,13 +692,13 @@ function packProgressValue(v) {
   if (!Number.isFinite(n) || n <= 0) return 0;
   return Math.min(Math.round(n), 100);
 }
-// BEL-293：detail 只收原生协议码，且必须是闭枚举里的值（21 值）。不做前缀/包含匹配：
-// 先别名（sha_mismatch→sha），再判成员；表外的 URL、message、failed / format 都 ⇒ 'other'。
-// locale / locales 是两个原生码，不合并。
+// BEL-293：detail 只收原生协议码，且必须是闭枚举里的值（20 值）。先别名
+// （sha_mismatch→sha），再查枚举成员表；表外的 URL、message、failed、format、
+// enospc 都 ⇒ 'other'。locale / locales 是两个原生码，不合并。
 function packDetailValue(v) {
-  let raw = String(v == null ? '' : v).trim().toLowerCase();
-  if (PACK_DETAIL_ALIASES[raw]) raw = PACK_DETAIL_ALIASES[raw];
-  return PACK_DETAILS.indexOf(raw) >= 0 ? raw : 'other';
+  const s = String(v == null ? '' : v).trim().toLowerCase();
+  const raw = PACK_DETAIL_ALIASES[s] || s;
+  return PACK_DETAIL_MEMBERS[raw] === true ? raw : 'other';
 }
 function packFailDetail(err) {
   // 只读原生 e.reason；不读 e.code / e.why / e.detail / message。TTS 的 why 由调用方

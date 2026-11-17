@@ -512,7 +512,6 @@
         "probe",
         "blocked",
         "superseded",
-        "enospc",
         "unsupported",
         "other"
       ],
