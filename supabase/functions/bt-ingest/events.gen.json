@@ -510,6 +510,11 @@
         "os",
         "download",
         "failed",
+        "lang",
+        "unsupported",
+        "probe",
+        "blocked",
+        "superseded",
         "other"
       ],
       "size": "int",

@@ -663,9 +663,12 @@ const PACK_FAIL_REASONS = ['network', 'timeout', 'disk', 'hash', 'unsupported', 
 const PACK_TIERS = ['cache', 'server', 'server-alt', 'builtin', 'builtin-alt'];
 // detail 是闭枚举：只收原生 e.reason 的协议码。sha/offline/http/load 会被六值归一
 // 吃掉，所以必须在 packFailReason() 之前取；locale 与 locales 不合并。
+// 用户裁定：在 17 值上补 lang / unsupported / probe / blocked / superseded（共 22；
+// 票面「21」与清单相加不符，按全要落地，旧值一个不删）。
 const PACK_DETAILS = ['sha', 'offline', 'http', 'load', 'timeout', 'cancelled',
   'no-bridge', 'no-engine', 'locales', 'locale', 'analyzer', 'assets', 'format',
-  'os', 'download', 'failed', 'other'];
+  'os', 'download', 'failed', 'lang', 'unsupported', 'probe', 'blocked', 'superseded',
+  'other'];
 
 function packTierValue(v) {
   const s = String(v == null ? '' : v).trim().toLowerCase();

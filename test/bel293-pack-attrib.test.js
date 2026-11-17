@@ -1,7 +1,8 @@
 // test/bel293-pack-attrib.test.js — BEL-293 增补 2：pack_download_fail 的归因字段。
 //
 // 五件事：
-//   ① detail 是 17 值闭枚举，config / events.gen / 客户端三处一致；未知 reason → other；
+//   ① detail 是 22 值闭枚举（17 旧值 + 用户裁定补 5 个），config / events.gen / 客户端三处一致；
+//      未知 reason → other；
 //   ② detail 在 packFailReason() 六值归一**之前**取到（sha/offline/http/load 不被吃掉）；
 //   ③ tier 只有五个真实层级，判不出时**整个键省略**（不是 'none'）；
 //       size / progress 只在 fail 出现，start / ok 不许多键；
@@ -64,12 +65,13 @@ async function failWith(reason, info, code) {
 }
 
 describe('BEL-293 增补 2 pack_download_fail 归因字段', () => {
-  test('detail 17 值闭枚举：config = events.gen = 客户端；未知/非法 reason -> other', async () => {
+  test('detail 22 值闭枚举：config = events.gen = 客户端；未知/非法 reason -> other', async () => {
     const want = ['sha', 'offline', 'http', 'load', 'timeout', 'cancelled',
       'no-bridge', 'no-engine', 'locales', 'locale', 'analyzer', 'assets', 'format',
-      'os', 'download', 'failed', 'other'];
+      'os', 'download', 'failed', 'lang', 'unsupported', 'probe', 'blocked', 'superseded',
+      'other'];
     deepEq(cfg.PACK_DETAILS, want, 'config 的 detail 枚举漂了');
-    eq(want.length, 17, 'detail 必须是 17 值');
+    eq(want.length, 22, '17 旧值 + 用户裁定 5 个新值 = 22（票面写 21 与清单不符）');
     deepEq(gen.events.pack_download_fail.detail, want, 'events.gen 与 config 的 detail 枚举不一致');
     deepEq(gen.events.pack_download_fail.tier, ['cache', 'server', 'server-alt', 'builtin', 'builtin-alt'],
       'events.gen 的 tier 枚举不该再有 none');
@@ -84,8 +86,12 @@ describe('BEL-293 增补 2 pack_download_fail 归因字段', () => {
 
     // 闭枚举 = 不做前缀/包含/白名单外匹配。这些都不是表内值，一律 other。
     for (const bad of ['sha_mismatch', 'enospc', 'ENOSPC', 'https://example.test/a.zip',
-      'load failed', 'not-a-reason', 'unsupported', '']) {
+      'load failed', 'not-a-reason', '']) {
       eq((await failWith({ reason: bad })).detail, 'other', '非法 reason 必须 other：' + JSON.stringify(bad));
+    }
+    // 用户裁定的 5 个：全收，不再落 other。
+    for (const d of ['lang', 'unsupported', 'probe', 'blocked', 'superseded']) {
+      eq((await failWith({ reason: d })).detail, d, '用户裁定值必须原样保留：' + d);
     }
     // locale 与 locales 是两个原生码，都留、不合并。
     eq((await failWith({ reason: 'locale' })).detail, 'locale');
