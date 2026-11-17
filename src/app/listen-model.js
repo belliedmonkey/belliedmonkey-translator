@@ -1595,7 +1595,7 @@ const listenModel = (() => {
     prep.stalled = false;
     canvas.view('state');
     const baseName = t('firstrun_packs_base', '基础组件');
-    // BEL-293：当前 VAD 单元的归因上下文（tier 只能是 none，progress 来自已有回调）。
+    // BEL-293：当前 VAD 单元的归因上下文（无换源链 ⇒ 不写 tier；progress 来自已有回调）。
     let vadInfo = null;
     const stampBase = (m) => {
       if (warmJob !== job) return;
@@ -1615,8 +1615,8 @@ const listenModel = (() => {
           // 原生 ensureVad 本身照旧不因取消而中断。
           const vadUnitInfo = {
             pack_kind: 'vad', pack_id: 'vad', surface: 'listen', source: packSourceFromSpec(vm),
-            // VAD 直调 ensureVad：没有换源链 ⇒ none；大小取清单声明值。
-            tier: 'none', size: packSizeFromSpec(vm), progress: 0,
+            // VAD 直调 ensureVad：没有换源链 ⇒ tier 省略；大小取清单声明值。
+            size: packSizeFromSpec(vm), progress: 0,
           };
           const p = cancellable(reportPackUnit(TelemetrySession, vadUnitInfo, () => {
             // stampBase 与 info 是同一个对象：失败时 reportPackUnit 会读到最后的 progress。
@@ -2759,7 +2759,8 @@ const listenModel = (() => {
         // BEL-293：这次 VAD 单元的归因上下文；进度仍来自既有 onProg。
         const vadUnitInfo = {
           pack_kind: 'vad', pack_id: 'vad', surface: funnelSurface(), source: packSourceFromSpec(vm),
-          tier: 'none', size: packSizeFromSpec(vm), progress: 0,
+          // VAD 直调 ensureVad：没有换源链 ⇒ tier 省略。
+          size: packSizeFromSpec(vm), progress: 0,
         };
         try {
           // BEL-290：实时听译首启的裸 ensureVad 也接同一条 start→ok/fail。

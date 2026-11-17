@@ -18,7 +18,10 @@ describe('BEL-293 tel:packs 去重 / 覆盖率口径', () => {
     eq(r.withReasonNonLegacy, 3);
     eq(r.withDownloadId, 3);
     eq(r.reasonCoverage, '75.0%');
+    eq(r.missingDetail, 4, '没有 detail 的老行单独计，不折算成 other');
     const out = format(r, 30);
+    ok(/detail=\(missing\)/.test(out), '缺 detail 必须显示 (missing)');
+    ok(!/detail=other/.test(out), '缺 detail 不得被算成 other');
     ok(/n=2/.test(out), '分布要把重复行聚合计数');
     ok(/无 download_id 的老行：1 条/.test(out));
     ok(/去重（install_id \+ name \+ download_id）：2 次下载尝试/.test(out));
@@ -32,5 +35,13 @@ describe('BEL-293 tel:packs 去重 / 覆盖率口径', () => {
     eq(r.deduped, 1);
     eq(r.withReason, 2);
     eq(r.counts.length, 2, '分布按 reason 分开，不被去重合并');
+    // detail 参与分布：同一个 download_id 换 detail 也分开；缺 detail 仍是 (missing)。
+    const d = aggregate([
+      { install_id: 'a', v: '1', props: { download_id: 'y', pack_kind: 'vad', reason: 'hash', code: 'download_vad', surface: 'listen', detail: 'sha' } },
+      { install_id: 'a', v: '1', props: { download_id: 'y', pack_kind: 'vad', reason: 'hash', code: 'download_vad', surface: 'listen' } },
+    ]);
+    eq(d.counts.length, 2);
+    eq(d.missingDetail, 1);
+    ok(d.counts.some((c) => c.detail === 'sha') && d.counts.some((c) => c.detail === '(missing)'));
   });
 });

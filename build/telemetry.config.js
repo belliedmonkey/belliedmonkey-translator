@@ -44,8 +44,15 @@ const PACK_SOURCES = ['system', 'github', 'modelscope', 'other'];
 const PACK_FAIL_REASONS = ['network', 'timeout', 'disk', 'hash', 'unsupported', 'other'];
 // BEL-293：失败发生在哪一级下载链。只有 LID/TTS 走 ModelSources 的真实 tier 链
 // （app/model-sources.js 的 source）；ASR 直调 ensureAssets、VAD 直调 ensureVad，
-// 没有可归因的换源层级 ⇒ 'none'。不是「没填」，是「这条链路本来就没有 tier」。
-const PACK_TIERS = ['cache', 'server', 'server-alt', 'builtin', 'builtin-alt', 'none'];
+// 没有可归因的换源层级 ⇒ **整个键省略**（不写 'none'：'none' 会被读成一种真实层级）。
+const PACK_TIERS = ['cache', 'server', 'server-alt', 'builtin', 'builtin-alt'];
+// BEL-293 增补 2：detail 是**闭枚举**，只收原生 e.reason 里的协议码，不做前缀/包含匹配。
+// sha / offline / http / load 在六值 reason 里会被压成 hash / network / timeout / other，
+// 所以 detail 必须在 packFailReason() **之前**取。locale 与 locales 是两个原生码，不合并。
+// 不在表内（含 sha_mismatch / enospc / URL / message）一律 'other'。
+const PACK_DETAILS = ['sha', 'offline', 'http', 'load', 'timeout', 'cancelled',
+  'no-bridge', 'no-engine', 'locales', 'locale', 'analyzer', 'assets', 'format',
+  'os', 'download', 'failed', 'other'];
 
 // BEL-225（2026-11-14）：`app_open.surface` 换成「打开时落在哪一屏」，不是功能面。
 //   login     = 面对登录墙（auth_state=signed_out）
@@ -330,13 +337,15 @@ const EVENTS = {
     reason: PACK_FAIL_REASONS,
     code: 'id',
     // BEL-293：失败归因四元组。
-    //   tier     这次失败落在哪一级下载链（只有 LID/TTS 有真实换源链；ASR/VAD = none）
-    //   detail   原生协议码（assets / sha_mismatch / load / enospc …），已按 id 规则清洗；
-    //            只有协议码，绝不含 message / URL / 原文
+    //   tier     这次失败落在哪一级下载链。只有 LID/TTS 有真实换源链；ASR/VAD
+    //            直调原生 ⇒ **键省略**（不写 'none'，见 PACK_TIERS）
+    //   detail   原生 e.reason 的协议码，**闭枚举**（PACK_DETAILS）。只在
+    //            packFailReason() 之前取 —— 六值归一后 sha/offline/http/load 就没了；
+    //            绝不含 message / URL / 原文，未知值写 'other'
     //   size     这个包的声明大小（字节；系统 ASR 包由系统决定 ⇒ 0）
     //   progress 失败时最后一次进度回调的百分比（0–100；没有进度回调 ⇒ 0）
     tier: PACK_TIERS,
-    detail: 'id',
+    detail: PACK_DETAILS,
     size: 'int',
     progress: 'int',
   },
@@ -669,4 +678,4 @@ const FORBIDDEN_KEY_WORDS = ['url', 'href', 'text', 'title', 'email', 'user', 'u
 
 const LIMITS = { batch: 50, eventBytes: 1024, bodyBytes: 64 * 1024, perMinute: 60, strMax: 64 };
 
-module.exports = { COMMON, EVENTS, SEAMS, FORBIDDEN_KEY_WORDS, LIMITS, TRANSLATE_KINDS, SURFACES, PACK_SURFACES, PACK_KINDS, PACK_SOURCES, PACK_FAIL_REASONS, PACK_TIERS };
+module.exports = { COMMON, EVENTS, SEAMS, FORBIDDEN_KEY_WORDS, LIMITS, TRANSLATE_KINDS, SURFACES, PACK_SURFACES, PACK_KINDS, PACK_SOURCES, PACK_FAIL_REASONS, PACK_TIERS, PACK_DETAILS };

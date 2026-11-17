@@ -59,6 +59,7 @@ function aggregate(rows) {
   let withReasonNonLegacy = 0;
   let legacy = 0;
   let withDownloadId = 0;
+  let missingDetail = 0;
 
   for (const row of list) {
     const p = propsOf(row);
@@ -68,11 +69,14 @@ function aggregate(rows) {
       String(p.code || '(missing)'),
       String(p.reason || '(missing)'),
       String(p.surface || '(missing)'),
+      String(p.detail || '(missing)'),
     ].join('\u0000');
-    const cur = dist.get(key) || { v: String(row && row.v || '(missing)'), pack_kind: String(p.pack_kind || '(missing)'), code: String(p.code || '(missing)'), reason: String(p.reason || '(missing)'), surface: String(p.surface || '(missing)'), n: 0 };
+    const cur = dist.get(key) || { v: String(row && row.v || '(missing)'), pack_kind: String(p.pack_kind || '(missing)'), code: String(p.code || '(missing)'), reason: String(p.reason || '(missing)'), surface: String(p.surface || '(missing)'), detail: String(p.detail || '(missing)'), n: 0 };
     cur.n += 1;
     dist.set(key, cur);
     if (p.reason) withReason += 1;
+    // 1.23.3 老行没有 detail：保持 (missing)，绝不折算成 'other'。
+    if (!p.detail) missingDetail += 1;
 
     const dl = p.download_id == null ? '' : String(p.download_id);
     if (!dl) { legacy += 1; continue; }
@@ -83,7 +87,8 @@ function aggregate(rows) {
 
   const counts = [...dist.values()].sort((a, b) =>
     (b.n - a.n) || a.v.localeCompare(b.v) || a.pack_kind.localeCompare(b.pack_kind) ||
-    a.code.localeCompare(b.code) || a.reason.localeCompare(b.reason) || a.surface.localeCompare(b.surface));
+    a.code.localeCompare(b.code) || a.reason.localeCompare(b.reason) ||
+    a.surface.localeCompare(b.surface) || a.detail.localeCompare(b.detail));
 
   const pct = (n, d) => (d ? ((n / d) * 100).toFixed(1) + '%' : '—');
   return {
@@ -94,6 +99,7 @@ function aggregate(rows) {
     withDownloadId,
     deduped: dedup.size,
     legacy,
+    missingDetail,
     reasonCoverage: pct(withReason, list.length),
     reasonCoverageWithDownloadId: pct(withReasonNonLegacy, withDownloadId),
   };
@@ -103,16 +109,17 @@ function format(report, days) {
   const out = [];
   out.push(`${EVENT} · 最近 ${days} 天 · ${report.total} 行`);
   out.push('');
-  out.push('按 v / pack_kind / code / reason / surface：');
+  out.push('按 v / pack_kind / code / reason / surface / detail：');
   if (!report.counts.length) out.push('  （没有失败行）');
   for (const c of report.counts) {
-    out.push(`  v=${c.v}  pack_kind=${c.pack_kind}  code=${c.code}  reason=${c.reason}  surface=${c.surface}  n=${c.n}`);
+    out.push(`  v=${c.v}  pack_kind=${c.pack_kind}  code=${c.code}  reason=${c.reason}  surface=${c.surface}  detail=${c.detail}  n=${c.n}`);
   }
   out.push('');
   out.push(`带 reason 覆盖率（全部 fail）：${report.withReason} / ${report.total} = ${report.reasonCoverage}`);
   out.push(`带 reason 覆盖率（有 download_id 的行）：${report.withReasonNonLegacy} / ${report.withDownloadId} = ${report.reasonCoverageWithDownloadId}`);
   out.push(`去重（install_id + name + download_id）：${report.deduped} 次下载尝试（原始 ${report.withDownloadId} 行）`);
   out.push(`无 download_id 的老行：${report.legacy} 条（单独标注；不进去重计数，也不进第二行覆盖率的分母）`);
+  out.push(`无 detail 的老行（1.23.3）：${report.missingDetail} 条（显示 (missing)，不算 other、不回填）`);
   return out.join('\n');
 }
 

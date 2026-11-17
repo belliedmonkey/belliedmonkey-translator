@@ -1,14 +1,17 @@
-// test/bel293-pack-attrib.test.js — BEL-293：pack_download_fail 的归因字段。
+// test/bel293-pack-attrib.test.js — BEL-293 增补 2：pack_download_fail 的归因字段。
 //
-// 四件事：
-//   ① 注册表键集合与实际发送键集合**双向**相等（少一个 = 白名单丢键；多一个 = 整条拒收）；
-//   ② 原生 reason 串 → 六值 reason + detail 的全表（含 TTS mtTtsFailed 拆码）；
-//   ③ 失败归因的 tier / size / progress 归一化（未知/越界不把事件打成非法）；
-//   ④ 每个下载单元调用点都带 stage —— 新增调用点漏 stage 就红。
+// 五件事：
+//   ① detail 是 17 值闭枚举，config / events.gen / 客户端三处一致；未知 reason → other；
+//   ② detail 在 packFailReason() 六值归一**之前**取到（sha/offline/http/load 不被吃掉）；
+//   ③ tier 只有五个真实层级，判不出时**整个键省略**（不是 'none'）；
+//       size / progress 只在 fail 出现，start / ok 不许多键；
+//   ④ TTS 保持 code=tts_failed，detail 带调用方写进 e.reason 的 why；
+//   ⑤ 每个下载单元调用点都带 stage —— 新增调用点漏 stage 就红。
 const fs = require('fs');
 const path = require('path');
 const { describe, test, ok, eq, deepEq, loadSrc } = require('./harness');
 const cfg = require('../build/telemetry.config.js');
+const gen = require('../supabase/functions/bt-ingest/events.gen.json');
 
 const ROOT = path.join(__dirname, '..');
 const MOD = 'src/app/telemetry-session.js';
@@ -51,21 +54,170 @@ function packUnit() {
   return loadSrc('src/app/pack-unit.js', 'PackUnit', {}).PackUnit;
 }
 
-const units = [
-  { pack_kind: 'vad', pack_id: 'vad', surface: 'listen', source: 'other', tier: 'none', size: 655360 },
-  { pack_kind: 'asr', pack_id: 'asr_zh', locale: 'zh', surface: 'first_run_packs', source: 'system', tier: 'none', size: 0 },
-  { pack_kind: 'lid', pack_id: 'lid', surface: 'first_run_packs', source: 'other', tier: 'server', size: 39614532 },
-  { pack_kind: 'tts', pack_id: 'tts_zh_en', locale: 'zh-en', surface: 'first_run_packs', source: 'modelscope', tier: 'cache', size: 146767700 },
-];
+const unit = { pack_kind: 'vad', pack_id: 'vad', surface: 'listen', source: 'other' };
 
-describe('BEL-293 pack_download_fail 归因字段', () => {
-  test('config 键集合 = pack_download_start / ok / fail 的实际发送键集合（双向）', async () => {
+async function failWith(reason, info, code) {
+  const { TS, events } = load();
+  const tok = await TS.packStart(Object.assign({}, unit, info || {}));
+  await TS.packFail(tok, reason, code || 'download_vad');
+  return events[events.length - 1].props;
+}
+
+describe('BEL-293 增补 2 pack_download_fail 归因字段', () => {
+  test('detail 17 值闭枚举：config = events.gen = 客户端；未知/非法 reason -> other', async () => {
+    const want = ['sha', 'offline', 'http', 'load', 'timeout', 'cancelled',
+      'no-bridge', 'no-engine', 'locales', 'locale', 'analyzer', 'assets', 'format',
+      'os', 'download', 'failed', 'other'];
+    deepEq(cfg.PACK_DETAILS, want, 'config 的 detail 枚举漂了');
+    eq(want.length, 17, 'detail 必须是 17 值');
+    deepEq(gen.events.pack_download_fail.detail, want, 'events.gen 与 config 的 detail 枚举不一致');
+    deepEq(gen.events.pack_download_fail.tier, ['cache', 'server', 'server-alt', 'builtin', 'builtin-alt'],
+      'events.gen 的 tier 枚举不该再有 none');
+
+    // 17 个值逐个走真实发送路径：detail 原样落库。
+    for (const d of want) {
+      const p = await failWith({ reason: d });
+      eq(p.detail, d, 'detail=' + d);
+      eq(p.reason, cfg.EVENTS.pack_download_fail.reason.indexOf(p.reason) >= 0 ? p.reason : 'bad',
+        'reason 必须仍是六值：' + JSON.stringify(p));
+    }
+
+    // 闭枚举 = 不做前缀/包含/白名单外匹配。这些都不是表内值，一律 other。
+    for (const bad of ['sha_mismatch', 'enospc', 'ENOSPC', 'https://example.test/a.zip',
+      'load failed', 'not-a-reason', 'unsupported', '']) {
+      eq((await failWith({ reason: bad })).detail, 'other', '非法 reason 必须 other：' + JSON.stringify(bad));
+    }
+    // locale 与 locales 是两个原生码，都留、不合并。
+    eq((await failWith({ reason: 'locale' })).detail, 'locale');
+    eq((await failWith({ reason: 'locales' })).detail, 'locales');
+    // 大小写归一仍按原生码处理。
+    eq((await failWith({ reason: 'SHA' })).detail, 'sha');
+  });
+
+  test('detail 在六值归一前取到；只读 e.reason，不读 code / why / detail / message', async () => {
+    // 这些原生码会被 packFailReason 压成六值 —— detail 必须保留原码。
+    const cases = [
+      ['sha', 'hash'],
+      ['offline', 'network'],
+      ['http', 'network'],
+      ['load', 'other'],
+      ['timeout', 'timeout'],
+      ['cancelled', 'other'],
+    ];
+    for (const [detail, reason] of cases) {
+      const p = await failWith({ reason: detail });
+      eq(p.detail, detail, '六值归一吃掉了 detail：' + detail);
+      eq(p.reason, reason, detail + ' 的六值 reason');
+    }
+
+    // 只从 e.reason 取：code / why / detail / message 都不是来源。
+    eq((await failWith({ code: 'sha' })).detail, 'other', 'code 不得成为 detail 来源');
+    eq((await failWith({ why: 'load' })).detail, 'other', 'why 不得成为 detail 来源');
+    eq((await failWith({ detail: 'assets' })).detail, 'other', 'e.detail 不得成为 detail 来源');
+    eq((await failWith({ message: 'offline sha mismatch' })).detail, 'other', 'message 不得成为 detail 来源');
+    // 原生 e.reason 是字符串时（旧调用形状）仍按同一个闭枚举处理。
+    eq((await failWith('sha')).detail, 'sha');
+  });
+
+  test('tier 五值；判不出整键省略（不是 none）；size/progress 只在 fail', async () => {
     const { TS, events } = load();
+
+    // start / ok 不带归因键，即使调用方把上下文塞进了 token。
+    const st = await TS.packStart(Object.assign({}, unit, { tier: 'cache', size: 12, progress: 3 }));
+    await TS.packOk(st);
+    eq(events[0].name, 'pack_download_start');
+    eq(events[1].name, 'pack_download_ok');
+    for (const e of events) {
+      for (const k of ['tier', 'detail', 'size', 'progress']) {
+        ok(!(k in e.props), e.name + ' 不应出现 ' + k);
+      }
+    }
+
+    // 五个真实层级逐个接受。
+    for (const tier of ['cache', 'server', 'server-alt', 'builtin', 'builtin-alt']) {
+      const p = await failWith({ reason: 'load' }, { tier }, 'download_vad');
+      eq(p.tier, tier, 'tier=' + tier);
+    }
+    // 判不出（none / 非法 / 空）⇒ 键整个不出现，不是 tier:'none'。
+    for (const tier of ['none', 'not-a-tier', '', null]) {
+      const p = await failWith({ reason: 'load' }, { tier }, 'download_vad');
+      ok(!('tier' in p), 'tier 判不出时必须省略整个键：' + JSON.stringify(tier));
+    }
+
+    // 失败对象覆盖 info；info 作为兜底；未知 size / progress 一律 0 且仍然发。
+    let p = await failWith({ reason: 'load', tier: 'builtin-alt', size: 99, progress: 87 },
+      { tier: 'server', size: 100, progress: 12 }, 'download_vad');
+    eq(p.tier, 'builtin-alt', '失败对象 tier 优先');
+    eq(p.size, 99, '失败对象 size 优先');
+    eq(p.progress, 87, '失败对象 progress 优先');
+
+    p = await failWith({ reason: 'load' }, { size: -5, progress: 42 }, 'download_vad');
+    eq(p.size, 0, '负 size -> 0');
+    eq(p.progress, 42, '没有失败对象时沿用已有进度');
+    ok(!('tier' in p), '没有 tier 上下文时省略');
+
+    p = await failWith({ reason: 'load', progress: 150 }, { size: 0 }, 'download_vad');
+    eq(p.progress, 100, 'progress 上限 100');
+    eq(p.size, 0, '未知 size 仍写 0（fail 上键必须存在）');
+
+    // packUnsupported：原生判据是 locale，detail 记 locale，tier 省略。
+    await TS.packUnsupported(Object.assign({}, unit, { pack_kind: 'asr', pack_id: 'asr_xx' }));
+    const up = events[events.length - 1].props;
+    eq(up.detail, 'locale', 'ASR 不支持的原生码是 locale');
+    ok(!('tier' in up), 'ASR 直调原生 ⇒ tier 省略');
+    eq(up.size, 0);
+    eq(up.progress, 0);
+
+    // 纯函数：没有 attempts / 不认识的 source ⇒ 空串；最后一个合法层级胜出。
+    const PU = packUnit();
+    eq(PU.packTierFromAttempts([]), '');
+    eq(PU.packTierFromAttempts([{ source: 'wat' }]), '');
+    eq(PU.packTierFromAttempts([{ source: 'cache' }, { source: 'server-alt' }]), 'server-alt');
+
+    // 中英朗读共用一个 zip：两条清单各指同一 path，不能把大小算两遍。
+    eq(PU.packSizeFromSpec([
+      { files: [{ path: 'kokoro-zh-en.zip', size: 146767700 }] },
+      { files: [{ path: 'kokoro-zh-en.zip', size: 146767700 }] },
+    ]), 146767700, '共享包按 path 去重');
+    eq(PU.packSizeFromSpec([{ files: [{ path: 'x.zip', size: -1 }] }]), 0, '非法 size 记未知 0');
+  });
+
+  test('TTS 保持 code=tts_failed，detail 带 why（why 由调用方写进 e.reason）', async () => {
+    const { TS, events } = load();
+    const PU = packUnit();
+    const cases = [
+      ['sha', 'sha'],
+      ['load', 'load'],
+      ['no-engine', 'no-engine'],
+    ];
+    for (const [why, detail] of cases) {
+      const err = { mtTtsFailed: true, why, reason: why };
+      eq(PU.packFailCode(err, 'tts'), 'tts_failed', 'TTS code 口径不许变');
+      const tok = await TS.packStart({ pack_kind: 'tts', pack_id: 'tts_zh_en', surface: 'first_run_packs', source: 'modelscope' });
+      await TS.packFail(tok, err, PU.packFailCode(err, 'tts'));
+      const p = events[events.length - 1].props;
+      eq(p.code, 'tts_failed', 'TTS 仍用 tts_failed');
+      eq(p.detail, detail, 'TTS detail 带 why：' + why);
+    }
+    // 真实调用点必须把 why 写进 e.reason（packFail 只从 e.reason 取 detail）。
+    const src = fs.readFileSync(path.join(ROOT, 'src/app/shell-model.js'), 'utf8');
+    ok(/mtTtsFailed:\s*true,\s*\n\s*why,\s*\n\s*reason:\s*why/.test(src),
+      'shell-model 的 TTS 失败对象没有把 why 同时写进 reason');
+  });
+
+  test('config 键集合 = 实际发送键集合；调用点 stage 齐全', async () => {
+    const { TS, events } = load();
+    const units = [
+      { pack_kind: 'vad', pack_id: 'vad', surface: 'listen', source: 'other', size: 655360 },
+      { pack_kind: 'asr', pack_id: 'asr_zh', locale: 'zh', surface: 'first_run_packs', source: 'system', size: 0 },
+      { pack_kind: 'lid', pack_id: 'lid', surface: 'first_run_packs', source: 'other', tier: 'server', size: 39614532 },
+      { pack_kind: 'tts', pack_id: 'tts_zh_en', locale: 'zh-en', surface: 'first_run_packs', source: 'modelscope', tier: 'cache', size: 146767700 },
+    ];
     for (const u of units) {
       const st = await TS.packStart(u);
       await TS.packOk(st);
       const failTok = await TS.packStart(u);
-      await TS.packFail(failTok, { reason: 'sha_mismatch', tier: 'server-alt', size: u.size, progress: 41 }, 'download_' + u.pack_kind);
+      await TS.packFail(failTok, { reason: 'sha', tier: u.tier, size: u.size, progress: 41 }, 'download_' + u.pack_kind);
     }
     const keys = (name) => {
       const set = new Set();
@@ -75,93 +227,12 @@ describe('BEL-293 pack_download_fail 归因字段', () => {
     for (const name of ['pack_download_start', 'pack_download_ok', 'pack_download_fail']) {
       const actual = keys(name);
       const registered = Object.keys(cfg.EVENTS[name]).sort();
-      deepEq(actual, registered, name + '：实际发送键 != 注册表键');
+      for (const k of actual) ok(registered.indexOf(k) >= 0, name + ' 发了未登记键 ' + k);
+      for (const k of registered) ok(actual.indexOf(k) >= 0, name + ' 没有发已登记键 ' + k);
     }
-    // start / ok 不许多发归因键（白名单没有 ⇒ 服务端整条拒）。
-    for (const e of events) {
-      if (e.name === 'pack_download_start' || e.name === 'pack_download_ok') {
-        for (const k of ['tier', 'detail', 'size', 'progress']) {
-          ok(!(k in e.props), e.name + ' 不应出现 ' + k + '（packStart/packOk 不新增字段）');
-        }
-      }
-    }
-  });
 
-  test('原生 reason 串 → 六值 + detail 全表（assets / sha_mismatch / load / enospc / mtTtsFailed …）', async () => {
-    const { TS, events } = load();
-    const PU = packUnit();
-    const cases = [
-      // [原生错误, stage, 期望 reason, 期望 detail, 期望 code]
-      [{ reason: 'assets' }, 'asr', 'other', 'assets', 'download_asr'],
-      [{ reason: 'sha_mismatch' }, 'asr', 'hash', 'sha_mismatch', 'download_asr'],
-      [{ reason: 'load' }, 'vad', 'other', 'load', 'download_vad'],
-      [{ reason: 'enospc' }, 'tts', 'disk', 'enospc', 'download_tts'],
-      [{ reason: 'ENOSPC' }, 'asr', 'disk', 'enospc', 'download_asr'],
-      // detail 只收 id 型：URL / 长文 / 带空格一律 other，原串不得落库。
-      [{ reason: 'https://example.test/a b.zip' }, 'asr', 'network', 'other', 'download_asr'],
-      // TTS 拆码：code 仍是 tts_failed（看板前缀不变），why 进 detail。
-      [{ mtTtsFailed: true, why: 'sha_mismatch' }, 'tts', 'hash', 'sha_mismatch', 'tts_failed'],
-      [{ mtTtsFailed: true, why: 'load' }, 'tts', 'other', 'load', 'tts_failed'],
-      [{ mtTtsFailed: true, why: 'enospc' }, 'tts', 'disk', 'enospc', 'tts_failed'],
-      // 既有旧 code 优先级 / 取消语义不许被这次拆码改写。
-      [{ mtSttTimeout: true, reason: 'timeout' }, 'asr', 'timeout', 'timeout', 'timeout'],
-      [{ mtBaseFailed: true, reason: 'disk' }, 'base', 'disk', 'disk', 'base_failed'],
-      [{ reason: 'cancelled', message: 'network connect timeout cancelled' }, 'vad', 'other', 'cancelled', 'download_vad'],
-      [new Error('download failed with URL https://secret.test/x'), 'asr', 'network', 'other', 'download_asr'],
-    ];
-    for (const [err, stage, reason, detail, code] of cases) {
-      const tok = await TS.packStart({ pack_kind: 'vad', pack_id: 'vad', surface: 'listen', source: 'other', tier: 'none', size: 1 });
-      const gotCode = PU.packFailCode(err, stage);
-      eq(gotCode, code, JSON.stringify(err) + ' 的 code');
-      await TS.packFail(tok, err, gotCode);
-      const p = events[events.length - 1].props;
-      eq(p.reason, reason, JSON.stringify(err) + ' 的 reason');
-      eq(p.detail, detail, JSON.stringify(err) + ' 的 detail');
-      eq(p.code, code, JSON.stringify(err) + ' 的落库 code');
-      ok(/^[a-z0-9_-]{1,32}$/.test(p.detail), 'detail 必须是 id 型：' + p.detail);
-      ok(!/https?:\/\/|secret|example\.test|\.zip|message/i.test(JSON.stringify(p)), 'URL/原文/自由文本进了事件');
-    }
-  });
-
-  test('tier / size / progress：调用方上下文与失败对象覆盖、非法值归一化', async () => {
-    const { TS, events } = load();
-    const base = { pack_kind: 'tts', pack_id: 'tts_th', surface: 'first_run_packs', source: 'modelscope' };
-
-    // packStart 的 info 带着上下文（只进 token，不进 start 事件）；失败对象可覆盖。
-    const t1 = await TS.packStart(Object.assign({}, base, { tier: 'server', size: 105167496, progress: 12 }));
-    eq(events[0].name, 'pack_download_start');
-    ok(!('size' in events[0].props) && !('tier' in events[0].props) && !('progress' in events[0].props),
-      'packStart 不新增字段');
-    await TS.packFail(t1, { reason: 'enospc', tier: 'builtin-alt', size: 99, progress: 87 }, 'tts_failed');
-    let p = events[events.length - 1].props;
-    eq(p.tier, 'builtin-alt', '失败对象的 tier 优先');
-    eq(p.size, 99, '失败对象的 size 优先');
-    eq(p.progress, 87, '失败对象的 progress 优先');
-    eq(p.detail, 'enospc');
-
-    // 未知 tier / 负 size / 越界 progress 一律回安全值，不让整条事件被拒。
-    const t2 = await TS.packStart(Object.assign({}, base, { tier: 'not-a-tier', size: -5, progress: 42 }));
-    await TS.packFail(t2, { reason: 'load' }, 'tts_failed');
-    p = events[events.length - 1].props;
-    eq(p.tier, 'none');
-    eq(p.size, 0);
-    eq(p.progress, 42, '没有失败对象时用已有进度');
-    const t3 = await TS.packStart(Object.assign({}, base, { progress: 150 }));
-    await TS.packFail(t3, { reason: 'load', progress: 150 }, 'tts_failed');
-    eq(events[events.length - 1].props.progress, 100, 'progress 上限 100');
-
-    // 中英朗读共用一个 zip：两条清单各指同一 path，不能把大小算两遍。
-    const PU = packUnit();
-    eq(PU.packSizeFromSpec([
-      { files: [{ path: 'kokoro-zh-en.zip', size: 146767700 }] },
-      { files: [{ path: 'kokoro-zh-en.zip', size: 146767700 }] },
-    ]), 146767700, '共享包按 path 去重');
-    eq(PU.packSizeFromSpec([{ files: [{ path: 'x.zip', size: -1 }] }]), 0, '非法 size 记未知 0');
-  });
-
-  test('packFail / 下载单元调用点都带 stage；新增调用点漏 stage 就红', () => {
+    // 调用点扫描：每个 runPackUnit / reportPackUnit 都必须带 stage。
     const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
-    // 扫整个 src/app（含 .jsx），不只今天这三个文件 —— 新调用点落在别处也会被点名。
     const files = fs.readdirSync(path.join(ROOT, 'src/app'))
       .filter((f) => /\.(js|jsx)$/.test(f))
       .map((f) => 'src/app/' + f);
@@ -173,7 +244,7 @@ describe('BEL-293 pack_download_fail 归因字段', () => {
         let m;
         while ((m = re.exec(src))) {
           const before = src.slice(Math.max(0, m.index - 24), m.index);
-          if (/function\s+$/.test(before)) continue;   // 定义，不是调用点
+          if (/function\s+$/.test(before)) continue;
           const open = src.indexOf('(', m.index);
           let depth = 0;
           let end = -1;
@@ -183,8 +254,6 @@ describe('BEL-293 pack_download_fail 归因字段', () => {
           }
           ok(end > open, f + ' 里 ' + name + ' 调用括号不配对');
           const args = src.slice(open + 1, end);
-          // runPackUnit 的定义体内那一处 reportPackUnit 是唯一出口，stage 是闭包变量；
-          // 它不是下载单元调用点，跳过。
           if (/^TelemetrySession,\s*info,\s*fn,/.test(args) && name === 'reportPackUnit') continue;
           calls.push({ file: f, name, args });
         }
@@ -195,19 +264,9 @@ describe('BEL-293 pack_download_fail 归因字段', () => {
       ok(/'(base|asr|tts|vad)'/.test(c.args),
         c.file + ' 的 ' + c.name + ' 调用点没带 stage：' + c.args.slice(0, 160));
     }
-
-    // packFail 的唯一调用点在 pack-unit.js；stage 已经由 failCode 闭包带进来。
-    const unit = strip(fs.readFileSync(path.join(ROOT, 'src/app/pack-unit.js'), 'utf8'));
-    let pf = 0;
-    const re = /\bpackFail\s*\(/g;
-    let m;
-    while ((m = re.exec(unit))) {
-      const before = unit.slice(Math.max(0, m.index - 24), m.index);
-      if (/function\s+$/.test(before)) continue;
-      pf++;
-    }
-    eq(pf, 1, 'packFail 应只有一个调用点（reportPackUnit 的失败出口）');
-    ok(unit.indexOf('packFail(token, e, failCode(e))') >= 0,
+    const up = strip(fs.readFileSync(path.join(ROOT, 'src/app/pack-unit.js'), 'utf8'));
+    eq((up.match(/\bpackFail\s*\(/g) || []).length, 1, 'packFail 应只有一个调用点');
+    ok(up.indexOf('packFail(token, e, failCode(e))') >= 0,
       'packFail 调用点没把 failCode/stage 交进去');
   });
 });

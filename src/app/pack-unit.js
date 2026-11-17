@@ -76,15 +76,15 @@ export function packSizeFromSpec(spec) {
 
 // BEL-293：ModelSources.run 的 attempts 最后一级就是这次失败的 tier。
 // 只有 cache / server / server-alt / builtin / builtin-alt 是真实换源层级；
-// 没有 attempts（直调原生 / 清单单地址）⇒ none。
-const PACK_TIERS = ['cache', 'server', 'server-alt', 'builtin', 'builtin-alt', 'none'];
+// 没有 attempts（直调原生 / 清单单地址）⇒ 返回空串，调用方整键省略（不写 none）。
+const PACK_TIERS = ['cache', 'server', 'server-alt', 'builtin', 'builtin-alt'];
 export function packTierFromAttempts(attempts) {
   const list = Array.isArray(attempts) ? attempts : [];
   for (let i = list.length - 1; i >= 0; i--) {
     const s = list[i] && list[i].source;
     if (PACK_TIERS.indexOf(s) >= 0) return s;
   }
-  return 'none';
+  return '';
 }
 
 // BEL-226/268：pack_download_fail 的 code 只发 id 型（注册表 'id'），不塞系统

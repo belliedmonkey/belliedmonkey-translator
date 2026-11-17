@@ -2177,8 +2177,8 @@ export function bootShell() {
         packInfo = {
           pack_kind: 'vad', pack_id: 'vad', surface: packSurfaceNow(),
           source: packSourceFromSpec(vad),
-          // VAD 直调 ensureVad：没有换源链 ⇒ 不是「没填」，而是 none。
-          tier: 'none', size: packSizeFromSpec(vad), progress: 0,
+          // VAD 直调原生，没有换源链 ⇒ 不写 tier（判不出就整键省略）。
+          size: packSizeFromSpec(vad), progress: 0,
         };
         await runPackUnit(packInfo, () => NativeSpeech.ensureVad(vad, onProg), 'vad');
       }
@@ -2190,8 +2190,8 @@ export function bootShell() {
         packInfo = {
           pack_kind: 'lid', pack_id: 'lid', surface: packSurfaceNow(),
           source: packSourceFromSpec(lid),
-          // LID 走 ModelSources 时 tier 在失败时才确定；直调路径保持 none。
-          tier: 'none', size: packSizeFromSpec(lid), progress: 0,
+          // LID 走 ModelSources 时 tier 在失败时才确定；直调路径不写 tier。
+          size: packSizeFromSpec(lid), progress: 0,
         };
         await runPackUnit(packInfo, async () => {
           if (typeof ModelSources !== 'undefined' && ModelSources && typeof ModelSources.run === 'function') {
@@ -2251,8 +2251,8 @@ export function bootShell() {
       packInfo = {
         pack_kind: 'tts', pack_id: u.pack_id, locale: u.locale, surface: packSurfaceNow(),
         source: packSourceFromSpec(ttsModelsForUnit(u.langs)),
-        // 真实换源层级要等 ensureDeviceReady 返回 attempts 才确定。
-        tier: 'none', size: packSizeFromSpec(ttsModelsForUnit(u.langs)), progress: 0,
+        // 真实换源层级要等 ensureDeviceReady 返回 attempts 才确定；判不出就不写。
+        size: packSizeFromSpec(ttsModelsForUnit(u.langs)), progress: 0,
       };
       await runPackUnit(packInfo, async () => {
         const r = await LearnTTS.ensureDeviceReady(onProg, DEVICE_TTS_ENGINE, u.langs);
@@ -2290,8 +2290,8 @@ export function bootShell() {
             await TelemetrySession.packUnsupported({
               pack_kind: 'asr', pack_id: 'asr_' + code, locale: code,
               surface: packSurfaceNow(), source: 'system',
-              // ASR 直调 ensureAssets：没有换源链；系统包大小由系统决定 ⇒ 未知 0。
-              tier: 'none', size: 0, progress: 0,
+              // ASR 直调 ensureAssets：没有换源链（tier 省略）；系统包大小 ⇒ 未知 0。
+              size: 0, progress: 0,
             });
           } catch (_) {}
         }
@@ -2313,8 +2313,8 @@ export function bootShell() {
       const asrInfo = {
         pack_kind: 'asr', pack_id: 'asr_' + code, locale: code,
         surface: packSurfaceNow(), source: 'system',
-        // ASR 直调 ensureAssets：没有换源链；系统语言包大小由系统决定 ⇒ 未知 0。
-        tier: 'none', size: 0, progress: 0,
+        // ASR 直调 ensureAssets：没有换源链（tier 省略）；系统包大小 ⇒ 未知 0。
+        size: 0, progress: 0,
       };
       await runPackUnit(asrInfo, async () => {
         let timer = null;
