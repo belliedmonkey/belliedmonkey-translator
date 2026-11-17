@@ -9,7 +9,7 @@
 const { loadModule, describe, test, ok, eq, deepEq } = require('./harness');
 const cfg = require('../build/telemetry.config.js');
 
-function load({ china = false, sends = [], flavor = null, telemetry = undefined, crypto = require('crypto').webcrypto } = {}) {
+function load({ china = false, sends = [], flavor = null, telemetry = undefined, providers = [], crypto = require('crypto').webcrypto, userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 Version/26.0 Mobile/15E148 Safari/604.1' } = {}) {
   const store = {};
   const ls = {};                       // WKWebView / 页面里的 localStorage（本机诊断落在它上面）
   const tel = telemetry !== undefined ? telemetry : (china ? null : {
@@ -30,7 +30,7 @@ function load({ china = false, sends = [], flavor = null, telemetry = undefined,
       setItem: (k, v) => { ls[k] = String(v); },
       removeItem: (k) => { delete ls[k]; },
     },
-    navigator: { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 Version/26.0 Mobile/15E148 Safari/604.1', platform: 'iPhone', language: 'zh-CN' },
+    navigator: { userAgent, platform: 'iPhone', language: 'zh-CN' },
     crypto,
     fetch: async (url, init) => { sends.push({ url, body: JSON.parse(init.body) }); return { ok: true }; },
     chrome: { i18n: { getUILanguage: () => 'zh-CN' }, storage: { local: {
