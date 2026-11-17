@@ -144,7 +144,7 @@ describe('AppHandoff.relayResult — 面板页的遥测由主页面代发（tele
     sent.length = 0; eq(H.relayResult({ ok: false, code: 'auth', provider: 'openai', status: 401, route: 'direct', ms: 12.5 }, track), 'fail');
     deepEq(sent[0], { n: 'translate_fail', p: { provider: 'openai', kind: 'quick', code: 'auth', status: 401, route: 'direct' } });
     sent.length = 0; H.relayResult({ ok: false }, track);
-    deepEq(sent[0].p, { provider: '', kind: 'quick', code: 'network', status: 0, route: '' });
+    deepEq(sent[0].p, { provider: '', kind: 'quick', code: 'network', route: '' });
     sent.length = 0; H.relayResult({ ok: false, ms: 0 }, track);
     eq(sent[0].p.ms, 0, '真实的 0 是合法读数，照发');
   });

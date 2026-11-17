@@ -299,6 +299,18 @@ var NativeAudio = (() => {
     });
   }
   function audioCaps() { return caps; }
+  // BEL-294/BEL-295：App 的 caps 合并原生注入的 CFBundleVersion（window.MT_APP_CAPS，
+  // 由 MTAudioBridge 在 documentStart 写入）与 audio-caps 自带的 build。拿不到就
+  // 没有 build 键 —— 调用方（遥测信封）据此整键省略，不写 0。
+  function appCaps() {
+    const out = {};
+    try {
+      const injected = (typeof window !== 'undefined' && window.MT_APP_CAPS) || null;
+      if (injected && typeof injected === 'object') Object.assign(out, injected);
+    } catch (_) {}
+    if (caps) Object.assign(out, caps);
+    return out;
+  }
   // 字幕条 / 画中画上的每个字都由 JS 传（原生零文案）：labels.state[state]、labels.controls、labels.menu。
   function subtitleConfig(cfg) {
     const c = cfg || {};
@@ -383,6 +395,7 @@ var NativeAudio = (() => {
     }
     if (msg.type === 'audio-caps') {
       caps = { sources: Array.isArray(msg.sources) ? msg.sources.slice() : [], system: String(msg.system || ''), broadcast: String(msg.broadcast || '') };
+      if (Number.isInteger(msg.build) && msg.build >= 0) caps.build = msg.build;
       probedNoReply = false;
       const ws = capsWaiters; capsWaiters = [];
       for (const w of ws) { try { w(caps); } catch (_) {} }
@@ -412,7 +425,7 @@ var NativeAudio = (() => {
     suspends: () => suspends,
     sessionStart, sessionStop, recordMode, nowPlaying, artwork, artworkLocal, playingState, onEvent, offEvent,
     micStart, micStop, micPermRead, micPermOpenSettings, pcmOf, _fromNative,
-    capsProbe, audioCaps, subtitleConfig, subtitleShow, subtitleState, subtitleFloat, subtitleHide, onTick,
+    capsProbe, audioCaps, caps: appCaps, subtitleConfig, subtitleShow, subtitleState, subtitleFloat, subtitleHide, onTick,
   };
   // 显式挂全局：原生就是照着这个名字回话的。
   try { window.NativeAudio = api; } catch (_) {}

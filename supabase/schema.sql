@@ -140,10 +140,14 @@ create table if not exists public.bt_events (
   host         text        not null,               -- safari / chrome / firefox / app
   device       text        not null default '',
   ui           text        not null default '',
+  build        int,                                -- BEL-294：App 的 CFBundleVersion；扩展/老客户端为 NULL
   name         text        not null,               -- 事件名，白名单见 build/telemetry.config.js
   props        jsonb       not null default '{}'::jsonb,
   received_at  timestamptz not null default now()
 );
+
+-- 已有库的幂等迁移：create table if not exists 不会补列。
+alter table public.bt_events add column if not exists build int;
 
 create index if not exists bt_events_install_idx  on public.bt_events (install_id);
 create index if not exists bt_events_received_idx on public.bt_events (received_at);

@@ -86,7 +86,9 @@ describe('BEL-270 A completion — translate_fail props stay allowlist-only', ()
       const m = src.match(/const fail = \{([\s\S]*?)\n\s*\};/);
       ok(m, file + ': 找不到 fail 属性字面量');
       const keys = [...m[1].matchAll(/^\s*([A-Za-z_$][\w$]*):/gm)].map((x) => x[1]).sort();
-      deepEq(keys, ['code', 'kind', 'provider', 'route', 'status'], file + ' 的属性集变了');
+      deepEq(keys, ['code', 'kind', 'provider', 'route'], file + ' 的属性集变了');
+      ok(/\.\.\.\(Number\.isInteger\(e && e\.status\) \? \{ status: e\.status \} : \{\}\)/.test(src),
+        file + ': status 不再是「有整数才发」（不能写 0）');
       for (const key of ['body', 'reason', 'serverMessage']) {
         ok(!new RegExp('\\b' + key + '\\b').test(m[1]), `${file} 把 ${key} 写进了事件属性`);
       }
