@@ -59,6 +59,15 @@ const APP_OPEN_SURFACES = SURFACES.concat(['login', 'packs', 'app_home']);
 // 所以抽成常量、两边引用。加一个值 = 改这里 + docs/telemetry-design.md §3。
 const TRANSLATE_KINDS = ['page', 'subtitle', 'doc', 'quick'];
 
+// BEL-290（2026-11-17，产品定稿）：一键设定的三个归属面。ext_settings = 扩展设置页，
+// app_feature = App 设置页，onboard = 引导页。只回答「在哪一屏点的」，不是入口。
+const SETUP_SURFACES = ['ext_settings', 'app_feature', 'onboard'];
+// BEL-290：engine_test.surface 从五个功能面追加一键设定的三个归属面（枚举扩值，不替换）。
+const ENGINE_TEST_SURFACES = SURFACES.concat(['setup_quick', 'setup_fields', 'setup_onboard']);
+// BEL-290：settings_open 只回答「打开设置时落在哪一屏」。app_home / app_onboard /
+// app_feature 是 App 侧三个入口，ext_settings 是扩展设置页；不猜屏就不带这个键。
+const SETTINGS_SURFACES = ['app_home', 'app_onboard', 'app_feature', 'ext_settings'];
+
 const EVENTS = {
   installed: {},
   heartbeat: {},
@@ -128,8 +137,30 @@ const EVENTS = {
     // BEL-223（2026-11-08）：从哪个功能面发起测试、哪次启动。键可缺。
     // launch_id = 32 位小写十六进制（uuid 去掉连字符），与 UUID 同义；用 'id' 规则见 app_open。
     launch_id: 'id',
-    surface: SURFACES,
+    surface: ENGINE_TEST_SURFACES,
   },
+  // BEL-290（2026-11-17，产品定稿）：一键设定的成功/失败面。三面共用
+  // src/shared/quick-setup-view.jsx 一处发送点（扩展设置页 / App 设置页 / 引导页）。
+  // 没有 ok 只有 fail 就算不出失败率；ok 带 wrote/replaced 把「点了但三槽早已配好」
+  // 的 no-op 与「真的写了 / 顶掉了免费额度」分开。
+  setup_apply_ok: {
+    surface: SETUP_SURFACES,
+    wrote: ['none', 'any'],
+    replaced: ['none', 'grant'],
+  },
+  // stage 只做 precheck / read / write；verify 已被 engine_test 覆盖，不再双计。
+  // code 是闭枚举：quick-setup-view 的 e.message 绝不能进遥测。
+  setup_apply_fail: {
+    surface: SETUP_SURFACES,
+    stage: ['precheck', 'read', 'write'],
+    code: ['no_key', 'no_base', 'storage', 'unknown'],
+  },
+  // BEL-290：设置页打开的归属面。app_home / app_onboard / app_feature = App 三个
+  // 入口；ext_settings = 扩展设置页。dwell 不做（产品定稿），不在这里留半条。
+  settings_open: { surface: SETTINGS_SURFACES },
+  // BEL-290：站点访问权限被拒。只从扩展 popup 发，零 props —— permission 只有
+  // host、surface 只有 popup 两个常量，公共信封的 host/device 已经够拆。
+  perm_denied: {},
   translate_ok: { provider: 'id', kind: TRANSLATE_KINDS, ms: 'int', surface: SURFACES },   // doc：文档翻译（2026-09-11，learning-design §9.7）
   translate_fail: {
     provider: 'id',
@@ -396,7 +427,9 @@ const EVENTS = {
     engine: 'id',
     locale_pair: 'id',
   },
-  translate_start: { engine: 'id', locale_pair: 'id' },
+  // BEL-290：页面翻译也发 start（kind:'page'，每会话一条）；App 侧补 kind 与 surface。
+  // 两者都可缺：老客户端不发；页面侧不带 surface（kind 已经精确表达了页面翻译）。
+  translate_start: { engine: 'id', locale_pair: 'id', kind: TRANSLATE_KINDS, surface: SURFACES },
   // Mac 完整视频离线字幕（domain-design §2.8 / telemetry-design §3.15，BEL-103）。
   // 不进听译漏斗。成功不带 code。code 里没有路径和原文。
   offline_video_asr_task: {
@@ -426,6 +459,11 @@ const EVENTS = {
 //                            MODULES 里：「同名模块进了包」与「接上了」是两件事，两件都核。
 //   { host, none: '理由' }   这个宿主**有意**不发。不许留空 ——「不做」也要有机器可读的形状。
 //                            可带 surface 标出是哪个表面（同一宿主另有发送点时）。
+//   { host, file, match?, pending: '理由' }
+//                            发送点属于下一拍、客户端尚未落码（BEL-290 拍 A/B 拆分）。只登记
+//                            目标文件与字面量；门禁核对理由后跳过「文件里真的有调用」。pending
+//                            不是 none：它表示「将要发」，下一拍接上后必须删掉 pending，否则
+//                            门禁会一直把它当未落码而放过。pending 集合由测试逐个钉死。
 //
 // 新增事件、新增宿主、挪动发送点 = 改这里。门禁红了先问「接上了吗」，不是改门禁。
 const SHARED = (file, extra) => [Object.assign({ host: 'ext', file }, extra), Object.assign({ host: 'app', file }, extra)];
@@ -458,6 +496,20 @@ const SEAMS = {
     { host: 'app', file: 'src/app/settings-model.js' },
   ],
   engine_test: SHARED('extension/learn/engine-test.js'),
+  // BEL-290：一键设定三宿主共用 src/shared/quick-setup-view.jsx。拍 B 已接上：
+  // 成功一条在 await onApply 之后；失败在 precheck / read / write 三个分支各一条。
+  setup_apply_ok: SHARED('src/shared/quick-setup-view.jsx'),
+  setup_apply_fail: SHARED('src/shared/quick-setup-view.jsx'),
+  // BEL-290：扩展设置页 boot 在 src/pages/options.jsx；App openSettings 在 shell-model。
+  settings_open: [
+    { host: 'ext', file: 'src/pages/options.jsx' },
+    { host: 'app', file: 'src/app/shell-model.js' },
+  ],
+  // BEL-290：只有扩展 popup 能看见「内容脚本没注入」，App 侧没有这个观测点。
+  perm_denied: [
+    { host: 'ext', file: 'src/pages/popup.jsx' },
+    { host: 'app', none: '站点访问权限只在浏览器扩展里存在；App 没有这条观测点（BEL-290 定稿）' },
+  ],
   // auth_fail（§3.14）：两个宿主都走 extension/learn/auth.js 的同一份字节（该文件在 App 包的
   // MODULES 里）。App 原生那一步（apple-result 带 error）另外经 LearnAuth.noteAuthFail 报，
   // 仍落在这个文件里 —— 发送点只有一处，与「登录即注册」只有一份实现同一条纪律。
@@ -586,7 +638,8 @@ const SEAMS = {
     { host: 'app', file: 'src/app/listen-model.js', match: "track('asr_fail'" },
   ],
   translate_start: [
-    { host: 'ext', none: '网页翻译没有「听出字再开翻」这一跳；成功与失败仍是 translate_ok / translate_fail' },
+    // BEL-290：页面翻译也发 start（kind:'page'，每会话一条）；App 侧补 kind/surface。
+    { host: 'ext', file: 'extension/content/content-webpage.js', match: "kind: 'page'" },
     { host: 'app', file: 'src/app/listen-model.js', match: "track('translate_start'" },
   ],
   offline_video_asr_task: [

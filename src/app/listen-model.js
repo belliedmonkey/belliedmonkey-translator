@@ -904,7 +904,9 @@ const listenModel = (() => {
   function noteTranslateStart() {
     if (!session || session.tmStart) return;
     session.tmStart = true;
-    track('translate_start', funnelProps());
+    // BEL-290：与页面翻译的 kind:'page' 对齐，App 侧补 kind 与功能面。
+    // engine / locale_pair 仍由 funnelProps() 在合法时带上。
+    track('translate_start', Object.assign({ kind: 'subtitle', surface: funnelSurface() }, funnelProps()));
   }
   function tmOk() {
     if (!session || session.tmOk) return;

@@ -936,6 +936,8 @@ export default function SettingsView() {
       readSettings: () => settingsModel.get(settingsModel.KEYS),
       replaceKeyTail: () => new Promise((res) => chrome.storage.local.get(['grantTail'], (v) => res((v && v.grantTail) || ''))),
       targetLang: '',
+      // BEL-290：setup_apply_* 的归属面 —— 这是 App 设置页。
+      surface: 'app_feature',
       onApply: (plan) => applyQuickSetup(plan, session, say),
       // 自检跑完之后才给回执，并且**用卡自己的结果**，不再测第二遍。
       onResults: (plan, results) => {

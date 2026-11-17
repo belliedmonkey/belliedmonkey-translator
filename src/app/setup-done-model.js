@@ -75,6 +75,8 @@ async function runSlot(slot, s) {
   if (slot === 'chat') {
     return EngineTest.translation({
       provider: s.provider, apiKey: s.apiKey, baseUrl: s.apiBaseUrl, model: s.apiModel,
+      // BEL-290：回执页自己再测一遍时，归属面是引导页。
+      surface: 'setup_onboard',
       targetLang: (typeof AppTargetLang !== 'undefined' && AppTargetLang.resolve(s, '', ''))
         // 原 app/setup-done.js 兜底 root.MT_DEFAULT_TARGET_LANG；src/ 边界门禁只许走
         // 正路读口，同一常量值的既有先例是 TranslationCore.DEFAULT_TARGET_LANG（shell-model 同）。

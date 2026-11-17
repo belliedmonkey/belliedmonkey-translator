@@ -459,9 +459,9 @@ describe('options.saveNow — 保存路径的前提不许漂', () => {
     ok(j > i, 'saveNow 的函数体截不出来 —— 缩进变了？');
     const body = s.slice(i, j);
     const f = body.indexOf('for (const k of SAVE_KEYS)');
-    const m = body.indexOf('SettingsStore.setMany(');
+    const m = body.indexOf('setManyOrThrow(SettingsStore,');
     ok(f >= 0, 'saveNow 不再按 SAVE_KEYS 过滤 —— 键域外的键会混进 setMany 被整单拒绝，一次保存全灭');
-    ok(m >= 0, 'saveNow 不走 SettingsStore.setMany 落盘了 —— 它是谁的后继？');
+    ok(m >= 0, 'saveNow 不走 setManyOrThrow 落盘了 —— 写失败将无法变成 setup_apply_fail');
     ok(f < m, '键域过滤发生在落盘之后 —— 等于没滤');
   });
 

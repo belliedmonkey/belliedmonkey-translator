@@ -55,6 +55,24 @@ import { createAppleFailureUi, classifyAppleResult } from './apple-native.js'; /
 // deadlock, with `auth` instead of `oauth`).
 export const GOOGLE_AUTH_WAIT_MS = 5 * 60 * 1000;
 
+// BEL-290：settings_open.surface 的推导。App 只有一个打开设置页的漏斗
+// （openSettings），锚点回答「他是从哪条路进来的」：
+//   无锚点                    → app_home（首页齿轮 / 继续设置卡）
+//   sec-engines / set-pack-manage / sec-account
+//                             → app_onboard（首启引导的三个深链落点）
+//   其余控件锚点              → app_feature（正常使用中的设置项）
+// 不在表里的锚点按 app_feature 处理：那仍然是「从某个功能处打开设置」，不是首页。
+const SETTINGS_ONBOARD_ANCHORS = ['sec-engines', 'set-pack-manage', 'sec-account'];
+const SETTINGS_FEATURE_ANCHORS = ['engine', 'tts-engine', 'notes-provider', 'quick-setup-card'];
+export function settingsSurfaceFor(anchorId) {
+  const a = String(anchorId || '');
+  if (!a) return 'app_home';
+  if (SETTINGS_ONBOARD_ANCHORS.indexOf(a) >= 0) return 'app_onboard';
+  if (SETTINGS_FEATURE_ANCHORS.indexOf(a) >= 0) return 'app_feature';
+  // 其余可见控件（例如 g-quick）也是功能面入口；未来新增锚点不需要改这张表。
+  return 'app_feature';
+}
+
 // ── BEL-269：首启包失败后的唯一一条前进路 ────────────────────────────────
 // 首启包屏仍是硬门（成功路径不变），但下载**失败**后不能再只剩「重试」：一次自动
 // 重试（固定退避，仅一次）之后，如果仍然失败，除了手动「重试」还要给「稍后补包，
@@ -3853,7 +3871,17 @@ export function bootShell() {
     $('signed-in').hidden = true;
     $('signed-out').hidden = true;
     $('review-view').hidden = true;
+    const settingsWasHidden = $('app-settings').hidden;
     $('app-settings').hidden = false;
+    // BEL-290：只在 hidden → visible 的那一刻发一条。openSettings 也可能在人已经
+    // 在设置页里时被调用（深链 / 卡片按钮）；那种情况不是一次「打开设置」。
+    if (settingsWasHidden) {
+      try {
+        if (typeof MTTelemetry !== 'undefined') {
+          MTTelemetry.track('settings_open', { surface: settingsSurfaceFor(anchorId) });
+        }
+      } catch (_) {}
+    }
     // 旧 AppSettings.paint(session, say) 的时序位：现在走通知制 —— 视图订阅
     // onSettingsShown，这里等所有订阅者的重画 promise 收齐（「paint 之后再滚」不变）。
     await settingsModel.notifySettingsShown(currentSession);

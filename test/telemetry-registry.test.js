@@ -41,6 +41,22 @@ describe('telemetry registry — 白名单是唯一登记处', () => {
     eq([...inCfg].filter((e) => !inDoc.has(e)).join(','), '', '注册表里有、文档里没有');
     eq([...inDoc].filter((e) => !inCfg.has(e)).join(','), '', '文档里有、注册表里没有');
   });
+  // BEL-290（2026-11-17 产品定稿）：事件 37→41。枚举逐字钉住 —— 少一个值客户端会
+  // 整条丢（同 unknown_prop 的形状），多一个值则会把没评审的取值放进线上表。
+  test('BEL-290：事件 37→41 与四个新事件的 props / 扩展枚举', () => {
+    eq(Object.keys(cfg.EVENTS).length, 41);
+    eq(cfg.EVENTS.setup_apply_ok.surface.join(','), 'ext_settings,app_feature,onboard');
+    eq(cfg.EVENTS.setup_apply_ok.wrote.join(','), 'none,any');
+    eq(cfg.EVENTS.setup_apply_ok.replaced.join(','), 'none,grant');
+    eq(cfg.EVENTS.setup_apply_fail.surface.join(','), 'ext_settings,app_feature,onboard');
+    eq(cfg.EVENTS.setup_apply_fail.stage.join(','), 'precheck,read,write');
+    eq(cfg.EVENTS.setup_apply_fail.code.join(','), 'no_key,no_base,storage,unknown');
+    eq(cfg.EVENTS.settings_open.surface.join(','), 'app_home,app_onboard,app_feature,ext_settings');
+    eq(Object.keys(cfg.EVENTS.perm_denied).length, 0, 'perm_denied 必须零 props');
+    eq(cfg.EVENTS.engine_test.surface.slice(-3).join(','), 'setup_quick,setup_fields,setup_onboard');
+    eq(cfg.EVENTS.translate_start.kind.join(','), 'page,subtitle,doc,quick');
+    eq(cfg.EVENTS.translate_start.surface.join(','), 'listen,live_caption,quick,doc,web_caption');
+  });
 });
 
 // ── 发送点（telemetry-design §3.4）──────────────────────────────────────────────
@@ -65,6 +81,13 @@ function checkSeams(events, seams, read, modules) {
     for (const x of list) {
       if (!HOSTS.includes(x.host)) { bad.push(`${ev}: host 只能是 ext / app，得到 ${x.host}`); continue; }
       if (x.none != null) { if (typeof x.none !== 'string' || x.none.trim().length < 6) bad.push(`${ev}/${x.host}: none 要写一句理由`); continue; }
+      // BEL-290 拍 A/B 拆分：发送点属于下一拍时用 pending。它仍要有目标文件与理由，
+      // 但门禁**跳过**「文件里真的有调用」；下一拍接上后必须删掉 pending（集合见下方测试）。
+      if (x.pending != null) {
+        if (typeof x.pending !== 'string' || x.pending.trim().length < 6) bad.push(`${ev}/${x.host}: pending 要写一句理由`);
+        if (!x.file) bad.push(`${ev}/${x.host}: pending 必须登记目标 file`);
+        continue;
+      }
       const src = read(x.file);
       if (src == null) { bad.push(`${ev}/${x.host}: ${x.file} 不存在`); continue; }
       const code = stripComments(src);
@@ -86,6 +109,15 @@ describe('telemetry seams — 每个事件在每个宿主上真的有发送点�
     const bad = checkSeams(cfg.EVENTS, cfg.SEAMS, read, MODULES);
     eq(bad.length, 0, '\n  ' + bad.join('\n  '));
   });
+  // pending 是拍 A/B 拆分的临时形状。BEL-290 拍 B 已把八个发送点都接上，所以
+  // 这里翻面：SEAMS 里不许再留 pending —— 留一个就等于门禁对那一条永远放行。
+  test('BEL-290 拍 B 接上后 SEAMS 里不再有 pending', () => {
+    const got = [];
+    for (const [ev, list] of Object.entries(cfg.SEAMS)) {
+      for (const x of list) if (x.pending) got.push(`${ev}/${x.host}`);
+    }
+    eq(got.sort().join(','), '', '还有未落码的 pending 发送点');
+  });
   // §3.9 提案 A：dwell 的「开始计时」那一半没有任何门禁能自己发现 —— 少打一处，
   // 事件照发、值照样合法（只是算成了「从启动到现在」），表上看不出来。所以单独钉住。
   test('dwell 的「开始计时」：引导屏已撤（2026-10-03）⇒ App 侧不再有进场路', () => {
@@ -103,7 +135,8 @@ describe('telemetry seams — 每个事件在每个宿主上真的有发送点�
   });
   test('SEAMS 不出注册表：不进 events.gen.json', () => {
     const gen = fs.readFileSync(path.join(ROOT, 'supabase/functions/bt-ingest/events.gen.json'), 'utf8');
-    ok(!/seams|"file"|"none"/i.test(gen), 'events.gen.json 里出现了发送点元数据');
+    // 按**键**判，不按裸词：BEL-290 的 wrote/replaced 枚举里合法地出现值 "none"。
+    ok(!/"(seams|file|pending|match|none)"\s*:/i.test(gen), 'events.gen.json 里出现了发送点元数据');
   });
 
   test('auth_fail.stage：客户端归一化的白名单必须 ⊇ 注册表枚举（差一个就把真值变成 unknown）', () => {
