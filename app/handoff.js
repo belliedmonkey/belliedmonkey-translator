@@ -135,7 +135,7 @@
       }
       T.track('translate_fail', withMs({
         provider, kind: 'quick', code: typeof m.code === 'string' && m.code ? m.code : 'network',
-        status: Number.isInteger(m.status) ? m.status : 0,
+        ...(Number.isInteger(m.status) ? { status: m.status } : {}),
         route: m.route === 'proxy' ? 'proxy' : (m.route === 'direct' ? 'direct' : ''),
       }));
       return 'fail';

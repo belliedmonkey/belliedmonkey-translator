@@ -211,7 +211,12 @@ describe('BEL-277 SW — 内容脚本路由与队列保留', () => {
 
     eq(Object.keys(viaSw).sort().join(','), Object.keys(viaDirect).sort().join(','));
     eq(viaSw.name, viaDirect.name);
-    deepEq(viaSw.props, viaDirect.props);
+    // BEL-294/BEL-296：translate_ok 的 op_id 是一次操作一个的随机 16-hex，两条路各发
+    // 一次自然不同；除它以外的 props 必须逐字相同。
+    const stripOp = (p) => { const c = Object.assign({}, p); delete c.op_id; return c; };
+    ok(/^[0-9a-f]{16}$/.test(viaSw.props.op_id), 'SW 路径也要有 op_id');
+    ok(/^[0-9a-f]{16}$/.test(viaDirect.props.op_id), '直连路径也要有 op_id');
+    deepEq(stripOp(viaSw.props), stripOp(viaDirect.props));
     eq(viaSw.host, viaDirect.host);
     eq(viaSw.device, viaDirect.device);
     eq(viaSw.v, viaDirect.v);
