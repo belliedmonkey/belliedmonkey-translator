@@ -661,10 +661,10 @@ const PACK_FAIL_REASONS = ['network', 'timeout', 'disk', 'hash', 'unsupported', 
 // BEL-293 定稿：与 build/telemetry.config.js 的 PACK_TIERS 同源。只有 LID/TTS 的
 // ModelSources 有真实换源层级；ASR/VAD 直调原生 ⇒ 键省略（不是 'none'）。
 const PACK_TIERS = ['cache', 'server', 'server-alt', 'builtin', 'builtin-alt'];
-// detail 是闭枚举（20 值定稿）：只收原生 e.reason 的协议码。sha/offline/http/load
+// detail 是闭枚举（22 值定稿）：只收原生 e.reason 的协议码。sha/offline/http/load
 // 会被六值归一吃掉，所以必须在 packFailReason() 之前取；locale 与 locales 不合并；
-// 连字符保持 no-engine / no-bridge。兜底只有 other（没有 failed / format / enospc；
-// 磁盘满靠 reason='disk'，原生 enospc 会落 other）。blocked / superseded / lang 为
+// 连字符保持 no-engine / no-bridge。failed / format 有真实发送点，保留；enospc 无
+// 发送点，落 other（磁盘满靠 reason='disk'）。blocked / superseded / lang 为
 // TTS/ASR 后续复用预留，当前 pack-download 路径不产生。
 const PACK_DETAILS = ['sha', 'offline', 'http', 'load', 'timeout', 'cancelled',
   'no-bridge', 'no-engine', 'locales', 'locale', 'analyzer', 'assets', 'format', 'os',

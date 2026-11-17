@@ -168,9 +168,9 @@ revoke all on table public.bt_events from anon, authenticated;
 --     received_at 最新的一行（dedupe='deduped'）。
 --   · download_id IS NULL 的 1.23.3 老行：原样透传（dedupe='legacy'）。
 --     老行没有 detail 就是 NULL —— 不回填，也不写成 'other'。
---   · bt_events_rejected 按小时桶聚合：hour = date_trunc('hour', now())；
---     只记 (hour, name, 非法键名集合) + 计数。invalid_keys 排序去重、最多 8 个且每个
---     键名 ≤64；唯一键 (hour, name, invalid_keys)，写入口 upsert 累加。
+--   · bt_events_rejected 按 (name, invalid_keys) 聚合，不设小时桶：
+--     记 n + first_seen/last_seen。invalid_keys 排序去重、left(k,64) 截断、最多 8 个；
+--     唯一键 (name, invalid_keys)，写入口 upsert 累加 n 并更新 last_seen。
 -- ─────────────────────────────────────────────────────────────────────────────
 
 create or replace view public.bt_events_pack_fail_dedup as
