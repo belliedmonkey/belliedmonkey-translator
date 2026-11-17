@@ -218,11 +218,11 @@ describe('N26 fail-surface — 下一步锚点', () => {
     eq(FS.surface('model_not_allowed').anchor, '#grant');
     const noBase = FS.surface('no_base');
     eq(noBase.halt, true);
-    eq(noBase.anchor, '#engine');
+    eq(noBase.anchor, '#engine-base');
     eq(noBase.showAutoRetry, false);
     eq(noBase.primary.action, 'open');
     eq(FS.row('no_base').retry, false);
-    eq(FS.row('no_base').anchor, '#engine');
+    eq(FS.row('no_base').anchor, '#engine-base');
     const auth = FS.surface('auth');
     eq(auth.anchor, '#engine');
     eq(auth.primary.anchor, '#engine');

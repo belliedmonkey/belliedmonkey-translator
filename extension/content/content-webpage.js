@@ -76,6 +76,13 @@ var WebpageTranslator = (() => {
       // before the request) and therefore renders no sibling at all. Read late (getter,
       // not value) per docs/domain-design.md §4 — the engine must never hold a stale copy.
       targetLang: () => settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
+      // BEL-274: 400/429 threshold identity. provider + endpoint + model — the three
+      // things that decide "which configuration failed"; read late, never captured.
+      failKey: () => [
+        TranslationAPI.resolveProvider(settings.provider),
+        String(settings.apiBaseUrl || ''),
+        String(settings.apiModel || ''),
+      ].join('|'),
       // Optional browser-native detector (docs/domain-design.md §5.3): extends that skip
       // to targets script cannot decide, on the browsers that have one. Absent on every
       // Safari, where the engine falls back to the script check alone.
