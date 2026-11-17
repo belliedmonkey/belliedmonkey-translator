@@ -46,17 +46,15 @@ const PACK_FAIL_REASONS = ['network', 'timeout', 'disk', 'hash', 'unsupported', 
 // （app/model-sources.js 的 source）；ASR 直调 ensureAssets、VAD 直调 ensureVad，
 // 没有可归因的换源层级 ⇒ **整个键省略**（不写 'none'：'none' 会被读成一种真实层级）。
 const PACK_TIERS = ['cache', 'server', 'server-alt', 'builtin', 'builtin-alt'];
-// BEL-293 增补 2：detail 是**闭枚举**，只收原生 e.reason 里的协议码，不做前缀/包含匹配。
-// sha / offline / http / load 在六值 reason 里会被压成 hash / network / timeout / other，
-// 所以 detail 必须在 packFailReason() **之前**取。locale 与 locales 是两个原生码，不合并。
-// 不在表内（含 sha_mismatch / enospc / URL / message）一律 'other'。
-// 用户裁定（2026-11-17）：「1 全要」，在 17 值上补 lang / unsupported / probe /
-// blocked / superseded。17 + 5 = 22；票面写的「21」与清单相加不符，按全要落地，
-// 保留全部旧值，不猜删任何一个。
-const PACK_DETAILS = ['sha', 'offline', 'http', 'load', 'timeout', 'cancelled',
-  'no-bridge', 'no-engine', 'locales', 'locale', 'analyzer', 'assets', 'format',
-  'os', 'download', 'failed', 'lang', 'unsupported', 'probe', 'blocked', 'superseded',
-  'other'];
+// BEL-293 定稿（2026-11-17）：detail 是**闭枚举（21 值，逐字定稿）**，只收原生
+// e.reason 里的协议码，不做前缀/包含匹配。sha / offline / http / load 在六值 reason
+// 里会被压成 hash / network / timeout / other，所以 detail 必须在 packFailReason()
+// **之前**取。locale 与 locales 是两个原生码，不合并；连字符保持 no-engine / no-bridge。
+// 兜底只有 'other'：不允许 failed / format。sha_mismatch 是客户端 alias → sha，
+// 不进枚举、不另立值。不在表内的其它值一律 'other'。
+const PACK_DETAILS = ['sha', 'offline', 'http', 'load', 'download', 'assets', 'locale',
+  'locales', 'os', 'analyzer', 'no-engine', 'lang', 'timeout', 'cancelled', 'no-bridge',
+  'probe', 'blocked', 'superseded', 'enospc', 'unsupported', 'other'];
 
 // BEL-225（2026-11-14）：`app_open.surface` 换成「打开时落在哪一屏」，不是功能面。
 //   login     = 面对登录墙（auth_state=signed_out）

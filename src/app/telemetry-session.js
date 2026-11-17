@@ -658,17 +658,18 @@ const PACK_SURFACES = SURFACES.concat(['first_run_packs', 'settings_packs']);
 const PACK_KINDS = ['asr', 'tts', 'lid', 'vad'];
 const PACK_SOURCES = ['system', 'github', 'modelscope', 'other'];
 const PACK_FAIL_REASONS = ['network', 'timeout', 'disk', 'hash', 'unsupported', 'other'];
-// BEL-293 增补 2：与 build/telemetry.config.js 的 PACK_TIERS 同源。只有 LID/TTS 的
+// BEL-293 定稿：与 build/telemetry.config.js 的 PACK_TIERS 同源。只有 LID/TTS 的
 // ModelSources 有真实换源层级；ASR/VAD 直调原生 ⇒ 键省略（不是 'none'）。
 const PACK_TIERS = ['cache', 'server', 'server-alt', 'builtin', 'builtin-alt'];
-// detail 是闭枚举：只收原生 e.reason 的协议码。sha/offline/http/load 会被六值归一
-// 吃掉，所以必须在 packFailReason() 之前取；locale 与 locales 不合并。
-// 用户裁定：在 17 值上补 lang / unsupported / probe / blocked / superseded（共 22；
-// 票面「21」与清单相加不符，按全要落地，旧值一个不删）。
-const PACK_DETAILS = ['sha', 'offline', 'http', 'load', 'timeout', 'cancelled',
-  'no-bridge', 'no-engine', 'locales', 'locale', 'analyzer', 'assets', 'format',
-  'os', 'download', 'failed', 'lang', 'unsupported', 'probe', 'blocked', 'superseded',
-  'other'];
+// detail 是闭枚举（21 值定稿）：只收原生 e.reason 的协议码。sha/offline/http/load
+// 会被六值归一吃掉，所以必须在 packFailReason() 之前取；locale 与 locales 不合并；
+// 连字符保持 no-engine / no-bridge。兜底只有 other（没有 failed / format）。
+const PACK_DETAILS = ['sha', 'offline', 'http', 'load', 'download', 'assets', 'locale',
+  'locales', 'os', 'analyzer', 'no-engine', 'lang', 'timeout', 'cancelled', 'no-bridge',
+  'probe', 'blocked', 'superseded', 'enospc', 'unsupported', 'other'];
+// 客户端 alias：原生码 sha_mismatch 就是 sha，不另立枚举值。先 alias 再判成员；
+// 不在表内的一律 other。config 只存闭枚举，不存 alias（它只描述线上值）。
+const PACK_DETAIL_ALIASES = { sha_mismatch: 'sha' };
 
 function packTierValue(v) {
   const s = String(v == null ? '' : v).trim().toLowerCase();
@@ -686,12 +687,12 @@ function packProgressValue(v) {
   if (!Number.isFinite(n) || n <= 0) return 0;
   return Math.min(Math.round(n), 100);
 }
-// BEL-293：detail 只收原生协议码，且必须是闭枚举里的值（sha / offline / http / load /
-// timeout / cancelled / no-bridge / no-engine / locales / locale / analyzer / assets /
-// format / os / download / failed / other）。不做前缀/包含匹配：sha_mismatch、enospc、
-// URL、message 都不在表内 ⇒ 'other'。locale / locales 是两个原生码，不合并。
+// BEL-293：detail 只收原生协议码，且必须是闭枚举里的值（21 值）。不做前缀/包含匹配：
+// 先别名（sha_mismatch→sha），再判成员；表外的 URL、message、failed / format 都 ⇒ 'other'。
+// locale / locales 是两个原生码，不合并。
 function packDetailValue(v) {
-  const raw = String(v == null ? '' : v).trim().toLowerCase();
+  let raw = String(v == null ? '' : v).trim().toLowerCase();
+  if (PACK_DETAIL_ALIASES[raw]) raw = PACK_DETAIL_ALIASES[raw];
   return PACK_DETAILS.indexOf(raw) >= 0 ? raw : 'other';
 }
 function packFailDetail(err) {
@@ -739,17 +740,20 @@ function packInfo(info) {
   // 兼容旧调用形状 packStart('listen')（1.23.3 只有 surface）。新调用传完整对象。
   const i = (typeof info === 'string') ? { surface: info } : (info || {});
   const kind = packKindOf(i.pack_id, i.pack_kind);
-  return {
+  const p = {
     pack_kind: kind,
     pack_id: packIdValue(i.pack_id, kind),
     locale: packLocaleValue(i.locale),
     surface: packSurface(i.surface),
     source: sourceValue(i.source),
     // BEL-293：只随 token 到失败出口；pack_download_start/ok 的 packFields 不发它们。
-    tier: packTierValue(i.tier),
+    // tier 判不出（ASR/VAD 没有换源链）时**整个键省略**，不写 'none'。
     size: packIntValue(i.size),
     progress: packProgressValue(i.progress),
   };
+  const tier = packTierValue(i.tier);
+  if (tier) p.tier = tier;
+  return p;
 }
 function packFields(info, setup, downloadId, attempt) {
   const p = {
@@ -1102,6 +1106,8 @@ async function packsReadyOne(state) {
 // 测试/调试出口（不进产物面）：不改变线上行为。
 export const _KEYS = K;
 export const _track = track;
+// 客户端 detail 闭枚举（测试用它和 config 的 PACK_DETAILS 做逐值比对）。
+export const _PACK_DETAILS = PACK_DETAILS;
 export const _resetForTest = () => {
   appOpenFlight = null;
   setupFlight = null;

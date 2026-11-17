@@ -159,7 +159,7 @@ alter table public.bt_events enable row level security;
 revoke all on table public.bt_events from anon, authenticated;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- BEL-293 增补 2（2026-11-17）：pack_download_fail 去重视图 + ingest 拒收聚合。
+-- BEL-293 定稿（2026-11-17）：pack_download_fail 去重视图 + ingest 拒收聚合。
 --
 -- 失败会立即 flush，网络重试 / 后台重发可能让同一个 download_id 落成多行。
 -- 报表与 bt_daily 都必须读去重视图，否则同一次下载尝试会被算两次。
@@ -168,8 +168,9 @@ revoke all on table public.bt_events from anon, authenticated;
 --     received_at 最新的一行（dedupe='deduped'）。
 --   · download_id IS NULL 的 1.23.3 老行：原样透传（dedupe='legacy'）。
 --     老行没有 detail 就是 NULL —— 不回填，也不写成 'other'。
---   · bt_events_rejected 只记 hour + name + 非法键名集合 + 计数；
---     keys 排序去重、最多 8 个；唯一键 (hour, name, keys)，写入口 upsert 累加。
+--   · bt_events_rejected 只记 name + 非法键名集合 + 计数；不设小时桶。
+--     invalid_keys 排序去重、最多 8 个且每个键名 ≤64；唯一键 (name, invalid_keys)，
+--     写入口 upsert 累加。
 -- ─────────────────────────────────────────────────────────────────────────────
 
 create or replace view public.bt_events_pack_fail_dedup as
@@ -253,53 +254,64 @@ comment on view public.bt_events_pack_fail_dedup is
 -- 与 bt_events 同一条纪律：RLS 开着、零策略；视图再 revoke 掉 anon / authenticated。
 revoke all on table public.bt_events_pack_fail_dedup from public, anon, authenticated;
 
--- ingest 拒收聚合：只记键名，不记值 / install_id / 原始 body。
+-- 表 check 不允许子查询：每个元素 ≤64 用一个 immutable 小函数判。
+create or replace function public.bt_rejected_keys_valid(p_keys text[])
+returns boolean
+language sql
+immutable
+set search_path = public, pg_catalog
+as $$
+  select coalesce(bool_and(k is not null and k <> '' and length(k) <= 64), true)
+    from unnest(coalesce(p_keys, '{}'::text[])) as k;
+$$;
+
+-- ingest 拒收聚合：只记键名，不记值 / install_id / 原始 body；不设小时桶。
 create table if not exists public.bt_events_rejected (
-  hour  timestamptz not null,
-  name  text        not null,
-  keys  text[]      not null default '{}'::text[],
-  n     bigint      not null default 0,
-  constraint bt_events_rejected_pkey primary key (hour, name, keys),
+  name         text   not null,
+  invalid_keys text[] not null default '{}'::text[],
+  n            bigint not null default 0,
+  constraint bt_events_rejected_pkey primary key (name, invalid_keys),
   constraint bt_events_rejected_name_chk check (name ~ '^[a-z0-9_]{1,64}$'),
-  constraint bt_events_rejected_keys_chk check (cardinality(keys) between 0 and 8),
+  constraint bt_events_rejected_keys_chk check (cardinality(invalid_keys) between 0 and 8),
+  constraint bt_events_rejected_key_len_chk check (public.bt_rejected_keys_valid(invalid_keys)),
   constraint bt_events_rejected_n_chk check (n >= 0)
 );
 
 comment on table public.bt_events_rejected is
-  'BEL-293 ingest 拒收聚合：只记 hour + name + 非法键名集合(最多 8 个) + 计数，绝不记值/install_id/原始 body。';
-comment on column public.bt_events_rejected.keys is
-  '非法/未登记的键名（不是值）。写入前排序去重，最多 8 个。';
+  'BEL-293 ingest 拒收聚合：只记 name + 非法键名集合(最多 8 个、每个 ≤64 字符) + 计数，不设小时桶；绝不记值/install_id/原始 body。';
+comment on column public.bt_events_rejected.invalid_keys is
+  '非法/未登记的键名（不是值）。写入前排序去重，最多 8 个、每个 ≤64 字符。';
 
 alter table public.bt_events_rejected enable row level security;
 revoke all on table public.bt_events_rejected from anon, authenticated;
 
 -- 唯一写入口：排序去重、截断到 8 个，然后 upsert 累加。
+-- 旧的三参（带小时桶）签名若存在先删掉，避免留下第二个写入口。
+drop function if exists public.bt_event_rejected_bump(text, text[], timestamptz);
 create or replace function public.bt_event_rejected_bump(
   p_name text,
-  p_keys text[],
-  p_hour timestamptz default date_trunc('hour', now())
+  p_keys text[]
 )
 returns void
 language sql
 security definer
 set search_path = public, pg_catalog
 as $$
-  insert into public.bt_events_rejected (hour, name, keys, n)
+  insert into public.bt_events_rejected (name, invalid_keys, n)
   values (
-    p_hour,
     p_name,
     (coalesce((
       select array_agg(distinct k order by k)
         from unnest(coalesce(p_keys, '{}'::text[])) as k
-       where k is not null and k <> ''
+       where k is not null and k <> '' and length(k) <= 64
     ), '{}'::text[]))[1:8],
     1
   )
-  on conflict (hour, name, keys)
+  on conflict (name, invalid_keys)
   do update set n = public.bt_events_rejected.n + 1;
 $$;
 
-revoke all on function public.bt_event_rejected_bump(text, text[], timestamptz) from public, anon, authenticated;
+revoke all on function public.bt_event_rejected_bump(text, text[]) from public, anon, authenticated;
 
 
 -- 日聚合：不含 install_id。installs 是当天去重后的 install 数。
@@ -331,19 +343,20 @@ language sql
 security definer
 set search_path = public, pg_catalog
 as $$
-  with src as (
-    select flavor, host, name, install_id, props, received_at
-      from public.bt_events
-     where name <> 'pack_download_fail'
-    union all
-    -- 同一次下载尝试只算一行：legacy 老行也在这里（它们本来就各算一次）。
-    select flavor, host, name, install_id, props, received_at
-      from public.bt_events_pack_fail_dedup
-  )
+  -- 不能只读一个视图：bt_events 里除 pack_download_fail 以外的事件照旧聚合；
+  -- pack_download_fail 走去重视图后，再 union all 回来（两边按 name 互斥，不会撞键）。
   insert into public.bt_daily (day, flavor, host, name, provider, n, installs)
   select d, flavor, host, name, coalesce(props->>'provider', ''),
          count(*)::int, count(distinct install_id)::int
-    from src
+    from public.bt_events
+   where name <> 'pack_download_fail'
+     and received_at >= d and received_at < d + 1
+   group by flavor, host, name, coalesce(props->>'provider', '')
+  union all
+  -- 同一次下载尝试只算一行：legacy 老行也在这里（它们本来就各算一次）。
+  select d, flavor, host, name, coalesce(props->>'provider', ''),
+         count(*)::int, count(distinct install_id)::int
+    from public.bt_events_pack_fail_dedup
    where received_at >= d and received_at < d + 1
    group by flavor, host, name, coalesce(props->>'provider', '')
   on conflict (day, flavor, host, name, provider)
