@@ -158,6 +158,170 @@ comment on table public.bt_events is
 alter table public.bt_events enable row level security;
 revoke all on table public.bt_events from anon, authenticated;
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- BEL-293 定稿（2026-11-17）：pack_download_fail 去重视图 + ingest 拒收聚合。
+--
+-- 失败会立即 flush，网络重试 / 后台重发可能让同一个 download_id 落成多行。
+-- 报表与 bt_daily 都必须读去重视图，否则同一次下载尝试会被算两次。
+--
+--   · download_id 非 NULL：按 (install_id, name, download_id) 只保留
+--     received_at 最新的一行（dedupe='deduped'）。
+--   · download_id IS NULL 的 1.23.3 老行：原样透传（dedupe='legacy'）。
+--     老行没有 detail 就是 NULL —— 不回填，也不写成 'other'。
+--   · bt_events_rejected 按 (name, invalid_keys) 聚合，不设小时桶：
+--     记 n + first_seen/last_seen。invalid_keys 排序去重、left(k,64) 截断、最多 8 个；
+--     唯一键 (name, invalid_keys)，写入口 upsert 累加 n 并更新 last_seen。
+-- ─────────────────────────────────────────────────────────────────────────────
+
+create or replace view public.bt_events_pack_fail_dedup as
+with fails as (
+  select
+    e.id,
+    e.install_id,
+    e.ts,
+    e.v,
+    e.flavor,
+    e.host,
+    e.device,
+    e.ui,
+    e.name,
+    e.props,
+    e.received_at,
+    e.props->>'pack_kind' as pack_kind,
+    e.props->>'pack_id' as pack_id,
+    e.props->>'locale' as locale,
+    e.props->>'surface' as surface,
+    e.props->>'source' as source,
+    e.props->>'code' as code,
+    e.props->>'reason' as reason,
+    e.props->>'tier' as tier,
+    e.props->>'detail' as detail,
+    case
+      when coalesce(e.props->>'size', '') ~ '^[0-9]{1,10}$' then (e.props->>'size')::bigint
+      else null
+    end as size,
+    case
+      when coalesce(e.props->>'progress', '') ~ '^[0-9]{1,3}$'
+       and (e.props->>'progress')::int between 0 and 100 then (e.props->>'progress')::int
+      else null
+    end as progress,
+    e.props->>'launch_id' as launch_id,
+    e.props->>'attempt' as attempt,
+    e.props->>'download_id' as download_id,
+    case
+      when e.props->>'download_id' is null then null
+      else row_number() over (
+        partition by e.install_id, e.name, e.props->>'download_id'
+        order by e.received_at desc, e.id desc
+      )
+    end as rn
+  from public.bt_events e
+  where e.name = 'pack_download_fail'
+)
+select
+  f.id,
+  f.install_id,
+  f.ts,
+  f.v,
+  f.flavor,
+  f.host,
+  f.device,
+  f.ui,
+  f.name,
+  f.props,
+  f.received_at,
+  f.pack_kind,
+  f.pack_id,
+  f.locale,
+  f.surface,
+  f.source,
+  f.code,
+  f.reason,
+  f.tier,
+  f.detail,
+  f.size,
+  f.progress,
+  f.launch_id,
+  f.attempt,
+  f.download_id,
+  case when f.download_id is null then 'legacy' else 'deduped' end as dedupe
+from fails f
+where f.download_id is null or f.rn = 1;
+
+comment on view public.bt_events_pack_fail_dedup is
+  'BEL-293 pack_download_fail 去重视图：download_id 非 NULL 按 (install_id,name,download_id) 保留 received_at 最新一行（dedupe=deduped）；NULL 老行原样透传（dedupe=legacy），detail 保持 NULL、不回填。';
+
+-- 与 bt_events 同一条纪律：RLS 开着、零策略；视图再 revoke 掉 anon / authenticated。
+revoke all on table public.bt_events_pack_fail_dedup from public, anon, authenticated;
+
+-- 表 check 不允许子查询：每个元素 ≤64 用一个 immutable 小函数判。
+create or replace function public.bt_rejected_keys_valid(p_keys text[])
+returns boolean
+language sql
+immutable
+set search_path = public, pg_catalog
+as $$
+  select coalesce(bool_and(k is not null and k <> '' and length(k) <= 64), true)
+    from unnest(coalesce(p_keys, '{}'::text[])) as k;
+$$;
+
+-- ingest 拒收聚合：只记键名，不记值 / install_id / 原始 body。
+-- 不按小时分桶：first_seen/last_seen 已能回答「何时开始、还在不在」，分桶只会把行数乘 24。
+create table if not exists public.bt_events_rejected (
+  name         text   not null,
+  invalid_keys text[] not null default '{}'::text[],
+  n            bigint not null default 0,
+  first_seen   timestamptz not null default now(),
+  last_seen    timestamptz not null default now(),
+  constraint bt_events_rejected_pkey primary key (name, invalid_keys),
+  constraint bt_events_rejected_name_chk check (name ~ '^[a-z0-9_]{1,64}$'),
+  constraint bt_events_rejected_keys_chk check (cardinality(invalid_keys) between 0 and 8),
+  constraint bt_events_rejected_key_len_chk check (public.bt_rejected_keys_valid(invalid_keys)),
+  constraint bt_events_rejected_n_chk check (n >= 0)
+);
+
+comment on table public.bt_events_rejected is
+  'BEL-293 ingest 拒收聚合：只记 name + 非法键名集合(最多 8 个、每个 ≤64 字符) + 计数与首末时间；绝不记值/install_id/原始 body。';
+comment on column public.bt_events_rejected.invalid_keys is
+  '非法/未登记的键名（不是值）。写入前排序去重、left(k,64) 截断，最多 8 个。';
+
+alter table public.bt_events_rejected enable row level security;
+revoke all on table public.bt_events_rejected from anon, authenticated;
+
+-- 唯一写入口：invalid_keys 先排序去重、left(k,64) 截断、[1:8]，再 upsert 累加。
+-- 旧签名（带 p_hour 的三参、以及二参）若存在先删掉，避免留下第二个写入口。
+drop function if exists public.bt_event_rejected_bump(text, text[], timestamptz);
+drop function if exists public.bt_event_rejected_bump(text, text[]);
+create or replace function public.bt_event_rejected_bump(
+  p_name text,
+  p_keys text[],
+  p_n int default 1
+)
+returns void
+language sql
+security definer
+set search_path = public, pg_catalog
+as $$
+  insert into public.bt_events_rejected (name, invalid_keys, n, first_seen, last_seen)
+  values (
+    p_name,
+    (coalesce((
+      select array_agg(distinct left(k, 64) order by left(k, 64))
+        from unnest(coalesce(p_keys, '{}'::text[])) as k
+       where k is not null and left(k, 64) <> ''
+    ), '{}'::text[]))[1:8],
+    greatest(coalesce(p_n, 1), 1),
+    now(),
+    now()
+  )
+  on conflict (name, invalid_keys)
+  do update set n = public.bt_events_rejected.n + greatest(coalesce(p_n, 1), 1),
+                last_seen = now();
+$$;
+
+revoke all on function public.bt_event_rejected_bump(text, text[], int) from public, anon, authenticated;
+
+
 -- 日聚合：不含 install_id。installs 是当天去重后的 install 数。
 create table if not exists public.bt_daily (
   day       date  not null,
@@ -187,10 +351,20 @@ language sql
 security definer
 set search_path = public, pg_catalog
 as $$
+  -- 不能只读一个视图：bt_events 里除 pack_download_fail 以外的事件照旧聚合；
+  -- pack_download_fail 走去重视图后，再 union all 回来（两边按 name 互斥，不会撞键）。
   insert into public.bt_daily (day, flavor, host, name, provider, n, installs)
   select d, flavor, host, name, coalesce(props->>'provider', ''),
          count(*)::int, count(distinct install_id)::int
     from public.bt_events
+   where name <> 'pack_download_fail'
+     and received_at >= d and received_at < d + 1
+   group by flavor, host, name, coalesce(props->>'provider', '')
+  union all
+  -- 同一次下载尝试只算一行：legacy 老行也在这里（它们本来就各算一次）。
+  select d, flavor, host, name, coalesce(props->>'provider', ''),
+         count(*)::int, count(distinct install_id)::int
+    from public.bt_events_pack_fail_dedup
    where received_at >= d and received_at < d + 1
    group by flavor, host, name, coalesce(props->>'provider', '')
   on conflict (day, flavor, host, name, provider)

@@ -658,6 +658,50 @@ const PACK_SURFACES = SURFACES.concat(['first_run_packs', 'settings_packs']);
 const PACK_KINDS = ['asr', 'tts', 'lid', 'vad'];
 const PACK_SOURCES = ['system', 'github', 'modelscope', 'other'];
 const PACK_FAIL_REASONS = ['network', 'timeout', 'disk', 'hash', 'unsupported', 'other'];
+// BEL-293 定稿：与 build/telemetry.config.js 的 PACK_TIERS 同源。只有 LID/TTS 的
+// ModelSources 有真实换源层级；ASR/VAD 直调原生 ⇒ 键省略（不是 'none'）。
+const PACK_TIERS = ['cache', 'server', 'server-alt', 'builtin', 'builtin-alt'];
+// detail 是闭枚举（22 值，见 build/telemetry.config.js 的 PACK_DETAILS）。
+const PACK_DETAILS = ['sha', 'offline', 'http', 'load', 'timeout', 'cancelled',
+  'no-bridge', 'no-engine', 'locales', 'locale', 'analyzer', 'assets', 'format', 'os',
+  'download', 'failed', 'lang', 'unsupported', 'probe', 'blocked', 'superseded', 'other'];
+// 枚举成员表：detail 只认表里的值，不做 id 正则 / 前缀 / 包含匹配；表外一律 other。
+const PACK_DETAIL_MEMBERS = Object.create(null);
+for (const d of PACK_DETAILS) PACK_DETAIL_MEMBERS[d] = true;
+// 客户端 alias：原生码 sha_mismatch 就是 sha，不另立枚举值。先 alias 再判成员；
+// 不在表内的一律 other。config 只存闭枚举，不存 alias（它只描述线上值）。
+const PACK_DETAIL_ALIASES = Object.assign(Object.create(null), { sha_mismatch: 'sha' });
+
+function packTierValue(v) {
+  const s = String(v == null ? '' : v).trim().toLowerCase();
+  return PACK_TIERS.indexOf(s) >= 0 ? s : '';
+}
+// 'int' 型：非负整数、≤10 位（与注册表同一规则）；未知/越界回 0。
+function packIntValue(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(Math.floor(n), 9999999999);
+}
+// progress 只允许 0–100；失败时没有进度回调就是 0（不新增轮询）。
+function packProgressValue(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(Math.round(n), 100);
+}
+// BEL-293：detail 只收原生协议码，且必须是闭枚举里的值（20 值）。先别名
+// （sha_mismatch→sha），再查枚举成员表；表外的 URL、message、failed、format、
+// enospc 都 ⇒ 'other'。locale / locales 是两个原生码，不合并。
+function packDetailValue(v) {
+  const s = String(v == null ? '' : v).trim().toLowerCase();
+  const raw = PACK_DETAIL_ALIASES[s] || s;
+  return PACK_DETAIL_MEMBERS[raw] === true ? raw : 'other';
+}
+function packFailDetail(err) {
+  // 只读原生 e.reason；不读 e.code / e.why / e.detail / message。TTS 的 why 由调用方
+  // 显式写进 reason（shell-model 的 mtTtsFailed 分支），所以这里不需要第二来源。
+  if (err && typeof err === 'object') return packDetailValue(err.reason);
+  return packDetailValue(err);
+}
 
 function packSurface(surface) {
   const s = String(surface || '');
@@ -697,13 +741,20 @@ function packInfo(info) {
   // 兼容旧调用形状 packStart('listen')（1.23.3 只有 surface）。新调用传完整对象。
   const i = (typeof info === 'string') ? { surface: info } : (info || {});
   const kind = packKindOf(i.pack_id, i.pack_kind);
-  return {
+  const p = {
     pack_kind: kind,
     pack_id: packIdValue(i.pack_id, kind),
     locale: packLocaleValue(i.locale),
     surface: packSurface(i.surface),
     source: sourceValue(i.source),
+    // BEL-293：只随 token 到失败出口；pack_download_start/ok 的 packFields 不发它们。
+    // tier 判不出（ASR/VAD 没有换源链）时**整个键省略**，不写 'none'。
+    size: packIntValue(i.size),
+    progress: packProgressValue(i.progress),
   };
+  const tier = packTierValue(i.tier);
+  if (tier) p.tier = tier;
+  return p;
 }
 function packFields(info, setup, downloadId, attempt) {
   const p = {
@@ -894,12 +945,24 @@ export async function packFail(token, reason, code) {
     if (!attempt) {
       try { attempt = await nextAttempt(setup, i.pack_id); } catch (_) { attempt = 0; }
     }
+    // BEL-293 增补 2：detail 必须在 packFailReason() **之前**取 —— 六值归一后
+    // sha/offline/http/load 就被压成 hash/network/timeout/other 了。
+    const detail = packFailDetail(reason);
     // 对象优先：超时/取消标志参与判断，e.reason 也在这张表里映射；字符串按 e.reason 处理。
     const r = failReasonValue((reason && typeof reason === 'object') ? reason : { reason });
     const c = legacyCode(code, r);
+    const e = (reason && typeof reason === 'object') ? reason : null;
     const p = packFields(i, setup, download_id, attempt);
     p.reason = r;
     p.code = c;
+    // BEL-293：失败归因。tier / size / progress 可来自调用方 info（token）或失败对象
+    // （TTS/LID 的换源层级要等 fn 返回才确定）；detail 永远只取结构化 e.reason。
+    // tier 判不出时**整个键省略**，不写 'none'。
+    const tier = packTierValue(e && e.tier != null ? e.tier : i.tier);
+    if (tier) p.tier = tier;
+    p.detail = detail;
+    p.size = packIntValue(e && e.size != null ? e.size : i.size);
+    p.progress = packProgressValue(e && e.progress != null ? e.progress : i.progress);
     // BEL-290：fail 不等 60s 定时器 / 下一次冷启 —— 入队完成后立刻试发一次。
     const queued = track('pack_download_fail', p);
     flushAfterTrack(queued);
@@ -920,6 +983,14 @@ export async function packUnsupported(info) {
     const p = packFields(i, setup, download_id, attempt);
     p.reason = 'unsupported';
     p.code = 'unsupported';
+    // BEL-293：系统不支持不是一次换源失败。detail 仍只取原生 reason（调用方把
+    // probe 的 reason='locale' 透传进来）；reason 六值仍是 'unsupported'。
+    // tier 判不出就省略（ASR 直调原生，没有换源链）。
+    const tier = packTierValue(i.tier);
+    if (tier) p.tier = tier;
+    p.detail = packDetailValue(info && typeof info === 'object' ? info.reason : '');
+    p.size = packIntValue(i.size);
+    p.progress = packProgressValue(i.progress);
     // 与 packFail 同一个 fail 出口：入队后立刻 flush，别让 not-supported 也等下一班车。
     const queued = track('pack_download_fail', p);
     flushAfterTrack(queued);
@@ -1036,6 +1107,8 @@ async function packsReadyOne(state) {
 // 测试/调试出口（不进产物面）：不改变线上行为。
 export const _KEYS = K;
 export const _track = track;
+// 客户端 detail 闭枚举（测试用它和 config 的 PACK_DETAILS 做逐值比对）。
+export const _PACK_DETAILS = PACK_DETAILS;
 export const _resetForTest = () => {
   appOpenFlight = null;
   setupFlight = null;

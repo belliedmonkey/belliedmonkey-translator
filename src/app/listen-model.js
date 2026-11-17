@@ -36,7 +36,7 @@ import * as PackProgress from './pack-progress.js';
 import * as ASRQuota from './asr-quota.js';   // 识别语言名额的本机记忆（第 5 轮 A / 改稿 H）
 import * as MicPerm from './mic-permission.js';   // BEL-273：进听译前的麦克风权限状态机
 import * as TelemetrySession from './telemetry-session.js';   // BEL-223/225/226 的 launch_id/surface/gate
-import { reportPackUnit, packFailCode, packSourceFromSpec } from './pack-unit.js';   // BEL-290：两处裸 ensureVad 的 start→ok/fail
+import { reportPackUnit, packFailCode, packSourceFromSpec, packSizeFromSpec } from './pack-unit.js';   // BEL-290：两处裸 ensureVad 的 start→ok/fail
 import * as PackPending from './pack-pending.js';   // BEL-269：跳过包屏后入口必须说「包未就绪」
 import { createHalt, meterText, failSurface } from './n26-session.js';
 import * as Quota from '../shared/quota.js';   // P1-1：余额的唯一运行时来源（刷新 / stale / 同口径）
@@ -1595,10 +1595,14 @@ const listenModel = (() => {
     prep.stalled = false;
     canvas.view('state');
     const baseName = t('firstrun_packs_base', '基础组件');
+    // BEL-293：当前 VAD 单元的归因上下文（无换源链 ⇒ 不写 tier；progress 来自已有回调）。
+    let vadInfo = null;
     const stampBase = (m) => {
       if (warmJob !== job) return;
       const named = FirstRun.nameProgress(Object.assign({}, m, { name: baseName }), baseName);
-      showPrep(job, { name: named.name, pct: Math.round((Number(named.fraction) || 0) * 100), code: '', stalled: false });
+      const pct = Math.round((Number(named.fraction) || 0) * 100);
+      if (vadInfo) vadInfo.progress = pct;
+      showPrep(job, { name: named.name, pct, code: '', stalled: false });
     };
     try {
       if (!prep.assets.vad) {
@@ -1609,9 +1613,16 @@ const listenModel = (() => {
           // `mode === 'subtitle'` 已 return，所以这条只在对话听译页 ⇒ surface=listen。
           // cancellable / racePack / inflight 的语义不变：包的等待仍可被下一次 warm 取消，
           // 原生 ensureVad 本身照旧不因取消而中断。
-          const p = cancellable(reportPackUnit(TelemetrySession, {
+          const vadUnitInfo = {
             pack_kind: 'vad', pack_id: 'vad', surface: 'listen', source: packSourceFromSpec(vm),
-          }, () => NativeSpeech.ensureVad(vm, stampBase), (e) => packFailCode(e, 'vad')));
+            // VAD 直调 ensureVad：没有换源链 ⇒ tier 省略；大小取清单声明值。
+            size: packSizeFromSpec(vm), progress: 0,
+          };
+          const p = cancellable(reportPackUnit(TelemetrySession, vadUnitInfo, () => {
+            // stampBase 与 info 是同一个对象：失败时 reportPackUnit 会读到最后的 progress。
+            vadInfo = vadUnitInfo;
+            return NativeSpeech.ensureVad(vm, stampBase);
+          }, (e) => packFailCode(e, 'vad')));
           inflight = p;
           await racePack(p);
           if (warmJob !== job) return;
@@ -2745,17 +2756,24 @@ const listenModel = (() => {
       const vm = vadModel();
       if (vm) {
         const baseName = t('firstrun_packs_base', '基础组件');
+        // BEL-293：这次 VAD 单元的归因上下文；进度仍来自既有 onProg。
+        const vadUnitInfo = {
+          pack_kind: 'vad', pack_id: 'vad', surface: funnelSurface(), source: packSourceFromSpec(vm),
+          // VAD 直调 ensureVad：没有换源链 ⇒ tier 省略。
+          size: packSizeFromSpec(vm), progress: 0,
+        };
         try {
           // BEL-290：实时听译首启的裸 ensureVad 也接同一条 start→ok/fail。
           // ensurePacksForPair 被对话与实时字幕的 beginPipeline 共用（start() 不分模式），
           // 所以面按当前页面报：对话 listen / 字幕 live_caption（funnelSurface 的既有判据）。
-          await reportPackUnit(TelemetrySession, {
-            pack_kind: 'vad', pack_id: 'vad', surface: funnelSurface(), source: packSourceFromSpec(vm),
-          }, () => NativeSpeech.ensureVad(vm, (m) => {
+          await reportPackUnit(TelemetrySession, vadUnitInfo, () => NativeSpeech.ensureVad(vm, (m) => {
             const named = FirstRun.nameProgress(Object.assign({}, m, { name: baseName }), baseName);
             dlLang = named.name;
             prep.name = named.name;
-            if (typeof named.fraction === 'number') prep.pct = Math.round(named.fraction * 100);
+            if (typeof named.fraction === 'number') {
+              prep.pct = Math.round(named.fraction * 100);
+              vadUnitInfo.progress = prep.pct;
+            }
           }), (e) => packFailCode(e, 'vad'));
           prep.assets.vad = true;
           // BEL-188 Q7：VAD **不计入**这一轮的 dlGen。ensureVad 成功不等于这一轮真下过

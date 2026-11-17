@@ -57,6 +57,7 @@
     "issues": "node scripts/issues-triage.js",
     "diag:latest": "node scripts/diag-query.js",
     "diag:dump": "node scripts/diag-query.js dump",
+    "tel:packs": "node scripts/tel-packs.js",
     "diag:judge": "node scripts/diag-judge.js",
     "test:lid": "swiftc -O app/native/lid-ecapa.swift scripts/test-lid-policy.swift -o \"$TMPDIR/mt-lid-policy\" -framework CoreML -framework Accelerate -framework AVFoundation && \"$TMPDIR/mt-lid-policy\"",
     "test:copy": "node scripts/verify-copy-draft.js"
