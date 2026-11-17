@@ -368,23 +368,63 @@ var TranslationCore = (() => {
     if (code === 'auth') {
       return i18n('auth_page_halt', '这把 key 被服务商拒绝了（HTTP 401/403）—— 点此检查');
     }
-    // no_base（BEL-274）：这个引擎要填地址而现在是空的。复用系统翻译那条已经写好的
-    // 可操作文案（「打开……填一次」），不再掉进额度池那句 —— 那句会让人去查账户，
-    // 而账户没有问题，缺的是端点地址。不新增 enum，也不新增 i18n 键。
+    // no_base（BEL-274）：这个引擎要填地址而现在是空的。行上只留一句「填地址」的
+    // 出口；设置页里再落在地址框上（#engine-base），不再掉进额度池那句 —— 那句会让
+    // 人去查账户，而账户没有问题，缺的是端点地址。
     if (code === 'no_base') {
-      return i18n('sys_fail_no_base', '这个引擎要填地址，而现在是空的。打开大肚猴翻译填一次。');
+      return i18n('halt_no_base_row', '这个引擎要填地址 —— 点此去填');
+    }
+    // provider_402（BEL-274）：提供方（不是中继）回的 402，是**用户自己的账户**没钱。
+    // 与 credit_exhausted（我们的免费额度池）是两句、两个方向，绝不共用。
+    if (code === 'provider_402') {
+      return i18n('halt_balance_row', '这个引擎没余额了 —— 点此去换');
+    }
+    // streak（BEL-274）：同一配置连续 3 次 400/429。只到阈值才出现，单次仍是普通重试句。
+    if (code === 'streak') {
+      return i18n('halt_streak_row', '连续 3 次失败 —— 点此去处理');
     }
     return i18n('grant_page_halt_ours', '免费额度暂时用不了（不是你用完了）—— 点此看怎么继续');
   }
   const grantHaltMessage = haltMessage;   // 旧名保留：verify-grant.js 与 grant-errors.test.js 在用
-  // 停机码 → 设置页锚点。额度那一族去快速卡（#grant），key 被拒/端点缺失去引擎块（#engine）。
-  function haltAnchor(code) { return (code === 'auth' || code === 'no_base') ? '#engine' : '#grant'; }
+  // 停机码 → 设置页锚点。额度那一族去快速卡（#grant），key 被拒去引擎块（#engine），
+  // 缺地址/提供方 402/连续失败各自落在引擎卡里对应的控件上。
+  function haltAnchor(code) {
+    if (code === 'auth') return '#engine';
+    if (code === 'no_base') return '#engine-base';
+    if (code === 'provider_402') return '#engine-balance';
+    if (code === 'streak') return '#engine-streak';
+    return '#grant';
+  }
 
   // BEL-274: 每次翻译运行一个递增 token。翻译引擎是「一次运行」的天然边界
   // （网页 enable → disable、字幕一个媒体会话、文档一页），所以 token 长在
   // createEngine 里，而不是由每个适配器自己造一份。跨引擎唯一只是为了断言/排障时
   // 能区分两次运行；它不上线，也不进任何事件。
   let nextRunId = 1;
+
+  // BEL-274: 400/429 的「同一配置连续 3 次失败」。计数在内存里、跨 run，键是
+  // provider + endpoint + model（由适配器的 failKey() 提供），**不落 storage**：
+  // 它是界面判据，不是配置；写盘只会在下次冷启动时把早就过期的失败重新翻出来。
+  // 一次运行只记一次 —— 同一页 20 段都 429 是「一次失败」，不是 20 次（设计稿图 C
+  // 标注「不按段落累加」）。任一成功清零；10 分钟没有新失败也清零（lazy，不挂定时器）。
+  const FAIL_STREAK_MAX = 3;
+  const FAIL_STREAK_IDLE_MS = 10 * 60 * 1000;
+  const failStreak = new Map();   // key -> { n, at }
+  function failStreakOf(key, now) {
+    if (!key) return 0;
+    const t = typeof now === 'number' ? now : Date.now();
+    const cur = failStreak.get(key);
+    if (!cur || t - cur.at >= FAIL_STREAK_IDLE_MS) return 0;
+    return cur.n;
+  }
+  function bumpFailStreak(key, now) {
+    if (!key) return 0;
+    const t = typeof now === 'number' ? now : Date.now();
+    const n = failStreakOf(key, t) + 1;
+    failStreak.set(key, { n: n, at: t });
+    return n;
+  }
+  function clearFailStreak(key) { if (key) failStreak.delete(key); }
 
   // ─── Generic translation engine: per-unit state machine + retry ───────
   // units: [{text, ...payload}]. The engine adds `tr` (the translation) plus private
@@ -408,6 +448,8 @@ var TranslationCore = (() => {
     // 「连续超时」的计数：任一单元成功即清零。它是 halted 的另一种触发器
     // （即停的是 HALT_IMMEDIATE 五码）—— 见下面 catch 里的注释。
     let timeoutStreak = 0;
+    // 400/429 的「这一次运行已经记过账」旗。一次运行整体只 +1，哪怕一页 20 段全失败。
+    let runStreakCounted = false;
     // BEL-274：一次运行 = 一个 token + 一份「已经报过的 code」。
     // 旧行为是每个段落失败都发一条 translate_fail，402 时一页 60 段就是 60 行；
     // 现在同一运行、同一种失败只发第一条，保留它的 ms/status/route（第一条就是
@@ -422,14 +464,21 @@ var TranslationCore = (() => {
     let runId = 0;
     let failCodes = new Set();
     function beginRun() {
-      if (!runId) { runId = nextRunId++; failCodes = new Set(); }
+      if (!runId) { runId = nextRunId++; failCodes = new Set(); runStreakCounted = false; }
       return runId;
     }
-    function endRun() { runId = 0; failCodes = new Set(); }
-    function enterHalt(code) {
+    function endRun() { runId = 0; failCodes = new Set(); runStreakCounted = false; }
+    // (code, err) instead of (code): provider_402 is a **UI-only** halt code derived
+    // here from the raw response — it never enters FAIL_CODES, classifyFail() or any
+    // telemetry enum. A relay-named credit_exhausted arrives as its own code and is
+    // therefore never re-derived; only a bare provider 402 on a direct route is.
+    function enterHalt(code, err) {
       if (halted) return;
       halted = true;
       haltCode = code || '';
+      if (haltCode === 'http' && err && err.status === 402 && err.route !== 'proxy') {
+        haltCode = 'provider_402';
+      }
     }
     // onFail 只看见封闭码表里的码。grant 位只留给即停码，免得 429/busy 被渲染器当成停机。
     // BEL-274：同一次运行里同一个 code 只放行第一条。这条闸放在引擎里而不是遥测里 ——
@@ -443,7 +492,11 @@ var TranslationCore = (() => {
       if (!cfg.onFail) return;
       beginRun();
       const emitted = (e && typeof e.code === 'string' && e.code) || code || 'network';
-      const key = failKind + ':' + emitted;
+      // BEL-274: status joins the key. Same code but a different HTTP status is a
+      // different failure (400 shape error vs 429 rate limit vs 500); the old
+      // kind:code key collapsed them into one event per run.
+      const status = (e && Number.isInteger(e.status) && e.status > 0) ? ':' + e.status : '';
+      const key = failKind + ':' + emitted + status;
       if (failCodes.has(key)) return;
       failCodes.add(key);
       try { cfg.onFail(e); } catch (_) {}
@@ -465,6 +518,29 @@ var TranslationCore = (() => {
     const targetLangOf = typeof cfg.targetLang === 'function'
       ? () => cfg.targetLang() || ''
       : () => cfg.targetLang || '';
+    // provider+endpoint+model identity, read late by the adapter (a getter, not a value).
+    // Adapters that do not pass it opt out of the 400/429 streak entirely — the
+    // pure-logic tests stay independent, and a future surface has to say who it is.
+    const failKeyOf = () => {
+      try { return typeof cfg.failKey === 'function' ? String(cfg.failKey() || '') : ''; } catch (_) { return ''; }
+    };
+    function noteRunSuccess() {
+      runStreakCounted = false;
+      clearFailStreak(failKeyOf());
+    }
+    // Returns true only when THIS failure reaches the threshold and must stop the pump.
+    // 400/429 share the block; a single failure is still the ordinary retry row.
+    function noteRunFailure(e, code) {
+      if (code !== 'http' || !e || (e.status !== 400 && e.status !== 429)) return false;
+      const key = failKeyOf();
+      if (!key) return false;
+      beginRun();
+      let n = failStreakOf(key);
+      if (!runStreakCounted) { n = bumpFailStreak(key); runStreakCounted = true; }
+      if (n < FAIL_STREAK_MAX) return false;
+      enterHalt('streak', e);
+      return true;
+    }
     let units = [];
 
     function setUnits(list) { units = list || []; }
@@ -557,7 +633,7 @@ var TranslationCore = (() => {
         });
         Promise.race([translate(it.text), stall]).then((t) => {
           // 成功即清零「连续超时」—— 熔断只认**连成一条**的失败（§7，2026-09-27）。
-          if (isTranslated(it.text, t)) { it.tr = t; it._tries = 0; timeoutStreak = 0; if (cfg.onOk) { try { cfg.onOk(); } catch (_) {} } return; }
+          if (isTranslated(it.text, t)) { it.tr = t; it._tries = 0; timeoutStreak = 0; noteRunSuccess(); if (cfg.onOk) { try { cfg.onOk(); } catch (_) {} } return; }
           // 空正文是失败，不是「这段没东西可翻」——两者必须分开（2026-08-13 真机）。
           // 请求发出**之前**判定不用翻（同语言跳过）才可以静默终结；请求发出**之后**
           // 拿回空正文，说明这一段确实需要译文而我们没拿到。此前这里写的是
@@ -579,13 +655,32 @@ var TranslationCore = (() => {
           const code = classifyFail(e);
           // 即停五码：一次就停泵，不再计重试（§8.10 / 第八期 / N26 / BEL-274 no_base）。
           // 判据是码，不是 e.grant / e.halt —— 429 的 busy 也带 grant 位，但它必须留在行上重试。
-          if (code && HALT_IMMEDIATE_SET.has(code) && !(e && e.stalled)) {
-            enterHalt(code);
+          // provider 402: the user's own account is out of balance. It is halted like the
+          // terminal codes but keeps code='http' on the wire (no new enum). A proxy-route
+          // 402 without a relay-named error stays ordinary http — that path is the relay's,
+          // and its named credit_exhausted already halted above with its own sentence.
+          const provider402 = code === 'http' && e && e.status === 402 && e.route !== 'proxy';
+          if ((code && HALT_IMMEDIATE_SET.has(code) && !(e && e.stalled)) || provider402) {
+            enterHalt(code, e);
             it._err = true; it._tries = 0;
             noteFail(e, code);
             return;
           }
           if (e && e.stalled) { it._err = true; it._tries = 0; noteFail({ code: 'stalled' }, 'stalled'); return; }  // 卡死 → 直接可重试，不进连续超时（code 独立，不是 timeout）
+          // 400/429 streak: one count per run; the 3rd consecutive run halts the pump and
+          // the engine card gets the threshold block. 1st/2nd remain the ordinary retry row.
+          if (noteRunFailure(e, code)) {
+            it._err = true; it._tries = 0;
+            noteFail(e, code);
+            return;
+          }
+          // 400 is non-retryable (retryable=false from translation-api): resending the same
+          // bad shape cannot fix it. settle this unit now instead of burning MAX_RETRIES.
+          if (e && e.retryable === false) {
+            it._err = true; it._tries = 0;
+            noteFail(e, code);
+            return;
+          }
           it._tries = (it._tries || 0) + 1;
           if (it._tries >= win.MAX_RETRIES) {
             it._err = true;   // exhausted → error UI
@@ -713,6 +808,7 @@ var TranslationCore = (() => {
   return {
     grantHaltMessage, haltMessage, haltAnchor,
     FAIL_CODES, HALT_IMMEDIATE, TIMEOUT_STREAK_MAX, classifyFail,
+    FAIL_STREAK_MAX, FAIL_STREAK_IDLE_MS, failStreakOf,
     DEFAULT_TARGET_LANG, WINDOW, MERGE, MSG, t: i18n,
     isTranslated, isAlreadyTargetLanguage, isScriptDecidableTarget, detectorSaysTargetLanguage,
     looksLikeCode, endsSentence, joinCue, wordBreakIndex,

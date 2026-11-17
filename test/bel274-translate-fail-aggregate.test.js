@@ -235,12 +235,12 @@ describe('BEL-274 — dedicated, actionable copy', () => {
     ok(noBase && noBase !== generic, 'no_base must not use the generic sentence');
     ok(/地址|address|endpoint/i.test(noBase), 'no_base copy must name the missing endpoint: ' + noBase);
     ok(noBase !== TC.haltMessage('credit_exhausted'), 'no_base is not a credit problem');
-    eq(TC.haltAnchor('no_base'), '#engine');
+    eq(TC.haltAnchor('no_base'), '#engine-base');
 
     const row = FS.row('no_base');
     ok(row, 'no_base halt row must exist');
     eq(row.retry, false, 'no_base is not offered as a row retry');
-    eq(row.anchor, '#engine');
+    eq(row.anchor, '#engine-base');
     ok(/地址|address|endpoint/i.test(row.text));
     ok(row.text !== generic);
   });

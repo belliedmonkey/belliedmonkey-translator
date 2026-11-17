@@ -4412,5 +4412,41 @@
   "listen_perm_denied_body": {
     "message": "在系统设置里打开「麦克风」权限，回到这里点「重试」就能开始，不用重开 App。",
     "description": "BEL-273 microphone permission gate"
+  },
+  "halt_balance_row": {
+    "message": "这个引擎没余额了 —— 点此去换",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_balance_title": {
+    "message": "这个引擎的账户没有余额",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_balance_next": {
+    "message": "服务商回了 402：这把 Key 的账户没钱了。充值后点下面的「测试连接」；也可以换一把有余额的 Key，或者换引擎。",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_switch_engine": {
+    "message": "换引擎",
+    "description": "BEL-274 fail surface"
+  },
+  "halt_no_base_row": {
+    "message": "这个引擎要填地址 —— 点此去填",
+    "description": "BEL-274 fail surface"
+  },
+  "no_base_field_hint": {
+    "message": "还没填地址：这个引擎必须先有服务地址才会工作。地址要带协议和路径，例如 https://your-host/v1",
+    "description": "BEL-274 fail surface"
+  },
+  "halt_streak_row": {
+    "message": "连续 3 次失败 —— 点此去处理",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_streak_title": {
+    "message": "连续 3 次都失败",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_streak_next": {
+    "message": "同一个引擎连续 3 次没成功，最近一次是 HTTP 429（限流）。多数时候是配置或限额的问题，换引擎更快；想再试一次也可以。",
+    "description": "BEL-274 fail surface"
   }
 }

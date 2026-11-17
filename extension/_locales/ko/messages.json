@@ -4411,5 +4411,41 @@
   "listen_perm_denied_body": {
     "message": "시스템 설정에서 「마이크」를 켜고 여기로 돌아와 「다시 시도」를 누르면 시작됩니다. 앱을 다시 시작할 필요는 없습니다.",
     "description": "BEL-273 microphone permission gate"
+  },
+  "halt_balance_row": {
+    "message": "이 엔진은 잔액이 없습니다 — 탭하여 변경",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_balance_title": {
+    "message": "이 엔진의 계정에 잔액이 없습니다",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_balance_next": {
+    "message": "제공자가 402를 반환했습니다: 이 Key의 계정에 돈이 없습니다. 충전 후 아래의 «연결 테스트»를 탭하세요. 잔액이 있는 Key로 바꾸거나 엔진을 변경할 수도 있습니다.",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_switch_engine": {
+    "message": "엔진 변경",
+    "description": "BEL-274 fail surface"
+  },
+  "halt_no_base_row": {
+    "message": "이 엔진에는 주소가 필요합니다 — 탭하여 입력",
+    "description": "BEL-274 fail surface"
+  },
+  "no_base_field_hint": {
+    "message": "아직 주소가 없습니다: 이 엔진은 서비스 주소가 있어야 작동합니다. 프로토콜과 경로를 포함하세요. 예: https://your-host/v1",
+    "description": "BEL-274 fail surface"
+  },
+  "halt_streak_row": {
+    "message": "3회 연속 실패 — 탭하여 처리",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_streak_title": {
+    "message": "3회 연속 실패",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_streak_next": {
+    "message": "이 엔진은 3회 연속 성공하지 못했고, 마지막은 HTTP 429(속도 제한)였습니다. 대부분 설정이나 한도 문제라 엔진을 바꾸는 편이 빠릅니다. 한 번 더 시도할 수도 있습니다.",
+    "description": "BEL-274 fail surface"
   }
 }
