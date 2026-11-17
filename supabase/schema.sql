@@ -212,7 +212,7 @@ with fails as (
       when e.props->>'download_id' is null then null
       else row_number() over (
         partition by e.install_id, e.name, e.props->>'download_id'
-        order by e.received_at desc
+        order by e.received_at desc, e.id desc
       )
     end as rn
   from public.bt_events e
@@ -306,9 +306,9 @@ as $$
     date_trunc('hour', now()),
     p_name,
     (coalesce((
-      select array_agg(distinct k order by k)
+      select array_agg(distinct left(k, 64) order by left(k, 64))
         from unnest(coalesce(p_keys, '{}'::text[])) as k
-       where k is not null and k <> '' and length(k) <= 64
+       where k is not null and left(k, 64) <> ''
     ), '{}'::text[]))[1:8],
     1
   )
