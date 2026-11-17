@@ -790,20 +790,10 @@ const listenModel = (() => {
     canvas.view('state');
   }
   // 返回 true = 可以开麦；false = 已经画好门并把这一次开始记在 pending 里。
+  // BEL-273 回退（UI 冻结）：单按钮交互。权限不再由独立屏拦截；点「开始」后仍由原生
+  // 请求权限，失败走既有 fail 文案。mic-perm-read 探测与 native_code 记录保留。
   function micPermCanStart(intent) {
-    if (!bridged()) return true;   // 无桥宿主：页内 getUserMedia 自己问权限
-    if (!micPermRequired()) return true;   // Mac 字幕听系统声音，不碰麦克风
-    if (MicPerm.canStart(micPerm)) return true;
-    if (micPerm.state === 'not_determined' && !micPerm.explained) {
-      micPerm = Object.assign({}, micPerm, { gate: 'explain' });
-    } else if (micPerm.state === 'denied' || micPerm.state === 'restricted') {
-      micPerm = Object.assign({}, micPerm, { gate: 'denied' });
-    } else if (micPerm.state === 'prompted') {
-      micPerm = Object.assign({}, micPerm, { gate: 'requesting' });
-    }
-    micPermPending = intent || { kind: 'start' };
-    canvas.view('state');
-    return false;
+    return true;
   }
   function micPermRunPending() {
     const p = micPermPending;
@@ -817,34 +807,7 @@ const listenModel = (() => {
     start();
   }
   function permView() {
-    const gate = micPerm.gate;
-    if (!gate || !micPermRequired()) {
-      return { shown: false, gate: '', title: '', next: '', primary: null, secondary: null };
-    }
-    if (gate === 'denied') {
-      return {
-        shown: true, gate,
-        title: t('listen_perm_denied_title', '麦克风权限未开启'),
-        next: t('listen_perm_denied_body', '在系统设置里打开「麦克风」权限，回到这里点「重试」就能开始，不用重开 App。'),
-        primary: { label: t('halt_open_settings', '去设置'), action: 'settings' },
-        secondary: { label: t('fail_retry', '重试'), action: 'retry' },
-      };
-    }
-    if (gate === 'requesting') {
-      return {
-        shown: true, gate,
-        title: t('listen_perm_explain_title', '需要使用麦克风'),
-        next: t('subtitle_bar_waiting', '等待系统授权 — 请在弹出的权限框里点「允许」'),
-        primary: null, secondary: null,
-      };
-    }
-    return {
-      shown: true, gate: 'explain',
-      title: t('listen_perm_explain_title', '需要使用麦克风'),
-      next: t('listen_perm_explain_body', '听译要把麦克风的声音送到你设置的转写端点。下一步会弹出系统授权框，点「允许」即可开始。'),
-      primary: { label: t('ob_next', '继续'), action: 'continue' },
-      secondary: null,
-    };
+    return { shown: false, gate: '', title: '', next: '', primary: null, secondary: null };
   }
   function permAct(which) {
     if (which === 'secondary') {

@@ -361,17 +361,6 @@ export function ListenView() {
           <span className="listen-meter-label" id="app-listen-meter-label">{meter.label}</span>
           <span className="listen-meter-value" id="app-listen-meter-value">{meter.text}</span>
         </p>
-        <div className="listen-fail" id="app-listen-perm" hidden={!perm.shown}>
-          <p className="listen-fail-title" id="app-listen-perm-title">{perm.title}</p>
-          <p className="note" id="app-listen-perm-next">{perm.next}</p>
-          <div className="listen-fail-acts">
-            <button type="button" id="app-listen-perm-primary" hidden={!(perm.primary && perm.primary.label)}
-              onClick={() => listenModel.permAct('primary')}>{perm.primary ? perm.primary.label : ''}</button>
-            <button type="button" className="secondary" id="app-listen-perm-secondary"
-              hidden={!(perm.secondary && perm.secondary.label)}
-              onClick={() => listenModel.permAct('secondary')}>{perm.secondary ? perm.secondary.label : ''}</button>
-          </div>
-        </div>
         <div className="listen-fail" id="app-listen-fail" hidden={!fail.shown}>
           <p className="listen-fail-title" id="app-listen-fail-title">{fail.title}</p>
           <p className="note" id="app-listen-fail-next">{fail.next}</p>
