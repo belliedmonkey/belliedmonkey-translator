@@ -46,7 +46,7 @@ const PACK_FAIL_REASONS = ['network', 'timeout', 'disk', 'hash', 'unsupported', 
 // （app/model-sources.js 的 source）；ASR 直调 ensureAssets、VAD 直调 ensureVad，
 // 没有可归因的换源层级 ⇒ **整个键省略**（不写 'none'：'none' 会被读成一种真实层级）。
 const PACK_TIERS = ['cache', 'server', 'server-alt', 'builtin', 'builtin-alt'];
-// BEL-293 定稿（2026-11-17）：detail 是**闭枚举（20 值，逐字定稿）**，只收原生
+// BEL-293 定稿（2026-11-17）：detail 是**闭枚举（22 值，逐字定稿）**，只收原生
 // e.reason 里的协议码，不做前缀/包含匹配。sha / offline / http / load 在六值 reason
 // 里会被压成 hash / network / timeout / other，所以 detail 必须在 packFailReason()
 // **之前**取。locale 与 locales 是两个原生码，不合并；连字符保持 no-engine / no-bridge。
