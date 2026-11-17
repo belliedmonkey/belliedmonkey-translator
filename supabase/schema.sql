@@ -289,11 +289,13 @@ alter table public.bt_events_rejected enable row level security;
 revoke all on table public.bt_events_rejected from anon, authenticated;
 
 -- 唯一写入口：invalid_keys 先排序去重、left(k,64) 截断、[1:8]，再 upsert 累加。
--- 旧的三参（带 p_hour）签名若存在先删掉，避免留下第二个写入口。
+-- 旧签名（带 p_hour 的三参、以及二参）若存在先删掉，避免留下第二个写入口。
 drop function if exists public.bt_event_rejected_bump(text, text[], timestamptz);
+drop function if exists public.bt_event_rejected_bump(text, text[]);
 create or replace function public.bt_event_rejected_bump(
   p_name text,
-  p_keys text[]
+  p_keys text[],
+  p_n int default 1
 )
 returns void
 language sql
@@ -308,16 +310,16 @@ as $$
         from unnest(coalesce(p_keys, '{}'::text[])) as k
        where k is not null and left(k, 64) <> ''
     ), '{}'::text[]))[1:8],
-    1,
+    greatest(coalesce(p_n, 1), 1),
     now(),
     now()
   )
   on conflict (name, invalid_keys)
-  do update set n = public.bt_events_rejected.n + 1,
+  do update set n = public.bt_events_rejected.n + greatest(coalesce(p_n, 1), 1),
                 last_seen = now();
 $$;
 
-revoke all on function public.bt_event_rejected_bump(text, text[]) from public, anon, authenticated;
+revoke all on function public.bt_event_rejected_bump(text, text[], int) from public, anon, authenticated;
 
 
 -- 日聚合：不含 install_id。installs 是当天去重后的 install 数。
