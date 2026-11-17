@@ -164,18 +164,25 @@ describe('MTTelemetry — 白名单在客户端就守住', () => {
     const { T, store } = load();
     eq(await T.track('page_view'), false); eq(q(store, T).length, 0);
   });
-  test('① 表外属性键不入队 —— 整条，不是剔掉那个键', async () => {
+  // BEL-294/BEL-298：未知/非法键只丢该键，事件本身保留。以前这两条断言的是
+  // 「整条不要」；现在「丢的是键，不是归因」。
+  test('① 表外属性键只剔掉那个键，事件仍入队', async () => {
     const { T, store } = load();
-    eq(await T.track('translate_ok', { provider: 'deepseek', kind: 'page', ms: 12, url: 'x' }), false);
-    eq(q(store, T).length, 0);
-  });
-  test('② 值里有 http / @ / 超长 ⇒ 不入队', async () => {
-    const { T, store } = load();
-    eq(await T.track('engine_set', { provider: 'me@x.com' }), false);
-    eq(await T.track('translate_fail', { provider: 'a', code: 'http', status: 401, route: 'direct', ms: 1, }), true);
+    eq(await T.track('translate_ok', { provider: 'deepseek', kind: 'page', ms: 12, url: 'x' }), true);
     eq(q(store, T).length, 1);
-    eq(T._shape('translate_ok', { provider: 'x'.repeat(65), kind: 'page', ms: 1 }), null);
-    eq(T._shape('translate_ok', { provider: 'https', kind: 'page', ms: 1 }), null);
+    ok(!('url' in q(store, T)[0].props), '表外键不能进事件');
+    eq(q(store, T)[0].props.provider, 'deepseek');
+  });
+  test('② 值里有 http / @ / 超长 ⇒ 只丢那个值，事件仍在', async () => {
+    const { T, store } = load();
+    eq(await T.track('engine_set', { provider: 'me@x.com' }), true);
+    eq(await T.track('translate_fail', { provider: 'a', code: 'http', status: 401, route: 'direct', ms: 1, }), true);
+    eq(q(store, T).length, 2);
+    ok(!('provider' in q(store, T)[0].props), '含 @ 的 provider 必须被剔掉');
+    const a = T._shape('translate_ok', { provider: 'x'.repeat(65), kind: 'page', ms: 1 });
+    ok(a && !('provider' in a.props) && a.props.kind === 'page', '超长 provider 只丢键，kind/ms 保留');
+    const b = T._shape('translate_ok', { provider: 'https', kind: 'page', ms: 1 });
+    ok(b && !('provider' in b.props) && b.props.kind === 'page');
   });
   test('合法事件入队，信封里只有白名单字段，ts 取整到分钟', async () => {
     const { T, store } = load();
@@ -314,7 +321,8 @@ describe('MTTelemetry — 开关与心跳', () => {
     const props = { provider: 'apple', stage: 'id_token', code: 'offline', http: 0, attempt: '1' };
     eq(await T.track('auth_fail', props), true);
     eq(ls[T.DIAG_KEY], undefined);
-    eq(await T.track('translate_ok', { provider: 'deepseek', kind: 'page', ms: 3, text: 'secret' }), false);
+    // BEL-294/BEL-298：text 是表外键 ⇒ 只丢这个键，translate_ok 仍然外发。
+    eq(await T.track('translate_ok', { provider: 'deepseek', kind: 'page', ms: 3, text: 'secret' }), true);
     await T.flush();
     await new Promise((r) => setTimeout(r, 20));
     ok(sends.length >= 1, '没有打到境内 ingest');
@@ -378,13 +386,16 @@ describe('MTTelemetry — dwell 分桶（§3.9）', () => {
     eq(T.dwell(0), ''); eq(T.dwell(undefined), ''); eq(T.dwell(NaN), '');
     eq(at(T, -5), '');
   });
-  test('吐出来的四个值都进得了白名单；桶外的值（如秒数）整条事件被判掉', () => {
+  test('吐出来的四个值都进得了白名单；桶外的值（如秒数）只丢 dwell，事件保留', () => {
     const { T } = load();
     for (const d of ['0-2', '3-9', '10-29', '30+']) {
       ok(T._shape('onboarding_done', { surface: 'app', result: 'skipped', step: 'welcome', dwell: d }), d);
     }
-    eq(T._shape('onboarding_done', { surface: 'app', result: 'skipped', step: 'welcome', dwell: '7' }), null);
-    eq(T._shape('onboarding_done', { surface: 'app', result: 'skipped', step: 'welcome', dwell: '' }), null);
+    for (const bad of ['7', '']) {
+      const e = T._shape('onboarding_done', { surface: 'app', result: 'skipped', step: 'welcome', dwell: bad });
+      ok(e && !('dwell' in e.props), '非法 dwell 只丢这个键：' + JSON.stringify(bad));
+      eq(e.props.surface, 'app');
+    }
     // 不带这个键是合法的 —— app_resume 那条就永远不带。
     ok(T._shape('onboarding_done', { surface: 'app_resume', result: 'shown', step: 'welcome' }));
   });
@@ -400,10 +411,13 @@ describe('MTTelemetry — review_session 的 opened / nothing_due（§3.10）', 
       ok(T._shape('review_session', { graded: 0, result: r, left: 0 }), r);
     }
   });
-  test('桶外的取值整条被判掉 —— 「打开」不能写成别的词', () => {
+  test('桶外的取值只丢 result，事件保留 —— 「打开」不能写成别的词', () => {
     const { T } = load();
-    eq(T._shape('review_session', { graded: 0, result: 'open', left: 0 }), null);
-    eq(T._shape('review_session', { graded: 0, result: 'visited', left: 0 }), null);
+    for (const bad of ['open', 'visited']) {
+      const e = T._shape('review_session', { graded: 0, result: bad, left: 0 });
+      ok(e && !('result' in e.props), bad + ' 必须被剔掉');
+      eq(e.props.graded, 0); eq(e.props.left, 0);
+    }
   });
   test('opened 入队时不带任何多余的键', async () => {
     const { T, store } = load();

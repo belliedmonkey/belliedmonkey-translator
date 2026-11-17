@@ -7,9 +7,13 @@
 // 加一个事件或一个属性 = 改 docs/telemetry-design.md 过评审 → 改这里 → 重新生成。
 // 不是「顺手在 track() 调用处多传一个字段」—— 服务端会把它整条拒掉。
 //
-// 值类型（服务端逐条校验，客户端 track() 同样校验后才入队）：
+// 值类型（服务端逐条校验，客户端 track() 同样校验后才入队；BEL-228 七行补全后两边逐字一致）：
 //   'int'    非负整数，≤ 10 位
-//   'id'     /^[a-z0-9_-]{1,32}$/   —— 引擎 id 这种；launch_id / setup_id 的 32-hex 也走这条
+//   'id'     /^[a-z0-9_-]{1,32}$/   —— 引擎 id / op_id 这种；launch_id / setup_id 的 32-hex 也走这条
+//   'uuid'   /^[0-9a-f]{8}-.../i   —— install_id
+//   'iso'    Date.parse 可解；服务端另加 ±7 天窗口
+//   'semver' /^\d{1,3}\.\d{1,3}\.\d{1,3}$/
+//   'lang'   空串或 /^[a-z]{2,3}$/
 //   [...]    枚举，只允许列出的值
 'use strict';
 
@@ -21,6 +25,11 @@ const COMMON = {
   host: ['safari', 'chrome', 'firefox', 'app'],
   device: ['iPhone', 'iPad', 'Mac', 'Windows', 'Android', 'Linux', ''],
   ui: 'lang',              // 界面语言，粗到 zh / en 这一级；/^[a-z]{2,3}$/
+  // BEL-294/BEL-295（2026-11-17）：构建号。`v` 是营销版本，分不出「同版本的哪个
+  // 构建」—— 1.23.4 出过几次包，审计里 `v=1.23.4` 的行看不出用的是哪一次埋点。
+  // 可缺：扩展没有独立的包构建号 ⇒ **整键省略**；App 从原生 caps().build
+  // （CFBundleVersion）取，拿不到也不写 0 占位。服务端对它按「可缺省」处理。
+  build: 'int',
 };
 
 // BEL-223（2026-11-08）：归因用的**五个功能面**。这不是「入口」（那是 asr_entry.surface
@@ -152,6 +161,9 @@ const EVENTS = {
     // BEL-223（2026-11-08）：从哪个功能面发起测试、哪次启动。键可缺。
     // launch_id = 32 位小写十六进制（uuid 去掉连字符），与 UUID 同义；用 'id' 规则见 app_open。
     launch_id: 'id',
+    // BEL-294/BEL-296：一次用户操作一个 16-hex 操作 id。engine_test 的一次测试
+    // 就是一次操作；和同一次操作里的翻译事件可对上（不是 launch_id 的替代）。
+    op_id: 'id',
     surface: ENGINE_TEST_SURFACES,
   },
   // BEL-290（2026-11-17，产品定稿）：一键设定的成功/失败面。三面共用
@@ -176,12 +188,18 @@ const EVENTS = {
   // BEL-290：站点访问权限被拒。只从扩展 popup 发，零 props —— permission 只有
   // host、surface 只有 popup 两个常量，公共信封的 host/device 已经够拆。
   perm_denied: {},
-  translate_ok: { provider: 'id', kind: TRANSLATE_KINDS, ms: 'int', surface: SURFACES },   // doc：文档翻译（2026-09-11，learning-design §9.7）
+  // BEL-294/BEL-296：`op_id` 只挂在翻译的三态与 engine_test 上，一次用户操作一个。
+  // 客户端在 translate_start 生成，terminal（ok/fail）沿用；老行没有这个键 ⇒ NULL。
+  // **禁止**加到 grant_debited / grant_debit_fail：那两条是服务端记账事件，没有
+  // 一次用户翻译操作的语义。下载继续用 download_id，launch_id 不替代 op_id。
+  translate_ok: { provider: 'id', kind: TRANSLATE_KINDS, ms: 'int', surface: SURFACES, op_id: 'id' },   // doc：文档翻译（2026-09-11，learning-design §9.7）
   translate_fail: {
     provider: 'id',
     // BEL-247：与 translate_ok 共用 TRANSLATE_KINDS —— 「哪个功能面的失败」必须能
     // 和成功数对齐，否则成功率只能按 provider 粗算。
     kind: TRANSLATE_KINDS,
+    // BEL-294/BEL-296：与 translate_start 同源的 16-hex 操作 id；失败也能回指开始。
+    op_id: 'id',
     // 免费额度那三个必须在枚举里（§8.10 / telemetry-design §3）：不在枚举里的 code
     // 会被客户端白名单**静默丢掉**，于是「有多少人把 0.2 美元用完了」这个数永远是 0
     // —— 而那正是判断这笔钱该不该继续花的唯一依据。
@@ -195,7 +213,10 @@ const EVENTS = {
       'stalled',
       // 中继的 400 请求形状错误（BEL-270）：响应正文仍是 `error: 'bad_request'`，
       // 新增的 `reason` 只用来选这四个码。未知/缺失 reason 仍归 http + status 400。
-      'relay_bad_json', 'relay_bad_messages', 'relay_bad_audio', 'relay_bad_input'],
+      'relay_bad_json', 'relay_bad_messages', 'relay_bad_audio', 'relay_bad_input',
+      // BEL-294/BEL-298：用户取消与超时分码。取消是用户主动结束，不是故障超时；
+      // 也不写 status=0 冒充一个 HTTP 状态。
+      'cancelled'],
     status: 'int',
     route: ['direct', 'proxy', ''],
     ms: 'int',
@@ -456,7 +477,8 @@ const EVENTS = {
   },
   // BEL-290：页面翻译也发 start（kind:'page'，每会话一条）；App 侧补 kind 与 surface。
   // 两者都可缺：老客户端不发；页面侧不带 surface（kind 已经精确表达了页面翻译）。
-  translate_start: { engine: 'id', locale_pair: 'id', kind: TRANSLATE_KINDS, surface: SURFACES },
+  // BEL-294/BEL-296：start 生成 op_id；同一次操作的 ok/fail 沿用（可缺，老客户端不发）。
+  translate_start: { engine: 'id', locale_pair: 'id', kind: TRANSLATE_KINDS, surface: SURFACES, op_id: 'id' },
   // Mac 完整视频离线字幕（domain-design §2.8 / telemetry-design §3.15，BEL-103）。
   // 不进听译漏斗。成功不带 code。code 里没有路径和原文。
   offline_video_asr_task: {

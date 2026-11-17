@@ -308,7 +308,11 @@ describe('BEL-284 — 客户端白名单真的收下新字段（MTTelemetry shap
     const queue = store['tm:queue'] || [];
     eq(queue.length, 1, '事件没有入队（白名单拒了？）');
     eq(queue[0].name, 'engine_test');
-    deepEq(queue[0].props, {
+    // BEL-294/BEL-296：engine_test 自动带一个 16-hex op_id；其余字段逐字不变。
+    const p = Object.assign({}, queue[0].props);
+    ok(/^[0-9a-f]{16}$/.test(p.op_id), 'engine_test 缺 op_id');
+    delete p.op_id;
+    deepEq(p, {
       slot: 'chat', result: 'fail', code: 'auth', http: 401, route: 'direct', provider: 'deepseek',
     });
     ok(!JSON.stringify(queue[0]).includes('sk-SECRET'));
