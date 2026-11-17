@@ -28,6 +28,20 @@ import Registry from '../lib/registry.js';
 import SETTINGS_SCHEMA from '../store/schema.js';
 import SettingsStore from '../store/settings-store.js';
 import { useSettings, useSettingsStatus } from '../store/hooks.js';
+import { shouldNotePermDenied } from './popup-perm.js';
+
+// BEL-290：内容脚本没回应时，只有「http(s) 页面 + 权限明确 false」才是
+// perm_denied。判据在 popup-perm.js；这里只负责发零 props 的事件。
+async function notePermDenied() {
+  try {
+    if (typeof MTTelemetry === 'undefined') return;
+    const denied = await shouldNotePermDenied({
+      tabs: chrome.tabs,
+      permissions: chrome.permissions,
+    });
+    if (denied) MTTelemetry.track('perm_denied', {});
+  } catch (_) { /* fail-closed：判不出来就不发 */ }
+}
 
 async function sendToPage(action) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -260,13 +274,19 @@ function Popup() {
         // sendToPage never throws — it resolves null when no content script
         // answered. Flipping state on null would paint a status the page is
         // not in, so both branches gate the flip on a real response.
-        if (r == null) { showToast(t('msg_translate_failed_retry', '⚠️ 翻译失败——点按重试')); return; }
+        if (r == null) {
+          await notePermDenied();
+          showToast(t('msg_translate_failed_retry', '⚠️ 翻译失败——点按重试')); return;
+        }
         setPageTranslated(false);
         showToast(t('toast_restored_original', '已恢复原文'));
       } else {
         showToast(t('toast_translating', '正在翻译…'));
         const r = await sendToPage('translatePage');
-        if (r == null) { showToast(t('msg_translate_failed_retry', '⚠️ 翻译失败——点按重试')); return; }
+        if (r == null) {
+          await notePermDenied();
+          showToast(t('msg_translate_failed_retry', '⚠️ 翻译失败——点按重试')); return;
+        }
         setPageTranslated(true);
       }
     } finally { setBusy(false); }

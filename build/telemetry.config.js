@@ -496,22 +496,18 @@ const SEAMS = {
     { host: 'app', file: 'src/app/settings-model.js' },
   ],
   engine_test: SHARED('extension/learn/engine-test.js'),
-  // BEL-290：一键设定三宿主共用 src/shared/quick-setup-view.jsx。拍 A 只上白名单，
-  // 发送点在拍 B 接；pending 让注册表门禁知道「已登记、未落码」，不是「有意不发」。
-  setup_apply_ok: SHARED('src/shared/quick-setup-view.jsx', {
-    pending: 'BEL-290 拍 B：共享一键设定视图在 await onApply 成功后发',
-  }),
-  setup_apply_fail: SHARED('src/shared/quick-setup-view.jsx', {
-    pending: 'BEL-290 拍 B：共享一键设定视图的 precheck / read / write 失败分支发',
-  }),
+  // BEL-290：一键设定三宿主共用 src/shared/quick-setup-view.jsx。拍 B 已接上：
+  // 成功一条在 await onApply 之后；失败在 precheck / read / write 三个分支各一条。
+  setup_apply_ok: SHARED('src/shared/quick-setup-view.jsx'),
+  setup_apply_fail: SHARED('src/shared/quick-setup-view.jsx'),
   // BEL-290：扩展设置页 boot 在 src/pages/options.jsx；App openSettings 在 shell-model。
   settings_open: [
-    { host: 'ext', file: 'src/pages/options.jsx', pending: 'BEL-290 拍 B：扩展设置页 boot 后发一次' },
-    { host: 'app', file: 'src/app/shell-model.js', pending: 'BEL-290 拍 B：openSettings 落地时按 anchor 发' },
+    { host: 'ext', file: 'src/pages/options.jsx' },
+    { host: 'app', file: 'src/app/shell-model.js' },
   ],
   // BEL-290：只有扩展 popup 能看见「内容脚本没注入」，App 侧没有这个观测点。
   perm_denied: [
-    { host: 'ext', file: 'src/pages/popup.jsx', pending: 'BEL-290 拍 B：popup 三个 fail-closed 条件同时成立才发' },
+    { host: 'ext', file: 'src/pages/popup.jsx' },
     { host: 'app', none: '站点访问权限只在浏览器扩展里存在；App 没有这条观测点（BEL-290 定稿）' },
   ],
   // auth_fail（§3.14）：两个宿主都走 extension/learn/auth.js 的同一份字节（该文件在 App 包的
@@ -642,9 +638,8 @@ const SEAMS = {
     { host: 'app', file: 'src/app/listen-model.js', match: "track('asr_fail'" },
   ],
   translate_start: [
-    // BEL-290：页面翻译也发 start（kind:'page'，每会话一条）。发送点在拍 B 接，
-    // 所以这里用 pending —— 不再是「网页翻译没有这一跳」。
-    { host: 'ext', file: 'extension/content/content-webpage.js', match: "kind: 'page'", pending: 'BEL-290 拍 B：content-webpage enable() 每会话发一条 translate_start{kind:page}' },
+    // BEL-290：页面翻译也发 start（kind:'page'，每会话一条）；App 侧补 kind/surface。
+    { host: 'ext', file: 'extension/content/content-webpage.js', match: "kind: 'page'" },
     { host: 'app', file: 'src/app/listen-model.js', match: "track('translate_start'" },
   ],
   offline_video_asr_task: [

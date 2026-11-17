@@ -342,6 +342,10 @@ test('听出字并且翻译请求发出去 ⇒ translate_start，每场一次', 
   ok(starts.length === 1, 'translate_start 条数 ' + starts.length
     + ' 事件 ' + tracked.map((e) => e[0]).join(',')
     + ' phase ' + d.phase + ' rows ' + d.rows.length + ' seg ' + JSON.stringify(d.seg && { route: d.seg.route, calls: d.seg.calls }));
+  // BEL-290：App 侧补 kind 与 surface；engine 仍只在合法时带（本场是 deepseek）。
+  eq(starts[0][1].kind, 'subtitle', 'translate_start 要带 kind:subtitle');
+  eq(starts[0][1].surface, 'listen', '对话听译的 surface');
+  eq(starts[0][1].engine, 'deepseek', '合法引擎 id 仍要带');
   const oks = names(tracked, 'translate_ok');
   eq(oks.length <= 1, true);
   if (oks.length) {

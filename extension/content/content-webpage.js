@@ -87,6 +87,18 @@ var WebpageTranslator = (() => {
     });
   }
 
+  // BEL-290：页面翻译也发 start —— 每个页面会话一条，engine 只在合法 id 时带
+  // （表里 engine 是 'id' 型；非法值会把整条事件丢掉，所以宁可不带这个键）。
+  function noteTranslateStart() {
+    try {
+      if (typeof MTTelemetry === 'undefined') return;
+      const props = { kind: 'page' };
+      const eng = String((settings && settings.provider) || '');
+      if (/^[a-z0-9_-]{1,32}$/.test(eng)) props.engine = eng;
+      MTTelemetry.track('translate_start', props);
+    } catch (_) {}
+  }
+
   function inViewport(node) {
     const r = node.getBoundingClientRect();
     if (r.width < 1 && r.height < 1) return false;
@@ -1302,6 +1314,8 @@ var WebpageTranslator = (() => {
                         // both fire on the first translate; the 2nd must not wipe the engine)
     active = true;
     enabledAt = Date.now(); okSent = false;
+    // 每次会话一条；重复 enable 已在上面被 active 挡掉，不会重复。
+    noteTranslateStart();
     engine = makeEngine();
     units = []; known = new WeakSet();
     // Self-heal orphaned hide markers: a content-script reload (extension

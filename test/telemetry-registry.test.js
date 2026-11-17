@@ -109,23 +109,14 @@ describe('telemetry seams — 每个事件在每个宿主上真的有发送点�
     const bad = checkSeams(cfg.EVENTS, cfg.SEAMS, read, MODULES);
     eq(bad.length, 0, '\n  ' + bad.join('\n  '));
   });
-  // pending 是拍 A/B 拆分的临时形状，不是永久的「以后再说」。把集合逐个钉死：下一拍
-  // 接上发送点后删 pending 会红，提醒同时删掉这条测试；想偷偷多挂一个也会红。
-  test('pending 只留给 BEL-290 拍 B 的未落码发送点', () => {
+  // pending 是拍 A/B 拆分的临时形状。BEL-290 拍 B 已把八个发送点都接上，所以
+  // 这里翻面：SEAMS 里不许再留 pending —— 留一个就等于门禁对那一条永远放行。
+  test('BEL-290 拍 B 接上后 SEAMS 里不再有 pending', () => {
     const got = [];
     for (const [ev, list] of Object.entries(cfg.SEAMS)) {
       for (const x of list) if (x.pending) got.push(`${ev}/${x.host}`);
     }
-    eq(got.sort().join(','), [
-      'perm_denied/ext',
-      'settings_open/app',
-      'settings_open/ext',
-      'setup_apply_fail/app',
-      'setup_apply_fail/ext',
-      'setup_apply_ok/app',
-      'setup_apply_ok/ext',
-      'translate_start/ext',
-    ].sort().join(','));
+    eq(got.sort().join(','), '', '还有未落码的 pending 发送点');
   });
   // §3.9 提案 A：dwell 的「开始计时」那一半没有任何门禁能自己发现 —— 少打一处，
   // 事件照发、值照样合法（只是算成了「从启动到现在」），表上看不出来。所以单独钉住。

@@ -52,7 +52,7 @@ import { useSettings, useSettingsStatus, useUiLang } from '../store/hooks.js';
 import {
   SAVE_KEYS, scaleValue, advNum as advNumClamp, learnDailyNew as dailyNewClamp,
   apiHint as apiHintStr, syncError as syncErrorText,
-  keyOwnerPatch, saveKeyField,
+  keyOwnerPatch, saveKeyField, setManyOrThrow,
 } from './options-model.js';
 import LearnDialog from '../shared/dialog.jsx';
 
@@ -361,6 +361,7 @@ function Options() {
   const bootSnapRef = useRef(null);          // 启动快照（quickShows / prefill 冻结用）
   const quickShowsRef = useRef(null);        // 一键卡表示得了这份配置吗（null = 表示不了）
   const engineSetSentRef = useRef('');
+  const settingsOpenSentRef = useRef(false); // BEL-290：settings_open 每次页面 boot 只一条
   const toastTimer = useRef(null);
   const inputTimer = useRef(null);
   const pendingPatch = useRef({});           // 500ms 防抖窗口里攒的孤岛输入
@@ -467,7 +468,7 @@ function Options() {
     // 键域兜一道：setMany 对未知键整单拒绝，SAVE_KEYS 之外的一个都不能混进来。
     const filtered = {};
     for (const k of SAVE_KEYS) if (k in patch) filtered[k] = patch[k];
-    if (Object.keys(filtered).length) await SettingsStore.setMany(filtered);
+    if (Object.keys(filtered).length) await setManyOrThrow(SettingsStore, filtered);
     maybeTrackEngineSet();
   };
 
@@ -620,14 +621,14 @@ function Options() {
     const w = plan.writes || {};
     const patch = {};
     for (const k of SAVE_KEYS) if (k in w) patch[k] = w[k];
-    if (Object.keys(patch).length) await SettingsStore.setMany(patch);
+    if (Object.keys(patch).length) await setManyOrThrow(SettingsStore, patch);
     // BEL-257：owner 是 [flow] key，不在 SAVE_KEYS 里。grant 路径本来就会写
     // plan.marks；普通一键卡也一样要写，否则粘贴的 key 没有归属。
     const flow = {};
     for (const k of ['apiKeyOwner', 'ttsKeyOwner', 'sttKeyOwner', 'notesKeyOwner']) {
       if (plan.marks && k in plan.marks) flow[k] = plan.marks[k];
     }
-    if (Object.keys(flow).length) await SettingsStore.setMany(flow);
+    if (Object.keys(flow).length) await setManyOrThrow(SettingsStore, flow);
     // 孤岛按新值重画（layout effect 以 applyEpoch 为键重跑，values 从 store 现读）。
     setApplyEpoch((e) => e + 1);
     // 一键卡写过三槽之后额度卡的状态可能变了（用自己的 key 盖掉免费槽 ⇒ 「改回免费额度」）。
@@ -1171,6 +1172,8 @@ function Options() {
       // 配过的回显出来。一个空输入框在已经配好的页面上是假话。
       prefill: quickShowsRef.current ? { host: quickShowsRef.current.host, key: s0.apiKey } : null,
       targetLang: s0.targetLang,
+      // BEL-290：setup_apply_* 的归属面 —— 这是扩展设置页。
+      surface: 'ext_settings',
       // 读不到已存设置时不许配：往一份读不出来的档案上盖三组配置。
       disabled: readFailed,
       onApply: applyQuickSetup,
@@ -1227,6 +1230,16 @@ function Options() {
   };
 
   // ── boot ───────────────────────────────────────────────────────────────────
+  // BEL-290：扩展设置页每次 boot 一条 settings_open{ext_settings}。页面本身没有
+  // 「打开设置」这个动作 —— 加载即是打开；不按可见性发，避免 SPA 重绘重复计数。
+  useEffect(() => {
+    if (settingsOpenSentRef.current) return;
+    settingsOpenSentRef.current = true;
+    try {
+      if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('settings_open', { surface: 'ext_settings' });
+    } catch (_) {}
+  }, []);
+
   useEffect(() => {
     let alive = true;
     SettingsStore.init(READ_KEYS).then((r) => {
@@ -1542,6 +1555,8 @@ function Options() {
           apiKey: String(SettingsStore.get('apiKey') || '').trim(),
           baseUrl: String(SettingsStore.get('apiBaseUrl') || '').trim(),
           model: String(SettingsStore.get('apiModel') || '').trim(),
+          // BEL-290：设置页字段行的自检面。
+          surface: 'setup_fields',
         });
         noteSet(withRoute(withUrl(
           t('engine_test_ok', '✓ 通了 · {ms}ms').replace('{ms}', String(r.ms))

@@ -194,6 +194,8 @@ function bootApp(opts = {}) {
     LearnScheduler: { dueCount: () => 0, DEFAULTS: {} },
     EngineState: { needsSetup: () => false, byId: () => null },
     DiagLog: { push() {} },
+    // BEL-290：默认不注入（undefined ⇒ typeof 守卫跳过），测试可传一个 recorder。
+    MTTelemetry: opts.MTTelemetry || undefined,
     console, URL, setTimeout, clearTimeout, setInterval, clearInterval,
   };
 
