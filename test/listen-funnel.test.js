@@ -49,6 +49,7 @@ function boot(opts) {
   const o = opts || {};
   const probe = o.probe || { ok: true, reason: '', assets: 'installed', locales: [] };
   const tracked = [];
+  const flushes = [];
   const captured = { h: null, native: null, reads: 0 };
   const clk = fakeClock();
   const NativeAudio = {
@@ -78,7 +79,7 @@ function boot(opts) {
     }, onChanged: { addListener() {} } }, runtime: { getURL: (u) => u } },
     ListenCore: C,
     NativeAudio,
-    NativeSpeech: {
+    NativeSpeech: Object.assign({
       available: () => true,
       probeResult: () => probe,
       probe: async () => probe,
@@ -89,9 +90,15 @@ function boot(opts) {
       onLid: () => () => {},
       sttOpen: (x) => { captured.onStt = x.onEvent; return { sendPcm: () => true, close() {}, cut() {} }; },
       quota: () => ({ max: 5, reserved: [] }),
-    },
+    }, o.NativeSpeech || {}),
+    // BEL-290：两处裸 ensureVad 的测试要注入 VAD 清单；默认没有清单 ⇒ 不下载。
+    mtDeviceVadFor: o.vadModel ? () => o.vadModel : (() => null),
     DiagLog: { push: () => {} },
-    MTTelemetry: { track: (n, p) => { tracked.push([n, p || {}]); }, once: () => {} },
+    MTTelemetry: {
+      track: (n, p) => { tracked.push([n, p || {}]); },
+      once: () => {},
+      flush: () => { flushes.push(tracked.length); return Promise.resolve(true); },
+    },
     MTFeedback: {},
     LearnNotes: { resolveConfig: () => ({ provider: 'deepseek', apiKey: 'k', baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat' }), shouldCapture: () => false, langAllowed: () => true },
     LearnRules: { dominantScript: (t) => (/[\u4e00-\u9fff]/.test(String(t || '')) ? 'Han' : 'Latin'), langAllowed: () => true },
@@ -109,7 +116,7 @@ function boot(opts) {
     console, URL,
   };
   const ctx = loadSrc('src/app/listen-model.js', 'AppListen', sb);
-  return { A: ctx.AppListen, tracked, captured, clk };
+  return { A: ctx.AppListen, tracked, flushes, captured, clk, sb };
 }
 
 test('白名单：四条新事件的枚举是短码，信封不另造 app_version / platform', () => {
@@ -352,4 +359,95 @@ test('听出字并且翻译请求发出去 ⇒ translate_start，每场一次', 
     eq(oks[0][1].surface, 'listen', 'translate_ok 要能分开 listen / live_caption');
     eq(oks[0][1].kind, 'subtitle', '旧 kind 保留');
   }
+});
+
+// BEL-290：两处裸 NativeSpeech.ensureVad 接上 reportPackUnit。判据是**事件正文**：
+// pack_kind=vad、start/fail 共用 download_id、fail 有归一化 reason/code、并强制 flush。
+const VAD_SPEC = {
+  id: 'vad',
+  files: [{ url: 'https://api.belliedmonkey.com/models/silero_vad.onnx', size: 643854 }],
+};
+
+test('BEL-290 预热 VAD：reject 发 fail（同 download_id、reason=hash），surface=listen，且 flush', async () => {
+  const bad = new Error('sha256 mismatch');
+  bad.reason = 'hash';
+  const { A, tracked, flushes, clk } = boot({
+    vadModel: VAD_SPEC,
+    NativeSpeech: {
+      vadProbe: async () => ({ ok: false }),
+      ensureVad: async () => { throw bad; },
+    },
+  });
+  A.wire();
+  A.open('conv');
+  await clk.runTo(0);
+  await clk.runTo(0);
+
+  const starts = tracked.filter((e) => e[0] === 'pack_download_start' && e[1].pack_kind === 'vad');
+  const fails = tracked.filter((e) => e[0] === 'pack_download_fail' && e[1].pack_kind === 'vad');
+  eq(starts.length, 1, '预热 VAD 没有 start（事件 ' + tracked.map((e) => e[0]).join(',') + '）');
+  eq(fails.length, 1, '预热 VAD reject 没有 fail');
+  eq(starts[0][1].surface, 'listen', 'warmBody 只在对话页跑（mode=subtitle 提前 return）');
+  eq(starts[0][1].source, 'other', '中继地址看不见托管方 ⇒ other');
+  eq(fails[0][1].download_id, starts[0][1].download_id, 'fail 必须复用 start 的 download_id');
+  eq(fails[0][1].reason, 'hash');
+  eq(fails[0][1].code, 'download_vad');
+  ok(flushes.length >= 1, 'VAD fail 必须调用 flush');
+});
+
+test('BEL-290 实时听译首启 VAD：成功发 ok；surface 按当前面 live_caption；不误发 fail', async () => {
+  const { A, tracked, clk } = boot({
+    vadModel: VAD_SPEC,
+    NativeSpeech: { ensureVad: async () => ({ ok: true }) },
+  });
+  A.wire();
+  A.open('subtitle');
+  await clk.runTo(0);
+  const started = A.start();
+  await clk.runTo(0);
+  await clk.runTo(0);
+  await started;
+
+  const starts = tracked.filter((e) => e[0] === 'pack_download_start' && e[1].pack_kind === 'vad');
+  const oks = tracked.filter((e) => e[0] === 'pack_download_ok' && e[1].pack_kind === 'vad');
+  const fails = tracked.filter((e) => e[0] === 'pack_download_fail' && e[1].pack_kind === 'vad');
+  eq(starts.length, 1, '首启 VAD 没有 start（事件 ' + tracked.map((e) => e[0]).join(',') + '）');
+  eq(oks.length, 1, 'ensureVad 成功没有 ok');
+  eq(fails.length, 0, '成功路径不得发 fail');
+  eq(oks[0][1].download_id, starts[0][1].download_id, 'ok 必须复用 start 的 download_id');
+  eq(starts[0][1].surface, 'live_caption', 'ensurePacksForPair 被字幕页共用 ⇒ 按当前面报');
+});
+
+test('BEL-290 实时听译首启 VAD（对话页）：surface=listen，成功发 ok', async () => {
+  const bad = new Error('sha256 mismatch');
+  bad.reason = 'hash';
+  let calls = 0;
+  const { A, tracked, clk } = boot({
+    vadModel: VAD_SPEC,
+    NativeSpeech: {
+      vadProbe: async () => ({ ok: false }),
+      ensureVad: async () => {
+        calls += 1;
+        if (calls === 1) throw bad;   // 预热失败，让首启路径还能再遇到一次缺 VAD
+        return { ok: true };
+      },
+    },
+  });
+  A.wire();
+  A.open('conv');
+  await clk.runTo(0);
+  await clk.runTo(0);
+  eq(tracked.filter((e) => e[0] === 'pack_download_fail' && e[1].pack_kind === 'vad').length, 1,
+    '预热 VAD 应先失败一次');
+
+  const started = A.start();
+  await clk.runTo(0);
+  await clk.runTo(0);
+  await started;
+  const starts = tracked.filter((e) => e[0] === 'pack_download_start' && e[1].pack_kind === 'vad');
+  const oks = tracked.filter((e) => e[0] === 'pack_download_ok' && e[1].pack_kind === 'vad');
+  eq(starts.length, 2, '预热 + 首启各一条 start');
+  eq(oks.length, 1, '重试成功必须发 ok');
+  eq(oks[0][1].surface, 'listen', '对话页的开始走 ensurePacksForPair ⇒ surface=listen');
+  eq(oks[0][1].download_id, starts[1][1].download_id, 'ok 必须复用第二次 start 的 download_id');
 });

@@ -1109,12 +1109,12 @@ describe('BEL-269 延伸 · 首页不假装包已就绪 + 路由/重试去重', 
 //   ① 失败阶段只编码进既有 code（download_asr 等），不新增 stage 属性；
 //   ② reason 六值仍由 TelemetrySession.packFailReason 从 e.reason 映射。
 describe('BEL-268 pack_download_fail 的 reason / 阶段后缀', () => {
-  // packFailCode 在 shell-model 的闭包里；npm test 没有 DOM，所以像本文件其它用例一样
-  // 从源码里取出这个纯函数按真值表跑（不是复制一份实现）。
+  // packFailCode 已抽到 pack-unit.js（listen-model 的 VAD 单元共用）；npm test 没有
+  // DOM，所以像本文件其它用例一样从源码里取出这个纯函数按真值表跑（不是复制实现）。
   function packFailCodeFn() {
-    const src = stripComments(read('src/app/shell-model.js'));
+    const src = stripComments(read('src/app/pack-unit.js'));
     const start = src.indexOf('function packFailCode(');
-    ok(start >= 0, 'shell-model.js 里找不到 packFailCode()');
+    ok(start >= 0, 'pack-unit.js 里找不到 packFailCode()');
     let depth = 0;
     for (let i = src.indexOf('{', start); i < src.length; i++) {
       if (src[i] === '{') depth++;
@@ -1159,13 +1159,14 @@ describe('BEL-268 pack_download_fail 的 reason / 阶段后缀', () => {
 
   test('runPackUnit 把阶段传到 packFailCode；四个下载单元各自标注', () => {
     const src = stripComments(read('src/app/shell-model.js'));
+    const unit = stripComments(read('src/app/pack-unit.js'));
     // BEL-269 之后 runPackUnit 只是 reportPackUnit 的薄包装；268 的 stage 必须闭包
     // 进 failCode 回调，由 269 的 reportPackUnit 在唯一失败出口交给 packFail。
     ok(/function runPackUnit\(info, fn, stage\)/.test(src),
       'runPackUnit 没有接 stage —— 失败时不知道断在哪一阶段');
     ok(/reportPackUnit\(TelemetrySession, info, fn, \(e\) => packFailCode\(e, stage\)\)/.test(src),
       'runPackUnit 没把 stage 经 reportPackUnit 交给 packFailCode');
-    ok(/packFail\(token, e, failCode\(e\)\)/.test(src),
+    ok(/packFail\(token, e, failCode\(e\)\)/.test(unit),
       'reportPackUnit 没把 failCode 的结果交给 packFail');
     const segments = [
       ['vad', /}, \(\) => NativeSpeech\.ensureVad\(vad, onProg\), 'vad'\);/],

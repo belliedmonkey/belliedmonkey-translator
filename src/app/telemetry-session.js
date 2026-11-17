@@ -167,6 +167,30 @@ function track(name, props) {
   } catch (_) { /* 埋点永远不能挡住产品 */ }
   return false;
 }
+
+// BEL-290：fail 的强制 flush。track() 只负责入队；MTTelemetry.trackOne() 自己
+// 只 schedule 一个 60s 定时器（或凑满 10 条才发）。App 在 reject 后随即退出时，
+// 这条 fail 就留在 tm:queue 里等下一次冷启的 init({flushNow:true}) —— 08:12 的
+// 现场正是「start 随冷启 flush 发出、fail 没有下一班车」。
+//
+// 这里必须等 track() 的入队完成再 flush：规格未就位时 track() 返回 waitForSpec()
+// 的 Promise，立刻 flush 会抢在写队列之前。整个动作不 await、全部 catch ——
+// packFail 仍要立刻把产品错误抛回去，埋点绝不能挡产品。
+function flushAfterTrack(queued) {
+  const flush = () => {
+    try {
+      const t = telemetry();
+      if (t && typeof t.flush === 'function') {
+        const r = t.flush();
+        if (r && typeof r.catch === 'function') r.catch(() => {});
+      }
+    } catch (_) { /* 埋点永远不能挡住产品 */ }
+  };
+  try {
+    if (queued && typeof queued.then === 'function') queued.then(flush, flush);
+    else flush();
+  } catch (_) { /* 埋点永远不能挡住产品 */ }
+}
 function debug(msg, err) {
   // 只记事件名 / 状态 / 错误名 —— 永不记 Authorization、token、邮箱、正文。
   try {
@@ -876,7 +900,9 @@ export async function packFail(token, reason, code) {
     const p = packFields(i, setup, download_id, attempt);
     p.reason = r;
     p.code = c;
-    track('pack_download_fail', p);
+    // BEL-290：fail 不等 60s 定时器 / 下一次冷启 —— 入队完成后立刻试发一次。
+    const queued = track('pack_download_fail', p);
+    flushAfterTrack(queued);
     return setup;
   } catch (_) { return ''; }
 }
@@ -894,7 +920,9 @@ export async function packUnsupported(info) {
     const p = packFields(i, setup, download_id, attempt);
     p.reason = 'unsupported';
     p.code = 'unsupported';
-    track('pack_download_fail', p);
+    // 与 packFail 同一个 fail 出口：入队后立刻 flush，别让 not-supported 也等下一班车。
+    const queued = track('pack_download_fail', p);
+    flushAfterTrack(queued);
     return setup;
   } catch (_) { return ''; }
 }

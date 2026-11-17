@@ -46,6 +46,11 @@ import * as TelemetrySession from './telemetry-session.js';   // BEL-223/225/226
 import * as PackPending from './pack-pending.js';   // BEL-269：首页「语言包未就绪」的共享真值
 import { withUtm } from '../shared/utm.js'; // BEL-155 官网外链 UTM
 import { createAppleFailureUi, classifyAppleResult } from './apple-native.js'; // BEL-272 原生 Apple 失败出口
+// BEL-226/268 的下载单元遥测（start → ok/fail + 失败 code 表）。抽到 pack-unit.js
+// 是因为 listen-model 的两处裸 ensureVad 也要用同一份契约；这里 re-export 保持
+// shell-model 的既有出口（测试与调用点都从 ShellModel.reportPackUnit 读）。
+import { reportPackUnit, packFailCode, packSourceFromSpec } from './pack-unit.js';
+export { reportPackUnit };
 
 // BEL-197: Google provider callbacks land on `scheme://auth` (intl `belliedmonkey`,
 // CN `belliedmonkeycn`). On macOS the native side now opens the system default
@@ -172,20 +177,8 @@ export async function skipPacksToHome(deps) {
   return { persisted };
 }
 
-// BEL-226 的单次下载单元上报：一次 start → ok/fail。抽成导出是为了让 BEL-269 的
-// 「自动重试」行为测试能直接数 start/fail —— 失败后重跑一次下载，必然 2 start / 2 fail。
-export async function reportPackUnit(telemetry, info, fn, failCode) {
-  let token = null;
-  try { token = await telemetry.packStart(info); } catch (_) {}
-  try {
-    const r = await fn();
-    if (token) { try { await telemetry.packOk(token); } catch (_) {} }
-    return r;
-  } catch (e) {
-    if (token) { try { await telemetry.packFail(token, e, failCode(e)); } catch (_) {} }
-    throw e;
-  }
-}
+// BEL-226 的单次下载单元上报已抽到 pack-unit.js（listen-model 的两处裸 ensureVad
+// 也要用同一份 start → ok/fail 契约）；这里只保留 re-export，见文件顶部。
 
 // Only the exact provider callback belongs here. `://oauth/mcp/callback` is
 // handled earlier and is NOT this shape; `isOAuthCallback('belliedmonkey://auth')`
@@ -996,27 +989,10 @@ export function bootShell() {
     return asrPlan().keep;
   }
 
-  // BEL-226：下载入口面（票面只有两个值）+ 从实际模型地址判断 source。
-  // 自家中继（api.belliedmonkey.com/models/）背后由服务端按 IP 选托管，客户端看不见 ⇒ 'other'，
-  // 不按 flavor 猜 GitHub / ModelScope；只有清单/服务器给的地址本身就是那些域才归过去。
+  // BEL-226：下载入口面（票面只有两个值）。source 判定与失败 code 表在
+  // pack-unit.js（listen-model 的 VAD 单元共用同一份）。
   function packSurfaceNow() {
     return packsManage ? 'settings_packs' : 'first_run_packs';
-  }
-  function packSourceFromSpec(spec) {
-    try {
-      const models = spec ? [].concat(spec) : [];
-      for (const m of models) {
-        for (const f of ((m && m.files) || [])) {
-          const raw = String((f && f.url) || '');
-          if (!raw) continue;
-          let host = '';
-          try { host = new URL(raw).hostname.toLowerCase(); } catch (_) { host = raw.toLowerCase(); }
-          if (/github/.test(host)) return 'github';
-          if (/modelscope/.test(host)) return 'modelscope';
-        }
-      }
-    } catch (_) { /* 判断不了就是 other */ }
-    return 'other';
   }
   // 朗读包的实际下载单元：中英共用一行（一个包），泰语一行。locale 用短码，共享包写 zh-en。
   function ttsUnitDefs(s) {
@@ -2375,32 +2351,8 @@ export function bootShell() {
     });
   }
 
-  // 下载 → 重新探 → 齐态自动进首页/回来源（D-03）。失败留在这一屏，不跳。
-  // BEL-226：pack_download_fail 的 code 只发 id 型（注册表 'id'）。不塞系统长文/路径。
-  // BEL-268：原生 ensureAssets / ensureDeviceReady 失败只带 `{reason}`（没有 e.code），
-  // 所以以前每条都是 code=download。这里把失败阶段作为**既有 code 的后缀**发出去：
-  //   download + asr → download_asr（base/tts/vad 同理）。
-  // 仍以 `download` 开头 ⇒ 老看板按前缀统计不换口径；阶段未知/不认识时退回 `download`。
-  // 不新增 `stage` 属性：events.gen.json 没有这个键，bt-ingest 会整条拒收（HTTP 200）。
-  // mtSttTimeout / mtTtsFailed / mtBaseFailed 的旧 code 优先，保持现有看板兼容。
-  function packFailCode(e, stage) {
-    if (!e) return 'download';
-    if (e.mtSttTimeout) return 'timeout';
-    if (e.mtTtsFailed) return 'tts_failed';
-    if (e.mtBaseFailed) return 'base_failed';
-    const code = String(e.code || '').toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 32);
-    const base = /^[a-z0-9_-]+$/.test(code) ? code : 'download';
-    const stages = ['base', 'asr', 'tts', 'vad'];
-    // 显式 e.stage 优先（原生/调用方若已标注）；它不认识时再退回本次 runPackUnit 的阶段。
-    const explicit = String(e.stage || '').toLowerCase();
-    const fallback = String(stage || '').toLowerCase();
-    const st = stages.indexOf(explicit) >= 0 ? explicit
-      : (stages.indexOf(fallback) >= 0 ? fallback : '');
-    // 只在兜底码 `download` 上加后缀：旧 code（timeout/tts_failed/自定义 id）原样保留，
-    // 不让这次增强改变既有看板的口径。
-    if (!st || base !== 'download') return base;
-    return (base + '_' + st).slice(0, 32);
-  }
+  // BEL-226/268 失败 code 的归一化（download → download_<stage>）在 pack-unit.js。
+  // 这里保留注释锚点：四个下载单元仍各自把阶段经 runPackUnit 的第 3 个参数传进去。
 
   async function runFirstRunPacks(source) {
     // 心跳/重绘没有用户手势，不允许开始一轮真实下载；跳过之后后台也不许自动再试。
