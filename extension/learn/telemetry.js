@@ -172,21 +172,49 @@ var MTTelemetry = (() => {
     if (typeof v === 'string' && (v.length > STR_MAX || /http|@/i.test(v))) return false;
     if (rule === 'int') return Number.isInteger(v) && v >= 0 && v < 1e10;
     if (rule === 'id') return typeof v === 'string' && /^[a-z0-9_-]{1,32}$/.test(v);
+    // BEL-228：下面四种与 bt-ingest 的 okValue **逐字**一致（UUID / SEMVER / LANG
+    // 的正则照抄）。iso 只做 Date.parse 形状校验：±7 天窗口是服务端的判断，不在
+    // 客户端 replicate —— 客户端时钟偏一点不该让整条事件在本地消失。
+    if (rule === 'uuid') return typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+    if (rule === 'semver') return typeof v === 'string' && /^\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(v);
+    if (rule === 'lang') return typeof v === 'string' && (v === '' || /^[a-z]{2,3}$/.test(v));
+    if (rule === 'iso') return typeof v === 'string' && Number.isFinite(Date.parse(v));
     return false;
   }
-  // 返回可入队的事件，或 null（原因写在 reason 上，测试用）。
+  // 返回可入队的事件，或 null（只在这条事件根本不登记时）。
+  //
+  // BEL-294/BEL-298：表外 / 非法键**只丢该键，保留事件**。以前多一个未知键就把整条
+  // 事件（连同已校验的 code / provider / op_id）一起扔掉；现在丢的是键，不是归因。
+  // 被丢的键只记在本机 rech 环（事件名 + 键名，不记值）—— 值里可能是用户内容。
   function shape(name, props, now) {
     const sp = spec(); if (!sp || !sp.spec) return null;
     const ev = sp.spec.events || {};
     if (!Object.prototype.hasOwnProperty.call(ev, name)) return null;
     const out = {};
     const given = props || {};
+    const dropped = [];
     for (const k of Object.keys(given)) {
-      if (!Object.prototype.hasOwnProperty.call(ev[name], k)) return null;      // 表外的键：整条不要
-      if (!okValue(ev[name][k], given[k])) return null;
+      // BEL-294/BEL-298：status=0 不是「HTTP 0」，是「没有 status」。省略这个键，
+      // 让缺席看得出来；不要写一个假的整数。
+      if (name === 'translate_fail' && k === 'status' && given[k] === 0) continue;
+      if (!Object.prototype.hasOwnProperty.call(ev[name], k)) { dropped.push(k); continue; }
+      if (!okValue(ev[name][k], given[k])) { dropped.push(k); continue; }
+      out[k] = given[k];
     }
-    for (const k of Object.keys(given)) out[k] = given[k];
+    if (dropped.length) rejectNote(name, dropped);
     return { name, props: out, ts: ts(now) };
+  }
+  // BEL-294/BEL-298：被丢键的本机记录。只存事件名 + 键名，不存值。
+  const REJ_KEY = 'mt:tm:rech', REJ_CAP = 20;
+  function rejectNote(name, keys) {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      const prev = JSON.parse(localStorage.getItem(REJ_KEY) || '[]');
+      const q = Array.isArray(prev) ? prev : [];
+      q.push({ n: String(name).slice(0, 40), k: keys.slice(0, 6).map((x) => String(x).slice(0, 24)), ts: ts() });
+      while (q.length > REJ_CAP) q.shift();
+      localStorage.setItem(REJ_KEY, JSON.stringify(q));
+    } catch (_) {}
   }
 
   // ── 状态 ────────────────────────────────────────────────────────────────────
@@ -220,11 +248,71 @@ var MTTelemetry = (() => {
     } catch (_) {}
     return 'global';
   }
+  // BEL-294/BEL-295：App 的构建号。来源是**原生**暴露的 caps（CFBundleVersion）：
+  // 原生注入 window.MT_APP_CAPS，NativeAudio.caps() 合并它；macOS 的 AppQuickHost
+  // 也回一份。拿不到 / 不是非负整数 ⇒ 返回 undefined，envelope **整键省略** ——
+  // 不写 0 冒充「已归因」。扩展没有原生 caps，所以永远省略。
+  function buildNo() {
+    try {
+      const pick = (c) => {
+        if (!c || typeof c !== 'object') return undefined;
+        const n = c.build;
+        return Number.isInteger(n) && n >= 0 && n < 1e10 ? n : undefined;
+      };
+      try {
+        if (typeof NativeAudio !== 'undefined' && NativeAudio && typeof NativeAudio.caps === 'function') {
+          const n = pick(NativeAudio.caps()); if (n !== undefined) return n;
+        }
+      } catch (_) {}
+      try {
+        if (typeof AppQuickHost !== 'undefined' && AppQuickHost && typeof AppQuickHost.caps === 'function') {
+          const n = pick(AppQuickHost.caps()); if (n !== undefined) return n;
+        }
+      } catch (_) {}
+      try {
+        const c = (typeof window !== 'undefined' && window.MT_APP_CAPS) || null;
+        return pick(c);
+      } catch (_) { return undefined; }
+    } catch (_) { return undefined; }
+  }
+  // BEL-294/BEL-296：16-hex 操作 id。一次用户操作一个：translate_start 生成、
+  // translate_ok / translate_fail 沿用；engine_test 每次测试一个。只在本模块内存里
+  // 记「当前这次操作」，不进存储 —— 它是会话标识，不是安装/启动标识。
+  const opIds = Object.create(null);
+  function newOpId() {
+    try {
+      const b = new Uint8Array(8);
+      crypto.getRandomValues(b);
+      return [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
+    } catch (_) { return ''; }
+  }
+  function withOpId(name, props) {
+    const p = Object.assign({}, props || {});
+    const kind = typeof p.kind === 'string' ? p.kind : '';
+    if (name === 'engine_test') {
+      if (!p.op_id) p.op_id = newOpId();
+      return p;
+    }
+    if (name === 'translate_start') {
+      if (!p.op_id) p.op_id = newOpId();
+      if (p.op_id) opIds[kind] = p.op_id;
+      return p;
+    }
+    if (name === 'translate_ok' || name === 'translate_fail') {
+      // 有 start 的 kind 沿用；没有 start 的路径（doc / quick / 无 start 的 subtitle）
+      // 每次终态生成一个，不把两条不相干的操作串起来。
+      if (!p.op_id) p.op_id = opIds[kind] || newOpId();
+      return p;
+    }
+    return p;
+  }
   function envelope(id, e) {
-    return {
+    const out = {
       install_id: id, ts: e.ts, v: version(), flavor: buildFlavor(), host: host(),
       device: device(), ui: ui(), name: e.name, props: e.props,
     };
+    const b = buildNo(); if (b !== undefined) out.build = b;
+    return out;
   }
 
   // ── 本机诊断（只有「这个 build 根本没有遥测规格」时才写）────────────────────
@@ -264,7 +352,7 @@ var MTTelemetry = (() => {
         return false;
       }
       if (!(await enabled())) return false;
-      const e = shape(name, props, now);
+      const e = shape(name, withOpId(name, props), now);
       if (!e) return false;
       // grant_exhausted（telemetry-design §3.4）：09-08 进注册表，到 09-19 全仓库**零发送点**，
       // 线上 0 行 —— 而它是「这笔钱该不该继续花」的唯一依据。挂在这里而不是某个调用方：
@@ -472,7 +560,8 @@ var MTTelemetry = (() => {
 
   // 停留时长 → 桶（telemetry-design §3.9，2026-09-24）。注册表里 dwell 是枚举，
   // 所以这里**只能**吐出那四个值之一；算不出来（没记开始时间、时钟倒流）就吐 ''，
-  // 调用方据此**整个不带这个键** —— 带一个空串会被 shape() 判成非法值，整条事件丢掉。
+  // 调用方据此**整个不带这个键** —— 带一个空串会被 shape() 当成非法值剔掉
+  // （BEL-294/BEL-298：丢的是键，事件仍保留）。
   function dwell(startMs, now) {
     const t0 = Number(startMs);
     if (!Number.isFinite(t0) || t0 <= 0) return '';
@@ -487,8 +576,8 @@ var MTTelemetry = (() => {
   return {
     track, once, flush, init, enabled, setEnabled, installId, relayHeaders, dwell,
     // 测试与调试
-    _shape: shape, _envelope: envelope, host, device, KEYS: K, FLUSH_AT, QUEUE_CAP,
-    SW_TIMEOUT_MS, BODY_MAX,
+    _shape: shape, _okValue: okValue, _envelope: envelope, host, device, KEYS: K, FLUSH_AT, QUEUE_CAP,
+    SW_TIMEOUT_MS, BODY_MAX, REJ_KEY,
     // 本机诊断（没有遥测规格时的 auth_fail）：只读出口，给测试与设备容器回读用。
     _diag: diag, DIAG_KEY: DIAG_KEY, DIAG_CAP: DIAG_CAP,
   };
