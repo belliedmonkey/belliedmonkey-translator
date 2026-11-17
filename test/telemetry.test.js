@@ -164,18 +164,28 @@ describe('MTTelemetry — 白名单在客户端就守住', () => {
     const { T, store } = load();
     eq(await T.track('page_view'), false); eq(q(store, T).length, 0);
   });
-  test('① 表外属性键不入队 —— 整条，不是剔掉那个键', async () => {
+  // BEL-294/BEL-298（2026-11-17 起）：表外键**只丢那个键**，不再把整条事件扔掉。
+  // 旧契约「多一个键就整条没」等于「多带一个字段 = 丢掉 reason/code/操作标识」，
+  // 正是审计里那次「有效失败原因一起消失」的形状。这里钉的是：未知键绝不外发，
+  // 但已校验的字段必须留着。
+  test('① 表外属性键只剔掉那个键，事件仍入队（整条丢弃是旧契约）', async () => {
     const { T, store } = load();
-    eq(await T.track('translate_ok', { provider: 'deepseek', kind: 'page', ms: 12, url: 'x' }), false);
-    eq(q(store, T).length, 0);
+    eq(await T.track('translate_ok', { provider: 'deepseek', kind: 'page', ms: 12, url: 'x' }), true);
+    const queued = q(store, T);
+    eq(queued.length, 1);
+    ok(!Object.prototype.hasOwnProperty.call(queued[0].props, 'url'), '未知键不该外发');
+    eq(queued[0].props.provider, 'deepseek');
   });
-  test('② 值里有 http / @ / 超长 ⇒ 不入队', async () => {
+  // 同上（BEL-298）：非法**值**的键被剔掉；它绝不带着 URL / 邮箱 / 超长串出去。
+  test('② 值里有 http / @ / 超长 ⇒ 那个键被剔掉，事件仍入队且不含该键', async () => {
     const { T, store } = load();
-    eq(await T.track('engine_set', { provider: 'me@x.com' }), false);
+    eq(await T.track('engine_set', { provider: 'me@x.com' }), true);
     eq(await T.track('translate_fail', { provider: 'a', code: 'http', status: 401, route: 'direct', ms: 1, }), true);
-    eq(q(store, T).length, 1);
-    eq(T._shape('translate_ok', { provider: 'x'.repeat(65), kind: 'page', ms: 1 }), null);
-    eq(T._shape('translate_ok', { provider: 'https', kind: 'page', ms: 1 }), null);
+    const queued = q(store, T);
+    eq(queued.length, 2);
+    ok(!Object.prototype.hasOwnProperty.call(queued[0].props, 'provider'), '邮箱不该外发');
+    ok(!Object.prototype.hasOwnProperty.call(T._shape('translate_ok', { provider: 'x'.repeat(65), kind: 'page', ms: 1 }).props, 'provider'));
+    ok(!Object.prototype.hasOwnProperty.call(T._shape('translate_ok', { provider: 'https', kind: 'page', ms: 1 }).props, 'provider'));
   });
   test('合法事件入队，信封里只有白名单字段，ts 取整到分钟', async () => {
     const { T, store } = load();
@@ -314,7 +324,8 @@ describe('MTTelemetry — 开关与心跳', () => {
     const props = { provider: 'apple', stage: 'id_token', code: 'offline', http: 0, attempt: '1' };
     eq(await T.track('auth_fail', props), true);
     eq(ls[T.DIAG_KEY], undefined);
-    eq(await T.track('translate_ok', { provider: 'deepseek', kind: 'page', ms: 3, text: 'secret' }), false);
+    // BEL-298：`text` 是表外键 ⇒ 只剔掉它，事件照发（正文绝不外发）。
+    eq(await T.track('translate_ok', { provider: 'deepseek', kind: 'page', ms: 3, text: 'secret' }), true);
     await T.flush();
     await new Promise((r) => setTimeout(r, 20));
     ok(sends.length >= 1, '没有打到境内 ingest');
@@ -378,13 +389,13 @@ describe('MTTelemetry — dwell 分桶（§3.9）', () => {
     eq(T.dwell(0), ''); eq(T.dwell(undefined), ''); eq(T.dwell(NaN), '');
     eq(at(T, -5), '');
   });
-  test('吐出来的四个值都进得了白名单；桶外的值（如秒数）整条事件被判掉', () => {
+  test('吐出来的四个值都进得了白名单；桶外的值（如秒数）那个键被剔掉，事件仍在', () => {
     const { T } = load();
     for (const d of ['0-2', '3-9', '10-29', '30+']) {
       ok(T._shape('onboarding_done', { surface: 'app', result: 'skipped', step: 'welcome', dwell: d }), d);
     }
-    eq(T._shape('onboarding_done', { surface: 'app', result: 'skipped', step: 'welcome', dwell: '7' }), null);
-    eq(T._shape('onboarding_done', { surface: 'app', result: 'skipped', step: 'welcome', dwell: '' }), null);
+    ok(!Object.prototype.hasOwnProperty.call(T._shape('onboarding_done', { surface: 'app', result: 'skipped', step: 'welcome', dwell: '7' }).props, 'dwell'));
+    ok(!Object.prototype.hasOwnProperty.call(T._shape('onboarding_done', { surface: 'app', result: 'skipped', step: 'welcome', dwell: '' }).props, 'dwell'));
     // 不带这个键是合法的 —— app_resume 那条就永远不带。
     ok(T._shape('onboarding_done', { surface: 'app_resume', result: 'shown', step: 'welcome' }));
   });
@@ -400,10 +411,11 @@ describe('MTTelemetry — review_session 的 opened / nothing_due（§3.10）', 
       ok(T._shape('review_session', { graded: 0, result: r, left: 0 }), r);
     }
   });
-  test('桶外的取值整条被判掉 —— 「打开」不能写成别的词', () => {
+  // BEL-298：桶外的值**这个键**被判掉（不外发），其余字段保留 —— 不再整条消失。
+  test('桶外的取值只剔掉 result，「打开」不能写成别的词', () => {
     const { T } = load();
-    eq(T._shape('review_session', { graded: 0, result: 'open', left: 0 }), null);
-    eq(T._shape('review_session', { graded: 0, result: 'visited', left: 0 }), null);
+    ok(!Object.prototype.hasOwnProperty.call(T._shape('review_session', { graded: 0, result: 'open', left: 0 }).props, 'result'));
+    ok(!Object.prototype.hasOwnProperty.call(T._shape('review_session', { graded: 0, result: 'visited', left: 0 }).props, 'result'));
   });
   test('opened 入队时不带任何多余的键', async () => {
     const { T, store } = load();

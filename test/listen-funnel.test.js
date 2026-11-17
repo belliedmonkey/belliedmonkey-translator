@@ -141,10 +141,12 @@ test('客户端白名单会丢掉长 fail_reason，收短枚举', async () => {
   const window = { MT_VERSION: '9.9.9', MT_TELEMETRY: { url: 'https://x.test/functions/v1/bt-ingest', spec: { common: cfg.COMMON, events: cfg.EVENTS, limits: cfg.LIMITS }, allowAutomation: true } };
   const ctx = loadModule(['learn/telemetry.js'], { window, navigator: { webdriver: false, userAgent: '', language: 'en' }, chrome: { storage: { local: { get: (_k, cb) => cb({ 'tm:on': true, 'tm:id': '11111111-1111-4111-8111-111111111111', 'tm:queue': [] }), set: (_o, cb) => { if (cb) cb(); }, remove: (_k, cb) => { if (cb) cb(); } } }, runtime: { getManifest: () => ({ version: '9.9.9' }) } } });
   const T = ctx.MTTelemetry;
-  eq(await T.track('asr_fail', { fail_reason: 'Error Domain=SFSpeechErrorDomain Code=11 Too many locales' }), false);
+  // BEL-298：长文本值被剔掉，但事件本身仍入队（不整条丢）。
+  eq(await T.track('asr_fail', { fail_reason: 'Error Domain=SFSpeechErrorDomain Code=11 Too many locales' }), true);
   eq(await T.track('asr_fail', { fail_reason: 'permission' }), true);
   eq(await T.track('mic_permission', { permission_state: 'granted', kind: 'mic' }), true);
-  eq(await T.track('mic_permission', { permission_state: 'granted', kind: 'mic', note: 'user said hello' }), false);
+  // 表外键 note 被剔掉，事件仍在；正文不外发。
+  eq(await T.track('mic_permission', { permission_state: 'granted', kind: 'mic', note: 'user said hello' }), true);
   eq(await T.track('translate_start', { engine: 'deepseek', locale_pair: 'zh-en' }), true);
   eq(await T.track('asr_start', {}), true);
   eq(await T.track('translate_ok', { provider: 'deepseek', kind: 'subtitle', ms: 1 }), true);

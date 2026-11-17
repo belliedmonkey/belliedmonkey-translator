@@ -21,6 +21,11 @@ const COMMON = {
   host: ['safari', 'chrome', 'firefox', 'app'],
   device: ['iPhone', 'iPad', 'Mac', 'Windows', 'Android', 'Linux', ''],
   ui: 'lang',              // 界面语言，粗到 zh / en 这一级；/^[a-z]{2,3}$/
+  // BEL-294/BEL-295（2026-11-17）：构建号与注册表标识。semver 无法区分「同版本的哪个
+  // 构建」——审计里 v=1.23.4 的行分不出是不是当天刚改的埋点。两个键都可缺：
+  // 缺就不写（不写 0.0.0 之类假值），服务端按 int / id 收。
+  build: 'int',            // App 的 CFBundleVersion / 扩展打包号
+  reg: 'id',               // 事件注册表短哈希（8 hex），同一注册表的构建相同
 };
 
 // BEL-223（2026-11-08）：归因用的**五个功能面**。这不是「入口」（那是 asr_entry.surface
@@ -152,6 +157,8 @@ const EVENTS = {
     // BEL-223（2026-11-08）：从哪个功能面发起测试、哪次启动。键可缺。
     // launch_id = 32 位小写十六进制（uuid 去掉连字符），与 UUID 同义；用 'id' 规则见 app_open。
     launch_id: 'id',
+    // BEL-294/BEL-296：一次验证操作一个 id，和同一次操作里的其它事件可对上。
+    op_id: 'id',
     surface: ENGINE_TEST_SURFACES,
   },
   // BEL-290（2026-11-17，产品定稿）：一键设定的成功/失败面。三面共用
@@ -176,12 +183,15 @@ const EVENTS = {
   // BEL-290：站点访问权限被拒。只从扩展 popup 发，零 props —— permission 只有
   // host、surface 只有 popup 两个常量，公共信封的 host/device 已经够拆。
   perm_denied: {},
-  translate_ok: { provider: 'id', kind: TRANSLATE_KINDS, ms: 'int', surface: SURFACES },   // doc：文档翻译（2026-09-11，learning-design §9.7）
+  // BEL-294/BEL-296：op_id 把同一次用户操作的开始与终端状态串起来（可缺）。
+  translate_ok: { provider: 'id', kind: TRANSLATE_KINDS, ms: 'int', surface: SURFACES, op_id: 'id' },   // doc：文档翻译（2026-09-11，learning-design §9.7）
   translate_fail: {
     provider: 'id',
     // BEL-247：与 translate_ok 共用 TRANSLATE_KINDS —— 「哪个功能面的失败」必须能
     // 和成功数对齐，否则成功率只能按 provider 粗算。
     kind: TRANSLATE_KINDS,
+    // BEL-294/BEL-298：一次操作一个 id；与 translate_ok 同源，失败也能回指开始。
+    op_id: 'id',
     // 免费额度那三个必须在枚举里（§8.10 / telemetry-design §3）：不在枚举里的 code
     // 会被客户端白名单**静默丢掉**，于是「有多少人把 0.2 美元用完了」这个数永远是 0
     // —— 而那正是判断这笔钱该不该继续花的唯一依据。
@@ -195,7 +205,9 @@ const EVENTS = {
       'stalled',
       // 中继的 400 请求形状错误（BEL-270）：响应正文仍是 `error: 'bad_request'`，
       // 新增的 `reason` 只用来选这四个码。未知/缺失 reason 仍归 http + status 400。
-      'relay_bad_json', 'relay_bad_messages', 'relay_bad_audio', 'relay_bad_input'],
+      'relay_bad_json', 'relay_bad_messages', 'relay_bad_audio', 'relay_bad_input',
+      // BEL-294/BEL-298：用户取消与超时分开。取消不计入故障超时，也不写 0 状态。
+      'cancelled'],
     status: 'int',
     route: ['direct', 'proxy', ''],
     ms: 'int',
@@ -228,8 +240,8 @@ const EVENTS = {
   // 免费额度记账（BEL-224）：只在 hosted `bt_grant_charge` 写成功 / 写失败时各记一条，
   // 不按请求重试次数记。`kind` 与 bt_grant_usage.kind 同源；`surface` 是这次花费落在
   // 哪个功能面（BEL-223 五值）。失败事件不另造错误枚举 —— 区分「成功/失败」靠事件名。
-  grant_debited: { surface: SURFACES, kind: ['chat', 'tts', 'stt'] },
-  grant_debit_fail: { surface: SURFACES, kind: ['chat', 'tts', 'stt'] },
+  grant_debited: { surface: SURFACES, kind: ['chat', 'tts', 'stt'], op_id: 'id' },
+  grant_debit_fail: { surface: SURFACES, kind: ['chat', 'tts', 'stt'], op_id: 'id' },
   // 冷启（BEL-225）：登录墙**之前**也记，所以必须能分开已登录/未登录。`launch_id` 是
   // 一次进程启动的**32 位小写十六进制**（同一次冷启里的事件可串起来；不是安装 id，也不是账号）。
   // 2026-11-08（BEL-227）：值仍然是 UUID 的 32-hex 同义写法（uuid 去掉连字符），但注册表

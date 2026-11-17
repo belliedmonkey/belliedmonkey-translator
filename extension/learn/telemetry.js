@@ -179,14 +179,34 @@ var MTTelemetry = (() => {
     const sp = spec(); if (!sp || !sp.spec) return null;
     const ev = sp.spec.events || {};
     if (!Object.prototype.hasOwnProperty.call(ev, name)) return null;
+    // BEL-294/BEL-298：表外的键**不再整条丢弃**。以前多一个未知键就把整条事件
+    // （连同已校验的 reason / code / 操作标识）一起扔掉；现在是「保留能校验的字段，
+    // 丢掉那个键，并把被丢的键记进本机 rech 环」—— 丢的是键，不是归因。
     const out = {};
     const given = props || {};
+    const dropped = [];
     for (const k of Object.keys(given)) {
-      if (!Object.prototype.hasOwnProperty.call(ev[name], k)) return null;      // 表外的键：整条不要
-      if (!okValue(ev[name][k], given[k])) return null;
+      if (!Object.prototype.hasOwnProperty.call(ev[name], k)) { dropped.push(k); continue; }
+      if (!okValue(ev[name][k], given[k])) { dropped.push(k); continue; }
+      out[k] = given[k];
     }
-    for (const k of Object.keys(given)) out[k] = given[k];
+    if (dropped.length) rejectNote(name, dropped);
     return { name, props: out, ts: ts(now) };
+  }
+
+  // BEL-298：被拒键的本机记录。只存「事件名 + 键名 + 次数」，不存值 —— 值里可能是
+  // 用户内容。它让「明明是同一个构建，为什么这条事件少了个字段」可在现场回答，
+  // 而不是只能猜。
+  const REJ_KEY = 'mt:tm:rech', REJ_CAP = 20;
+  function rejectNote(name, keys) {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      const prev = JSON.parse(localStorage.getItem(REJ_KEY) || '[]');
+      const q = Array.isArray(prev) ? prev : [];
+      q.push({ n: String(name).slice(0, 40), k: keys.slice(0, 6).map((x) => String(x).slice(0, 24)), ts: ts() });
+      while (q.length > REJ_CAP) q.shift();
+      localStorage.setItem(REJ_KEY, JSON.stringify(q));
+    } catch (_) {}
   }
 
   // ── 状态 ────────────────────────────────────────────────────────────────────
@@ -220,11 +240,29 @@ var MTTelemetry = (() => {
     } catch (_) {}
     return 'global';
   }
+  // BEL-294/BEL-295：构建号与注册表标识。两者都可缺 —— 拿不到就**不写这个键**，
+  // 不用 0 / 'unknown' 这类占位冒充「已归因」。扩展侧没有独立 build 号时省略；
+  // App 侧由 build 注入 window.MT_BUILD。reg = 事件注册表短哈希，同一注册表相同。
+  function buildNo() {
+    try {
+      const v = window.MT_BUILD;
+      return Number.isInteger(v) && v >= 0 ? v : undefined;
+    } catch (_) { return undefined; }
+  }
+  function regId() {
+    try {
+      const v = window.MT_REG;
+      return (typeof v === 'string' && /^[a-z0-9_-]{1,32}$/.test(v)) ? v : undefined;
+    } catch (_) { return undefined; }
+  }
   function envelope(id, e) {
-    return {
+    const out = {
       install_id: id, ts: e.ts, v: version(), flavor: buildFlavor(), host: host(),
       device: device(), ui: ui(), name: e.name, props: e.props,
     };
+    const b = buildNo(); if (b !== undefined) out.build = b;
+    const r = regId(); if (r !== undefined) out.reg = r;
+    return out;
   }
 
   // ── 本机诊断（只有「这个 build 根本没有遥测规格」时才写）────────────────────

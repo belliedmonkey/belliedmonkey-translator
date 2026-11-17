@@ -251,7 +251,8 @@ describe('BEL-274 — no new event keys; props fit the shipped schema', () => {
   const { TC } = load();
 
   test('the shipped translate_fail schema still has exactly the current keys', () => {
-    deepEq(Object.keys(SCHEMA).sort(), ['code', 'kind', 'ms', 'provider', 'route', 'status']);
+    // BEL-294/BEL-296 起多了 op_id（一次操作一个 id）；除它之外仍不许有新键。
+    deepEq(Object.keys(SCHEMA).sort(), ['code', 'kind', 'ms', 'op_id', 'provider', 'route', 'status']);
   });
 
   test('every FAIL_CODE is already in the shipped enum', () => {

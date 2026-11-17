@@ -23,7 +23,9 @@
       "Linux",
       ""
     ],
-    "ui": "lang"
+    "ui": "lang",
+    "build": "int",
+    "reg": "id"
   },
   "events": {
     "installed": {},
@@ -110,6 +112,7 @@
       ],
       "provider": "id",
       "launch_id": "id",
+      "op_id": "id",
       "surface": [
         "listen",
         "live_caption",
@@ -178,7 +181,8 @@
         "quick",
         "doc",
         "web_caption"
-      ]
+      ],
+      "op_id": "id"
     },
     "translate_fail": {
       "provider": "id",
@@ -188,6 +192,7 @@
         "doc",
         "quick"
       ],
+      "op_id": "id",
       "code": [
         "timeout",
         "network",
@@ -203,7 +208,8 @@
         "relay_bad_json",
         "relay_bad_messages",
         "relay_bad_audio",
-        "relay_bad_input"
+        "relay_bad_input",
+        "cancelled"
       ],
       "status": "int",
       "route": [
@@ -255,7 +261,8 @@
         "chat",
         "tts",
         "stt"
-      ]
+      ],
+      "op_id": "id"
     },
     "grant_debit_fail": {
       "surface": [
@@ -269,7 +276,8 @@
         "chat",
         "tts",
         "stt"
-      ]
+      ],
+      "op_id": "id"
     },
     "app_open": {
       "launch_id": "id",

@@ -470,6 +470,13 @@ function generateProviders(dir, flavor) {
   let body = `window.MT_GRANT = ${JSON.stringify(grantCfg)};\n`
     + `window.MT_FLAVOR = ${JSON.stringify(flavor)};\n`
     + `window.MT_VERSION = ${JSON.stringify(require('./package.json').version)};\n`
+    // BEL-294/BEL-295：构建号与注册表短哈希。构建号只认显式给的（CI/打包脚本传
+    // MT_BUILD），拿不到就**不写** —— 不写 0 冒充「已归因」。reg = 事件注册表
+    // 的短哈希：同一注册表的所有构建写同一个值，用来判断「这条事件是不是当天
+    // 刚改过埋点的那个构建发的」。
+    + (Number.isInteger(Number(process.env.MT_BUILD)) && Number(process.env.MT_BUILD) >= 0
+        ? `window.MT_BUILD = ${Number(process.env.MT_BUILD)};\n` : '')
+    + `window.MT_REG = ${JSON.stringify(require('crypto').createHash('sha256').update(JSON.stringify(require('./build/telemetry.config.js').EVENTS)).digest('hex').slice(0, 8))};\n`
     + `window.MT_TELEMETRY = ${JSON.stringify(telemetry)};\n`
     + `window.MT_SYNC_ENABLED = ${JSON.stringify(syncOn)};\n`
     + `window.MT_DEFAULT_TARGET_LANG = ${JSON.stringify(dtl[1])};\n`
