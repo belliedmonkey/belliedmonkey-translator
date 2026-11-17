@@ -387,6 +387,56 @@ button:disabled, input:disabled, select:disabled {
   .field.anchor-flash { animation: none; box-shadow: 0 0 0 3px var(--accent); }
 }
 
+/* ─── BEL-274 · 引擎卡的三种失败状态 ─────────────────────────────────────── */
+/* 缺地址：2px 品牌强调色描边（不是 3px 的 anchor-flash 动画）+ 框下说明。
+   说明由 options.jsx 插在地址输入行里，字段收起时跟着收。 */
+#api-base-url.no-base-missing {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.no-base-hint {
+  color: var(--danger);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+/* 提供方 402 / 连续失败：卡内提示块。形状照设计稿 A/C：标题 + 正文 + 两个按钮。 */
+.card .engine-notice {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+.engine-notice-title {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent-deep);
+}
+.engine-notice-body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+}
+.engine-notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.card .engine-notice button.notice-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.card .engine-notice button.notice-primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #fff;
+}
+
 @media (prefers-color-scheme: dark) {
   /* HIG：暗色底上 Sign in with Apple 用白底黑字。 */
   #sync-section button.provider.apple { background: #fff; color: #000; }

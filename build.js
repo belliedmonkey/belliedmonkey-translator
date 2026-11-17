@@ -1534,6 +1534,11 @@ validateManifest(DIST, isFirefox);
 //   i18n-messages.js +518 × 2 个 content_scripts 块（13 locale 各 1 个 grant_reclaim 键，
 //   清单里每个块各计一次）；该增量越过旧 PIN+150KB 预算 756 字节，故显式重钉，未改 BUDGET。
 //   BEL-230: +1036 bytes (i18n table +518 × 2 blocks); 756 over the old budget.
+// 2026-11-17 再钉 4329369（1.23.4，BEL-274）：4144221 → 4329369。本单增量 40014 字节 =
+//   i18n-messages.js +20007 × 2 个 content_scripts 块（13 locale × 9 条失败面文案）；
+//   其余 145134 是 2026-11-09 以来已进同步面、但尚未重新钉的累计增长（上一个 PIN 的
+//   +150KB 预算当时只剩 7154 字节）。这是正当增长：失败面每一句都要在内容脚本里渲染。
+//   BEL-274: +40014 bytes (i18n table +20007 × 2 blocks); prior accumulated growth 145134.
 function contentSyncBytesGate(distDir) {
   const manifest = JSON.parse(fs.readFileSync(path.join(distDir, "manifest.json"), "utf8"));
   let total = 0;
@@ -1547,7 +1552,7 @@ function contentSyncBytesGate(distDir) {
       total += fs.statSync(p).size;
     }
   }
-  const PIN = 4144221;
+  const PIN = 4329369;
   const BUDGET = 150 * 1024;
   if (total > PIN + BUDGET) {
     throw new Error(`contentSyncBytesGate: 同步注入面 ${total} 字节 > 基线 ${PIN}+150KB。` +

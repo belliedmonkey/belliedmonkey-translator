@@ -282,9 +282,25 @@ const ANCHORS = {
     focus: () => { const b = document.getElementById('grant-box'); return b && b.querySelector('button, a'); },
   },
   '#engine': {
-    sec: 'engine-card', before: 'detail',
+    sec: 'engine-card', before: 'detail', engineState: '',
     focus: () => document.getElementById('api-key'),
     flash: () => { const el = document.getElementById('api-key'); return el && el.closest('.field'); },
+  },
+  // BEL-274：三种失败各自的落点。同一个引擎卡，但焦点与卡内提示不同 ——
+  // 缺地址落在地址框（2px 强调色描边 + 框下错误说明），402 与连续失败落在卡内提示块。
+  '#engine-base': {
+    sec: 'engine-card', before: 'detail', engineState: 'base',
+    focus: () => document.getElementById('api-base-url'),
+    // No flash here: the address input itself gets a persistent 2px outline from the
+    // engineState effect. The generic 3px anchor-flash would fight that spec.
+  },
+  '#engine-balance': {
+    sec: 'engine-card', before: 'detail', engineState: 'balance',
+    focus: () => document.getElementById('provider'),
+  },
+  '#engine-streak': {
+    sec: 'engine-card', before: 'detail', engineState: 'streak',
+    focus: () => document.getElementById('provider'),
   },
 };
 
@@ -307,6 +323,9 @@ function Options() {
   const [readFailed, setReadFailed] = useState(false);
   const [readFailWhy, setReadFailWhy] = useState('');
   const [detail, setDetailState] = useState(false);          // false = 快速档（默认）
+  // BEL-274：从网页失败行点进来时，引擎卡要落在对应状态（缺地址 / 提供方 402 / 连续失败）。
+  // 用 URL 锚点携带，不落 storage —— 这些是「这一次点击要看到的卡」，不是配置。
+  const [engineState, setEngineState] = useState('');
   const [quickAvail, setQuickAvail] = useState(true);
   const [advOpen, setAdvOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
@@ -1109,6 +1128,14 @@ function Options() {
           }
           if (baseHint) handle.rows.baseUrl.row.append(baseHint);
           if (modelHint) handle.rows.model.row.append(modelHint);
+          // BEL-274：缺地址时框下那句错误说明。**不是 toast、不是对话框** —— 它跟着
+          // 地址行走（行被 visibility 收起时一起收），从 #engine-base 进来才显示。
+          const noBaseHint = document.createElement('p');
+          noBaseHint.id = 'no-base-hint';
+          noBaseHint.className = 'hint no-base-hint';
+          noBaseHint.textContent = t('no_base_field_hint', '还没填地址：这个引擎必须先有服务地址才会工作。地址要带协议和路径，例如 https://your-host/v1');
+          noBaseHint.hidden = true;
+          handle.rows.baseUrl.row.insertBefore(noBaseHint, handle.rows.baseUrl.inputRow.nextSibling);
           const eye = buildEyeButton();
           if (eye) handle.rows.key.inputRow.append(eye);
         }
@@ -1129,6 +1156,86 @@ function Options() {
     }
     return () => { for (const d of disposers) d(); };
   }, [ready, uiLangNow, applyEpoch]);
+
+  // BEL-274：把 #engine-base / #engine-balance / #engine-streak 的界面状态落到卡里。
+  // 在孤岛挂载之后单独跑，**不重挂组件** —— 重挂会丢掉用户刚输入的未保存内容。
+  useEffect(() => {
+    const input = document.getElementById('api-base-url');
+    const hint = document.getElementById('no-base-hint');
+    const isBase = engineState === 'base';
+    if (input) input.classList.toggle('no-base-missing', isBase);
+    if (hint) hint.hidden = !isBase;
+
+    // 用户开始改地址就收起「还没填」的描边与说明；错误已经不再成立。
+    let clearBase = null;
+    if (input && isBase) {
+      clearBase = () => {
+        input.classList.remove('no-base-missing');
+        if (hint) hint.hidden = true;
+      };
+      input.addEventListener('input', clearBase);
+    }
+
+    const old = document.getElementById('engine-notice');
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+    const kind = engineState;
+    if (kind !== 'balance' && kind !== 'streak') {
+      return () => { if (input && clearBase) input.removeEventListener('input', clearBase); };
+    }
+    const handle = chatCoreRef.current;
+    if (!handle || !handle.rows || !handle.rows.key) {
+      return () => { if (input && clearBase) input.removeEventListener('input', clearBase); };
+    }
+    const box = document.createElement('div');
+    box.id = 'engine-notice';
+    box.className = 'engine-notice';
+    box.setAttribute('role', 'alert');
+    const title = document.createElement('p');
+    title.className = 'engine-notice-title';
+    const body = document.createElement('p');
+    body.className = 'engine-notice-body';
+    const row = document.createElement('div');
+    row.className = 'engine-notice-actions';
+    const primary = document.createElement('button');
+    primary.type = 'button';
+    primary.className = 'notice-primary';
+    const secondary = document.createElement('button');
+    secondary.type = 'button';
+    secondary.className = 'notice-secondary';
+    if (kind === 'balance') {
+      title.textContent = t('fail_balance_title', '这个引擎的账户没有余额');
+      body.textContent = t('fail_balance_next', '服务商回了 402：这把 Key 的账户没钱了。充值后点下面的「测试连接」；也可以换一把有余额的 Key，或者换引擎。');
+      primary.textContent = t('fail_switch_engine', '换引擎');
+      secondary.textContent = t('fail_fill_key', '填自己的 Key');
+    } else {
+      title.textContent = t('fail_streak_title', '连续 3 次都失败');
+      body.textContent = t('fail_streak_next', '同一个引擎连续 3 次没成功，最近一次是 HTTP 429（限流）。多数时候是配置或限额的问题，换引擎更快；想再试一次也可以。');
+      primary.textContent = t('fail_switch_engine', '换引擎');
+      secondary.textContent = t('fail_retry', '重试');
+    }
+    primary.addEventListener('click', () => {
+      const sel = document.getElementById('provider');
+      if (!sel) return;
+      try { sel.focus(); } catch (_) {}
+      try { if (typeof sel.showPicker === 'function') sel.showPicker(); } catch (_) {}
+    });
+    secondary.addEventListener('click', () => {
+      if (kind === 'balance') {
+        const key = document.getElementById('api-key');
+        if (key) { try { key.focus(); } catch (_) {} }
+      } else {
+        const test = document.getElementById('btn-test-provider');
+        if (test) test.click();
+      }
+    });
+    row.appendChild(primary);
+    row.appendChild(secondary);
+    box.appendChild(title);
+    box.appendChild(body);
+    box.appendChild(row);
+    handle.rows.key.row.parentNode.insertBefore(box, handle.rows.key.row);
+    return () => { if (input && clearBase) input.removeEventListener('input', clearBase); };
+  }, [engineState, ready, uiLangNow, applyEpoch]);
 
   // #api-hint 行：引擎或界面语言变了就换文案（行在孤岛里，textContent 直接写）。
   useEffect(() => {
@@ -1347,6 +1454,7 @@ function Options() {
         const jump = () => {
           if (target.before === 'detail') flushSync(() => setDetailState(true));
           if (target.before === 'quick' && quickAvailRef.current) flushSync(() => setDetailState(false));
+          if (target.engineState !== undefined) flushSync(() => setEngineState(target.engineState));
           const sec = document.getElementById(target.sec);
           if (!sec || sec.hidden) return;   // 这个构建里整节被拿掉了（如中国版的同步）
           try { sec.scrollIntoView({ block: 'start' }); } catch (_) { sec.scrollIntoView(); }
@@ -1558,6 +1666,7 @@ function Options() {
           // BEL-290：设置页字段行的自检面。
           surface: 'setup_fields',
         });
+        setEngineState('');
         noteSet(withRoute(withUrl(
           t('engine_test_ok', '✓ 通了 · {ms}ms').replace('{ms}', String(r.ms))
             + (r.sample ? ' · ' + t('engine_test_sample', '返回：') + r.sample : ''),

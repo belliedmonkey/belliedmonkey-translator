@@ -4411,5 +4411,41 @@
   "listen_perm_denied_body": {
     "message": "Activa «Micrófono» en los ajustes del sistema, vuelve aquí y toca «Reintentar»; no hace falta reiniciar la app.",
     "description": "BEL-273 microphone permission gate"
+  },
+  "halt_balance_row": {
+    "message": "Este motor no tiene saldo — toca para cambiar",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_balance_title": {
+    "message": "La cuenta de este motor no tiene saldo",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_balance_next": {
+    "message": "El proveedor devolvió 402: la cuenta de esta Key no tiene dinero. Tras recargar, toca «Probar conexión» abajo; también puedes cambiar a una Key con saldo o cambiar de motor.",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_switch_engine": {
+    "message": "Cambiar de motor",
+    "description": "BEL-274 fail surface"
+  },
+  "halt_no_base_row": {
+    "message": "Este motor necesita una dirección — toca para rellenarla",
+    "description": "BEL-274 fail surface"
+  },
+  "no_base_field_hint": {
+    "message": "Aún no hay dirección: este motor necesita una dirección de servicio para funcionar. Incluye el protocolo y la ruta, por ejemplo https://your-host/v1",
+    "description": "BEL-274 fail surface"
+  },
+  "halt_streak_row": {
+    "message": "3 fallos seguidos — toca para resolverlo",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_streak_title": {
+    "message": "3 fallos seguidos",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_streak_next": {
+    "message": "Este motor no ha tenido éxito 3 veces seguidas; el último fue HTTP 429 (límite de velocidad). Casi siempre es la configuración o la cuota, cambiar de motor es más rápido; también puedes intentarlo otra vez.",
+    "description": "BEL-274 fail surface"
   }
 }

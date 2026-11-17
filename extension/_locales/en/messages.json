@@ -4411,5 +4411,41 @@
   "listen_perm_denied_body": {
     "message": "Turn on Microphone in System Settings, then come back and tap “Retry” — no need to restart the app.",
     "description": "BEL-273 microphone permission gate"
+  },
+  "halt_balance_row": {
+    "message": "This engine is out of credit — tap to switch",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_balance_title": {
+    "message": "This engine's account has no balance",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_balance_next": {
+    "message": "The provider returned 402: this Key's account is out of money. After topping up, tap “Test connection” below; you can also switch to a Key with balance, or switch engines.",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_switch_engine": {
+    "message": "Switch engine",
+    "description": "BEL-274 fail surface"
+  },
+  "halt_no_base_row": {
+    "message": "This engine needs an address — tap to fill it in",
+    "description": "BEL-274 fail surface"
+  },
+  "no_base_field_hint": {
+    "message": "No address yet: this engine needs a service address before it will work. Include the protocol and path, e.g. https://your-host/v1",
+    "description": "BEL-274 fail surface"
+  },
+  "halt_streak_row": {
+    "message": "3 failures in a row — tap to deal with it",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_streak_title": {
+    "message": "3 failures in a row",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_streak_next": {
+    "message": "This engine hasn't succeeded 3 times in a row; the latest was HTTP 429 (rate limit). Most of the time it's a configuration or quota issue, and switching engines is faster; you can also try once more.",
+    "description": "BEL-274 fail surface"
   }
 }

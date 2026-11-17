@@ -4244,5 +4244,41 @@
   "listen_perm_denied_body": {
     "message": "सिस्टम सेटिंग में «माइक्रोफ़ोन» चालू करें, यहाँ वापस आकर «फिर कोशिश करें» दबाएँ — ऐप को फिर से शुरू करने की ज़रूरत नहीं।",
     "description": "BEL-273 microphone permission gate"
+  },
+  "halt_balance_row": {
+    "message": "इस इंजन में बैलेंस नहीं है — बदलने के लिए टैप करें",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_balance_title": {
+    "message": "इस इंजन के खाते में बैलेंस नहीं है",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_balance_next": {
+    "message": "प्रदाता ने 402 लौटाया: इस Key के खाते में पैसा नहीं है। रिचार्ज के बाद नीचे «कनेक्शन जाँचें» टैप करें; आप बैलेंस वाली Key या दूसरा इंजन भी चुन सकते हैं।",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_switch_engine": {
+    "message": "इंजन बदलें",
+    "description": "BEL-274 fail surface"
+  },
+  "halt_no_base_row": {
+    "message": "इस इंजन को पता चाहिए — भरने के लिए टैप करें",
+    "description": "BEL-274 fail surface"
+  },
+  "no_base_field_hint": {
+    "message": "अभी पता नहीं है: इस इंजन को काम करने के लिए सेवा पता चाहिए। प्रोटोकॉल और पथ लिखें, जैसे https://your-host/v1",
+    "description": "BEL-274 fail surface"
+  },
+  "halt_streak_row": {
+    "message": "लगातार 3 विफलताएँ — निपटने के लिए टैप करें",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_streak_title": {
+    "message": "लगातार 3 विफलताएँ",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_streak_next": {
+    "message": "यह इंजन लगातार 3 बार सफल नहीं हुआ; आखिरी HTTP 429 (दर सीमा) था। ज़्यादातर यह कॉन्फ़िग या कोटा की समस्या होती है, इंजन बदलना तेज़ है; आप एक बार और भी कोशिश कर सकते हैं।",
+    "description": "BEL-274 fail surface"
   }
 }
