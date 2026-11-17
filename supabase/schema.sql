@@ -265,15 +265,13 @@ as $$
     from unnest(coalesce(p_keys, '{}'::text[])) as k;
 $$;
 
--- ingest 拒收聚合：只记键名，不记值 / install_id / 原始 body。
--- 不按小时分桶：first_seen/last_seen 已能回答「何时开始、还在不在」，分桶只会把行数乘 24。
+-- ingest 拒收聚合：按小时桶只记键名，不记值 / install_id / 原始 body。
 create table if not exists public.bt_events_rejected (
+  hour         timestamptz not null default date_trunc('hour', now()),
   name         text   not null,
   invalid_keys text[] not null default '{}'::text[],
   n            bigint not null default 0,
-  first_seen   timestamptz not null default now(),
-  last_seen    timestamptz not null default now(),
-  constraint bt_events_rejected_pkey primary key (name, invalid_keys),
+  constraint bt_events_rejected_pkey primary key (hour, name, invalid_keys),
   constraint bt_events_rejected_name_chk check (name ~ '^[a-z0-9_]{1,64}$'),
   constraint bt_events_rejected_keys_chk check (cardinality(invalid_keys) between 0 and 8),
   constraint bt_events_rejected_key_len_chk check (public.bt_rejected_keys_valid(invalid_keys)),
@@ -281,14 +279,17 @@ create table if not exists public.bt_events_rejected (
 );
 
 comment on table public.bt_events_rejected is
-  'BEL-293 ingest 拒收聚合：只记 name + 非法键名集合(最多 8 个、每个 ≤64 字符) + 计数与首末时间；绝不记值/install_id/原始 body。';
+  'BEL-293 ingest 拒收聚合：按小时桶（hour=date_trunc(''hour'', now())）只记 name + 非法键名集合(最多 8 个、每个 ≤64 字符) + 计数；绝不记值/install_id/原始 body。';
+comment on column public.bt_events_rejected.hour is
+  '聚合小时桶：date_trunc(''hour'', now())。';
 comment on column public.bt_events_rejected.invalid_keys is
   '非法/未登记的键名（不是值）。写入前排序去重、left(k,64) 截断，最多 8 个。';
 
 alter table public.bt_events_rejected enable row level security;
 revoke all on table public.bt_events_rejected from anon, authenticated;
 
--- 唯一写入口：invalid_keys 先排序去重、left(k,64) 截断、[1:8]，再 upsert 累加。
+-- 唯一写入口：hour 由 date_trunc('hour', now()) 决定；invalid_keys 先排序去重、
+-- left(k,64) 截断、[1:8]，再 upsert 累加。
 -- 旧的三参（带 p_hour）签名若存在先删掉，避免留下第二个写入口。
 drop function if exists public.bt_event_rejected_bump(text, text[], timestamptz);
 create or replace function public.bt_event_rejected_bump(
@@ -300,21 +301,19 @@ language sql
 security definer
 set search_path = public, pg_catalog
 as $$
-  insert into public.bt_events_rejected (name, invalid_keys, n, first_seen, last_seen)
+  insert into public.bt_events_rejected (hour, name, invalid_keys, n)
   values (
+    date_trunc('hour', now()),
     p_name,
     (coalesce((
       select array_agg(distinct left(k, 64) order by left(k, 64))
         from unnest(coalesce(p_keys, '{}'::text[])) as k
        where k is not null and left(k, 64) <> ''
     ), '{}'::text[]))[1:8],
-    1,
-    now(),
-    now()
+    1
   )
-  on conflict (name, invalid_keys)
-  do update set n = public.bt_events_rejected.n + 1,
-                last_seen = now();
+  on conflict (hour, name, invalid_keys)
+  do update set n = public.bt_events_rejected.n + excluded.n;
 $$;
 
 revoke all on function public.bt_event_rejected_bump(text, text[]) from public, anon, authenticated;
