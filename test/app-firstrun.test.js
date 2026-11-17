@@ -1169,7 +1169,7 @@ describe('BEL-268 pack_download_fail 的 reason / 阶段后缀', () => {
     ok(/packFail\(token, e, failCode\(e\)\)/.test(unit),
       'reportPackUnit 没把 failCode 的结果交给 packFail');
     const segments = [
-      ['vad', /}, \(\) => NativeSpeech\.ensureVad\(vad, onProg\), 'vad'\);/],
+      ['vad', /NativeSpeech\.ensureVad\(vad, onProg\), 'vad'\);/],
       ['base', /}, 'base'\);/],
       ['tts', /}, 'tts'\);/],
       ['asr', /}, 'asr'\);/],

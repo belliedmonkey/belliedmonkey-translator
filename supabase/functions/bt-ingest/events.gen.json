@@ -485,7 +485,18 @@
         "unsupported",
         "other"
       ],
-      "code": "id"
+      "code": "id",
+      "tier": [
+        "cache",
+        "server",
+        "server-alt",
+        "builtin",
+        "builtin-alt",
+        "none"
+      ],
+      "detail": "id",
+      "size": "int",
+      "progress": "int"
     },
     "packs_ready": {
       "setup_id": "id",

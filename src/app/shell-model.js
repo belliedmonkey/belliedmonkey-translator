@@ -49,7 +49,7 @@ import { createAppleFailureUi, classifyAppleResult } from './apple-native.js'; /
 // BEL-226/268 的下载单元遥测（start → ok/fail + 失败 code 表）。抽到 pack-unit.js
 // 是因为 listen-model 的两处裸 ensureVad 也要用同一份契约；这里 re-export 保持
 // shell-model 的既有出口（测试与调用点都从 ShellModel.reportPackUnit 读）。
-import { reportPackUnit, packFailCode, packSourceFromSpec } from './pack-unit.js';
+import { reportPackUnit, packFailCode, packSourceFromSpec, packSizeFromSpec, packTierFromAttempts } from './pack-unit.js';
 export { reportPackUnit };
 
 // BEL-197: Google provider callbacks land on `scheme://auth` (intl `belliedmonkey`,
@@ -2162,31 +2162,50 @@ export function bootShell() {
   async function downloadBase() {
     const name = t('firstrun_packs_base', '听译基础');
     if (packLidReady && packVadReady) { setRow('base', { phase: 'ready', pct: 100, name }); return; }
+    // BEL-293：当前单元的 info 就是失败归因上下文；onProg 把已有进度写进
+    // info.progress（不新增轮询），LID 失败时再补 ModelSources 的真实 tier。
+    let packInfo = null;
     const onProg = (m) => {
       const named = FirstRun.nameProgress(Object.assign({}, m, { name: name }), name);
       const pct = Math.round((Number(named.fraction) || 0) * 100);
+      if (packInfo) packInfo.progress = pct;
       setRow('base', { phase: 'downloading', pct, name: named.name });
     };
     if (!packVadReady && typeof NativeSpeech !== 'undefined' && NativeSpeech.ensureVad) {
       const vad = vadSpec();
       if (vad) {
-        await runPackUnit({
+        packInfo = {
           pack_kind: 'vad', pack_id: 'vad', surface: packSurfaceNow(),
           source: packSourceFromSpec(vad),
-        }, () => NativeSpeech.ensureVad(vad, onProg), 'vad');
+          // VAD 直调 ensureVad：没有换源链 ⇒ 不是「没填」，而是 none。
+          tier: 'none', size: packSizeFromSpec(vad), progress: 0,
+        };
+        await runPackUnit(packInfo, () => NativeSpeech.ensureVad(vad, onProg), 'vad');
       }
       packVadReady = true;
     }
     if (!packLidReady && typeof NativeSpeech !== 'undefined' && NativeSpeech.ensureLid) {
       const lid = lidSpec();
       if (lid) {
-        await runPackUnit({
+        packInfo = {
           pack_kind: 'lid', pack_id: 'lid', surface: packSurfaceNow(),
           source: packSourceFromSpec(lid),
-        }, async () => {
+          // LID 走 ModelSources 时 tier 在失败时才确定；直调路径保持 none。
+          tier: 'none', size: packSizeFromSpec(lid), progress: 0,
+        };
+        await runPackUnit(packInfo, async () => {
           if (typeof ModelSources !== 'undefined' && ModelSources && typeof ModelSources.run === 'function') {
             const r = await ModelSources.run([lid], flavorNow(), (spec) => NativeSpeech.ensureLid(spec[0], onProg));
-            if (r && r.ok === false) throw Object.assign(new Error(String(r.why || 'lid')), { mtBaseFailed: true });
+            if (r && r.ok === false) {
+              packInfo.tier = packTierFromAttempts(r.attempts);
+              throw Object.assign(new Error(String(r.why || 'lid')), {
+                mtBaseFailed: true,
+                reason: r.why || 'download',
+                tier: packInfo.tier,
+                size: packInfo.size,
+                progress: packInfo.progress,
+              });
+            }
           } else {
             await NativeSpeech.ensureLid(lid, onProg);
           }
@@ -2205,6 +2224,8 @@ export function bootShell() {
       return;
     }
     if (typeof LearnTTS === 'undefined' || !LearnTTS.ensureDeviceReady) return;
+    // BEL-293：当前 TTS 单元的归因上下文；onProg 只写已有 fraction，不新增轮询。
+    let packInfo = null;
     const onProg = (m) => {
       const el = $('pack-tts-state');
       if (m && m.state === 'switching') {
@@ -2213,6 +2234,7 @@ export function bootShell() {
       }
       const named = FirstRun.nameProgress(m, (m && m.locale) || units[0].langs[0] || 'tts');
       const pct = Math.round((Number(named.fraction) || 0) * 100);
+      if (packInfo) packInfo.progress = pct;
       const rowId = FirstRun.baseCode(named.locale) === 'th' ? 'tts:th' : 'tts:zh-en';
       setRow(rowId, { phase: 'downloading', pct, name: named.name });
       if (el) {
@@ -2226,14 +2248,28 @@ export function bootShell() {
     for (const u of units) {
       const rowId = u.pack_id === 'tts_th' ? 'tts:th' : 'tts:zh-en';
       if (ttsUnitReady(u.langs)) { setRow(rowId, { phase: 'ready', pct: 100 }); continue; }
-      await runPackUnit({
+      packInfo = {
         pack_kind: 'tts', pack_id: u.pack_id, locale: u.locale, surface: packSurfaceNow(),
         source: packSourceFromSpec(ttsModelsForUnit(u.langs)),
-      }, async () => {
+        // 真实换源层级要等 ensureDeviceReady 返回 attempts 才确定。
+        tier: 'none', size: packSizeFromSpec(ttsModelsForUnit(u.langs)), progress: 0,
+      };
+      await runPackUnit(packInfo, async () => {
         const r = await LearnTTS.ensureDeviceReady(onProg, DEVICE_TTS_ENGINE, u.langs);
         if (r && r.ok === false) {
-          const why = String(r.why || r.reason || 'failed') + (r.attempts ? ' · ' + r.attempts : '');
-          throw Object.assign(new Error(why), { mtTtsFailed: true, why });
+          // BEL-293：code 仍是 tts_failed（看板前缀不变），why 进 detail；
+          // message 仍带 attempts，只给人看，不参与遥测。
+          const why = String(r.why || r.reason || 'failed');
+          const tier = packTierFromAttempts(r.attempts);
+          packInfo.tier = tier;
+          throw Object.assign(new Error(why + (r.attempts ? ' · ' + r.attempts : '')), {
+            mtTtsFailed: true,
+            why,
+            reason: why,
+            tier,
+            size: packInfo.size,
+            progress: packInfo.progress,
+          });
         }
         return r;
       }, 'tts');
@@ -2254,6 +2290,8 @@ export function bootShell() {
             await TelemetrySession.packUnsupported({
               pack_kind: 'asr', pack_id: 'asr_' + code, locale: code,
               surface: packSurfaceNow(), source: 'system',
+              // ASR 直调 ensureAssets：没有换源链；系统包大小由系统决定 ⇒ 未知 0。
+              tier: 'none', size: 0, progress: 0,
             });
           } catch (_) {}
         }
@@ -2272,10 +2310,13 @@ export function bootShell() {
         continue;
       }
       setRow('asr:' + loc, { phase: 'downloading', pct: 0, name: endonym(loc) });
-      await runPackUnit({
+      const asrInfo = {
         pack_kind: 'asr', pack_id: 'asr_' + code, locale: code,
         surface: packSurfaceNow(), source: 'system',
-      }, async () => {
+        // ASR 直调 ensureAssets：没有换源链；系统语言包大小由系统决定 ⇒ 未知 0。
+        tier: 'none', size: 0, progress: 0,
+      };
+      await runPackUnit(asrInfo, async () => {
         let timer = null;
         let asrLast = '';
         const timeout = new Promise((_res, rej) => {
@@ -2291,6 +2332,7 @@ export function bootShell() {
             if (!m) return;
             const named = FirstRun.nameProgress(Object.assign({}, m, { name: endonym(loc) }), endonym(loc));
             const pct = (typeof named.fraction === 'number') ? Math.round(named.fraction * 100) : 0;
+            asrInfo.progress = pct;
             const extra = [];
             if (m.status) extra.push('status=' + m.status);
             if (typeof m.total === 'number') extra.push('bytes=' + (m.completed || 0) + '/' + m.total);

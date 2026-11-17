@@ -819,14 +819,14 @@ describe('BEL-226 pack_download_* / packs_ready', () => {
   test('shell-model 接线：每个下载单元 start→ok、ASR 不支持另记 fail、ok 不在 onProg 里', () => {
     const model = fs.readFileSync(path.join(ROOT, 'src/app/shell-model.js'), 'utf8');
     // base 拆成 VAD / LID 两个真实下载单元。
-    ok(/pack_kind:\s*'vad'[\s\S]{0,120}NativeSpeech\.ensureVad\(vad, onProg\)/.test(model),
+    ok(/pack_kind:\s*'vad'[\s\S]{0,320}NativeSpeech\.ensureVad\(vad, onProg\)/.test(model),
       'VAD 下载没有自己的 pack_download_start/ok');
     ok(/pack_kind:\s*'lid'[\s\S]{0,450}ModelSources\.run\(\[lid\]/.test(model),
       'LID 下载没有自己的 pack_download_start/ok');
     // 朗读按共享包 / 泰语两个单元逐次 ensureDeviceReady。
     ok(/pack_id:\s*'tts_zh_en'/.test(model) && /pack_id:\s*'tts_th'/.test(model),
       '朗读包没有按 tts_zh_en / tts_th 两个显式共享 id 发事件');
-    ok(/pack_kind:\s*'asr'[\s\S]{0,600}NativeSpeech\.ensureAssets\('stt'/.test(model),
+    ok(/pack_kind:\s*'asr'[\s\S]{0,900}NativeSpeech\.ensureAssets\('stt'/.test(model),
       'ASR 下载没有自己的 pack_download_start/ok');
     ok(/packAsrUnsupported[\s\S]{0,300}packUnsupported\(\{/.test(model),
       'ASR 系统不支持时没有另记 fail{unsupported}');

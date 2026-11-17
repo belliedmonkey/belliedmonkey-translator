@@ -42,6 +42,10 @@ const PACK_SURFACES = SURFACES.concat(['first_run_packs', 'settings_packs']);
 const PACK_KINDS = ['asr', 'tts', 'lid', 'vad'];
 const PACK_SOURCES = ['system', 'github', 'modelscope', 'other'];
 const PACK_FAIL_REASONS = ['network', 'timeout', 'disk', 'hash', 'unsupported', 'other'];
+// BEL-293：失败发生在哪一级下载链。只有 LID/TTS 走 ModelSources 的真实 tier 链
+// （app/model-sources.js 的 source）；ASR 直调 ensureAssets、VAD 直调 ensureVad，
+// 没有可归因的换源层级 ⇒ 'none'。不是「没填」，是「这条链路本来就没有 tier」。
+const PACK_TIERS = ['cache', 'server', 'server-alt', 'builtin', 'builtin-alt', 'none'];
 
 // BEL-225（2026-11-14）：`app_open.surface` 换成「打开时落在哪一屏」，不是功能面。
 //   login     = 面对登录墙（auth_state=signed_out）
@@ -325,6 +329,16 @@ const EVENTS = {
     // download …），过渡期同发。原始报错 / URL 永远不进 reason 或 code。
     reason: PACK_FAIL_REASONS,
     code: 'id',
+    // BEL-293：失败归因四元组。
+    //   tier     这次失败落在哪一级下载链（只有 LID/TTS 有真实换源链；ASR/VAD = none）
+    //   detail   原生协议码（assets / sha_mismatch / load / enospc …），已按 id 规则清洗；
+    //            只有协议码，绝不含 message / URL / 原文
+    //   size     这个包的声明大小（字节；系统 ASR 包由系统决定 ⇒ 0）
+    //   progress 失败时最后一次进度回调的百分比（0–100；没有进度回调 ⇒ 0）
+    tier: PACK_TIERS,
+    detail: 'id',
+    size: 'int',
+    progress: 'int',
   },
   // 「包齐了」的过渡（BEL-226）：**整套所需资源**都校验就绪时记一条；单语言下完不能代替。
   // 按 setup_id + selection_id 的就绪过渡去重（同一 selection 只发一次；未齐不发；
@@ -655,4 +669,4 @@ const FORBIDDEN_KEY_WORDS = ['url', 'href', 'text', 'title', 'email', 'user', 'u
 
 const LIMITS = { batch: 50, eventBytes: 1024, bodyBytes: 64 * 1024, perMinute: 60, strMax: 64 };
 
-module.exports = { COMMON, EVENTS, SEAMS, FORBIDDEN_KEY_WORDS, LIMITS, TRANSLATE_KINDS, SURFACES, PACK_SURFACES, PACK_KINDS, PACK_SOURCES, PACK_FAIL_REASONS };
+module.exports = { COMMON, EVENTS, SEAMS, FORBIDDEN_KEY_WORDS, LIMITS, TRANSLATE_KINDS, SURFACES, PACK_SURFACES, PACK_KINDS, PACK_SOURCES, PACK_FAIL_REASONS, PACK_TIERS };
