@@ -892,7 +892,7 @@ const listenModel = (() => {
       if (typeof MTTelemetry !== 'undefined') {
         const fail = {
           provider: tmProvider(), kind: 'subtitle', code,
-          status: Number.isInteger(e.status) ? e.status : 0,
+          ...(Number.isInteger(e.status) ? { status: e.status } : {}),
           route: e.route === 'proxy' ? 'proxy' : (e.route === 'direct' ? 'direct' : ''),
         };
         // §3.11 A：这里原来发的是**会话时长**（now - startedAt），把 p50 拉成 962 秒。

@@ -238,7 +238,7 @@ var SubtitleAdapter = (() => {
           provider: String((settings && settings.provider) || ''),
           kind: 'subtitle',
           code: (e && typeof e.code === 'string') ? e.code : 'network',
-          status: Number.isInteger(e && e.status) ? e.status : 0,
+          ...(Number.isInteger(e && e.status) ? { status: e.status } : {}),
           route: (e && e.route === 'proxy') ? 'proxy' : ((e && e.route === 'direct') ? 'direct' : ''),
         };
         if (Number.isInteger(e && e.ms)) fail.ms = e.ms;
