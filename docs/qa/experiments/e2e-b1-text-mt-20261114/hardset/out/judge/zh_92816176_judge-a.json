@@ -1,0 +1,44 @@
+{
+  "key": "zh|货币政策",
+  "lang": "zh",
+  "title": "货币政策",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The candidate translation accurately conveys the full meaning of the source text."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All names, places, and numbers are correctly preserved and rendered."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Polarity is preserved throughout the translation."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information is omitted."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No information is invented or added beyond the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Domain-specific terms are translated consistently and appropriately."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally and fluently in English."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0006116
+}

@@ -1,0 +1,28 @@
+{
+  "key": "zh|相对论",
+  "lang": "zh",
+  "title": "相对论",
+  "revid": 93555083,
+  "url": "https://zh.wikipedia.org/w/index.php?oldid=93555083",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "en",
+  "source": "爱因斯坦在1915年左右发表的一系列论文中给出了广义相对论最初的形式。他首先注意到了被称之为（弱）等效原理的实验事实：引力质量与惯性质量是相等的（目前实验证实，在10−12的精确度范围内，仍没有看到引力质量与惯性质量的差别）。这一事实也可以理解为，当除了引力之外不受其他力时，所有质量足够小（即其本身的质量对引力场的影响可以忽略）的测验物体在同一引力场中以同样的方式运动。既然如此，则不妨认为引力其实并不是一种“力”，而是一种时空效应，即物体的质量（准确的说应当为非零的能动张量）能够产生时空的弯曲，引力源对于测验物体的引力正是这种时空弯曲所造成的一种几何效应。这时，所有的测验物体就在这个弯曲的时空中做惯性运动，其运动轨迹正是该弯曲时空的测地线，它们都遵守测地线方程。正是在这样的思路下，爱因斯坦得到了其广义相对论。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "In a series of papers published around 1915, Einstein presented the initial formulation of general relativity. He first took note of the experimental fact known as the (weak) equivalence principle: gravitational mass is equal to inertial mass (current experiments have confirmed that no difference between gravitational and inertial mass has been observed within a precision of 10⁻¹²). This fact can also be understood to mean that, when subject to no forces other than gravity, all test bodies with sufficiently small mass (i.e., whose own mass has a negligible effect on the gravitational field) move in the same way within the same gravitational field. In light of this, it is reasonable to regard gravity not as a “force,” but rather as a spacetime effect; specifically, the mass of an object (more precisely, its non-zero energy-momentum tensor) produces curvature in spacetime, and the gravitational attraction exerted by a gravitational source on a test body is precisely a geometric effect arising from this spacetime curvature. In this framework, all test bodies undergo inertial motion within this curved spacetime, their trajectories following the geodesics of the curved spacetime and obeying the geodesic equation. It was along these lines that Einstein arrived at his theory of general relativity.",
+  "usage": {
+    "prompt_tokens": 329,
+    "total_tokens": 589,
+    "completion_tokens": 260,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 329
+    }
+  },
+  "finishReason": "stop"
+}

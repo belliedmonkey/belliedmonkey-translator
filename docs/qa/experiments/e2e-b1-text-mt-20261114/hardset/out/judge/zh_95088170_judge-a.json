@@ -1,0 +1,44 @@
+{
+  "key": "zh|量子糾纏",
+  "lang": "zh",
+  "title": "量子糾纏",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The candidate translation fully conveys the meaning of the source text."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All names, numbers, and entities are accurately preserved."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negations and polarity are correctly maintained."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information is omitted."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No information is fabricated or invented."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Technical terms are translated consistently and appropriately."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in English."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0006276
+}

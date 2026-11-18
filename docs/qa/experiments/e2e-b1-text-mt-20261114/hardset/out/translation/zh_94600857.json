@@ -1,0 +1,28 @@
+{
+  "key": "zh|会计准则",
+  "lang": "zh",
+  "title": "会计准则",
+  "revid": 94600857,
+  "url": "https://zh.wikipedia.org/w/index.php?oldid=94600857",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "en",
+  "source": "会计准则制订的最高水平当属美国的公认会计原则和国际会计准则委员会的国际会计准则。前者内容繁多，有200多条款，偏重于具体的规则，后者内容较为简略，偏重于原则的遵守。前者由于受到全球最大资本市场的管理者－美国证券交易委员会的承认，所以在世界上很有影响。后者由于被欧盟指定为欧洲普遍适用的会计准则，所以也越来越具有影响力。这两者之间随着国际会计准则委员会改组为国际会计准则理事会（IAS－国际会计准则随之改称IFRS－国际财务报告准则）、并吸收了GAAP的制订者－财务会计准则委员会的成员加入，有融合的趋势。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "The highest standards in accounting principles are represented by the Generally Accepted Accounting Principles (GAAP) of the United States and the International Accounting Standards (IAS) issued by the International Accounting Standards Committee. The former is extensive, comprising over 200 provisions, with an emphasis on specific rules, while the latter is more concise, focusing on adherence to overarching principles. GAAP holds significant global influence due to its recognition by the U.S. Securities and Exchange Commission, the regulator of the world’s largest capital market. Meanwhile, IAS has been gaining increasing influence as it was designated by the European Union as the common accounting standard applicable across Europe. With the restructuring of the International Accounting Standards Committee into the International Accounting Standards Board (IASB), and the subsequent renaming of IAS to International Financial Reporting Standards (IFRS), along with the inclusion of members from the Financial Accounting Standards Board (FASB), the body responsible for developing GAAP, there is a growing trend toward convergence between these two frameworks.",
+  "usage": {
+    "prompt_tokens": 250,
+    "total_tokens": 450,
+    "completion_tokens": 200,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 250
+    }
+  },
+  "finishReason": "stop"
+}

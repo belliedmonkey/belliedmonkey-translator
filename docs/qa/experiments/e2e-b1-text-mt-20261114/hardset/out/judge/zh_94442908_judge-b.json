@@ -1,0 +1,44 @@
+{
+  "key": "zh|地缘政治学",
+  "lang": "zh",
+  "title": "地缘政治学",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The full meaning of the source is preserved without addition or omission of propositions."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All proper names, places, and numbers (e.g., Karl Haushofer, Zeitschrift für Geopolitik, 1923) are accurately rendered."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negations are present; polarity is correctly maintained where implied."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information is omitted from the translation."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No content is invented beyond the source text."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Specialized terms like 'Lebensraum', 'Heartland', 'state organism', and 'geopolitics' are consistently and appropriately translated."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally and fluently to a native English speaker."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0002642
+}

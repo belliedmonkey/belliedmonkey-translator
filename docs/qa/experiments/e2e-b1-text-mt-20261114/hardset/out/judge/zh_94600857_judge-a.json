@@ -1,0 +1,44 @@
+{
+  "key": "zh|会计准则",
+  "lang": "zh",
+  "title": "会计准则",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The candidate translation fully conveys the meaning of the source text."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All entities and numbers are accurately preserved."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation errors found."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omissions detected."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No hallucinations or added information present."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is consistent and appropriate for the domain."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in English."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.000526
+}

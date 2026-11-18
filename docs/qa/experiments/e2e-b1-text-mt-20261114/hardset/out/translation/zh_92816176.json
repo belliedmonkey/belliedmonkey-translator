@@ -1,0 +1,28 @@
+{
+  "key": "zh|货币政策",
+  "lang": "zh",
+  "title": "货币政策",
+  "revid": 92816176,
+  "url": "https://zh.wikipedia.org/w/index.php?oldid=92816176",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "en",
+  "source": "英格兰银行成立于1694年。在后续的历史中，苏格兰和北爱尔兰相继成为联合王国的一部分，但作为最初的中央银行，英格兰银行的名字沿用至今。英格兰银行最初成立的目的是为英格兰国王威廉一世融资，以支付战争经费和王国开支。英格兰银行，以英王未来的税收为抵押向政府提供贷款。同年威廉一世为英格兰银行颁发了皇家特许执照，英格兰银行成为独家为政府服务的银行，并为政府管理其债务。在成立之初，英格兰银行一直是一家私有银行。而其同时向私人客户开放，提供存取款业务，但是后期成为仅向其他银行开放的“银行的银行”。在十九世纪时，英格兰银行成为英国其他商业银行的最终借款人。1931英国宣布离开金本位制度，英格兰银行的黄金和外汇储备移交国库所有，但仍为政府经手管理这些财产。1946年英格兰银行成为国有银行。1998年，英格兰银行法案确立了英格兰银行独立执行货币政策的权力。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "The Bank of England was established in 1694. In the course of subsequent history, Scotland and Northern Ireland successively became part of the United Kingdom, but as the original central bank, the name “Bank of England” has remained in use to this day. The Bank was initially founded to finance King William III of England, covering war expenses and the kingdom’s expenditures. The Bank of England provided loans to the government, secured by future tax revenues of the English Crown. In the same year, William III granted the Bank of England a royal charter, making it the exclusive bank serving the government and managing its debt. From its inception, the Bank of England operated as a private bank. While it also served private customers with deposit and withdrawal services, it later evolved into a “bank for banks,” open only to other financial institutions. During the nineteenth century, the Bank of England became the lender of last resort for other commercial banks in Britain. In 1931, when Britain abandoned the gold standard, the Bank’s gold and foreign exchange reserves were transferred to the ownership of the Treasury, although the Bank continued to manage these assets on behalf of the government. In 1946, the Bank of England was nationalized. In 1998, the Bank of England Act established the Bank’s independence in conducting monetary policy.",
+  "usage": {
+    "prompt_tokens": 330,
+    "total_tokens": 603,
+    "completion_tokens": 273,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 330
+    }
+  },
+  "finishReason": "stop"
+}

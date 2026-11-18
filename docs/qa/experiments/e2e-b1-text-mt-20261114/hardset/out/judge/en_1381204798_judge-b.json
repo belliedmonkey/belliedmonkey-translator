@@ -1,0 +1,44 @@
+{
+  "key": "en|Roe deer",
+  "lang": "en",
+  "title": "Roe deer",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys all propositions from the source without addition or omission."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All measurements, units, and numerical ranges are correctly rendered in the target."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negations are present; polarity is preserved where applicable."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information is omitted from the source."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No content is invented beyond the source text."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Domain-specific terms like 'buck' and 'doe' are appropriately translated as '雄狍' and '雌狍'."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The target text reads naturally in Chinese with proper syntax and word choice."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.00023614
+}

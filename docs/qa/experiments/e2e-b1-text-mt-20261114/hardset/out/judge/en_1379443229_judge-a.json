@@ -1,0 +1,44 @@
+{
+  "key": "en|Debt-to-GDP ratio",
+  "lang": "en",
+  "title": "Debt-to-GDP ratio",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "meaning fully preserved"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "all entities and numbers correctly rendered"
+      },
+      "negation": {
+        "pass": true,
+        "note": "no negation present"
+      },
+      "omission": {
+        "pass": true,
+        "note": "no omission detected"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "no hallucination detected"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "terminology correctly translated"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "natural and fluent Chinese"
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0003944
+}

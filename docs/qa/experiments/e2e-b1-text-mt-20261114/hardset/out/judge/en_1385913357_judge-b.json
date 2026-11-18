@@ -1,0 +1,44 @@
+{
+  "key": "en|United States Electoral College",
+  "lang": "en",
+  "title": "United States Electoral College",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys the ongoing debate, historical timeline, legislative efforts, and outcome of the 1969 amendment."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "'1787年制宪会议', '19世纪后期', '1,000项', '1969年', '众议院', '参议院' correctly render the original entities and numbers."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negations are present; where implied, such as 'failed to move past', the translation correctly uses '未能...审议通过'."
+      },
+      "omission": {
+        "pass": true,
+        "note": "All key propositions including inception, controversy timeline, number of amendments, and 1969 House approval and Senate failure are included."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No invented information; all content is grounded in the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "'选举人团制度', '宪法修正案', '废除', '众议院', '参议院' are standard and consistent with political and legal usage."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in formal Chinese with appropriate syntax and word choice."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.000265
+}

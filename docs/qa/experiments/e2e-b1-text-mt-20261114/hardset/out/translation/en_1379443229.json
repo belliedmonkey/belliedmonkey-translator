@@ -1,0 +1,28 @@
+{
+  "key": "en|Debt-to-GDP ratio",
+  "lang": "en",
+  "title": "Debt-to-GDP ratio",
+  "revid": 1379443229,
+  "url": "https://en.wikipedia.org/w/index.php?oldid=1379443229",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "zh-CN",
+  "source": "According to the IMF World Economic Outlook Database (April 2021), the level of Gross Government debt-to-GDP ratio in Canada was 116.3%, in China 66.8%, in India 89.6%, in Germany 70.3%, in France 115.2% and in the United States 132.8%.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "根据国际货币基金组织《世界经济展望》数据库（2021年4月）的数据，加拿大的政府总债务占GDP比重为116.3%，中国为66.8%，印度为89.6%，德国为70.3%，法国为115.2%，美国为132.8%。",
+  "usage": {
+    "prompt_tokens": 206,
+    "total_tokens": 281,
+    "completion_tokens": 75,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 206
+    }
+  },
+  "finishReason": "stop"
+}

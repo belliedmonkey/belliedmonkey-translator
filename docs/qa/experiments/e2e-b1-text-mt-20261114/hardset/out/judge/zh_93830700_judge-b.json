@@ -1,0 +1,44 @@
+{
+  "key": "zh|著作權",
+  "lang": "zh",
+  "title": "著作權",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys all propositions from the source without addition or omission."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All proper names and dates (e.g., Statute of Anne, 1791, 1793, France, Britain) are correctly rendered."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negations are present; polarity is preserved where implied."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information is omitted from the source."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No invented content; all details are grounded in the source text."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terms like 'banquan', 'copyright', 'moral rights', and legal names are used accurately and consistently."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The English translation reads naturally and is grammatically sound."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0002574
+}

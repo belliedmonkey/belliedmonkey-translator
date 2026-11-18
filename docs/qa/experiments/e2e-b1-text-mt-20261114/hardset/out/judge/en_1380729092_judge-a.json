@@ -1,0 +1,44 @@
+{
+  "key": "en|Basel III",
+  "lang": "en",
+  "title": "Basel III",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The candidate translation fully conveys the meaning of the source."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All entities and numbers are accurately preserved."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation and polarity are correctly maintained."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information is omitted."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No information is added beyond the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is consistent and appropriate."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in Chinese."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0004548
+}

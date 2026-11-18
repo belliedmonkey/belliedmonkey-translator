@@ -1,0 +1,126 @@
+{
+  "schema": "belliedmonkey.e2e-b1.hardset-report.v1",
+  "items": 28,
+  "translated": 28,
+  "judgeCalls": 56,
+  "judgeParsed": 56,
+  "agree": 27,
+  "pairsCompared": 28,
+  "perDimension": {
+    "en": {
+      "meaning": {
+        "pass": 30,
+        "total": 30
+      },
+      "entities_numbers": {
+        "pass": 30,
+        "total": 30
+      },
+      "negation": {
+        "pass": 30,
+        "total": 30
+      },
+      "omission": {
+        "pass": 30,
+        "total": 30
+      },
+      "hallucination": {
+        "pass": 30,
+        "total": 30
+      },
+      "terminology": {
+        "pass": 30,
+        "total": 30
+      },
+      "fluency": {
+        "pass": 30,
+        "total": 30
+      }
+    },
+    "zh": {
+      "meaning": {
+        "pass": 25,
+        "total": 26
+      },
+      "entities_numbers": {
+        "pass": 25,
+        "total": 26
+      },
+      "negation": {
+        "pass": 26,
+        "total": 26
+      },
+      "omission": {
+        "pass": 26,
+        "total": 26
+      },
+      "hallucination": {
+        "pass": 26,
+        "total": 26
+      },
+      "terminology": {
+        "pass": 26,
+        "total": 26
+      },
+      "fluency": {
+        "pass": 26,
+        "total": 26
+      }
+    },
+    "all": {
+      "meaning": {
+        "pass": 55,
+        "total": 56
+      },
+      "entities_numbers": {
+        "pass": 55,
+        "total": 56
+      },
+      "negation": {
+        "pass": 56,
+        "total": 56
+      },
+      "omission": {
+        "pass": 56,
+        "total": 56
+      },
+      "hallucination": {
+        "pass": 56,
+        "total": 56
+      },
+      "terminology": {
+        "pass": 56,
+        "total": 56
+      },
+      "fluency": {
+        "pass": 56,
+        "total": 56
+      }
+    }
+  },
+  "allDimensionsPass": {
+    "en": {
+      "pass": 30,
+      "total": 30
+    },
+    "zh": {
+      "pass": 25,
+      "total": 26
+    },
+    "all": {
+      "pass": 55,
+      "total": 56
+    }
+  },
+  "judgeUsd": 0.01973808,
+  "translationTokens": {
+    "prompt": 7241,
+    "completion": 4006,
+    "reasoning": 0
+  },
+  "promptTemplateSha256OfEnglish": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "reasoningFragment": {
+    "enable_thinking": false
+  }
+}

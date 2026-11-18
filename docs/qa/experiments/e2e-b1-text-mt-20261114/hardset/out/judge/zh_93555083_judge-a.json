@@ -1,0 +1,44 @@
+{
+  "key": "zh|相对论",
+  "lang": "zh",
+  "title": "相对论",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The candidate translation fully conveys the meaning of the source text."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All names, numbers, and technical terms are accurately preserved."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negations and polarities are correctly maintained."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material content is omitted."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No information is added beyond the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Technical terms are translated consistently and appropriately."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in English."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0006012
+}

@@ -1,0 +1,57 @@
+{
+  "key": "zh|货币政策",
+  "lang": "zh",
+  "title": "货币政策",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate incorrectly refers to 'King William III' instead of 'King William I', altering a key historical fact and thus distorting the meaning."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "The translation incorrectly renders '威廉一世' as 'William III' instead of 'William I', misrepresenting a proper name and number."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negations present; no issues detected."
+      },
+      "omission": {
+        "pass": true,
+        "note": "All key information from the source is included."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No fabricated information is introduced."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Domain-specific terms like 'royal charter', 'lender of last resort', and 'gold standard' are accurately used."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in English."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "英格兰国王威廉一世",
+        "targetQuote": "King William III of England",
+        "reason": "The candidate translates '威廉一世' (William I) as 'William III', which is factually incorrect and changes the historical meaning."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "威廉一世",
+        "targetQuote": "King William III",
+        "reason": "The proper name and regnal number are incorrectly rendered, leading to a factual error in the translation."
+      }
+    ]
+  },
+  "providerUsd": 0.00034972
+}

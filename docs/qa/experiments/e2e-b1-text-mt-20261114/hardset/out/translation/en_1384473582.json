@@ -1,0 +1,28 @@
+{
+  "key": "en|Semiconductor device fabrication",
+  "lang": "en",
+  "title": "Semiconductor device fabrication",
+  "revid": 1384473582,
+  "url": "https://en.wikipedia.org/w/index.php?oldid=1384473582",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "zh-CN",
+  "source": "The fabrication process is performed in highly specialized semiconductor fabrication plants, also called foundries or \"fabs\", with the central part being the \"clean room\". In more advanced semiconductor devices, such as modern 14/10/7 nm nodes, fabrication can take up to 15 weeks, with 11–13 weeks being the industry average. Production in advanced fabrication facilities is completely automated, with automated material handling systems taking care of the transport of wafers from machine to machine.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "制造工艺在高度专业化的半导体制造厂（也称为晶圆代工厂或“fab”）中进行，其核心部分是“洁净室”。对于更先进的半导体器件，例如现代14/10/7纳米工艺节点，制造过程可能长达15周，行业平均时间为11至13周。先进制造设施中的生产完全自动化，由自动物料搬运系统负责将晶圆从一台设备运输到另一台设备。",
+  "usage": {
+    "prompt_tokens": 226,
+    "total_tokens": 314,
+    "completion_tokens": 88,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 226
+    }
+  },
+  "finishReason": "stop"
+}

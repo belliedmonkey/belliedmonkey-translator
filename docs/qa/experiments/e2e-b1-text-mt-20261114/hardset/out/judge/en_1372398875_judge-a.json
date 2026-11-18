@@ -1,0 +1,44 @@
+{
+  "key": "en|Messier object",
+  "lang": "en",
+  "title": "Messier object",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The candidate translation fully conveys the meaning of the source."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All astronomical objects and numbers are correctly preserved."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation issues."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omissions."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No added information."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Astronomical terms are accurately translated."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in Chinese."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0004144
+}

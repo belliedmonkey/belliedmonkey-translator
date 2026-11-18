@@ -1,0 +1,44 @@
+{
+  "key": "zh|胚胎幹細胞",
+  "lang": "zh",
+  "title": "胚胎幹細胞",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "short"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "short"
+      },
+      "negation": {
+        "pass": true,
+        "note": "short"
+      },
+      "omission": {
+        "pass": true,
+        "note": "short"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "short"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "short"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "short"
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0002374
+}

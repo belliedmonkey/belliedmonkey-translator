@@ -1,0 +1,44 @@
+{
+  "key": "en|Roe deer",
+  "lang": "en",
+  "title": "Roe deer",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "meaning fully preserved"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "numbers and entities correctly rendered"
+      },
+      "negation": {
+        "pass": true,
+        "note": "negation preserved"
+      },
+      "omission": {
+        "pass": true,
+        "note": "no material omitted"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "no hallucination"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "terminology consistent and sensible"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "natural and fluent"
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0004452
+}

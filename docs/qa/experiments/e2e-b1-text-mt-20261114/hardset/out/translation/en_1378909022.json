@@ -1,0 +1,28 @@
+{
+  "key": "en|Tacit collusion",
+  "lang": "en",
+  "title": "Tacit collusion",
+  "revid": 1378909022,
+  "url": "https://en.wikipedia.org/w/index.php?oldid=1378909022",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "zh-CN",
+  "source": "A dataset of gasoline prices of BP, Caltex, Woolworths, Coles, and Gull from Perth gathered in the years 2001 to 2015 was used to show by statistical analysis the tacit collusion between these retailers. BP emerged as a price leader and influenced the behavior of the competitors. As result, the timing of price jumps became coordinated and the margins started to grow in 2010.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "一项基于2001年至2015年间珀斯地区BP、加德士（Caltex）、伍尔沃斯（Woolworths）、科尔斯（Coles）和Gull加油站汽油价格数据的研究，通过统计分析揭示了这些零售商之间的默示共谋行为。BP成为价格领导者，并影响了竞争对手的行为。结果是，价格上调的时间变得协调一致，且自2010年起利润率开始上升。",
+  "usage": {
+    "prompt_tokens": 216,
+    "total_tokens": 307,
+    "completion_tokens": 91,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 216
+    }
+  },
+  "finishReason": "stop"
+}

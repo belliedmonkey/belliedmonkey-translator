@@ -1,0 +1,28 @@
+{
+  "key": "en|Magnetic resonance imaging",
+  "lang": "en",
+  "title": "Magnetic resonance imaging",
+  "revid": 1386029098,
+  "url": "https://en.wikipedia.org/w/index.php?oldid=1386029098",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "zh-CN",
+  "source": "In Europe, where more gadolinium-containing agents are available, a classification of agents according to potential risks has been released. In 2008, a new contrast agent named gadoxetate, brand name Eovist (US) or Primovist (EU), was approved for diagnostic use: This has the theoretical benefit of a dual excretion path.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "在欧洲，由于含钆造影剂的种类更为丰富，已发布了一份根据潜在风险对造影剂进行分类的指南。2008年，一种名为加塞酸（gadoxetate）的新型造影剂获批用于诊断，其商品名在美国为Eovist，在欧盟为Primovist。该造影剂在理论上具有双重排泄途径的优势。",
+  "usage": {
+    "prompt_tokens": 200,
+    "total_tokens": 276,
+    "completion_tokens": 76,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 200
+    }
+  },
+  "finishReason": "stop"
+}

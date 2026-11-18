@@ -1,0 +1,44 @@
+{
+  "key": "en|Constitutional economics",
+  "lang": "en",
+  "title": "Constitutional economics",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "meaning fully preserved"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "names and numbers correctly rendered"
+      },
+      "negation": {
+        "pass": true,
+        "note": "negation preserved"
+      },
+      "omission": {
+        "pass": true,
+        "note": "no material omission"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "no hallucination"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "terms translated consistently"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "natural and fluent"
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.000378
+}

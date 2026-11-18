@@ -1,0 +1,44 @@
+{
+  "key": "zh|相对论",
+  "lang": "zh",
+  "title": "相对论",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys all propositions from the source without addition or omission."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "Dates, numbers like 10⁻¹², and scientific terms are correctly rendered."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negations such as 'no difference observed' are correctly preserved."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material content is omitted from the source."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No information is invented beyond the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Technical terms like 'weak equivalence principle', 'energy-momentum tensor', and 'geodesic equation' are accurately translated."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally and fluently in English."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.00026356
+}

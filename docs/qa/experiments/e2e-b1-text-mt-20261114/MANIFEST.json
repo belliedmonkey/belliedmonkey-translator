@@ -1,79 +1,55 @@
 {
-  "schema": "belliedmonkey.qa.experiment-record.v1",
   "record": "e2e-b1-text-mt-20261114",
   "date": "2026-11-14",
-  "revised": "2026-11-15",
-  "kind": "exploratory component contrast, not a product metric and not a ranking",
-  "correction": "v1 omitted the product's enable_thinking:false fragment; out/ is the product-exact rerun, earlier rounds kept as summary only",
-  "conditions": {
-    "A": "gold transcript as source",
-    "B": "product SA hypothesis as source"
+  "revised": "2026-11-18",
+  "rounds": {
+    "b1": "two conditions on 36 frozen items; A gold source, B product SA hypothesis",
+    "asrAnalysis": "offline join of gold, SA hypothesis and B verdicts; no calls",
+    "hardset": "28 Wikipedia paragraphs (CC BY-SA 4.0, pinned revisions), product pipeline, 2 judges"
   },
-  "items": 36,
-  "translations": 72,
-  "judgeCallsFormal": 144,
-  "result": {
-    "A_allDimPass": "36/36",
-    "B_allDimPass": "15/35",
-    "A_over_B_items": 20,
-    "meaning": {
-      "A": 1.0,
-      "B": 0.583
+  "asrAnalysis": {
+    "errorBandMeaningPass": {
+      "0": 0.857,
+      "1-10%": 0.455,
+      "10-25%": 0.25,
+      ">25%": 0.167
     },
-    "entities_numbers": {
-      "A": 1.0,
-      "B": 0.75
+    "zhErrors": {
+      "S": 26,
+      "D": 18,
+      "I": 13
     },
-    "hallucination": {
-      "A": 1.0,
-      "B": 0.736
+    "enErrors": {
+      "S": 26,
+      "D": 6,
+      "I": 6
     },
-    "omission": {
-      "A": 1.0,
-      "B": 0.792
-    },
-    "negation": {
-      "A": 1.0,
-      "B": 1.0
-    },
-    "fluency": {
-      "A": 1.0,
-      "B": 1.0
-    },
-    "terminology": {
-      "A": 1.0,
-      "B": 0.861
+    "mixedErrors": {
+      "S": 21,
+      "D": 16,
+      "I": 1,
+      "rate": 0.388
     }
   },
-  "judge": {
-    "models": [
-      "openai/gpt-4.1-mini",
-      "qwen/qwen3-235b-a22b-2507"
-    ],
-    "agreement": 51,
-    "disagreement": 21,
-    "humanGold": false,
-    "tprTnrKnown": false
-  },
-  "attribution": "bottleneck is upstream recognition, not translation",
-  "cost": {
-    "judgeUsdTotal": "0.12879580",
-    "judgeUsdFormal": "0.04397937",
-    "translationTokensProductExact": {
-      "prompt": 10703,
-      "completion": 1805,
+  "hardset": {
+    "items": 28,
+    "allDimPass": "55/56",
+    "agree": "27/28",
+    "judgeUsd": "0.01973808",
+    "translationTokens": {
+      "prompt": 7241,
+      "completion": 4006,
       "reasoning": 0
-    }
+    },
+    "knownRealError": "货币政策: 威廉一世 rendered as William III; judge-b caught it, judge-a missed it"
   },
-  "thinkingContrast": {
-    "reasoningShareWhenFragmentOmitted": "95.6%",
-    "tokenRatio": "~26x",
-    "latencyRatio": "~6x",
-    "productAlreadyDisables": true
-  },
+  "knownConfound": "B condition's judge prompt adds an ASR block; identical text flips judge-a. B1 B figures are an upper bound on the ASR cost. Uniform re-judge costs about 0.045 USD and is not yet run.",
+  "attribution": "bottleneck remains upstream recognition; the judge is not calibrated and cannot be acceptance",
   "scoresUnchanged": {
     "officialV1V2": "partial",
     "saSvEditRates": "unchanged",
     "semanticHumanReviewCount": 0
-  }
+  },
+  "schema": "belliedmonkey.qa.experiment-record.v1",
+  "kind": "exploratory component contrast, not a product metric and not a ranking"
 }

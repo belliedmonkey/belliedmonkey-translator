@@ -1,0 +1,44 @@
+{
+  "key": "en|Magnetic resonance imaging",
+  "lang": "en",
+  "title": "Magnetic resonance imaging",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "meaning fully preserved"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "all entities and numbers correctly rendered"
+      },
+      "negation": {
+        "pass": true,
+        "note": "negation preserved"
+      },
+      "omission": {
+        "pass": true,
+        "note": "no material omitted"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "no hallucination"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "terminology correctly translated"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "natural and fluent"
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0004016
+}

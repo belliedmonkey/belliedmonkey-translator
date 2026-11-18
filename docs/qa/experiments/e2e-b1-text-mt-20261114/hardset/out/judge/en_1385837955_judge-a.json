@@ -1,0 +1,44 @@
+{
+  "key": "en|Phonological rule",
+  "lang": "en",
+  "title": "Phonological rule",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "meaning fully preserved"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "all symbols and numbers correctly rendered"
+      },
+      "negation": {
+        "pass": true,
+        "note": "negation preserved"
+      },
+      "omission": {
+        "pass": true,
+        "note": "no material omitted"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "no added information"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "technical terms correctly translated"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "natural and fluent Chinese"
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0004172
+}

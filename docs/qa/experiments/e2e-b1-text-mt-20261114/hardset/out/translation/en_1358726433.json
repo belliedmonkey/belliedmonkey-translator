@@ -1,0 +1,28 @@
+{
+  "key": "en|Photosystem II",
+  "lang": "en",
+  "title": "Photosystem II",
+  "revid": 1358726433,
+  "url": "https://en.wikipedia.org/w/index.php?oldid=1358726433",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "zh-CN",
+  "source": "The oxygen-evolving complex is the site of water oxidation. It is a metallo-oxo cluster comprising four manganese ions (in oxidation states ranging from +3 to +4) and one divalent calcium ion. When it oxidizes water, producing oxygen gas and protons, it sequentially delivers the four electrons from water to a tyrosine (D1-Y161) sidechain and then to P680 itself. It is composed of three protein subunits, OEE1 (PsbO), OEE2 (PsbP) and OEE3 (PsbQ); a fourth PsbR peptide is associated nearby.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "放氧复合体是水氧化的场所。它是一个金属氧簇，包含四个锰离子（氧化态介于+3至+4之间）和一个二价钙离子。在氧化水并产生氧气和质子的过程中，它将来自水的四个电子依次传递到酪氨酸（D1-Y161）侧链，然后再传递给P680本身。该复合体由三个蛋白质亚基组成：OEE1（PsbO）、OEE2（PsbP）和OEE3（PsbQ）；另有一个PsbR肽段与其邻近结合。",
+  "usage": {
+    "prompt_tokens": 257,
+    "total_tokens": 379,
+    "completion_tokens": 122,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 257
+    }
+  },
+  "finishReason": "stop"
+}

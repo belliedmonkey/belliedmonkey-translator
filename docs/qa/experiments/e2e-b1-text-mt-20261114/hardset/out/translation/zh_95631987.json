@@ -1,0 +1,28 @@
+{
+  "key": "zh|通货膨胀",
+  "lang": "zh",
+  "title": "通货膨胀",
+  "revid": 95631987,
+  "url": "https://zh.wikipedia.org/w/index.php?oldid=95631987",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "en",
+  "source": "因為每一種測量法都基於他種測量法，並以固定模式結合在一起，經濟學家經常爭議在各測量法及通貨膨脹模式中是否有偏差存在。例如，Boskin委員會於1995年找出美國勞工部統計局（BLS）所計算出的CPI具有偏差。在對其偏差進行定量分析後，他們認為當年度的通貨膨脹遭過分誇大。因「快樂論」（hedonic）所帶來的科技創新增加與以平價品取代昂貴的商品，兩者都會降低CPI-U的昇高率。另一個例子是在1980年代早期，無人居住的出租單位並不計入CPI-U與CPI-W的租金收入部分；在加計此部分後，通貨膨脹率實際上是極度的受低估，於是在1982年的CPI計算中加入了這項改變。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "Because each measurement method is based on other methods and combined in a fixed pattern, economists often debate whether biases exist within these measurements and inflation models. For example, the Boskin Commission found in 1995 that the Consumer Price Index (CPI) calculated by the U.S. Bureau of Labor Statistics (BLS) contained bias. After quantitatively analyzing this bias, they concluded that inflation for that year had been overstated. Technological innovations driven by \"hedonic\" adjustments and the substitution of cheaper goods for more expensive ones both serve to reduce the rate of increase in the CPI-U. Another example is from the early 1980s, when vacant rental units were not included in the rent component of the CPI-U and CPI-W; after including this component, it became clear that inflation had been significantly underestimated, leading to the incorporation of this change into the CPI calculation in 1982.",
+  "usage": {
+    "prompt_tokens": 305,
+    "total_tokens": 491,
+    "completion_tokens": 186,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 305
+    }
+  },
+  "finishReason": "stop"
+}

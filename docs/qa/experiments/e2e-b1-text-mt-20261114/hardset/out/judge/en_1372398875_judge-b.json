@@ -1,0 +1,44 @@
+{
+  "key": "en|Messier object",
+  "lang": "en",
+  "title": "Messier object",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys all propositions from the source without addition or omission."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All proper names and numbers (Messier 1, M1, Crab Nebula, M31, Andromeda Galaxy) are correctly rendered."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negations present; polarity is preserved where applicable."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material content is omitted from the source."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No invented information; all content is faithful to the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Astronomical terms like 'supernova remnant', 'star cluster', and 'spiral galaxy' are accurately translated."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The Chinese translation reads naturally to a native speaker."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0002082
+}

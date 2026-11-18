@@ -1,0 +1,28 @@
+{
+  "key": "zh|地缘政治学",
+  "lang": "zh",
+  "title": "地缘政治学",
+  "revid": 94442908,
+  "url": "https://zh.wikipedia.org/w/index.php?oldid=94442908",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "en",
+  "source": "德國地緣政治興起於第一次世界大戰後，代表人物是德國將軍卡爾·豪斯霍弗爾，他推崇「國家有機體」與「心臟地帶」學說，並且深受「生存空間」（德語：Lebensraum）概念的影響。他認為，生存空間是國家發展的必要條件，因而國家掠奪更多的生存空間是合理的；而心臟地帶論也可以說明德國的戰略定位與對外戰略。1923年，他創辦了「地緣政治期刊」（德語：Zeitschrift für Geopolitik），推廣德國地緣政治的思想，日後被納粹德國作為政治宣傳的工具。德國地緣政治成為納粹德國擴張主義的後盾，連帶拖累了戰後地緣政治及政治地理學的地位與發展。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "German geopolitics emerged after World War I, with its leading figure being the German general Karl Haushofer. He championed the theories of the “state organism” and the “Heartland,” and was deeply influenced by the concept of “Lebensraum” (living space). He argued that Lebensraum was a necessary condition for national development, thereby justifying state expansion to acquire more living space. The Heartland theory also served to explain Germany’s strategic positioning and foreign policy. In 1923, he founded the Zeitschrift für Geopolitik (Journal of Geopolitics) to promote German geopolitical ideas, which were later exploited as tools of political propaganda by Nazi Germany. German geopolitics became an ideological underpinning for Nazi expansionism, consequently undermining the status and development of geopolitics and political geography in the postwar era.",
+  "usage": {
+    "prompt_tokens": 292,
+    "total_tokens": 462,
+    "completion_tokens": 170,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 292
+    }
+  },
+  "finishReason": "stop"
+}

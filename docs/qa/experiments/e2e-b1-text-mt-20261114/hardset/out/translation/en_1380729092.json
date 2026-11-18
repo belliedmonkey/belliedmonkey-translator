@@ -1,0 +1,28 @@
+{
+  "key": "en|Basel III",
+  "lang": "en",
+  "title": "Basel III",
+  "revid": 1380729092,
+  "url": "https://en.wikipedia.org/w/index.php?oldid=1380729092",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "zh-CN",
+  "source": "Basel III is a framework published by the Basel Committee on Banking Supervision (BCBS) in response to the deficiencies in financial regulation revealed by the 2008 financial crisis. It sets international standards and recommendations for bank capital requirements, stress tests, liquidity regulations, and leverage, with the goal of mitigating the risk of bank runs and bank failures. Basel III builds upon the standards of Basel II, introduced in 2004, and Basel I, introduced in 1988.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "巴塞尔协议III是巴塞尔银行监管委员会（BCBS）为应对2008年金融危机所暴露的金融监管缺陷而发布的框架。它为银行资本要求、压力测试、流动性监管和杠杆率设定了国际标准和建议，旨在降低银行挤兑和银行倒闭的风险。巴塞尔协议III建立在2004年推出的巴塞尔协议II和1988年推出的巴塞尔协议I的基础之上。",
+  "usage": {
+    "prompt_tokens": 228,
+    "total_tokens": 318,
+    "completion_tokens": 90,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 228
+    }
+  },
+  "finishReason": "stop"
+}

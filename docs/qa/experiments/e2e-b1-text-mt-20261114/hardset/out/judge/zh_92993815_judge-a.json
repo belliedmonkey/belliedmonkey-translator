@@ -1,0 +1,44 @@
+{
+  "key": "zh|胚胎幹細胞",
+  "lang": "zh",
+  "title": "胚胎幹細胞",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "meaning fully preserved"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "all names, places, and numbers correctly rendered"
+      },
+      "negation": {
+        "pass": true,
+        "note": "no negation issues"
+      },
+      "omission": {
+        "pass": true,
+        "note": "no material omissions"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "no hallucinations"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "domain terms correctly translated"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "natural and fluent English"
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0005
+}
