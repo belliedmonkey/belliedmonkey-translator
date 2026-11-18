@@ -1,0 +1,44 @@
+{
+  "key": "zh|关税",
+  "lang": "zh",
+  "title": "关税",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "meaning fully preserved"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "all entities and numbers correctly rendered"
+      },
+      "negation": {
+        "pass": true,
+        "note": "negation preserved"
+      },
+      "omission": {
+        "pass": true,
+        "note": "no material omissions"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "no hallucinations"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "terminology consistent and sensible"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "natural and fluent English"
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.000454
+}

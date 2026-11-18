@@ -1,0 +1,28 @@
+{
+  "key": "en|Radiocarbon dating",
+  "lang": "en",
+  "title": "Radiocarbon dating",
+  "revid": 1378950679,
+  "url": "https://en.wikipedia.org/w/index.php?oldid=1378950679",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "zh-CN",
+  "source": "Carbon dioxide produced in this way diffuses in the atmosphere, is dissolved in the ocean, and is taken up by plants via photosynthesis. Animals eat the plants, and ultimately the radiocarbon is distributed throughout the biosphere. The ratio of 14C to 12C is approximately 1.25 parts of 14C to 1012 parts of 12C. In addition, about 1% of the carbon atoms are of the stable isotope 13C.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "以这种方式产生的二氧化碳在大气中扩散，溶解于海洋，并通过光合作用被植物吸收。动物食用这些植物，最终放射性碳遍布整个生物圈。14C与12C的比例约为每10¹²份12C对应1.25份14C。此外，大约1%的碳原子是稳定同位素13C。",
+  "usage": {
+    "prompt_tokens": 231,
+    "total_tokens": 308,
+    "completion_tokens": 77,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 231
+    }
+  },
+  "finishReason": "stop"
+}

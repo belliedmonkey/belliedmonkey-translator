@@ -1,0 +1,44 @@
+{
+  "key": "en|Radiocarbon dating",
+  "lang": "en",
+  "title": "Radiocarbon dating",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation conveys all the original information accurately."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All isotopes and numerical ratios are correctly translated."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation is altered or lost."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information is omitted."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No information is added beyond the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Scientific terms are correctly and consistently translated."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in Chinese."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0004488
+}

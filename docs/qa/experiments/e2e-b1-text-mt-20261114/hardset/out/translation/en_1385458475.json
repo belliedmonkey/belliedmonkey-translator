@@ -1,0 +1,28 @@
+{
+  "key": "en|Habeas corpus",
+  "lang": "en",
+  "title": "Habeas corpus",
+  "revid": 1385458475,
+  "url": "https://en.wikipedia.org/w/index.php?oldid=1385458475",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "zh-CN",
+  "source": "In 1941, the Article 40 procedure was restricted by the Second Amendment. Prior to the amendment, a prisoner had the constitutional right to apply to any High Court judge for an enquiry into her detention, and to as many High Court judges as she wished. If the prisoner successfully challenged her detention before the High Court she was entitled to immediate, unconditional release.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "1941年，第二修正案对第40条程序进行了限制。在修正案通过之前，囚犯拥有宪法权利，可以向任何一名高等法院法官申请对其拘留情况进行审查，并且可以根据需要向任意数量的高等法院法官提出申请。如果囚犯在高等法院成功质疑其拘留的合法性，她有权获得立即且无条件的释放。",
+  "usage": {
+    "prompt_tokens": 201,
+    "total_tokens": 274,
+    "completion_tokens": 73,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 201
+    }
+  },
+  "finishReason": "stop"
+}

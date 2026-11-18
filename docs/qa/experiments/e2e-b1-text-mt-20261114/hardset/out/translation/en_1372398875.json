@@ -1,0 +1,28 @@
+{
+  "key": "en|Messier object",
+  "lang": "en",
+  "title": "Messier object",
+  "revid": 1372398875,
+  "url": "https://en.wikipedia.org/w/index.php?oldid=1372398875",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "zh-CN",
+  "source": "The catalogue consists of a diverse range of astronomical objects, from star clusters and nebulae to galaxies. For example, Messier 1 is a supernova remnant, known as the Crab Nebula, and the great spiral Andromeda Galaxy is M31. Further inclusions followed.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "该星表包含多种多样的天体，从星团和星云到星系。例如，梅西耶1（M1）是一个超新星遗迹，被称为蟹状星云；而巨大的螺旋星系仙女座星系则是M31。后续又增添了更多天体。",
+  "usage": {
+    "prompt_tokens": 185,
+    "total_tokens": 240,
+    "completion_tokens": 55,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 185
+    }
+  },
+  "finishReason": "stop"
+}

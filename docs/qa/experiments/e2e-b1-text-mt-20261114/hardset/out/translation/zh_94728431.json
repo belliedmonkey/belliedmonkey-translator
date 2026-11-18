@@ -1,0 +1,28 @@
+{
+  "key": "zh|公司法",
+  "lang": "zh",
+  "title": "公司法",
+  "revid": 94728431,
+  "url": "https://zh.wikipedia.org/w/index.php?oldid=94728431",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "en",
+  "source": "中華民國《公司法》第1條規定，公司是以營利為目的，依照公司法組織、登記、成立之社團法人。第2條規定，公司可分為無限公司、有限公司、兩合公司以及股份有限公司等4種。中華民國公司法基本上以股份有限公司為主要的規範主體，為其中最多條文規範的公司類型。整部公司法從公司的設立（發起設立、募集設立），股東會和董事會的召集程序、決議方法以及權限，監察人的職權，公司的分割、合併、解散、清算，關係企業等相關的制度均有所規定。另外需要注意的是，公司法關於股份有限公司這部分，尚會受到證券交易法的規制，此時證券交易法應該被視為公司法的特別法，而應優先適用。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "Article 1 of the Company Act of the Republic of China stipulates that a company is a corporate legal entity established for profit-making purposes, organized, registered, and incorporated in accordance with the Company Act. Article 2 provides that companies may be classified into four types: unlimited companies, limited companies, mixed liability companies, and joint-stock limited companies. The Company Act of the Republic of China primarily regulates joint-stock limited companies, which are subject to the most extensive provisions under the law. The entire Company Act sets forth regulations concerning various systems, including company establishment (by promotion or by public offering), procedures for convening shareholders’ meetings and board of directors’ meetings, methods of resolution and their respective powers, the authority of supervisors, company spin-offs, mergers, dissolution, liquidation, and affiliated enterprises. It should also be noted that the provisions of the Company Act regarding joint-stock limited companies are further regulated by the Securities and Exchange Act. In this regard, the Securities and Exchange Act shall be regarded as a special law relative to the Company Act and shall take precedence in application.",
+  "usage": {
+    "prompt_tokens": 277,
+    "total_tokens": 494,
+    "completion_tokens": 217,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 277
+    }
+  },
+  "finishReason": "stop"
+}

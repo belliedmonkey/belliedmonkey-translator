@@ -1,0 +1,44 @@
+{
+  "key": "zh|通货膨胀",
+  "lang": "zh",
+  "title": "通货膨胀",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys all propositions from the source without addition or omission."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All entities (Boskin Committee, BLS, CPI, CPI-U, CPI-W) and dates (1995, 1980s, 1982) are correctly rendered."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negations such as 'not included' and 'underestimated' are correctly preserved."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information is omitted from the source text."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No content is invented; all statements are grounded in the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Technical terms like 'hedonic', 'CPI-U', 'substitution', and 'inflation models' are used accurately and consistently."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally and fluently in English."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.00028202
+}

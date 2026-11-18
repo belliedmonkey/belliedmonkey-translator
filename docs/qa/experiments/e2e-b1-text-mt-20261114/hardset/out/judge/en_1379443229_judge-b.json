@@ -1,0 +1,44 @@
+{
+  "key": "en|Debt-to-GDP ratio",
+  "lang": "en",
+  "title": "Debt-to-GDP ratio",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys all propositions from the source without addition or omission."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All country names and numerical values are correctly preserved."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negations present; polarity is not an issue."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information is omitted."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No content is invented beyond the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "'IMF World Economic Outlook Database' and 'debt-to-GDP ratio' are appropriately rendered in context."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in Chinese."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.000194
+}

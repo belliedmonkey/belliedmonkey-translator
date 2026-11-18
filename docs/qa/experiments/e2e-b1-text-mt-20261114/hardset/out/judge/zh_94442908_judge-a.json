@@ -1,0 +1,44 @@
+{
+  "key": "zh|地缘政治学",
+  "lang": "zh",
+  "title": "地缘政治学",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The candidate translation fully conveys the original meaning."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All names, dates, and terms are correctly preserved."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation errors found."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omissions detected."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No added or invented information."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Domain-specific terms are accurately translated."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in English."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0005272
+}

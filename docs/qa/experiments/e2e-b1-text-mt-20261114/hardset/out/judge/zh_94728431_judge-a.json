@@ -1,0 +1,44 @@
+{
+  "key": "zh|公司法",
+  "lang": "zh",
+  "title": "公司法",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The candidate translation fully conveys the meaning of the source."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All entities and numbers are correctly preserved."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation and polarity are accurately maintained."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information is omitted."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No information is invented or added."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is consistent and appropriate."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in English."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0005392
+}

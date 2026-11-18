@@ -1,0 +1,28 @@
+{
+  "key": "en|Phonological rule",
+  "lang": "en",
+  "title": "Phonological rule",
+  "revid": 1385837955,
+  "url": "https://en.wikipedia.org/w/index.php?oldid=1385837955",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "zh-CN",
+  "source": "[+syll⟨+high⟩]→[α back⟨β round⟩]/[+syllα backβ round]C0__ , All vowels will take on the [+/- back] value of the vowel that precedes it, regardless of the number of intervening consonants. If a vowel is [+ high], it will also take on the [+/- round] value of the preceding vowel, regardless of the number of intervening consonants.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "[+音节⟨+高⟩]→[α 后⟨β 圆⟩]/[+音节 α 后 β 圆]C0__ ，所有元音都将采用其前一个元音的[+/- 后]值，无论中间有多少辅音。如果元音是[+ 高]，它还将采用前一个元音的[+/- 圆]值，无论中间有多少辅音。",
+  "usage": {
+    "prompt_tokens": 218,
+    "total_tokens": 310,
+    "completion_tokens": 92,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 218
+    }
+  },
+  "finishReason": "stop"
+}

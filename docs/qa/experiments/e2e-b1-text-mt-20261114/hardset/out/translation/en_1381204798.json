@@ -1,0 +1,28 @@
+{
+  "key": "en|Roe deer",
+  "lang": "en",
+  "title": "Roe deer",
+  "revid": 1381204798,
+  "url": "https://en.wikipedia.org/w/index.php?oldid=1381204798",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "zh-CN",
+  "source": "The roe deer is a relatively small deer, with a body length of 95–135 cm (3 ft 1 in – 4 ft 5 in) throughout its range, and a shoulder height of 63–67 cm (2 ft 1 in – 2 ft 2 in), and an average weight of 20–25 kg (45–55 lb). In healthy populations, where population density is restricted by hunting or predators, bucks are slightly larger than does. Under other conditions, males can be similar in size to females, or slightly smaller, with weights ranging from 15–35 kg (35–75 lb).",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "狍是一种体型相对较小的鹿，在其分布范围内，体长为95–135厘米（3英尺1英寸–4英尺5英寸），肩高为63–67厘米（2英尺1英寸–2英尺2英寸），平均体重为20–25千克（45–55磅）。在受狩猎或捕食者限制种群密度的健康种群中，雄狍略大于雌狍。在其他条件下，雄性可能与雌性体型相近，或略小，体重范围为15–35千克（35–75磅）。",
+  "usage": {
+    "prompt_tokens": 269,
+    "total_tokens": 391,
+    "completion_tokens": 122,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 269
+    }
+  },
+  "finishReason": "stop"
+}

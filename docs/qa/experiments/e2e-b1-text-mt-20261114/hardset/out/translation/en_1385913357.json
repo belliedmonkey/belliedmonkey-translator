@@ -1,0 +1,28 @@
+{
+  "key": "en|United States Electoral College",
+  "lang": "en",
+  "title": "United States Electoral College",
+  "revid": 1385913357,
+  "url": "https://en.wikipedia.org/w/index.php?oldid=1385913357",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "zh-CN",
+  "source": "The merit of the electoral college system has been a matter of ongoing debate in the United States since its inception at the Constitutional Convention in 1787, becoming more controversial by the latter years of the 19th century, up to the present day. Over 1,000 constitutional amendments have been introduced to change the Electoral College. An amendment that would have abolished the system was approved by the House in 1969, but failed to move past the Senate.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "自1787年制宪会议创立以来，选举人团制度的优劣在美国一直备受争议，并在19世纪后期至今变得愈发具有争议性。已有超过1,000项宪法修正案被提出以改革选举人团制度。一项旨在废除该制度的修正案于1969年在众议院获得通过，但未能参议院审议通过。",
+  "usage": {
+    "prompt_tokens": 224,
+    "total_tokens": 300,
+    "completion_tokens": 76,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 224
+    }
+  },
+  "finishReason": "stop"
+}

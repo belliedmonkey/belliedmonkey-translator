@@ -1,0 +1,28 @@
+{
+  "key": "zh|光合作用",
+  "lang": "zh",
+  "title": "光合作用",
+  "revid": 94770718,
+  "url": "https://zh.wikipedia.org/w/index.php?oldid=94770718",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "en",
+  "source": "地球上的光合作用始于太古宙中期的原始微生物菌落中，使得自养生物不再依赖海底热泉提供化合作用所需的热能、无机物和酸碱度，生物圈得以脱离深海向浅海和潮间带扩展。光合作用也因此彻底取代化合作用成为主流初级生产模式。初期的光合作用主要是不产氧的，形式包括直接吸收日光驅動跨膜蛋白生产三磷酸腺苷和通过分解硫化物（如硫化氢）生产碳水化合物；但随着蓝绿菌和其后来与真核细胞发生内共生后演化出的原始质体生物（藻类和植物）的出现和演化辐射，通过分解水来进行固碳的产氧光合作用在元古宙成为主流。此类光合自养者使用卟啉衍生物——叶绿素作为反应中心的感光色素，主要吸收可见光谱中的红蓝色波段（不吸收绿光，因此呈现绿色），并以此光分解水分子获取氢正离子将二氧化碳聚合成碳水化合物，其过程中会释放游离态的单质氧气作为副产物，其理论最高能量轉換效率約為4.6～6％，实际效率仅有1.9～2.5％。光合自养者生产的有机物可以被不参与初级生产的异养生物（消费者和分解者）摄入并消化，然后通过食物链将生物能传递给其它营养级更高的生物供其生存和种群繁衍。光合作用因此是除深海以外絕大多數生态系统賴以维持的關鍵，也是地球碳循环和氧循环中最重要的一环。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "Photosynthesis on Earth originated in primitive microbial colonies during the mid-Archean Eon, enabling autotrophs to no longer rely on the thermal energy, inorganic substances, and pH conditions provided by deep-sea hydrothermal vents for chemosynthesis. This allowed the biosphere to expand from the deep ocean to shallow seas and intertidal zones. Consequently, photosynthesis completely replaced chemosynthesis as the dominant mode of primary production. Early photosynthesis was primarily anoxygenic, taking forms such as the direct absorption of sunlight to drive transmembrane proteins in producing adenosine triphosphate (ATP), or the production of carbohydrates through the breakdown of sulfides (such as hydrogen sulfide). However, with the emergence and evolutionary radiation of cyanobacteria and their descendants—primitive plastid-bearing organisms (algae and plants) that evolved through endosymbiosis with eukaryotic cells—oxygenic photosynthesis, which fixes carbon by splitting water, became mainstream during the Proterozoic Eon. These photoautotrophs use porphyrin derivatives, specifically chlorophyll, as light-sensing pigments in their reaction centers. Chlorophyll primarily absorbs red and blue wavelengths of the visible spectrum (while not absorbing green light, hence its green appearance), using this light energy to split water molecules and obtain hydrogen ions to polymerize carbon dioxide into carbohydrates. This process releases free molecular oxygen as a byproduct. The theoretical maximum energy conversion efficiency is approximately 4.6–6%, while the actual efficiency is only 1.9–2.5%. The organic matter produced by photoautotrophs can be ingested and digested by heterotrophs (consumers and decomposers) that do not participate in primary production. Through food chains, biological energy is then transferred to organisms at higher trophic levels, supporting their survival and population reproduction. Therefore, photosynthesis is key to sustaining most ecosystems, except those in the deep sea, and constitutes the most critical component of Earth's carbon and oxygen cycles.",
+  "usage": {
+    "prompt_tokens": 431,
+    "total_tokens": 850,
+    "completion_tokens": 419,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 431
+    }
+  },
+  "finishReason": "stop"
+}

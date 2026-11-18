@@ -1,0 +1,28 @@
+{
+  "key": "zh|著作權",
+  "lang": "zh",
+  "title": "著作權",
+  "revid": 93830700,
+  "url": "https://zh.wikipedia.org/w/index.php?oldid=93830700",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "en",
+  "source": "著作权曾被称为版权，至今在中华人民共和国法律中仍然将两者等同。“版权”最初的涵义是copyright（版和权），也就是复制权。此乃因過去印刷術的不普及，當時社會認為附隨於著作物最重要之權利莫過於將之印刷出版之權，故有此稱呼。不過隨著時代演進及科技的進步，著作的種類逐漸增加。世界上第一部版权法，英国《安娜法令》开始保护作者的权利，而不仅仅是出版者的权利。1791年，法国颁布了《表演权法》，开始重视保护作者的表演权利。1793年又颁布了《作者权法》，作者的精神权利得到了进一步的重视。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "Copyright was once referred to as “banquan” (literally, “plate right”), and under the laws of the People’s Republic of China, the two terms are still treated as equivalent. The original meaning of “banquan” was copyright—“ban” referring to printing plates and “quan” to rights—essentially denoting the right of reproduction. This terminology arose because printing technology was not widely available in the past; at that time, society regarded the most important right attached to a work as the right to print and publish it. However, with the passage of time and advances in technology, the varieties of creative works have gradually increased. The world’s first copyright law, Britain’s Statute of Anne, began to protect authors’ rights rather than solely those of publishers. In 1791, France enacted the Performance Rights Act, placing greater emphasis on protecting authors’ performance rights. In 1793, it further promulgated the Authors’ Rights Act, which gave additional recognition to authors’ moral rights.",
+  "usage": {
+    "prompt_tokens": 266,
+    "total_tokens": 476,
+    "completion_tokens": 210,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 266
+    }
+  },
+  "finishReason": "stop"
+}

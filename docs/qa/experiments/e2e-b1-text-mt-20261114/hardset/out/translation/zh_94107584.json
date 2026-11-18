@@ -1,0 +1,28 @@
+{
+  "key": "zh|关税",
+  "lang": "zh",
+  "title": "关税",
+  "revid": 94107584,
+  "url": "https://zh.wikipedia.org/w/index.php?oldid=94107584",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "en",
+  "source": "關稅也可能在選舉前成為政治議題。1832年的「廢除危機」（Nullification Crisis）即起因於美國國會通過一項新的關稅法案，而該法案是在當年聯邦選舉前數月通過，南卡羅來納州對此表示強烈不滿，情勢一度瀕臨內戰。2007年澳洲聯邦大選前，澳洲工黨宣布若當選將對澳洲汽車關稅政策進行檢討；自由黨亦作出類似承諾，而無黨籍候選人尼克・色諾芬則宣布，他將以「緊急事項」的方式推動以關稅為核心的立法。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "Tariffs may also become a political issue before elections. The 1832 “Nullification Crisis” was triggered when the U.S. Congress passed a new tariff bill just months before that year’s federal election, sparking intense outrage in South Carolina and bringing the nation to the brink of civil war. Ahead of Australia’s 2007 federal election, the Australian Labor Party announced it would review Australia’s automotive tariff policy if elected; the Liberal Party made a similar pledge, while independent candidate Nick Xenophon declared he would introduce tariff-centered legislation as a matter of urgency.",
+  "usage": {
+    "prompt_tokens": 255,
+    "total_tokens": 371,
+    "completion_tokens": 116,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 255
+    }
+  },
+  "finishReason": "stop"
+}

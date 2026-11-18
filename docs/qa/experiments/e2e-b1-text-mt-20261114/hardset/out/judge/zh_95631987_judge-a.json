@@ -1,0 +1,44 @@
+{
+  "key": "zh|通货膨胀",
+  "lang": "zh",
+  "title": "通货膨胀",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The candidate translation accurately conveys the full meaning of the source text."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All entities and numbers are correctly preserved."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation and polarity are correctly maintained."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information is omitted."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No information is invented or added."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is consistent and appropriate."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in English."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0005416
+}

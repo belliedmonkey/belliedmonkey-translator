@@ -1,0 +1,28 @@
+{
+  "key": "en|Tidal locking",
+  "lang": "en",
+  "title": "Tidal locking",
+  "revid": 1378366143,
+  "url": "https://en.wikipedia.org/w/index.php?oldid=1378366143",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "zh-CN",
+  "source": "Many exoplanets (especially the close-in ones) are expected to be in spin–orbit resonances higher than 1:1. A Mercury-like terrestrial planet can, for example, become captured in a 3:2, 2:1, or 5:2 spin–orbit resonance, with the probability of each being dependent on the orbital eccentricity.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "许多系外行星（尤其是那些轨道靠近恒星的）预计会处于高于1:1的自转-轨道共振状态。例如，一颗类似水星的类地行星可能会被捕获到3:2、2:1或5:2的自转-轨道共振中，每种情况的概率取决于其轨道偏心率。",
+  "usage": {
+    "prompt_tokens": 200,
+    "total_tokens": 267,
+    "completion_tokens": 67,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 200
+    }
+  },
+  "finishReason": "stop"
+}

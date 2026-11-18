@@ -1,0 +1,28 @@
+{
+  "key": "zh|生态系统",
+  "lang": "zh",
+  "title": "生态系统",
+  "revid": 95382636,
+  "url": "https://zh.wikipedia.org/w/index.php?oldid=95382636",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "en",
+  "source": "生態系統一詞，最早是由英國的生物學家Arthur Roy Clapham應Arthur Tansley的要求而提出，意指由物理因子與生物所構成的整個環境。1935年Arthur Tansley正式發表，將生態系統定義為在一定的空間內生物成分和非生物成分通過物質循環和能量流動而相互作用、互相依存而構成的一個生態學功能單位。Tansley認為生態系統不僅是自然單位，更是「心智上的隔離物」（英語：mental isolates）。他後來使用「英語：ecotope」一詞來定義生態系統的空間範圍。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "The term “ecosystem” was first coined by the British biologist Arthur Roy Clapham at the request of Arthur Tansley, referring to the entire environment composed of physical factors and living organisms. In 1935, Arthur Tansley formally published his definition, describing an ecosystem as an ecological functional unit in which biotic and abiotic components interact and depend on one another through material cycling and energy flow within a defined space. Tansley regarded ecosystems not only as natural units but also as “mental isolates.” He later used the term “ecotope” to define the spatial extent of ecosystems.",
+  "usage": {
+    "prompt_tokens": 247,
+    "total_tokens": 371,
+    "completion_tokens": 124,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 247
+    }
+  },
+  "finishReason": "stop"
+}

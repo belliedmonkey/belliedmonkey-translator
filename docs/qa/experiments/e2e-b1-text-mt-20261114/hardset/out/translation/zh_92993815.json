@@ -1,0 +1,28 @@
+{
+  "key": "zh|胚胎幹細胞",
+  "lang": "zh",
+  "title": "胚胎幹細胞",
+  "revid": 92993815,
+  "url": "https://zh.wikipedia.org/w/index.php?oldid=92993815",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "en",
+  "source": "1981年，英國劍橋大學遺傳學部中，兩個分別由马丁·埃文斯（Martin Evans）以及马修·考夫曼（Matthew Kaufman）率領的研究團隊分別在體外建立了小鼠胚胎幹細胞系。而胚胎幹細胞這一術語則是由加州大學舊金山分校（UCSF）解剖學部的教授蓋爾·馬丁（Gail R. Martin）於當年12月的一篇論文中首次提出。1998年，威斯康星大學教授詹姆斯·汤姆森（James Thomson）等人成功建立了人胚胎幹細胞系。2007年，马丁·埃文斯與另外兩名科學家因「利用胚胎幹細胞引入特異性基因修飾的原理上的發現」而獲得當年諾貝爾生理學或醫學獎。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "In 1981, two research teams at the Department of Genetics, University of Cambridge, UK, led respectively by Martin Evans and Matthew Kaufman, established mouse embryonic stem cell lines in vitro. The term “embryonic stem cells” was first coined by Gail R. Martin, a professor in the Department of Anatomy at the University of California, San Francisco (UCSF), in a paper published that December. In 1998, James Thomson, a professor at the University of Wisconsin, and his colleagues successfully established human embryonic stem cell lines. In 2007, Martin Evans, together with two other scientists, was awarded the Nobel Prize in Physiology or Medicine for their “discoveries of principles for introducing specific gene modifications in mice by the use of embryonic stem cells.”",
+  "usage": {
+    "prompt_tokens": 296,
+    "total_tokens": 461,
+    "completion_tokens": 165,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 296
+    }
+  },
+  "finishReason": "stop"
+}

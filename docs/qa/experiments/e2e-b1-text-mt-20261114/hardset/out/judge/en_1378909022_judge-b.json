@@ -1,0 +1,44 @@
+{
+  "key": "en|Tacit collusion",
+  "lang": "en",
+  "title": "Tacit collusion",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys all propositions from the source without addition or omission."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All brand names (BP, Caltex, Woolworths, Coles, Gull), location (Perth), and time range (2001 to 2015, 2010) are correctly preserved."
+      },
+      "negation": {
+        "pass": true,
+        "note": "There are no negations in the source, and none are introduced or altered in the translation."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information is omitted from the source."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No information is invented; all content in the translation is grounded in the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Domain terms like 'price leader', 'statistical analysis', 'tacit collusion', and 'margins' are accurately rendered in context."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The Chinese translation reads naturally and idiomatically to a native speaker."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0002504
+}

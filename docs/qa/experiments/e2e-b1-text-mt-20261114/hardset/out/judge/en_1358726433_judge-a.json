@@ -1,0 +1,44 @@
+{
+  "key": "en|Photosystem II",
+  "lang": "en",
+  "title": "Photosystem II",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The candidate translation fully conveys the original meaning."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All entities and numbers are accurately preserved."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation issues; polarity is maintained."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omissions detected."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No added or invented information."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is correctly and consistently translated."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in Chinese."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0004788
+}

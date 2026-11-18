@@ -1,0 +1,44 @@
+{
+  "key": "en|Habeas corpus",
+  "lang": "en",
+  "title": "Habeas corpus",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "meaning fully preserved"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "dates and article numbers correctly rendered"
+      },
+      "negation": {
+        "pass": true,
+        "note": "negation preserved"
+      },
+      "omission": {
+        "pass": true,
+        "note": "no material omission"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "no added information"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "legal terms correctly translated"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "natural and fluent Chinese"
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0004036
+}

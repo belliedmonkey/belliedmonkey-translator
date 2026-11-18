@@ -1,0 +1,28 @@
+{
+  "key": "en|Constitutional economics",
+  "lang": "en",
+  "title": "Constitutional economics",
+  "revid": 1368985777,
+  "url": "https://en.wikipedia.org/w/index.php?oldid=1368985777",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "zh-CN",
+  "source": "Writing in 1987 for the Yale Law School, Jonathan Macey synthesizes the history of constitutional economic analysis applied to the US Constitution. Macey offers a different analysis of the US Constitution and responds critically to Beard's view of the Constitution.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "1987年，乔纳森·梅西为耶鲁法学院撰文，综合梳理了应用于美国宪法的宪法经济分析史。梅西对美国宪法提出了不同的分析，并对比尔德的宪法观进行了批判性回应。",
+  "usage": {
+    "prompt_tokens": 176,
+    "total_tokens": 223,
+    "completion_tokens": 47,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 176
+    }
+  },
+  "finishReason": "stop"
+}

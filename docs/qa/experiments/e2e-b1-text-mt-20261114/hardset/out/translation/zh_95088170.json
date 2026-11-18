@@ -1,0 +1,28 @@
+{
+  "key": "zh|量子糾纏",
+  "lang": "zh",
+  "title": "量子糾纏",
+  "revid": 95088170,
+  "url": "https://zh.wikipedia.org/w/index.php?oldid=95088170",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "en",
+  "source": "阿爾伯特·愛因斯坦、鮑里斯·波多爾斯基和納森·羅森於1935年發表的爱因斯坦-波多尔斯基-罗森佯谬（EPR佯谬）論述到上述現象。埃爾溫·薛丁格稍後也發表幾篇關於量子糾纏的論文，並且給出「量子糾纏」這一術語。愛因斯坦認為這種行為違背定域實在論，稱之為「鬼魅般的超距作用」(spooky action at a distance)，他總結，量子力學的標準表述不具完備性。然而，多年來完成的多個實驗證實量子力學的反直覺預言正確無誤，還檢試出定域實在論不可能正確。甚至當對於兩個粒子分別做測量的時間間隔，比光波傳播於兩個測量位置所需的時間間隔還短暫之時，這現象依然發生，也就是說，量子糾纏的作用速度比光速還快。最近完成的一項實驗顯示，量子糾纏的作用速度至少比光速快10,000倍。這還只是速度下限。根據量子理論，測量的效應具有瞬時性質。可是，這效應不能被用來以超光速傳輸經典信息，因此并不違反因果律。詳情見通信禁律一文。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "Albert Einstein, Boris Podolsky, and Nathan Rosen addressed the aforementioned phenomenon in their 1935 paper on the Einstein–Podolsky–Rosen paradox (EPR paradox). Erwin Schrödinger later published several papers on quantum entanglement and coined the term “quantum entanglement.” Einstein believed that this behavior violated local realism, calling it “spooky action at a distance,” and concluded that the standard formulation of quantum mechanics is incomplete. However, numerous experiments conducted over the years have confirmed the counterintuitive predictions of quantum mechanics as correct and demonstrated that local realism cannot be valid. This phenomenon persists even when the time interval between measurements performed on two particles is shorter than the time required for light to travel between the two measurement locations; in other words, the effect of quantum entanglement propagates faster than the speed of light. A recent experiment has shown that the speed of quantum entanglement is at least 10,000 times faster than the speed of light, which represents only a lower bound. According to quantum theory, the effect of measurement is instantaneous. Nevertheless, this effect cannot be used to transmit classical information faster than light, so it does not violate causality. For details, see the article on the no-communication theorem.",
+  "usage": {
+    "prompt_tokens": 400,
+    "total_tokens": 660,
+    "completion_tokens": 260,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 400
+    }
+  },
+  "finishReason": "stop"
+}

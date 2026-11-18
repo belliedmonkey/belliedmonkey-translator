@@ -1,0 +1,44 @@
+{
+  "key": "zh|生态系统",
+  "lang": "zh",
+  "title": "生态系统",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The candidate translation fully conveys the meaning of the source text."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All names, dates, and terms are correctly preserved."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation errors found."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omissions detected."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No information added beyond the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is consistent and appropriate."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in English."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0004912
+}

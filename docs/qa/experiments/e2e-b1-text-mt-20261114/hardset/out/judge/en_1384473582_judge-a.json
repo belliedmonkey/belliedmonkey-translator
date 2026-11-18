@@ -1,0 +1,44 @@
+{
+  "key": "en|Semiconductor device fabrication",
+  "lang": "en",
+  "title": "Semiconductor device fabrication",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The candidate translation fully conveys the meaning of the source."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All numbers and terms like '14/10/7 nm nodes' and '11–13 weeks' are accurately preserved."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation or polarity changes detected."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omissions found."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No added or invented information."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Technical terms like 'clean room', 'fabs', 'automated material handling systems' are correctly translated."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in Chinese."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.0004968
+}

@@ -1,0 +1,44 @@
+{
+  "key": "zh|抗生素",
+  "lang": "zh",
+  "title": "抗生素",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys all propositions from the source without addition or omission."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All names (Alexander Fleming, Howard Florey, Ernst Chain), places (University of Oxford), dates (1928, 1929, 1939, 1945), and publications (British Journal of Experimental Pathology) are correctly ren"
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negations in the source are misrepresented."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information is omitted from the translation."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No content is invented beyond the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Domain terms like 'antibiotic', 'bactericidal substance', 'culture plates', and 'purified penicillin' are accurately and consistently translated."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally and fluently to a native English speaker."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.00028002
+}

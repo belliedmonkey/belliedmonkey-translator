@@ -1,0 +1,28 @@
+{
+  "key": "zh|抗生素",
+  "lang": "zh",
+  "title": "抗生素",
+  "revid": 94182039,
+  "url": "https://zh.wikipedia.org/w/index.php?oldid=94182039",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "en",
+  "source": "人类所认识的第一种抗生素——青黴素，是由微生物学家亚历山大·弗莱明于1928年偶然發現的。他從被黴菌汙染的葡萄球菌培養皿中，觀察到黴菌附近的細菌都無法生長，推測黴菌中可能有殺菌的物質。1929年，弗萊明將這個發現發表在《英國實驗病理學期刊》，但沒有得到重視。直到1939年，牛津大學的佛羅雷和錢恩想開發能醫療細菌感染的藥物，才在聯絡弗萊明取得菌株後，成功提煉出青霉素。弗萊明、佛羅雷與錢恩因此於1945年共同獲得諾貝爾生理學或醫學獎。",
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "Penicillin, the first antibiotic recognized by humans, was accidentally discovered in 1928 by microbiologist Alexander Fleming. Observing that bacteria near a mold contaminating his Staphylococcus culture plates failed to grow, he hypothesized that the mold might produce a bactericidal substance. In 1929, Fleming published this finding in the British Journal of Experimental Pathology, but it received little attention. It was not until 1939, when Howard Florey and Ernst Chain at the University of Oxford sought to develop drugs for treating bacterial infections, that they successfully purified penicillin after contacting Fleming to obtain the strain. For their contributions, Fleming, Florey, and Chain jointly received the Nobel Prize in Physiology or Medicine in 1945.",
+  "usage": {
+    "prompt_tokens": 289,
+    "total_tokens": 449,
+    "completion_tokens": 160,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 289
+    }
+  },
+  "finishReason": "stop"
+}

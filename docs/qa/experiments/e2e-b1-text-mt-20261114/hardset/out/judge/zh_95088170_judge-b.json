@@ -1,0 +1,44 @@
+{
+  "key": "zh|量子糾纏",
+  "lang": "zh",
+  "title": "量子糾纏",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys all propositions without addition or omission."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "Names (Einstein, Podolsky, Rosen, Schrödinger), the year 1935, and the figure 10,000 are correctly preserved."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negated concepts, such as 'does not violate causality', are correctly rendered."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material content is missing from the translation."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No information is invented beyond the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Technical terms like 'quantum entanglement', 'local realism', 'spooky action at a distance', and 'no-communication theorem' are accurately used."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The English translation reads naturally and is grammatically sound."
+      }
+    },
+    "findings": []
+  },
+  "providerUsd": 0.00030002
+}

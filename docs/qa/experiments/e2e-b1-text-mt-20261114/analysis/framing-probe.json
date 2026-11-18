@@ -1,0 +1,10 @@
+{
+  "schema": "belliedmonkey.e2e-b1.framing-probe.v1",
+  "question": "Is the A/B gap in B1 caused by content, or by the B prompt's extra 'what the system heard' block?",
+  "setup": "cmn_hans_cn/1679 has byte-identical source and translation in A and B. Re-judged with the two framings swapped.",
+  "results": [
+    { "text": "A", "framing": "B (with ASR block)", "judge-a": "meaning,hallucination", "judge-b": "pass" },
+    { "text": "B", "framing": "A (no ASR block)", "judge-a": "pass", "judge-b": "pass" }
+  ],
+  "conclusion": "Identical text, different framing, different verdict. Part of the B1 A-vs-B gap is prompt framing, so the published B numbers are an upper bound on the ASR cost until both conditions are re-judged with one identical prompt."
+}

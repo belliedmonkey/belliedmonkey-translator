@@ -1,0 +1,28 @@
+{
+  "key": "en|Bayesian inference",
+  "lang": "en",
+  "title": "Bayesian inference",
+  "revid": 1385049036,
+  "url": "https://en.wikipedia.org/w/index.php?oldid=1385049036",
+  "license": "CC BY-SA 4.0",
+  "targetLang": "zh-CN",
+  "source": "Suppose there are two full bowls of cookies. Bowl #1 has 10 chocolate chip and 30 plain cookies, while bowl #2 has 20 of each. Fred picks a bowl at random and then picks a cookie at random, which means that there is no reason to believe Fred treats one bowl differently from another, likewise for the cookies. The cookie turns out to be a plain one. As to how probable it is that Fred picked it out of bowl #1, that is an example of a Bayesian inference-approachable problem.",
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "httpStatus": 200,
+  "ok": true,
+  "translation": "假设有两满碗饼干。1号碗里有10块巧克力碎饼干和30块普通饼干，而2号碗里两种饼干各有20块。弗雷德随机选择一个碗，然后从中随机取出一块饼干，这意味着没有理由认为弗雷德对某个碗有偏好，对饼干也是如此。结果取出的是一块普通饼干。关于弗雷德从1号碗中取出这块饼干的概率有多大，这是一个可以用贝叶斯推断方法解决的问题。",
+  "usage": {
+    "prompt_tokens": 237,
+    "total_tokens": 332,
+    "completion_tokens": 95,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 237
+    }
+  },
+  "finishReason": "stop"
+}
