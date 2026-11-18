@@ -38,7 +38,11 @@ function cspSandbox() {
       } },
       runtime: {
         lastError: null,
-        sendMessage: (msg, cb) => { sent.push(msg); cb && cb({ ok: true }); },
+        sendMessage: (msg, cb) => {
+          // BEL-304：每页一次的 telemetryPing 不是批次，不记进 sent。
+          if (msg.action !== 'telemetryPing') sent.push(msg);
+          cb && cb({ ok: true });
+        },
       },
     },
   };
