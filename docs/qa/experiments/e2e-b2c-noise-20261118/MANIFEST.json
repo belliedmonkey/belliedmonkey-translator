@@ -1,0 +1,83 @@
+{
+  "record": "e2e-b2c-noise-20261118",
+  "date": "2026-11-18",
+  "question": "Is the product translation stage reproducible with a seed, and if not, what does that cost a benchmark score?",
+  "answer": "No. The endpoint accepts seed (HTTP 200) but does not honour it: 6 repeats at temperature 0 with seed=42 produced 1 to 5 distinct outputs per item, and the response carries no system_fingerprint. The judges are stable at item level (12/12 item x judge cells, 4 repeats each, zero flips), so the noise is in the translation, not in the verdict. Borderline items flip with the paraphrase: cmn_hans_cn/1671 passed 3 of 6 samples under judge-b while judge-a passed all six.",
+  "method": {
+    "endpoint": "https://maas.qwencloudapi.com/compatible-mode/v1/chat/completions",
+    "model": "qwen3.7-plus",
+    "systemPromptSha256": "75e06b87f485d0f505680a9763ad57103c8777cb28efc2777119aca2488a558b",
+    "judgePromptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+    "judges": ["openai/gpt-4.1-mini", "qwen/qwen3-235b-a22b-2507"],
+    "probes": [
+      "scripts/probe-seed.js — 6 items x 4 sampling conditions, 120 calls",
+      "scripts/probe-judge.js — same frozen translation x 4 repeats x 2 judges, 48 calls",
+      "scripts/probe-samples.js — 6 items x 6 independent translations, both judges, 72 calls"
+    ]
+  },
+  "seed": {
+    "accepted": true,
+    "honoured": false,
+    "systemFingerprintPresent": false,
+    "distinctOutputsPerItem": {
+      "t0": [1, 1, 2, 3, 3, 4],
+      "seed42": [1, 2, 2, 4, 5, 2],
+      "seed7": [1, 2, 2, 3, 4, 2],
+      "t1": [1, 3, 3, 4, 4, 4]
+    },
+    "maxRelativeEditDistanceAtTemp0": 0.429,
+    "tokens": { "prompt": 18300, "completion": 2952 }
+  },
+  "judgeRepeat": {
+    "calls": 48,
+    "itemLevelFlips": 0,
+    "cells": 12,
+    "dimensionFailSetsWobble": "judge-a on ascend/00028 gave 4 different failing-dimension sets in 4 repeats, all including meaning",
+    "providerUsd": 0.01629458
+  },
+  "sampleVerdicts": {
+    "calls": 72,
+    "providerUsd": 0.02403784,
+    "perItem": {
+      "fleurs-public-candidates/cmn_hans_cn/1671": { "pass": 3, "judged": 6, "rate": 0.5, "unstable": true },
+      "fleurs-public-candidates/en_us/1673": { "pass": 6, "judged": 6, "rate": 1 },
+      "fleurs-public-candidates/en_us/1681": { "pass": 6, "judged": 6, "rate": 1 },
+      "ascend/00004": { "pass": 0, "judged": 6, "rate": 0 },
+      "fleurs-public-candidates/cmn_hans_cn/1679": { "pass": 6, "judged": 6, "rate": 1 },
+      "fleurs-public-candidates/en_us/1682": { "pass": 0, "judged": 6, "rate": 0 }
+    },
+    "runScore": 0.583,
+    "runSe": 0.034
+  },
+  "protocol": {
+    "module": "docs/qa/checks/repro-aggregate.js",
+    "test": "test/qa-repro-aggregate.test.js",
+    "rules": [
+      "a sample counts only when both judges return a complete seven-dimension verdict",
+      "a sample passes only when every dimension passes for both judges",
+      "an item's score is its sample pass rate, not a binary draw",
+      "items with 0 < passCount < judged are marked unstable and reported",
+      "a run's score is the unweighted mean of item pass rates, with a binomial SE and 95% interval"
+    ],
+    "samplesNeededFor36Items": {
+      "1": { "judgeCalls": 72, "usd": 0.024, "sePoints": 3.4 },
+      "3": { "judgeCalls": 216, "usd": 0.072, "sePoints": 2.0 },
+      "5": { "judgeCalls": 360, "usd": 0.12, "sePoints": 1.5 },
+      "12": { "judgeCalls": 864, "usd": 0.289, "sePoints": 1.0 }
+    },
+    "assumption": "1 in 6 items sits on the judge threshold; the interval on that share is wide (0 to 40%) on 6 items"
+  },
+  "productImplication": "The same sentence with the same settings returns a different translation across calls; seed cannot pin it, and the response has no system_fingerprint to separate a model change from sampling noise.",
+  "notMeasured": [
+    "more than 6 items and more than one provider",
+    "whether judge-b's meaning failure on two paraphrases of cmn_hans_cn/1671 is a real loss or an over-strict scale",
+    "dimension-level confidence intervals (attribution is not reproducible)",
+    "translation USD (no unit price in the repo)"
+  ],
+  "spend": {
+    "seedProbeUsd": null,
+    "judgeRepeatProbeUsd": 0.01629458,
+    "sampleJudgeUsd": 0.02403784,
+    "totalUsd": 0.04033242
+  }
+}

@@ -1,0 +1,634 @@
+{
+  "schema": "belliedmonkey.e2e-b2c.noise.v1",
+  "measuredAt": "2026-11-18",
+  "endpoint": "qwencloud compatible-mode chat/completions",
+  "model": "qwen3.7-plus",
+  "seedProbe": {
+    "calls": 120,
+    "conditions": [
+      "t0",
+      "seed42",
+      "seed7",
+      "t1"
+    ],
+    "tokens": {
+      "prompt": 18300,
+      "completion": 2952
+    },
+    "seedAccepted": true,
+    "systemFingerprintPresent": false,
+    "rows": [
+      {
+        "itemId": "ascend/00004",
+        "condition": "seed42",
+        "calls": 6,
+        "ok": 6,
+        "distinctOutputs": 2,
+        "outputs": 2,
+        "parseFails": 0
+      },
+      {
+        "itemId": "ascend/00004",
+        "condition": "seed7",
+        "calls": 4,
+        "ok": 4,
+        "distinctOutputs": 2,
+        "outputs": 2,
+        "parseFails": 0
+      },
+      {
+        "itemId": "ascend/00004",
+        "condition": "t0",
+        "calls": 6,
+        "ok": 6,
+        "distinctOutputs": 2,
+        "outputs": 2,
+        "parseFails": 0
+      },
+      {
+        "itemId": "ascend/00004",
+        "condition": "t1",
+        "calls": 4,
+        "ok": 4,
+        "distinctOutputs": 3,
+        "outputs": 3,
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+        "condition": "seed42",
+        "calls": 6,
+        "ok": 6,
+        "distinctOutputs": 4,
+        "outputs": 4,
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+        "condition": "seed7",
+        "calls": 4,
+        "ok": 4,
+        "distinctOutputs": 2,
+        "outputs": 2,
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+        "condition": "t0",
+        "calls": 6,
+        "ok": 6,
+        "distinctOutputs": 3,
+        "outputs": 3,
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+        "condition": "t1",
+        "calls": 4,
+        "ok": 4,
+        "distinctOutputs": 4,
+        "outputs": 4,
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+        "condition": "seed42",
+        "calls": 6,
+        "ok": 6,
+        "distinctOutputs": 1,
+        "outputs": 1,
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+        "condition": "seed7",
+        "calls": 4,
+        "ok": 4,
+        "distinctOutputs": 1,
+        "outputs": 1,
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+        "condition": "t0",
+        "calls": 6,
+        "ok": 6,
+        "distinctOutputs": 1,
+        "outputs": 1,
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+        "condition": "t1",
+        "calls": 4,
+        "ok": 4,
+        "distinctOutputs": 1,
+        "outputs": 1,
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1673",
+        "condition": "seed42",
+        "calls": 6,
+        "ok": 6,
+        "distinctOutputs": 2,
+        "outputs": 2,
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1673",
+        "condition": "seed7",
+        "calls": 4,
+        "ok": 4,
+        "distinctOutputs": 2,
+        "outputs": 2,
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1673",
+        "condition": "t0",
+        "calls": 6,
+        "ok": 6,
+        "distinctOutputs": 1,
+        "outputs": 1,
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1673",
+        "condition": "t1",
+        "calls": 4,
+        "ok": 4,
+        "distinctOutputs": 4,
+        "outputs": 4,
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1681",
+        "condition": "seed42",
+        "calls": 6,
+        "ok": 6,
+        "distinctOutputs": 5,
+        "outputs": 5,
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1681",
+        "condition": "seed7",
+        "calls": 4,
+        "ok": 4,
+        "distinctOutputs": 4,
+        "outputs": 4,
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1681",
+        "condition": "t0",
+        "calls": 6,
+        "ok": 6,
+        "distinctOutputs": 4,
+        "outputs": 4,
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1681",
+        "condition": "t1",
+        "calls": 4,
+        "ok": 4,
+        "distinctOutputs": 4,
+        "outputs": 4,
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1682",
+        "condition": "seed42",
+        "calls": 6,
+        "ok": 6,
+        "distinctOutputs": 2,
+        "outputs": 2,
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1682",
+        "condition": "seed7",
+        "calls": 4,
+        "ok": 4,
+        "distinctOutputs": 3,
+        "outputs": 3,
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1682",
+        "condition": "t0",
+        "calls": 6,
+        "ok": 6,
+        "distinctOutputs": 3,
+        "outputs": 3,
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1682",
+        "condition": "t1",
+        "calls": 4,
+        "ok": 4,
+        "distinctOutputs": 4,
+        "outputs": 4,
+        "parseFails": 0
+      }
+    ]
+  },
+  "judgeRepeatProbe": {
+    "calls": 48,
+    "rows": [
+      {
+        "itemId": "ascend/00028",
+        "judgeId": "judge-a",
+        "calls": 4,
+        "judged": 4,
+        "itemPass": 0,
+        "itemFail": 4,
+        "distinctDimFailSets": 4,
+        "failSets": [
+          "meaning,entities_numbers,terminology",
+          "meaning,entities_numbers,omission,hallucination,terminology",
+          "meaning,entities_numbers,hallucination,terminology",
+          "meaning,hallucination"
+        ],
+        "parseFails": 0
+      },
+      {
+        "itemId": "ascend/00028",
+        "judgeId": "judge-b",
+        "calls": 4,
+        "judged": 4,
+        "itemPass": 0,
+        "itemFail": 4,
+        "distinctDimFailSets": 1,
+        "failSets": [
+          "meaning,entities_numbers,omission,hallucination,terminology"
+        ],
+        "parseFails": 0
+      },
+      {
+        "itemId": "ascend/00055",
+        "judgeId": "judge-a",
+        "calls": 4,
+        "judged": 4,
+        "itemPass": 4,
+        "itemFail": 0,
+        "distinctDimFailSets": 1,
+        "failSets": [
+          "(all pass)"
+        ],
+        "parseFails": 0
+      },
+      {
+        "itemId": "ascend/00055",
+        "judgeId": "judge-b",
+        "calls": 4,
+        "judged": 4,
+        "itemPass": 4,
+        "itemFail": 0,
+        "distinctDimFailSets": 1,
+        "failSets": [
+          "(all pass)"
+        ],
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1668",
+        "judgeId": "judge-a",
+        "calls": 4,
+        "judged": 4,
+        "itemPass": 4,
+        "itemFail": 0,
+        "distinctDimFailSets": 1,
+        "failSets": [
+          "(all pass)"
+        ],
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1668",
+        "judgeId": "judge-b",
+        "calls": 4,
+        "judged": 4,
+        "itemPass": 0,
+        "itemFail": 4,
+        "distinctDimFailSets": 2,
+        "failSets": [
+          "meaning,terminology",
+          "meaning,entities_numbers,terminology"
+        ],
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+        "judgeId": "judge-a",
+        "calls": 4,
+        "judged": 4,
+        "itemPass": 4,
+        "itemFail": 0,
+        "distinctDimFailSets": 1,
+        "failSets": [
+          "(all pass)"
+        ],
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+        "judgeId": "judge-b",
+        "calls": 4,
+        "judged": 4,
+        "itemPass": 4,
+        "itemFail": 0,
+        "distinctDimFailSets": 1,
+        "failSets": [
+          "(all pass)"
+        ],
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1672",
+        "judgeId": "judge-a",
+        "calls": 4,
+        "judged": 4,
+        "itemPass": 4,
+        "itemFail": 0,
+        "distinctDimFailSets": 1,
+        "failSets": [
+          "(all pass)"
+        ],
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1672",
+        "judgeId": "judge-b",
+        "calls": 4,
+        "judged": 4,
+        "itemPass": 4,
+        "itemFail": 0,
+        "distinctDimFailSets": 1,
+        "failSets": [
+          "(all pass)"
+        ],
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1680",
+        "judgeId": "judge-a",
+        "calls": 4,
+        "judged": 4,
+        "itemPass": 0,
+        "itemFail": 4,
+        "distinctDimFailSets": 2,
+        "failSets": [
+          "meaning,omission,hallucination",
+          "meaning,omission"
+        ],
+        "parseFails": 0
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1680",
+        "judgeId": "judge-b",
+        "calls": 4,
+        "judged": 4,
+        "itemPass": 0,
+        "itemFail": 4,
+        "distinctDimFailSets": 1,
+        "failSets": [
+          "meaning,omission"
+        ],
+        "parseFails": 0
+      }
+    ]
+  },
+  "sampleVerdicts": {
+    "calls": 72,
+    "items": [
+      {
+        "itemId": "ascend/00004",
+        "samples": 6,
+        "judged": 6,
+        "passCount": 0,
+        "failCount": 6,
+        "passRate": 0,
+        "enoughSamples": true,
+        "unstable": false,
+        "unanimous": true,
+        "majority": false,
+        "ci95": {
+          "low": 0,
+          "high": 0.390334
+        },
+        "failedDims": {
+          "judge-a": [
+            "hallucination",
+            "meaning",
+            "omission"
+          ],
+          "judge-b": [
+            "fluency",
+            "hallucination",
+            "meaning",
+            "omission"
+          ]
+        }
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+        "samples": 6,
+        "judged": 6,
+        "passCount": 3,
+        "failCount": 3,
+        "passRate": 0.5,
+        "enoughSamples": true,
+        "unstable": true,
+        "unanimous": false,
+        "majority": false,
+        "ci95": {
+          "low": 0.187616,
+          "high": 0.812384
+        },
+        "failedDims": {
+          "judge-b": [
+            "meaning",
+            "omission"
+          ]
+        }
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+        "samples": 6,
+        "judged": 6,
+        "passCount": 6,
+        "failCount": 0,
+        "passRate": 1,
+        "enoughSamples": true,
+        "unstable": false,
+        "unanimous": true,
+        "majority": true,
+        "ci95": {
+          "low": 0.609666,
+          "high": 1
+        },
+        "failedDims": {}
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1673",
+        "samples": 6,
+        "judged": 6,
+        "passCount": 6,
+        "failCount": 0,
+        "passRate": 1,
+        "enoughSamples": true,
+        "unstable": false,
+        "unanimous": true,
+        "majority": true,
+        "ci95": {
+          "low": 0.609666,
+          "high": 1
+        },
+        "failedDims": {}
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1681",
+        "samples": 6,
+        "judged": 6,
+        "passCount": 6,
+        "failCount": 0,
+        "passRate": 1,
+        "enoughSamples": true,
+        "unstable": false,
+        "unanimous": true,
+        "majority": true,
+        "ci95": {
+          "low": 0.609666,
+          "high": 1
+        },
+        "failedDims": {}
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1682",
+        "samples": 6,
+        "judged": 6,
+        "passCount": 0,
+        "failCount": 6,
+        "passRate": 0,
+        "enoughSamples": true,
+        "unstable": false,
+        "unanimous": true,
+        "majority": false,
+        "ci95": {
+          "low": 0,
+          "high": 0.390334
+        },
+        "failedDims": {
+          "judge-a": [
+            "entities_numbers",
+            "hallucination",
+            "meaning"
+          ],
+          "judge-b": [
+            "entities_numbers",
+            "hallucination",
+            "meaning",
+            "omission",
+            "terminology"
+          ]
+        }
+      }
+    ],
+    "itemPassRates": [
+      {
+        "itemId": "ascend/00004",
+        "passCount": 0,
+        "judged": 6,
+        "passRate": 0,
+        "unstable": false,
+        "ci95": {
+          "low": 0,
+          "high": 0.390334
+        }
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+        "passCount": 3,
+        "judged": 6,
+        "passRate": 0.5,
+        "unstable": true,
+        "ci95": {
+          "low": 0.187616,
+          "high": 0.812384
+        }
+      },
+      {
+        "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+        "passCount": 6,
+        "judged": 6,
+        "passRate": 1,
+        "unstable": false,
+        "ci95": {
+          "low": 0.609666,
+          "high": 1
+        }
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1673",
+        "passCount": 6,
+        "judged": 6,
+        "passRate": 1,
+        "unstable": false,
+        "ci95": {
+          "low": 0.609666,
+          "high": 1
+        }
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1681",
+        "passCount": 6,
+        "judged": 6,
+        "passRate": 1,
+        "unstable": false,
+        "ci95": {
+          "low": 0.609666,
+          "high": 1
+        }
+      },
+      {
+        "itemId": "fleurs-public-candidates/en_us/1682",
+        "passCount": 0,
+        "judged": 6,
+        "passRate": 0,
+        "unstable": false,
+        "ci95": {
+          "low": 0,
+          "high": 0.390334
+        }
+      }
+    ],
+    "run": {
+      "items": 6,
+      "score": 0.583333,
+      "se": 0.034021,
+      "ci95": {
+        "low": 0.516654,
+        "high": 0.650013
+      },
+      "unstableItems": [
+        "fleurs-public-candidates/cmn_hans_cn/1671"
+      ],
+      "unanimousItems": 5
+    }
+  },
+  "spend": {
+    "judgeRepeatProbeUsd": 0.01629458,
+    "sampleJudgeUsd": 0.02403784,
+    "totalUsd": 0.04033242
+  },
+  "wilsonCheck": {
+    "threeOfSix": {
+      "low": 0.187616,
+      "high": 0.812384
+    }
+  }
+}
