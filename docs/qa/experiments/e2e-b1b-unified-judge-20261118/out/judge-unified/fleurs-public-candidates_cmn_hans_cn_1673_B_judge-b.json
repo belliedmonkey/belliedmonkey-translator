@@ -1,0 +1,71 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1673|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "0e6702291290fefe2643299cb6a00216b7ff25b1353a05db0d9d5ee40b14b0c1",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys the formation of a weak central government under the Articles of Confederation during the Revolutionary War, with Congress as its sole component."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "'十三个州' is correctly rendered as 'the 13 states'; '联邦条例' as 'Articles of Confederation'; '国会' as 'Congress'."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negations present; polarity is preserved."
+      },
+      "omission": {
+        "pass": true,
+        "note": "All key elements from the source are included in the translation."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No invented information; all content is supported by the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Domain terms like 'Articles of Confederation' and 'central government' are correctly used."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The sentence reads naturally in English."
+      }
+    },
+    "findings": []
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 414,
+    "completion_tokens": 216,
+    "total_tokens": 630,
+    "cost": 0.00022644,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00022644,
+      "upstream_inference_prompt_cost": 0.00005364,
+      "upstream_inference_completions_cost": 0.0001728
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00022644
+}

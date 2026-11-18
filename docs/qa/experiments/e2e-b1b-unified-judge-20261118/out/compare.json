@@ -1,0 +1,360 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.compare.v1",
+  "oldB": {
+    "per": {
+      "meaning": {
+        "pass": 42,
+        "total": 72
+      },
+      "entities_numbers": {
+        "pass": 54,
+        "total": 72
+      },
+      "negation": {
+        "pass": 72,
+        "total": 72
+      },
+      "omission": {
+        "pass": 57,
+        "total": 72
+      },
+      "hallucination": {
+        "pass": 53,
+        "total": 72
+      },
+      "terminology": {
+        "pass": 62,
+        "total": 72
+      },
+      "fluency": {
+        "pass": 72,
+        "total": 72
+      }
+    },
+    "all": 40,
+    "verdicts": 72
+  },
+  "newB": {
+    "per": {
+      "meaning": {
+        "pass": 47,
+        "total": 71
+      },
+      "entities_numbers": {
+        "pass": 62,
+        "total": 71
+      },
+      "negation": {
+        "pass": 71,
+        "total": 71
+      },
+      "omission": {
+        "pass": 58,
+        "total": 71
+      },
+      "hallucination": {
+        "pass": 55,
+        "total": 71
+      },
+      "terminology": {
+        "pass": 63,
+        "total": 71
+      },
+      "fluency": {
+        "pass": 70,
+        "total": 71
+      }
+    },
+    "all": 47,
+    "verdicts": 71
+  },
+  "newA": {
+    "per": {
+      "meaning": {
+        "pass": 72,
+        "total": 72
+      },
+      "entities_numbers": {
+        "pass": 72,
+        "total": 72
+      },
+      "negation": {
+        "pass": 72,
+        "total": 72
+      },
+      "omission": {
+        "pass": 72,
+        "total": 72
+      },
+      "hallucination": {
+        "pass": 72,
+        "total": 72
+      },
+      "terminology": {
+        "pass": 72,
+        "total": 72
+      },
+      "fluency": {
+        "pass": 72,
+        "total": 72
+      }
+    },
+    "all": 72,
+    "verdicts": 72
+  },
+  "pairLevel": {
+    "oldB": {
+      "pairs": 36,
+      "both": 14,
+      "anyOne": 12,
+      "neither": 10,
+      "failing": [
+        "ascend/00004|B",
+        "ascend/00009|B",
+        "ascend/00028|B",
+        "ascend/00068|B",
+        "fleurs-public-candidates/cmn_hans_cn/1668|B",
+        "fleurs-public-candidates/cmn_hans_cn/1670|B",
+        "fleurs-public-candidates/cmn_hans_cn/1671|B",
+        "fleurs-public-candidates/cmn_hans_cn/1675|B",
+        "fleurs-public-candidates/cmn_hans_cn/1677|B",
+        "fleurs-public-candidates/cmn_hans_cn/1678|B",
+        "fleurs-public-candidates/cmn_hans_cn/1679|B",
+        "fleurs-public-candidates/cmn_hans_cn/1680|B",
+        "fleurs-public-candidates/cmn_hans_cn/1682|B",
+        "fleurs-public-candidates/en_us/1669|B",
+        "fleurs-public-candidates/en_us/1670|B",
+        "fleurs-public-candidates/en_us/1674|B",
+        "fleurs-public-candidates/en_us/1675|B",
+        "fleurs-public-candidates/en_us/1678|B",
+        "fleurs-public-candidates/en_us/1679|B",
+        "fleurs-public-candidates/en_us/1680|B",
+        "fleurs-public-candidates/en_us/1681|B",
+        "fleurs-public-candidates/en_us/1682|B"
+      ]
+    },
+    "newB": {
+      "pairs": 35,
+      "both": 22,
+      "anyOne": 3,
+      "neither": 10,
+      "failing": [
+        "ascend/00004|B",
+        "ascend/00009|B",
+        "ascend/00028|B",
+        "ascend/00068|B",
+        "fleurs-public-candidates/cmn_hans_cn/1668|B",
+        "fleurs-public-candidates/cmn_hans_cn/1670|B",
+        "fleurs-public-candidates/cmn_hans_cn/1671|B",
+        "fleurs-public-candidates/cmn_hans_cn/1675|B",
+        "fleurs-public-candidates/cmn_hans_cn/1678|B",
+        "fleurs-public-candidates/cmn_hans_cn/1680|B",
+        "fleurs-public-candidates/en_us/1675|B",
+        "fleurs-public-candidates/en_us/1678|B",
+        "fleurs-public-candidates/en_us/1680|B"
+      ]
+    },
+    "newA": {
+      "pairs": 36,
+      "both": 36,
+      "anyOne": 0,
+      "neither": 0,
+      "failing": []
+    }
+  },
+  "items": {
+    "total": 36,
+    "aPass": 36,
+    "bPass": 22,
+    "aThenBFail": 14,
+    "unscorable": 0
+  },
+  "identicalTranslationPairs": [
+    {
+      "itemId": "ascend/00066",
+      "aSignature": "PPPPPPP/PPPPPPP",
+      "bSignature": "PPPPPPP/PPPPPPP",
+      "same": true
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+      "aSignature": "PPPPPPP/PPPPPPP",
+      "bSignature": "PPPPPPP/PPPPPPP",
+      "same": true
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+      "aSignature": "PPPPPPP/PPPPPPP",
+      "bSignature": "PPPPPPP/PPPPPPP",
+      "same": true
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1677",
+      "aSignature": "PPPPPPP/PPPPPPP",
+      "bSignature": "PPPPPPP/PPPPPPP",
+      "same": true
+    }
+  ],
+  "flips": [
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+      "judge": "judge-b",
+      "old": "fail",
+      "now": "pass",
+      "dimsChanged": [
+        "entities_numbers"
+      ]
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+      "judge": "judge-a",
+      "old": "fail",
+      "now": "pass",
+      "dimsChanged": [
+        "meaning",
+        "entities_numbers"
+      ]
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "judge": "judge-a",
+      "old": "pass",
+      "now": "fail",
+      "dimsChanged": [
+        "meaning"
+      ]
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1682",
+      "judge": "judge-b",
+      "old": "fail",
+      "now": "pass",
+      "dimsChanged": [
+        "meaning"
+      ]
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1669",
+      "judge": "judge-a",
+      "old": "fail",
+      "now": "pass",
+      "dimsChanged": [
+        "entities_numbers"
+      ]
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1669",
+      "judge": "judge-b",
+      "old": "fail",
+      "now": "pass",
+      "dimsChanged": [
+        "meaning",
+        "entities_numbers",
+        "omission"
+      ]
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1670",
+      "judge": "judge-b",
+      "old": "fail",
+      "now": "pass",
+      "dimsChanged": [
+        "meaning",
+        "entities_numbers",
+        "omission",
+        "hallucination"
+      ]
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1674",
+      "judge": "judge-b",
+      "old": "fail",
+      "now": "pass",
+      "dimsChanged": [
+        "meaning",
+        "omission"
+      ]
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1678",
+      "judge": "judge-a",
+      "old": "pass",
+      "now": "fail",
+      "dimsChanged": [
+        "meaning",
+        "entities_numbers"
+      ]
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1679",
+      "judge": "judge-b",
+      "old": "fail",
+      "now": "pass",
+      "dimsChanged": [
+        "meaning"
+      ]
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1681",
+      "judge": "judge-b",
+      "old": "fail",
+      "now": "pass",
+      "dimsChanged": [
+        "meaning"
+      ]
+    }
+  ],
+  "hardset": [
+    {
+      "itemId": "en_1378366143",
+      "judgeId": "judge-a",
+      "allPass": true,
+      "failing": []
+    },
+    {
+      "itemId": "en_1378366143",
+      "judgeId": "judge-b",
+      "allPass": true,
+      "failing": []
+    },
+    {
+      "itemId": "en_1385049036",
+      "judgeId": "judge-a",
+      "allPass": true,
+      "failing": []
+    },
+    {
+      "itemId": "en_1385049036",
+      "judgeId": "judge-b",
+      "allPass": true,
+      "failing": []
+    },
+    {
+      "itemId": "en_1385458475",
+      "judgeId": "judge-a",
+      "allPass": true,
+      "failing": []
+    },
+    {
+      "itemId": "en_1385458475",
+      "judgeId": "judge-b",
+      "allPass": true,
+      "failing": []
+    },
+    {
+      "itemId": "zh_92816176",
+      "judgeId": "judge-a",
+      "allPass": true,
+      "failing": []
+    },
+    {
+      "itemId": "zh_92816176",
+      "judgeId": "judge-b",
+      "allPass": false,
+      "failing": [
+        "meaning",
+        "entities_numbers"
+      ]
+    }
+  ]
+}

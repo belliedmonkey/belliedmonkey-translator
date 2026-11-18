@@ -1,0 +1,90 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1675|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "f71a2d0560f92872e205f80a8f01085bc357a307d5fe9ea6d0dad313d62c89ab",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate incorrectly translates 'Sie' as 'the letter C', completely altering the meaning."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "'Sie' is a formal pronoun in German, not a letter; mistranslation as 'letter C' misrepresents the entity."
+      },
+      "negation": {
+        "pass": true,
+        "note": "The scope of negation ('except for') is correctly rendered."
+      },
+      "omission": {
+        "pass": false,
+        "note": "The omission of the correct meaning of 'Sie' as a pronoun results in loss of key information."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The introduction of 'the letter C' is a hallucination not supported by the source."
+      },
+      "terminology": {
+        "pass": false,
+        "note": "'Sie' is a standard German pronoun and should not be translated as a letter."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The sentence is fluent in English."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "除去表示您的“Sie”之外的所有名词",
+        "targetQuote": "All nouns, except for the letter C representing you",
+        "reason": "'Sie' is a formal second-person pronoun in German, not 'the letter C'; this fundamentally distorts the meaning."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "“Sie”",
+        "targetQuote": "the letter C",
+        "reason": "'Sie' is incorrectly rendered as a letter, which is not an accurate representation of the German pronoun."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "表示您的“Sie”",
+        "targetQuote": "the letter C representing you",
+        "reason": "The idea of a 'letter C' is entirely fabricated and not present or implied in the source."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 407,
+    "completion_tokens": 367,
+    "total_tokens": 774,
+    "cost": 0.00034626,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00034626,
+      "upstream_inference_prompt_cost": 0.00005266,
+      "upstream_inference_completions_cost": 0.0002936
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00034626
+}

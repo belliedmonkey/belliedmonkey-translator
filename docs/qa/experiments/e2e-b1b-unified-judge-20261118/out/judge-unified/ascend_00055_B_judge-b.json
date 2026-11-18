@@ -1,0 +1,71 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "ascend/00055|B",
+  "itemId": "ascend/00055",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "13f09558872d382d8b3282d1fabd3d5ca1c4b74345a7c06b53da2b0c6f0a5595",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "short"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "short"
+      },
+      "negation": {
+        "pass": true,
+        "note": "short"
+      },
+      "omission": {
+        "pass": true,
+        "note": "short"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "short"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "short"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "short"
+      }
+    },
+    "findings": []
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 377,
+    "completion_tokens": 100,
+    "total_tokens": 477,
+    "cost": 0.00012846,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00012846,
+      "upstream_inference_prompt_cost": 0.00004846,
+      "upstream_inference_completions_cost": 0.00008
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00012846
+}

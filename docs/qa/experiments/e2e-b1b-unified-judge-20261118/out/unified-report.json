@@ -1,0 +1,97 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.report.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "perCondition": {
+    "A": {
+      "verdicts": 72,
+      "allPass": 72,
+      "dims": {
+        "meaning": {
+          "pass": 72,
+          "total": 72
+        },
+        "entities_numbers": {
+          "pass": 72,
+          "total": 72
+        },
+        "negation": {
+          "pass": 72,
+          "total": 72
+        },
+        "omission": {
+          "pass": 72,
+          "total": 72
+        },
+        "hallucination": {
+          "pass": 72,
+          "total": 72
+        },
+        "terminology": {
+          "pass": 72,
+          "total": 72
+        },
+        "fluency": {
+          "pass": 72,
+          "total": 72
+        }
+      }
+    },
+    "B": {
+      "verdicts": 71,
+      "allPass": 47,
+      "dims": {
+        "meaning": {
+          "pass": 47,
+          "total": 71
+        },
+        "entities_numbers": {
+          "pass": 62,
+          "total": 71
+        },
+        "negation": {
+          "pass": 71,
+          "total": 71
+        },
+        "omission": {
+          "pass": 58,
+          "total": 71
+        },
+        "hallucination": {
+          "pass": 55,
+          "total": 71
+        },
+        "terminology": {
+          "pass": 63,
+          "total": 71
+        },
+        "fluency": {
+          "pass": 70,
+          "total": 71
+        }
+      }
+    }
+  },
+  "pairLevel": {
+    "A": {
+      "pairs": 36,
+      "bothJudgesAllPass": 36,
+      "anyJudgeAllPass": 36,
+      "eitherJudgeFails": 0
+    },
+    "B": {
+      "pairs": 35,
+      "bothJudgesAllPass": 22,
+      "anyJudgeAllPass": 25,
+      "eitherJudgeFails": 13
+    }
+  },
+  "judgeAgreement": {
+    "pairs": 71,
+    "agree": 60,
+    "disagree": 11
+  },
+  "calls": 144,
+  "parsed": 143,
+  "providerUsd": 0.04367117
+}

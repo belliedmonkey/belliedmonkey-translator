@@ -1,0 +1,90 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1668|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1668",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "0c1fb467ee46078abdc3f751b1dbb3c836952d5e99f80e2e4a8b28f46374cfe2",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The translation inaccurately renders '万能卡（Wild Card）' as 'Universal Card' instead of 'Wild Card', which distorts the meaning. Additionally, 'some parks or all of the national parks' ambiguously sugges"
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "'万能卡（Wild Card）' is incorrectly translated as 'Universal Card' rather than retaining 'Wild Card', which is provided in parentheses in the source. This misrepresents the proper name of the card."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negations present; polarity is preserved."
+      },
+      "omission": {
+        "pass": true,
+        "note": "All content from the source is included."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No invented information beyond the source."
+      },
+      "terminology": {
+        "pass": false,
+        "note": "'万能卡' is a branded or domain-specific term paired with 'Wild Card' in parentheses, which should be preserved. Translating it as 'Universal Card' instead of 'Wild Card' shows incorrect handling of doma"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in English."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "万能卡（Wild Card）",
+        "targetQuote": "Universal Card",
+        "reason": "The term 'Wild Card' is given in parentheses in the source as the official name, but the translation uses 'Universal Card', which alters the intended meaning and brand reference."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "万能卡（Wild Card）",
+        "targetQuote": "Universal Card",
+        "reason": "The proper name 'Wild Card' is explicitly provided in the source and must be preserved; translating it as 'Universal Card' misrepresents the entity."
+      },
+      {
+        "dimension": "terminology",
+        "sourceQuote": "万能卡（Wild Card）",
+        "targetQuote": "Universal Card",
+        "reason": "Domain-specific terminology with an official English equivalent in parentheses must be accurately rendered; 'Wild Card' should have been used instead of 'Universal Card'."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 412,
+    "completion_tokens": 476,
+    "total_tokens": 888,
+    "cost": 0.00043416,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00043416,
+      "upstream_inference_prompt_cost": 0.00005336,
+      "upstream_inference_completions_cost": 0.0003808
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00043416
+}

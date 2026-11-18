@@ -1,0 +1,216 @@
+2026-11-18T00:32:50.770Z resume: 0 records on disk, spent so far 0.00000000
+2026-11-18T00:32:52.746Z judge ascend/00004|A judge-a ok=true parsed usd=0.0003192
+2026-11-18T00:32:55.126Z judge ascend/00004|A judge-b ok=true parsed usd=0.0001338
+2026-11-18T00:32:58.337Z judge ascend/00004|B judge-a ok=true parsed usd=0.0005936
+2026-11-18T00:33:04.374Z judge ascend/00004|B judge-b ok=true parsed usd=0.00026404
+2026-11-18T00:33:06.042Z judge ascend/00009|A judge-a ok=true parsed usd=0.0003424
+2026-11-18T00:33:11.935Z judge ascend/00009|A judge-b ok=true parsed usd=0.0001332
+2026-11-18T00:33:15.007Z judge ascend/00009|B judge-a ok=true parsed usd=0.000658
+2026-11-18T00:33:24.886Z judge ascend/00009|B judge-b ok=true parsed usd=0.00028294
+2026-11-18T00:33:26.495Z judge ascend/00028|A judge-a ok=true parsed usd=0.0003168
+2026-11-18T00:33:29.083Z judge ascend/00028|A judge-b ok=true parsed usd=0.00013096
+2026-11-18T00:33:31.685Z judge ascend/00028|B judge-a ok=true parsed usd=0.0005116
+2026-11-18T00:33:36.232Z judge ascend/00028|B judge-b ok=true parsed usd=0.0002369
+2026-11-18T00:33:37.773Z judge ascend/00055|A judge-a ok=true parsed usd=0.0003436
+2026-11-18T00:33:44.128Z judge ascend/00055|A judge-b ok=true parsed usd=0.00012846
+2026-11-18T00:33:45.729Z judge ascend/00055|B judge-a ok=true parsed usd=0.0003228
+2026-11-18T00:33:49.258Z judge ascend/00055|B judge-b ok=true parsed usd=0.00012846
+2026-11-18T00:33:51.012Z judge ascend/00066|A judge-a ok=true parsed usd=0.0003172
+2026-11-18T00:33:53.353Z judge ascend/00066|A judge-b ok=true parsed usd=0.00012678
+2026-11-18T00:33:55.541Z judge ascend/00066|B judge-a ok=true parsed usd=0.0003172
+2026-11-18T00:33:59.951Z judge ascend/00066|B judge-b ok=true parsed usd=0.00012975
+2026-11-18T00:34:01.445Z judge ascend/00068|A judge-a ok=true parsed usd=0.0003168
+2026-11-18T00:34:04.603Z judge ascend/00068|A judge-b ok=true parsed usd=0.00012664
+2026-11-18T00:34:08.165Z judge ascend/00068|B judge-a ok=true parsed usd=0.0006596
+2026-11-18T00:34:19.512Z judge ascend/00068|B judge-b ok=true parsed usd=0.00025798
+2026-11-18T00:34:21.663Z judge fleurs-public-candidates/cmn_hans_cn/1668|A judge-a ok=true parsed usd=0.0003852
+2026-11-18T00:34:26.584Z judge fleurs-public-candidates/cmn_hans_cn/1668|A judge-b ok=true parsed usd=0.00019312
+2026-11-18T00:34:28.752Z judge fleurs-public-candidates/cmn_hans_cn/1668|B judge-a ok=true parsed usd=0.0003936
+2026-11-18T00:34:41.306Z judge fleurs-public-candidates/cmn_hans_cn/1668|B judge-b ok=true parsed usd=0.00043416
+2026-11-18T00:34:43.103Z judge fleurs-public-candidates/cmn_hans_cn/1669|A judge-a ok=true parsed usd=0.0003724
+2026-11-18T00:34:47.083Z judge fleurs-public-candidates/cmn_hans_cn/1669|A judge-b ok=true parsed usd=0.00019516
+2026-11-18T00:34:48.955Z judge fleurs-public-candidates/cmn_hans_cn/1669|B judge-a ok=true parsed usd=0.000372
+2026-11-18T00:34:51.918Z judge fleurs-public-candidates/cmn_hans_cn/1669|B judge-b ok=true parsed usd=0.00013182
+2026-11-18T00:34:53.948Z judge fleurs-public-candidates/cmn_hans_cn/1670|A judge-a ok=true parsed usd=0.00043
+2026-11-18T00:34:58.467Z judge fleurs-public-candidates/cmn_hans_cn/1670|A judge-b ok=true parsed usd=0.00014526
+2026-11-18T00:35:01.716Z judge fleurs-public-candidates/cmn_hans_cn/1670|B judge-a ok=true parsed usd=0.0006568
+2026-11-18T00:35:12.895Z judge fleurs-public-candidates/cmn_hans_cn/1670|B judge-b ok=true parsed usd=0.00034592
+2026-11-18T00:35:14.796Z judge fleurs-public-candidates/cmn_hans_cn/1671|A judge-a ok=true parsed usd=0.0003896
+2026-11-18T00:35:23.713Z judge fleurs-public-candidates/cmn_hans_cn/1671|A judge-b ok=true parsed usd=0.00020925
+2026-11-18T00:35:26.005Z judge fleurs-public-candidates/cmn_hans_cn/1671|B judge-a ok=true parsed usd=0.000406
+2026-11-18T00:35:38.570Z judge fleurs-public-candidates/cmn_hans_cn/1671|B judge-b ok=true parsed usd=0.0003027
+2026-11-18T00:35:40.195Z judge fleurs-public-candidates/cmn_hans_cn/1672|A judge-a ok=true parsed usd=0.0003636
+2026-11-18T00:35:45.414Z judge fleurs-public-candidates/cmn_hans_cn/1672|A judge-b ok=true parsed usd=0.0002094
+2026-11-18T00:35:47.198Z judge fleurs-public-candidates/cmn_hans_cn/1672|B judge-a ok=true parsed usd=0.0003592
+2026-11-18T00:35:51.129Z judge fleurs-public-candidates/cmn_hans_cn/1672|B judge-b ok=true parsed usd=0.00021026
+2026-11-18T00:35:53.075Z judge fleurs-public-candidates/cmn_hans_cn/1673|A judge-a ok=true parsed usd=0.0003928
+2026-11-18T00:35:57.537Z judge fleurs-public-candidates/cmn_hans_cn/1673|A judge-b ok=true parsed usd=0.0002319
+2026-11-18T00:35:59.318Z judge fleurs-public-candidates/cmn_hans_cn/1673|B judge-a ok=true parsed usd=0.0004408
+2026-11-18T00:36:04.005Z judge fleurs-public-candidates/cmn_hans_cn/1673|B judge-b ok=true parsed usd=0.00022644
+2026-11-18T00:36:05.653Z judge fleurs-public-candidates/cmn_hans_cn/1674|A judge-a ok=true parsed usd=0.0003672
+2026-11-18T00:36:14.458Z judge fleurs-public-candidates/cmn_hans_cn/1674|A judge-b ok=true parsed usd=0.00013395
+2026-11-18T00:36:16.446Z judge fleurs-public-candidates/cmn_hans_cn/1674|B judge-a ok=true parsed usd=0.0003836
+2026-11-18T00:36:19.553Z judge fleurs-public-candidates/cmn_hans_cn/1674|B judge-b ok=true parsed usd=0.0001341
+2026-11-18T00:36:21.248Z judge fleurs-public-candidates/cmn_hans_cn/1675|A judge-a ok=true parsed usd=0.0003672
+2026-11-18T00:36:29.794Z judge fleurs-public-candidates/cmn_hans_cn/1675|A judge-b ok=true parsed usd=0.00019802
+2026-11-18T00:36:32.284Z judge fleurs-public-candidates/cmn_hans_cn/1675|B judge-a ok=true parsed usd=0.000468
+2026-11-18T00:36:52.890Z judge fleurs-public-candidates/cmn_hans_cn/1675|B judge-b ok=true parsed usd=0.00034626
+2026-11-18T00:36:54.430Z judge fleurs-public-candidates/cmn_hans_cn/1676|A judge-a ok=true parsed usd=0.0003548
+2026-11-18T00:37:08.480Z judge fleurs-public-candidates/cmn_hans_cn/1676|A judge-b ok=true parsed usd=0.00013335
+2026-11-18T00:37:10.362Z judge fleurs-public-candidates/cmn_hans_cn/1676|B judge-a ok=true parsed usd=0.0003584
+2026-11-18T00:37:14.054Z judge fleurs-public-candidates/cmn_hans_cn/1676|B judge-b ok=true parsed usd=0.00013028
+2026-11-18T00:37:16.167Z judge fleurs-public-candidates/cmn_hans_cn/1677|A judge-a ok=true parsed usd=0.0003556
+2026-11-18T00:37:20.297Z judge fleurs-public-candidates/cmn_hans_cn/1677|A judge-b ok=true parsed usd=0.00018162
+2026-11-18T00:37:22.202Z judge fleurs-public-candidates/cmn_hans_cn/1677|B judge-a ok=true parsed usd=0.0003556
+2026-11-18T00:37:25.177Z judge fleurs-public-candidates/cmn_hans_cn/1677|B judge-b ok=true parsed usd=0.00013365
+2026-11-18T00:37:27.111Z judge fleurs-public-candidates/cmn_hans_cn/1678|A judge-a ok=true parsed usd=0.0003972
+2026-11-18T00:37:30.680Z judge fleurs-public-candidates/cmn_hans_cn/1678|A judge-b ok=true parsed usd=0.00020006
+2026-11-18T00:37:32.799Z judge fleurs-public-candidates/cmn_hans_cn/1678|B judge-a ok=true parsed usd=0.0003968
+2026-11-18T00:37:38.351Z judge fleurs-public-candidates/cmn_hans_cn/1678|B judge-b ok=true parsed usd=0.0003648
+2026-11-18T00:37:40.407Z judge fleurs-public-candidates/cmn_hans_cn/1679|A judge-a ok=true parsed usd=0.0004168
+2026-11-18T00:37:43.724Z judge fleurs-public-candidates/cmn_hans_cn/1679|A judge-b ok=true parsed usd=0.0001293
+2026-11-18T00:37:45.752Z judge fleurs-public-candidates/cmn_hans_cn/1679|B judge-a ok=true parsed usd=0.00042
+2026-11-18T00:37:54.676Z judge fleurs-public-candidates/cmn_hans_cn/1679|B judge-b ok=true parsed usd=0.0001293
+2026-11-18T00:37:56.654Z judge fleurs-public-candidates/cmn_hans_cn/1680|A judge-a ok=true parsed usd=0.0004084
+2026-11-18T00:38:01.569Z judge fleurs-public-candidates/cmn_hans_cn/1680|A judge-b ok=true parsed usd=0.00018732
+2026-11-18T00:38:04.435Z judge fleurs-public-candidates/cmn_hans_cn/1680|B judge-a ok=true parsed usd=0.0006212
+2026-11-18T00:38:13.333Z judge fleurs-public-candidates/cmn_hans_cn/1680|B judge-b ok=true parsed usd=0.00035292
+2026-11-18T00:38:15.049Z judge fleurs-public-candidates/cmn_hans_cn/1681|A judge-a ok=true parsed usd=0.000396
+2026-11-18T00:38:17.336Z judge fleurs-public-candidates/cmn_hans_cn/1681|A judge-b ok=true parsed usd=0.0001342
+2026-11-18T00:38:19.083Z judge fleurs-public-candidates/cmn_hans_cn/1681|B judge-a ok=true parsed usd=0.0003816
+2026-11-18T00:38:21.786Z judge fleurs-public-candidates/cmn_hans_cn/1681|B judge-b ok=true parsed usd=0.0001342
+2026-11-18T00:38:23.798Z judge fleurs-public-candidates/cmn_hans_cn/1682|A judge-a ok=true parsed usd=0.0003728
+2026-11-18T00:38:27.040Z judge fleurs-public-candidates/cmn_hans_cn/1682|A judge-b ok=true parsed usd=0.0002064
+2026-11-18T00:38:28.848Z judge fleurs-public-candidates/cmn_hans_cn/1682|B judge-a ok=true parsed usd=0.0003724
+2026-11-18T00:38:34.010Z judge fleurs-public-candidates/cmn_hans_cn/1682|B judge-b ok=true parsed usd=0.00020866
+2026-11-18T00:38:35.697Z judge fleurs-public-candidates/en_us/1668|A judge-a ok=true parsed usd=0.0003912
+2026-11-18T00:38:38.660Z judge fleurs-public-candidates/en_us/1668|A judge-b ok=true parsed usd=0.0001374
+2026-11-18T00:38:40.332Z judge fleurs-public-candidates/en_us/1668|B judge-a ok=true parsed usd=0.0003612
+2026-11-18T00:38:43.954Z judge fleurs-public-candidates/en_us/1668|B judge-b ok=true parsed usd=0.0001335
+2026-11-18T00:38:45.651Z judge fleurs-public-candidates/en_us/1669|A judge-a ok=true parsed usd=0.0003604
+2026-11-18T00:38:47.999Z judge fleurs-public-candidates/en_us/1669|A judge-b ok=true parsed usd=0.00013485
+2026-11-18T00:38:50.157Z judge fleurs-public-candidates/en_us/1669|B judge-a ok=true parsed usd=0.000362
+2026-11-18T00:38:53.999Z judge fleurs-public-candidates/en_us/1669|B judge-b ok=true parsed usd=0.00013154
+2026-11-18T00:38:55.679Z judge fleurs-public-candidates/en_us/1670|A judge-a ok=true parsed usd=0.0004024
+2026-11-18T00:38:58.450Z judge fleurs-public-candidates/en_us/1670|A judge-b ok=true parsed usd=0.00014568
+2026-11-18T00:39:00.046Z judge fleurs-public-candidates/en_us/1670|B judge-a ok=true parsed usd=0.0004104
+2026-11-18T00:39:01.011Z judge fleurs-public-candidates/en_us/1670|B judge-b ok=true parsed usd=0.0001588
+2026-11-18T00:39:03.264Z judge fleurs-public-candidates/en_us/1671|A judge-a ok=true parsed usd=0.0003668
+2026-11-18T00:39:05.175Z judge fleurs-public-candidates/en_us/1671|A judge-b ok=true parsed usd=0.0002286
+2026-11-18T00:39:06.977Z judge fleurs-public-candidates/en_us/1671|B judge-a ok=true parsed usd=0.0003668
+2026-11-18T00:39:09.952Z judge fleurs-public-candidates/en_us/1671|B judge-b ok=true parsed usd=0.0001349
+2026-11-18T00:39:11.876Z judge fleurs-public-candidates/en_us/1672|A judge-a ok=true parsed usd=0.0003776
+2026-11-18T00:39:16.563Z judge fleurs-public-candidates/en_us/1672|A judge-b ok=true parsed usd=0.0002073
+2026-11-18T00:39:18.503Z judge fleurs-public-candidates/en_us/1672|B judge-a ok=true parsed usd=0.0003608
+2026-11-18T00:39:21.451Z judge fleurs-public-candidates/en_us/1672|B judge-b ok=true parsed usd=0.00013545
+2026-11-18T00:39:23.315Z judge fleurs-public-candidates/en_us/1673|A judge-a ok=true parsed usd=0.000392
+2026-11-18T00:39:26.100Z judge fleurs-public-candidates/en_us/1673|A judge-b ok=true parsed usd=0.00013378
+2026-11-18T00:39:27.994Z judge fleurs-public-candidates/en_us/1673|B judge-a ok=true parsed usd=0.00037
+2026-11-18T00:39:30.502Z judge fleurs-public-candidates/en_us/1673|B judge-b ok=true parsed usd=0.00013392
+2026-11-18T00:39:32.312Z judge fleurs-public-candidates/en_us/1674|A judge-a ok=true parsed usd=0.0003504
+2026-11-18T00:39:34.509Z judge fleurs-public-candidates/en_us/1674|A judge-b ok=true parsed usd=0.00013098
+2026-11-18T00:39:35.977Z judge fleurs-public-candidates/en_us/1674|B judge-a ok=true parsed usd=0.0003492
+2026-11-18T00:39:41.307Z judge fleurs-public-candidates/en_us/1674|B judge-b ok=true parsed usd=0.0002214
+2026-11-18T00:39:43.301Z judge fleurs-public-candidates/en_us/1675|A judge-a ok=true parsed usd=0.0003788
+2026-11-18T00:39:47.752Z judge fleurs-public-candidates/en_us/1675|A judge-b ok=true parsed usd=0.00013252
+2026-11-18T00:39:51.796Z judge fleurs-public-candidates/en_us/1675|B judge-a ok=true parsed usd=0.0007972
+2026-11-18T00:40:00.139Z judge fleurs-public-candidates/en_us/1675|B judge-b ok=true parsed usd=0.0003521
+2026-11-18T00:40:01.788Z judge fleurs-public-candidates/en_us/1676|A judge-a ok=true parsed usd=0.0003768
+2026-11-18T00:40:04.159Z judge fleurs-public-candidates/en_us/1676|A judge-b ok=true parsed usd=0.0001307
+2026-11-18T00:40:05.769Z judge fleurs-public-candidates/en_us/1676|B judge-a ok=true parsed usd=0.0003532
+2026-11-18T00:40:08.839Z judge fleurs-public-candidates/en_us/1676|B judge-b ok=true parsed usd=0.0001341
+2026-11-18T00:40:10.604Z judge fleurs-public-candidates/en_us/1677|A judge-a ok=true parsed usd=0.0003536
+2026-11-18T00:40:14.830Z judge fleurs-public-candidates/en_us/1677|A judge-b ok=true parsed usd=0.00018816
+2026-11-18T00:40:16.441Z judge fleurs-public-candidates/en_us/1677|B judge-a ok=true parsed usd=0.0003552
+2026-11-18T00:40:18.992Z judge fleurs-public-candidates/en_us/1677|B judge-b ok=true parsed usd=0.00013056
+2026-11-18T00:40:20.685Z judge fleurs-public-candidates/en_us/1678|A judge-a ok=true parsed usd=0.0003648
+2026-11-18T00:40:26.383Z judge fleurs-public-candidates/en_us/1678|A judge-b ok=true parsed usd=0.00013518
+2026-11-18T00:40:30.581Z judge fleurs-public-candidates/en_us/1678|B judge-a ok=true parsed usd=0.0008896
+2026-11-18T00:40:40.169Z judge fleurs-public-candidates/en_us/1678|B judge-b ok=true parsed usd=0.00041358
+2026-11-18T00:40:41.849Z judge fleurs-public-candidates/en_us/1679|A judge-a ok=true parsed usd=0.0003556
+2026-11-18T00:40:44.488Z judge fleurs-public-candidates/en_us/1679|A judge-b ok=true parsed usd=0.00012916
+2026-11-18T00:40:46.163Z judge fleurs-public-candidates/en_us/1679|B judge-a ok=true parsed usd=0.000352
+2026-11-18T00:40:49.389Z judge fleurs-public-candidates/en_us/1679|B judge-b ok=true parsed usd=0.00012958
+2026-11-18T00:40:51.726Z judge fleurs-public-candidates/en_us/1680|A judge-a ok=true parsed usd=0.0004696
+2026-11-18T00:40:54.419Z judge fleurs-public-candidates/en_us/1680|A judge-b ok=true parsed usd=0.00013448
+2026-11-18T00:40:57.919Z judge fleurs-public-candidates/en_us/1680|B judge-a ok=true parsed usd=0.0006572
+2026-11-18T00:41:04.148Z judge fleurs-public-candidates/en_us/1680|B judge-b ok=true parsed usd=0.00026282
+2026-11-18T00:41:06.378Z judge fleurs-public-candidates/en_us/1681|A judge-a ok=true parsed usd=0.0003684
+2026-11-18T00:41:08.600Z judge fleurs-public-candidates/en_us/1681|A judge-b ok=true parsed usd=0.00013504
+2026-11-18T00:41:10.757Z judge fleurs-public-candidates/en_us/1681|B judge-a ok=true parsed usd=0.0004852
+2026-11-18T00:41:11.898Z judge fleurs-public-candidates/en_us/1681|B judge-b ok=true parsed usd=0.0001452
+2026-11-18T00:41:13.810Z judge fleurs-public-candidates/en_us/1682|A judge-a ok=true parsed usd=0.000384
+2026-11-18T00:41:14.802Z judge fleurs-public-candidates/en_us/1682|A judge-b ok=true parsed usd=0.0001478
+2026-11-18T00:41:20.903Z judge fleurs-public-candidates/en_us/1682|B judge-a ok=false missing-dim:meaning usd=0.0007992
+2026-11-18T00:41:23.638Z judge fleurs-public-candidates/en_us/1682|B judge-b ok=true parsed usd=0.0003124
+2026-11-18T00:41:23.640Z RUN done calls=144 parsed=143 usd=0.04367117 capped=false spent=0.04367117
+{
+  "A": {
+    "verdicts": 72,
+    "allPass": 72,
+    "dims": {
+      "meaning": {
+        "pass": 72,
+        "total": 72
+      },
+      "entities_numbers": {
+        "pass": 72,
+        "total": 72
+      },
+      "negation": {
+        "pass": 72,
+        "total": 72
+      },
+      "omission": {
+        "pass": 72,
+        "total": 72
+      },
+      "hallucination": {
+        "pass": 72,
+        "total": 72
+      },
+      "terminology": {
+        "pass": 72,
+        "total": 72
+      },
+      "fluency": {
+        "pass": 72,
+        "total": 72
+      }
+    }
+  },
+  "B": {
+    "verdicts": 71,
+    "allPass": 47,
+    "dims": {
+      "meaning": {
+        "pass": 47,
+        "total": 71
+      },
+      "entities_numbers": {
+        "pass": 62,
+        "total": 71
+      },
+      "negation": {
+        "pass": 71,
+        "total": 71
+      },
+      "omission": {
+        "pass": 58,
+        "total": 71
+      },
+      "hallucination": {
+        "pass": 55,
+        "total": 71
+      },
+      "terminology": {
+        "pass": 63,
+        "total": 71
+      },
+      "fluency": {
+        "pass": 70,
+        "total": 71
+      }
+    }
+  }
+}

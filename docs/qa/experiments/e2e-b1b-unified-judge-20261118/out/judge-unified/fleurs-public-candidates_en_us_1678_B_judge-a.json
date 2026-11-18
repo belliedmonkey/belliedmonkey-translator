@@ -1,0 +1,84 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "fleurs-public-candidates/en_us/1678|B",
+  "itemId": "fleurs-public-candidates/en_us/1678",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "0367014473000c05eefffa9086b516a97dd6235d31d9105aca9432828bf211b7",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate translation incorrectly implies that Oliver Sacks and his paper are separate entities, and that the paper is titled '总统的演讲' (The President's Speech), whereas the original states Oliver S"
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "The candidate translation misrepresents the entities by separating Oliver Sacks and his paper and translating the paper title as '总统的演讲' without clear indication it is a title."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation is preserved; those unable to understand speech due to brain damage are still able to assess sincerity."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information is omitted."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No information is invented beyond the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is appropriate and consistent."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in Chinese."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "Oliver Sacks, in his paper The President's Speech, indicated how people who are unable to understand speech because of brain damage are nevertheless able to assess sincerity accurately.",
+        "targetQuote": "奥利弗·萨克斯及其论文指出，总统的演讲表明，尽管因脑损伤而无法理解言语的人，仍能准确评估说话者的真诚度。",
+        "reason": "The candidate translation separates Oliver Sacks and his paper as two entities and implies the paper is titled '总统的演讲' (The President's Speech) as a statement rather than a paper title, which distorts the original meaning."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "Oliver Sacks, in his paper The President's Speech",
+        "targetQuote": "奥利弗·萨克斯及其论文指出，总统的演讲表明",
+        "reason": "The candidate translation incorrectly separates Oliver Sacks and his paper and translates the paper title as a phrase rather than clearly indicating it is the title of the paper."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 440,
+    "completion_tokens": 446,
+    "total_tokens": 886,
+    "cost": 0.0008896,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0008896,
+      "upstream_inference_prompt_cost": 0.000176,
+      "upstream_inference_completions_cost": 0.0007136
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0008896
+}

@@ -1,0 +1,90 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "ascend/00004|B",
+  "itemId": "ascend/00004",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "978072c16a7a373b1234927d3360994105a30a31a8074247ff53d9236a2975b3",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "short"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "short"
+      },
+      "negation": {
+        "pass": true,
+        "note": "short"
+      },
+      "omission": {
+        "pass": false,
+        "note": "short"
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "short"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "short"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "short"
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "呃what's the呃",
+        "targetQuote": "I am so",
+        "reason": "The candidate translation 'I am so' does not convey the meaning of the source, which appears to be a hesitant or interrupted attempt to ask 'what's the...' something. The proposition in the source is a question fragment; the translation introduces a completely different statement."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "what's the",
+        "targetQuote": "",
+        "reason": "The key question fragment 'what's the' is entirely missing in the translation, resulting in a significant omission of content."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "",
+        "targetQuote": "I am so",
+        "reason": "The phrase 'I am so' is invented and not supported by the source, which contains a hesitation marker followed by the beginning of a question."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 366,
+    "completion_tokens": 266,
+    "total_tokens": 632,
+    "cost": 0.00026404,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00026404,
+      "upstream_inference_prompt_cost": 0.00005124,
+      "upstream_inference_completions_cost": 0.0002128
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00026404
+}

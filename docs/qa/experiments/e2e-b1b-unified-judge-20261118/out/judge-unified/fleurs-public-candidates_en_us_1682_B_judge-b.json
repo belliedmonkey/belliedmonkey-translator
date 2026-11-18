@@ -1,0 +1,90 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "fleurs-public-candidates/en_us/1682|B",
+  "itemId": "fleurs-public-candidates/en_us/1682",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "3086f778c13a3bdd0f7afcdd3740581d1f806fc6cbb5c13b0ab962d31f9d880b",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The translation introduces an unmentioned entity 'Serenhu Roi' not present in the source, altering the meaning."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "The name 'Serenhu Roi' is a hallucination; the source does not mention any name."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation is correctly handled where applicable."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omissions from the source."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The addition of 'Serenhu Roi' is a clear hallucination not supported by the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Technical terms like 'parchment document' and measurements are correctly rendered."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The target sentence is fluent and natural in Chinese."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "While no one knows for certain who wrote it",
+        "targetQuote": "虽然无人知晓Serenhu Roi的情况",
+        "reason": "The source refers to uncertainty about authorship, but the translation incorrectly introduces a specific entity 'Serenhu Roi', distorting the original meaning."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "no one knows for certain who wrote it",
+        "targetQuote": "Serenhu Roi",
+        "reason": "'Serenhu Roi' is not mentioned or implied in the source; this is an incorrect addition."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "While no one knows for certain who wrote it",
+        "targetQuote": "虽然无人知晓Serenhu Roi的情况",
+        "reason": "The mention of 'Serenhu Roi' is a fabrication with no basis in the source text."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 449,
+    "completion_tokens": 371,
+    "total_tokens": 820,
+    "cost": 0.0003124,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0003124,
+      "upstream_inference_prompt_cost": 0.0000898,
+      "upstream_inference_completions_cost": 0.0002226
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0003124
+}

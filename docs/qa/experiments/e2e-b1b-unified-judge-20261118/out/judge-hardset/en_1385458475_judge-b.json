@@ -1,0 +1,71 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "set": "hardset",
+  "itemId": "en_1385458475",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "ee74f28f89cb439d96212fffdacd3d90b4db916a200e1d7d55e80a39947c949b",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "short"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "short"
+      },
+      "negation": {
+        "pass": true,
+        "note": "short"
+      },
+      "omission": {
+        "pass": true,
+        "note": "short"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "short"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "short"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "short"
+      }
+    },
+    "findings": []
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 512,
+    "completion_tokens": 100,
+    "total_tokens": 612,
+    "cost": 0.00014736,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00014736,
+      "upstream_inference_prompt_cost": 0.00006736,
+      "upstream_inference_completions_cost": 0.00008
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00014736
+}

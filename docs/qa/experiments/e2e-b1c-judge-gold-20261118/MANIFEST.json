@@ -1,0 +1,55 @@
+{
+  "record": "e2e-b1c-judge-gold-20261118",
+  "date": "2026-11-18",
+  "status": "awaiting human fill",
+  "purpose": "measure judge TPR/TNR against human gold; no score exists until gold/human-gold.csv is filled",
+  "sample": {
+    "schema": "belliedmonkey.e2e-b1c.gold-sheet.v1",
+    "seed": "b1c-gold-v1",
+    "cases": 50,
+    "bySet": {
+      "b1B": 36,
+      "b1A": 10,
+      "hardset": 4
+    },
+    "identicalPairs": [
+      "ascend/00066",
+      "fleurs-public-candidates/cmn_hans_cn/1677",
+      "fleurs-public-candidates/cmn_hans_cn/1679",
+      "fleurs-public-candidates/en_us/1677"
+    ],
+    "aPicked": [
+      "ascend/00066",
+      "fleurs-public-candidates/cmn_hans_cn/1669",
+      "fleurs-public-candidates/cmn_hans_cn/1672",
+      "fleurs-public-candidates/cmn_hans_cn/1675",
+      "fleurs-public-candidates/cmn_hans_cn/1677",
+      "fleurs-public-candidates/cmn_hans_cn/1679",
+      "fleurs-public-candidates/en_us/1673",
+      "fleurs-public-candidates/en_us/1677",
+      "fleurs-public-candidates/en_us/1678",
+      "fleurs-public-candidates/en_us/1679"
+    ],
+    "hardsetPicked": [
+      "zh_92816176",
+      "en_1385458475",
+      "en_1385049036",
+      "en_1378366143"
+    ],
+    "dims": [
+      "meaning",
+      "entities_numbers",
+      "negation",
+      "omission",
+      "hallucination",
+      "terminology",
+      "fluency"
+    ],
+    "blinding": "worksheet shows authoritative source + candidate translation only; ASR hypothesis withheld",
+    "csv": "gold/human-gold.csv",
+    "worksheet": "gold/human-gold-worksheet.md"
+  },
+  "scorer": "score-human-gold.js",
+  "outputs": "out/human-gold-score.json (not present until scored)",
+  "instrument": "../e2e-b1b-unified-judge-20261118 (unified-v1 prompt records)"
+}

@@ -1,0 +1,71 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "fleurs-public-candidates/en_us/1672|A",
+  "itemId": "fleurs-public-candidates/en_us/1672",
+  "condition": "A",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "e35e48460fc04bc991bdcc625c4db84fef69a46445443fb7913ea45593bff920",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys the warning about fabric overheating and its consequences."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "No specific entities or numbers are present; all general terms are correctly rendered."
+      },
+      "negation": {
+        "pass": true,
+        "note": "The negative imperative 'be careful not to' is correctly rendered as '小心不要'."
+      },
+      "omission": {
+        "pass": true,
+        "note": "All content from the source is included in the translation."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No additional information is introduced beyond the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terms like 'shrinkage' and 'scorch' are accurately translated as '缩水' and '烧焦'."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The Chinese sentence reads naturally to a native speaker."
+      }
+    },
+    "findings": []
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 402,
+    "completion_tokens": 196,
+    "total_tokens": 598,
+    "cost": 0.0002073,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0002073,
+      "upstream_inference_prompt_cost": 0.0000603,
+      "upstream_inference_completions_cost": 0.000147
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0002073
+}

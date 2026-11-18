@@ -1,0 +1,71 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "set": "hardset",
+  "itemId": "en_1378366143",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "06fe03354995ca812a0e33d9db12e68d7e5bf7ae031768ddabf8de7be75a5147",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "Meaning is fully preserved."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "Numbers and entities are accurately translated."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation and polarity are preserved."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omission detected."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No hallucination present."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is consistent and appropriate."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "Fluent and natural Chinese."
+      }
+    },
+    "findings": []
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 525,
+    "completion_tokens": 135,
+    "total_tokens": 660,
+    "cost": 0.000426,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.000426,
+      "upstream_inference_prompt_cost": 0.00021,
+      "upstream_inference_completions_cost": 0.000216
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.000426
+}

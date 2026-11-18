@@ -1,0 +1,39 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "fleurs-public-candidates/en_us/1682|B",
+  "itemId": "fleurs-public-candidates/en_us/1682",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "3086f778c13a3bdd0f7afcdd3740581d1f806fc6cbb5c13b0ab962d31f9d880b",
+  "httpStatus": 200,
+  "ok": false,
+  "parseCode": "missing-dim:meaning",
+  "verdict": null,
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 458,
+    "completion_tokens": 385,
+    "total_tokens": 843,
+    "cost": 0.0007992,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0007992,
+      "upstream_inference_prompt_cost": 0.0001832,
+      "upstream_inference_completions_cost": 0.000616
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0007992
+}

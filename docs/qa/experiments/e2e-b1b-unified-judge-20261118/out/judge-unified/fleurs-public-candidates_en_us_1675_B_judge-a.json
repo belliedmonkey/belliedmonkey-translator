@@ -1,0 +1,90 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "fleurs-public-candidates/en_us/1675|B",
+  "itemId": "fleurs-public-candidates/en_us/1675",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "b25b0a7bb64a7dcef28e7951935cbb90d54bb745ae8b5890e7950355351c3e98",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate adds unrelated content about 'your world safety' which is not in the source."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "No entities or numbers to preserve."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation issues."
+      },
+      "omission": {
+        "pass": false,
+        "note": "The candidate omits the mention of the word 'Sie' for you."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The candidate introduces '与你世界安全相关' (related to your world safety), which is not in the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is acceptable."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The sentence reads naturally."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "All nouns, alongside the word Sie for you, always begin with a capital letter, even in the middle of a sentence.",
+        "targetQuote": "所有与你世界安全相关的名词，即使在句子中间，也始终以大写字母开头。",
+        "reason": "The candidate adds '与你世界安全相关' (related to your world safety), which changes the meaning and omits the mention of the word 'Sie' for you."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "alongside the word Sie for you",
+        "targetQuote": "与你世界安全相关",
+        "reason": "The candidate omits the mention of the word 'Sie' for you and replaces it with unrelated content."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "All nouns, alongside the word Sie for you, always begin with a capital letter",
+        "targetQuote": "所有与你世界安全相关的名词，即使在句子中间，也始终以大写字母开头。",
+        "reason": "The candidate introduces '与你世界安全相关' which is not supported by the source."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 413,
+    "completion_tokens": 395,
+    "total_tokens": 808,
+    "cost": 0.0007972,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0007972,
+      "upstream_inference_prompt_cost": 0.0001652,
+      "upstream_inference_completions_cost": 0.000632
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0007972
+}

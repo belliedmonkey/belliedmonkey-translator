@@ -1,0 +1,84 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1670|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "20900667ac2e9b79f5d45f29c201fe9bca8a0abaa678fa93fc7c1054160cff67",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate adds 'rising snow underground,' which is not mentioned in the source and changes the meaning."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "Names and places are correctly preserved."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation is preserved."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omission."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The phrase 'rising snow underground' is an invention not supported by the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is consistent and sensible."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "但它们与地下深穴的情况很相似",
+        "targetQuote": "However, they are quite similar to conditions involving rising snow underground",
+        "reason": "The source states similarity to 'underground deep caves,' but the candidate introduces 'rising snow underground,' which is not in the source and alters the meaning."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "但它们与地下深穴的情况很相似",
+        "targetQuote": "conditions involving rising snow underground",
+        "reason": "The candidate invents 'rising snow underground,' which is not mentioned in the source text."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 506,
+    "completion_tokens": 284,
+    "total_tokens": 790,
+    "cost": 0.0006568,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0006568,
+      "upstream_inference_prompt_cost": 0.0002024,
+      "upstream_inference_completions_cost": 0.0004544
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0006568
+}

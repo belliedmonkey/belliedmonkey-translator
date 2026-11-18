@@ -1,0 +1,78 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1675|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "f71a2d0560f92872e205f80a8f01085bc357a307d5fe9ea6d0dad313d62c89ab",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "incorrect representation of 'Sie' as 'letter C' changes meaning"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "no entities or numbers involved"
+      },
+      "negation": {
+        "pass": true,
+        "note": "negation preserved"
+      },
+      "omission": {
+        "pass": true,
+        "note": "no material omitted"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "no added information"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "terms translated consistently"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "fluently written"
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "您的“Sie”",
+        "targetQuote": "the letter C representing you",
+        "reason": "The original refers to the pronoun 'Sie' (formal 'you'), but the translation incorrectly refers to 'letter C', which changes the meaning."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 418,
+    "completion_tokens": 188,
+    "total_tokens": 606,
+    "cost": 0.000468,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.000468,
+      "upstream_inference_prompt_cost": 0.0001672,
+      "upstream_inference_completions_cost": 0.0003008
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.000468
+}

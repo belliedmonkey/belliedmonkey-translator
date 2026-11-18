@@ -1,0 +1,90 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1670|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "20900667ac2e9b79f5d45f29c201fe9bca8a0abaa678fa93fc7c1054160cff67",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The translation misrepresents 'underground deep holes' as 'rising snow underground', which is a significant deviation in meaning."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All names, places, and organizations are correctly rendered."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation is correctly preserved."
+      },
+      "omission": {
+        "pass": false,
+        "note": "The phrase 'rising snow underground' omits the original concept of deep underground cavities and introduces an unrelated idea."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "'Rising snow underground' is a hallucinated concept not present in the source."
+      },
+      "terminology": {
+        "pass": false,
+        "note": "'Underground deep holes' is mistranslated as 'rising snow underground', a serious terminology error."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The target sentence reads naturally in English."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "但它们与地下深穴的情况很相似",
+        "targetQuote": "they are quite similar to conditions involving rising snow underground",
+        "reason": "The source refers to similarity with deep underground holes, while the translation incorrectly refers to 'rising snow underground', which is unrelated and changes the meaning."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "地下深穴",
+        "targetQuote": "rising snow underground",
+        "reason": "The concept of deep underground cavities is omitted and replaced with an unrelated phenomenon, resulting in a material omission."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "地下深穴",
+        "targetQuote": "rising snow underground",
+        "reason": "'Rising snow underground' is an invented concept not supported by the source text."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 496,
+    "completion_tokens": 351,
+    "total_tokens": 847,
+    "cost": 0.00034592,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00034592,
+      "upstream_inference_prompt_cost": 0.00006512,
+      "upstream_inference_completions_cost": 0.0002808
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00034592
+}
