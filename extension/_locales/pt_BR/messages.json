@@ -4412,6 +4412,22 @@
     "message": "Ative “Microfone” nos ajustes do sistema, volte aqui e toque em “Tentar de novo” — não precisa reiniciar o app.",
     "description": "BEL-273 microphone permission gate"
   },
+  "listen_perm_first_hint": {
+    "message": "A primeira vez que você iniciar, o acesso ao microfone será solicitado — toque em “Permitir”.",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_waiting": {
+    "message": "Aguardando a permissão do sistema…",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_denied_inline": {
+    "message": "O acesso ao microfone está desativado. Ative-o nos Ajustes do Sistema, volte e toque em Iniciar.",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_open_settings": {
+    "message": "Abrir Ajustes",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
   "halt_balance_row": {
     "message": "Este motor está sem saldo — toque para trocar",
     "description": "BEL-274 fail surface"

@@ -4412,6 +4412,22 @@
     "message": "Aktiviere „Mikrofon“ in den Systemeinstellungen und tippe hier anschließend auf „Erneut versuchen“ — die App muss nicht neu gestartet werden.",
     "description": "BEL-273 microphone permission gate"
   },
+  "listen_perm_first_hint": {
+    "message": "Beim ersten Start wird der Mikrofonzugriff angefragt — tippe auf „Erlauben“.",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_waiting": {
+    "message": "Warte auf Systemfreigabe…",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_denied_inline": {
+    "message": "Der Mikrofonzugriff ist aus. Aktiviere ihn in den Systemeinstellungen und tippe dann wieder auf „Start“.",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_open_settings": {
+    "message": "Einstellungen öffnen",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
   "halt_balance_row": {
     "message": "Dieser Engine hat kein Guthaben mehr — tippen zum Wechseln",
     "description": "BEL-274 fail surface"

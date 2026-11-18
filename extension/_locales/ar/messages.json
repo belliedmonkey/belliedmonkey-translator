@@ -4412,6 +4412,22 @@
     "message": "فعّل «الميكروفون» في إعدادات النظام، ثم عد إلى هنا واضغط «إعادة المحاولة» — لا حاجة لإعادة تشغيل التطبيق.",
     "description": "BEL-273 microphone permission gate"
   },
+  "listen_perm_first_hint": {
+    "message": "عند أول بدء سيُطلب إذن الميكروفون — اضغط «السماح».",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_waiting": {
+    "message": "في انتظار إذن النظام…",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_denied_inline": {
+    "message": "الوصول إلى الميكروفون مغلق. شغّله من إعدادات النظام، ثم ارجع واضغط «بدء».",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_open_settings": {
+    "message": "فتح الإعدادات",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
   "halt_balance_row": {
     "message": "هذا المحرك بلا رصيد — اضغط للتبديل",
     "description": "BEL-274 fail surface"
