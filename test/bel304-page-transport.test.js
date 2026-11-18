@@ -49,22 +49,48 @@ function pageSandbox(opts = {}) {
     hidden: false,
     addEventListener: (t, fn) => { (listeners.document[t] = listeners.document[t] || []).push(fn); },
   };
+  // BEL-304 237：storage 行为可替换 —— 默认是正常回调式；超时测试传一个
+  // 永不回调的 get，无 storage 测试传 storage:false。
+  const local = {
+    get: opts.get || ((keys, cb) => cb(Object.fromEntries(keys.map((k) => [k, store[k]])))),
+    set: opts.set || ((obj, cb) => { Object.assign(store, obj); cb && cb(); }),
+    remove: opts.remove || ((keys, cb) => { for (const k of keys) delete store[k]; cb && cb(); }),
+  };
   const sandbox = {
     window: win,
     navigator: { userAgent: opts.ua || CHROME_UA, platform: 'Mac', language: 'en' },
     crypto: require('crypto').webcrypto,
     console: Object.assign({}, console, { warn: (...a) => warnings.push(a) }),
     fetch: opts.fetch || (async (url, init) => { fetched.push({ url, init }); return { ok: true, status: 200 }; }),
-    chrome: {
-      i18n: { getUILanguage: () => 'en' },
-      storage: { local: {
-        get: (keys, cb) => cb(Object.fromEntries(keys.map((k) => [k, store[k]]))),
-        set: (obj, cb) => { Object.assign(store, obj); cb && cb(); },
-        remove: (keys, cb) => { for (const k of keys) delete store[k]; cb && cb(); },
-      } },
-      runtime,
-    },
   };
+  if (opts.chrome !== false) {
+    sandbox.chrome = { i18n: { getUILanguage: () => 'en' }, runtime };
+    if (opts.storage !== false) sandbox.chrome.storage = { local };
+  }
+  // browser-only / Promise 风格：Safari 内容脚本的真实形状。runtime 可由测试
+  // 传入（用来观察 sendMessage 走了哪一边），默认接同一个 sent 数组。
+  if (opts.browser) {
+    const bRuntime = opts.browserRuntime || {
+      lastError: null,
+      getManifest: () => ({ version: '9.9.9' }),
+      sendMessage: (msg, cb) => {
+        sent.push(msg);
+        const resp = { ok: true };
+        if (cb) { cb(resp); return undefined; }
+        return Promise.resolve(resp);
+      },
+    };
+    const bLocal = opts.browserStorage || {
+      get: (keys) => Promise.resolve(Object.fromEntries(keys.map((k) => [k, store[k]]))),
+      set: (obj) => { Object.assign(store, obj); return Promise.resolve(); },
+      remove: (keys) => { for (const k of keys) delete store[k]; return Promise.resolve(); },
+    };
+    sandbox.browser = {
+      runtime: bRuntime,
+      i18n: { getUILanguage: () => 'en' },
+      storage: { local: bLocal },
+    };
+  }
   // App 的 WKWebView 里没有 DOM，也可能没有 document；扩展页同样没有 http(s)
   // location（inWebPage() === false）。这两类宿主是 235 回归的现场。
   if (opts.document !== false) sandbox.document = doc;
@@ -72,8 +98,44 @@ function pageSandbox(opts = {}) {
   else if (opts.webPage !== false) sandbox.location = { protocol: 'https:' };
   if (opts.setTimeout) sandbox.setTimeout = opts.setTimeout;
   if (opts.clearTimeout) sandbox.clearTimeout = opts.clearTimeout;
+  if (opts.Date) sandbox.Date = opts.Date;
   const ctx = loadModule(['learn/telemetry.js'], sandbox);
   return { T: ctx.MTTelemetry, store, sent, fetched, warnings, runtime, listeners, win, doc };
+}
+
+// BEL-304 237 的假时钟：只替换 setTimeout / clearTimeout / Date.now，
+// 不动最终决定 flush 时机的真实模块逻辑。advance 会按时间顺序跑完到期回调，
+// 并在每个回调后让 microtask 链推进，避免漏掉「超时后才挂上」的下一笔定时器。
+function makeClock() {
+  let now = 0;
+  let seq = 1;
+  const timers = new Map();
+  const RealDate = Date;
+  class FakeDate extends RealDate {
+    constructor(...args) { if (args.length) super(...args); else super(now); }
+    static now() { return now; }
+  }
+  return {
+    get now() { return now; },
+    Date: FakeDate,
+    setTimeout(fn, ms) { const id = seq++; timers.set(id, { fn, at: now + (Number(ms) || 0) }); return id; },
+    clearTimeout(id) { timers.delete(id); },
+    async advance(ms) {
+      now += Math.max(0, Number(ms) || 0);
+      for (;;) {
+        let due = null;
+        for (const [id, t] of timers) {
+          if (t.at > now) continue;
+          if (!due || t.at < due.t.at || (t.at === due.t.at && id < due.id)) due = { id, t };
+        }
+        if (!due) break;
+        timers.delete(due.id);
+        try { due.t.fn(); } catch (_) {}
+        await new Promise((r) => setImmediate(r));
+      }
+      await new Promise((r) => setImmediate(r));
+    },
+  };
 }
 
 const sends = (sent) => sent.filter((m) => m && m.action === 'telemetrySend');
@@ -418,6 +480,134 @@ describe('BEL-304 236 — init 回到 234 形状：不挂页面退出；App / �
     eq(sb.fetched.length, 1, '扩展页的 heartbeat 没有直连发出');
     eq(JSON.parse(sb.fetched[0].init.body)[0].name, 'heartbeat');
     eq(sb.store[sb.T.KEYS.queue].length, 0);
+  });
+});
+
+describe('BEL-304 237 — Safari 存储桥：API 兜底 + 1.5s 超时 + 内存队列', () => {
+  test('⑱ chrome.storage.local.get 永不回调 ⇒ 1500ms 后按内存继续；track + flush 仍发出，install_id 稳定', async () => {
+    const clock = makeClock();
+    let getCalls = 0;
+    const sb = pageSandbox({
+      ua: SAFARI_UA,
+      setTimeout: clock.setTimeout,
+      clearTimeout: clock.clearTimeout,
+      Date: clock.Date,
+      // Safari 的失败形态：回调根本不执行（不是抛异常，也没有 lastError）。
+      get: () => { getCalls += 1; },
+      onMessage: probeOkThen((msg, cb) => cb && cb({ ok: true })),
+    });
+    eq(sb.T.STORAGE_TIMEOUT_MS, 1500, '存储超时常量不是 1500ms');
+
+    const trackP = sb.T.track('translate_start', { kind: 'page', engine: 'google', locale_pair: 'en-zh' });
+    await tick(0);              // trackChain 先进到 sget，超时定时器才挂得上
+    await clock.advance(1500);
+    eq(await trackP, true, '存储桥超时后 translate_start 没进队列');
+    // 第一次 get 超时后本页转入内存模式：后续读不再逐笔等 1.5s，
+    // 否则 Safari 内容页的 10s flush 会被几次超时拖过 15s。
+    eq(getCalls, 1, '超时后仍在逐笔调用 storage.get');
+
+    const id1 = (await sb.T.installId()).id;
+    const id2 = (await sb.T.installId()).id;
+    eq(id1, id2, '存储桥不回话时 install_id 每次都新生成');
+    eq(await sb.T.flush(), true, '内存队列的 flush 没有发出');
+    eq(sends(sb.sent).length, 1, '应当只走一次 SW 发送');
+    eq(sb.fetched.length, 0, 'SW 成功后仍直连');
+    const body = JSON.parse(sends(sb.sent)[0].init.body);
+    eq(Array.isArray(body), true);
+    eq(body.length, 1, '内存队列丢了当前批');
+    eq(body[0].name, 'translate_start');
+    eq(body[0].install_id, id1, 'body 里的 install_id 与内存 id 不一致');
+    ok(/^[0-9a-f]{16}$/.test(body[0].props.op_id), 'translate_start 没有 op_id');
+    eq(sb.store[sb.T.KEYS.queue].length, 0, 'flush 后磁盘队列没清空');
+  });
+
+  test('⑲ 只有 browser（storage.get 返回 Promise）⇒ init/track/flush 正常', async () => {
+    const bsent = [];
+    const browserRuntime = {
+      lastError: null,
+      getManifest: () => ({ version: '9.9.9' }),
+      sendMessage: (msg, cb) => {
+        bsent.push(msg);
+        const resp = { ok: true };
+        if (cb) { cb(resp); return undefined; }
+        return Promise.resolve(resp);
+      },
+    };
+    const sb = pageSandbox({ chrome: false, browser: true, browserRuntime });
+    await sb.T.init({ flushNow: false });
+    ok(sb.store[sb.T.KEYS.id], 'browser-only 的 init 没有生成 install_id');
+    ok(sb.store[sb.T.KEYS.day], 'browser-only 的 init 没有写 tm:day');
+    eq(sb.store[sb.T.KEYS.queue].length, 2, 'init 后应有 installed + heartbeat');
+    eq(await sb.T.flush(), true, 'browser-only 的 flush 没发出');
+    const sendsOnly = bsent.filter((m) => m && m.action === 'telemetrySend');
+    eq(sendsOnly.length, 1, 'browser.runtime 没收到 telemetrySend');
+    const body = JSON.parse(sendsOnly[0].init.body);
+    eq(body.length, 2);
+    deepEq(body.map((e) => e.name).sort(), ['heartbeat', 'installed']);
+    for (const e of body) eq(e.install_id, sb.store[sb.T.KEYS.id]);
+    eq(sb.store[sb.T.KEYS.queue].length, 0);
+  });
+
+  test('⑳ chrome 和 browser 都没有 storage ⇒ 内存队列仍 flush 一次（不崩、不丢当前批）', async () => {
+    const sb = pageSandbox({ storage: false });
+    eq(await sb.T.track('heartbeat'), true, '没有 storage 时 track 直接失败');
+    eq(await sb.T.flush(), true, '没有 storage 时内存队列 flush 失败');
+    eq(sends(sb.sent).length, 1, '没有 storage 时没有发出任何批次');
+    const body = JSON.parse(sends(sb.sent)[0].init.body);
+    eq(body.length, 1, '没有 storage 时当前批丢了');
+    eq(body[0].name, 'heartbeat');
+    ok(body[0].install_id, '没有 storage 时 install_id 为空');
+    // 队列只在内存里：磁盘键从未被写出来（也没有 storage 可写）。
+    eq(sb.store[sb.T.KEYS.queue], undefined, '没有 storage 却写了磁盘队列');
+  });
+
+  test('㉑ storage 正常 ⇒ 仍先持久化入队，flush 成功后清空', async () => {
+    const sb = pageSandbox();
+    eq(await sb.T.track('heartbeat'), true);
+    ok(Array.isArray(sb.store[sb.T.KEYS.queue]), '正常 storage 没有持久化队列');
+    eq(sb.store[sb.T.KEYS.queue].length, 1);
+    eq(sb.store[sb.T.KEYS.queue][0].name, 'heartbeat');
+    eq(await sb.T.flush(), true);
+    eq(sb.store[sb.T.KEYS.queue].length, 0, 'flush 成功后队列没清空');
+    ok(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(sb.store[sb.T.KEYS.id]),
+      '正常 storage 没有持久化 install_id');
+  });
+
+  test('㉒ 存储超时后 tm:on=false 的内存值仍尊重（用户关了就不发）', async () => {
+    const clock = makeClock();
+    let getMode = 'ok';
+    let storeRef = null;
+    let hungGets = 0;
+    const sb = pageSandbox({
+      ua: SAFARI_UA,
+      setTimeout: clock.setTimeout,
+      clearTimeout: clock.clearTimeout,
+      Date: clock.Date,
+      get: (keys, cb) => {
+        if (getMode === 'hang') { hungGets += 1; return; }
+        cb && cb(Object.fromEntries(keys.map((k) => [k, storeRef[k]])));
+      },
+      onMessage: probeOkThen((msg, cb) => cb && cb({ ok: true })),
+    });
+    storeRef = sb.store;
+
+    // 先在正常存储上关掉遥测：sset 把 false 写进 MEM + storage。
+    eq(await sb.T.setEnabled(false), false);
+    eq(sb.store[sb.T.KEYS.on], false);
+    // 把磁盘值拨回 true，模拟「存储里的旧值」；读取随后挂死，唯一能用的
+    // 是 MEM 里的 false。
+    sb.store[sb.T.KEYS.on] = true;
+    getMode = 'hang';
+
+    const p = sb.T.track('heartbeat');
+    await tick(0);
+    await clock.advance(1500);
+    eq(await p, false, '关闭遥测后仍入队了');
+    eq(hungGets, 1, '关闭状态没有走内存兜底（可能读到了磁盘的旧 true）');
+    eq(await sb.T.flush(), false, '关闭遥测后 flush 仍试图发送');
+    eq(sb.sent.length, 0, '关闭遥测后发了 telemetryPing / telemetrySend');
+    eq(sb.fetched.length, 0, '关闭遥测后仍直连');
+    eq(sb.store[sb.T.KEYS.queue], undefined, '关闭遥测后仍写了队列');
   });
 });
 
