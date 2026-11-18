@@ -1,17 +1,17 @@
-// test/bel304-page-transport.test.js — BEL-304：每页探一次后台；SW 或直连二选一；
-// 批次幂等头 x-mt-batch。
+// test/bel304-page-transport.test.js — BEL-304 A 案：探针只当快速跳过；SW 失败
+// 即整页降级 + 本批直连重发（复用同一 batch id）。
 //
-// 真机取证（iPhone 14 Pro / 1.23.4(233)）：Safari 扩展翻成功，但东京 bt_events 的
-// translate_* 0 行 —— iOS 锁屏后 SW 永久不可用，旧代码在 inWebPage() 时无条件
-// sendViaRuntime()，静默失败。这里的边界：
-//  ① 内容脚本每页只探一次（400ms）：成功 ⇒ 本页所有批次走 SW；失败（throw /
-//     lastError / 超时）⇒ 本页所有批次直连。不按批重新判断。
-//  ② 直连失败不是丢弃：放回队列 + 本机 mtTelemetryDirectFail 计数 + console.warn。
-//  ③ 每批一个 16hex batch id，只进 `x-mt-batch` 头；队列项内部 `_b` 不进 body；
-//     同一批重发复用同一个 id。
-//  ④ 上线顺序的临时门：页面直连（探测失败）**不带** `x-mt-batch` —— 线上 ingest 的
-//     CORS 只放行 content-type，带自定义头会先发预检、整批被挡；SW 代发与扩展页 /
-//     App 直连不受页面 CORS 管，照常带。hosted #11 部署后打开。
+// 真机事实（14 Pro / 234，2026-11-18）：App 与扩展页事件到达，Safari 内容脚本
+// 0 行；`telemetryPing` 能通（消息到后台），但 SW 的 `telemetrySend` 没落地。
+// 探头只证明「消息到后台」，不证明「后台发得出去」。所以这里的边界：
+//  ① probe 失败 ⇒ 本页直接直连；probe 成功 ⇒ 本页**第一批**仍走 SW。
+//  ② SW 失败（throw / lastError / {ok:false} / 15s 超时）⇒ 立即 pageTransport='direct'
+//     并把这一批直连重发一次；同一 batch id / `x-mt-batch`。直连也失败才 flush false、
+//     批次回队列；后续 flush 不再探测、不再发 telemetrySend。
+//  ③ `x-mt-batch` 只在 global 加（SW / 网页直连 / 扩展页 / App 一致）；china 不加，
+//     保持 text/plain 简单请求。`_b` 只在队列项与请求头，不进 body。
+//  ④ Safari 内容页 schedule 10s（其余 60s）；init 一次性挂 pagehide +
+//     visibilitychange(hidden) → flush。
 const { loadModule, describe, test, ok, eq, deepEq, tick } = require('./harness');
 const cfg = require('../build/telemetry.config.js');
 
@@ -21,6 +21,7 @@ const TEL = {
   spec: { common: cfg.COMMON, events: cfg.EVENTS, limits: cfg.LIMITS },
 };
 const CHROME_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36';
+const SAFARI_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1';
 
 // 网页内容脚本的 vm sandbox。默认：探针回 {ok:true}、telemetrySend 回 {ok:true}、
 // 直连 fetch 成功。每个 test 只覆盖它关心的那一条。
@@ -29,6 +30,7 @@ function pageSandbox(opts = {}) {
   const sent = [];
   const fetched = [];
   const warnings = [];
+  const listeners = { window: {}, document: {} };
   const runtime = { lastError: null, sendMessage: null };
   runtime.sendMessage = (msg, cb) => {
     sent.push(msg);
@@ -36,9 +38,20 @@ function pageSandbox(opts = {}) {
     cb && cb({ ok: true });
     return undefined;
   };
+  const win = {
+    MT_VERSION: '9.9.9',
+    MT_FLAVOR: opts.flavor || 'global',
+    MT_TELEMETRY: opts.telemetry || TEL,
+    addEventListener: (t, fn) => { (listeners.window[t] = listeners.window[t] || []).push(fn); },
+  };
+  const doc = {
+    hidden: false,
+    addEventListener: (t, fn) => { (listeners.document[t] = listeners.document[t] || []).push(fn); },
+  };
   const sandbox = {
-    window: { MT_VERSION: '9.9.9', MT_FLAVOR: 'global', MT_TELEMETRY: opts.telemetry || TEL },
-    navigator: { userAgent: CHROME_UA, platform: 'Mac', language: 'en' },
+    window: win,
+    document: doc,
+    navigator: { userAgent: opts.ua || CHROME_UA, platform: 'Mac', language: 'en' },
     crypto: require('crypto').webcrypto,
     console: Object.assign({}, console, { warn: (...a) => warnings.push(a) }),
     fetch: opts.fetch || (async (url, init) => { fetched.push({ url, init }); return { ok: true, status: 200 }; }),
@@ -57,228 +70,338 @@ function pageSandbox(opts = {}) {
   if (opts.setTimeout) sandbox.setTimeout = opts.setTimeout;
   if (opts.clearTimeout) sandbox.clearTimeout = opts.clearTimeout;
   const ctx = loadModule(['learn/telemetry.js'], sandbox);
-  return { T: ctx.MTTelemetry, store, sent, fetched, warnings, runtime };
+  return { T: ctx.MTTelemetry, store, sent, fetched, warnings, runtime, listeners, win, doc };
 }
 
 const sends = (sent) => sent.filter((m) => m && m.action === 'telemetrySend');
 const pingCount = (sent) => sent.filter((m) => m && m.action === 'telemetryPing').length;
 const hasAuth = (h) => Object.keys(h || {}).some((k) => /^authorization$/i.test(k));
+const hasBatch = (h) => Object.keys(h || {}).some((k) => /^x-mt-batch$/i.test(k));
+const batchOf = (h) => (h || {})['x-mt-batch'];
 const directFailWarnings = (warnings) => warnings.filter((w) => w[0] === '[mt] telemetry direct failed');
+const downgradeWarnings = (warnings) => warnings.filter((w) => w[0] === '[mt] telemetry sw failed, page downgraded');
 // tm:last 是 5 秒软锁；测试里两次 flush 之间把它拨老，等价于等过了窗口。
 function ageLock(store, T) { store[T.KEYS.last] = Date.now() - 6000; }
+// init() 会记 installed/heartbeat；不需要时先种上 id 与今天的 day。
+function seedInit(store) {
+  store['tm:id'] = '11111111-1111-4111-8111-111111111111';
+  store['tm:day'] = new Date().toISOString().slice(0, 10);
+}
 
-describe('BEL-304 每页一次探测：SW / 直连二选一', () => {
-  test('探测成功 ⇒ 两次 flush 都走 SW，direct fetch 0 次，ping 只 1 次', async () => {
+// probe 成功、批次结果由 handler 决定。
+function probeOkThen(handler) {
+  return (msg, cb) => {
+    if (msg.action === 'telemetryPing') return cb && cb({ ok: true });
+    return handler(msg, cb);
+  };
+}
+
+describe('BEL-304 A — probe 只是快速跳过，SW 失败整页降级', () => {
+  test('① probe 成功 + SW {ok:true} ⇒ 只走 SW，直连 0 次，每页只 probe 一次', async () => {
     const { T, store, sent, fetched } = pageSandbox();
     await T.init();
-    eq(await T.track('heartbeat'), true);
+    await T.track('heartbeat');
     eq(await T.flush(), true);
     ageLock(store, T);
-    eq(await T.track('heartbeat'), true);
+    await T.track('heartbeat');
     eq(await T.flush(), true);
     eq(pingCount(sent), 1, '每页只该探测一次');
     eq(sends(sent).length, 2, '两次 flush 都该走 SW');
-    eq(fetched.length, 0, '探测成功后仍然直连了');
+    eq(fetched.length, 0, 'SW 成功后仍然直连了');
     eq(store[T.KEYS.queue].length, 0);
   });
 
-  test('探测失败（sendMessage 抛）⇒ 两次 flush 都直连，SW 批次 0 次', async () => {
+  test('② probe 成功 + SW {ok:false} ⇒ 同一次 flush 内直连重发 1 次；同一 x-mt-batch；队列清空；第二次不再 telemetrySend', async () => {
+    const { T, store, sent, fetched, warnings } = pageSandbox({
+      onMessage: probeOkThen((msg, cb) => cb && cb({ ok: false, status: 500 })),
+    });
+    await T.track('heartbeat');
+    eq(await T.flush(), true, 'SW 失败后直连重发成功，flush 应为 true');
+    eq(sends(sent).length, 1, 'SW 只该尝试一次');
+    eq(fetched.length, 1, 'SW 失败后应当直连重发一次');
+    const swBatch = batchOf(sends(sent)[0].init.headers);
+    ok(/^[0-9a-f]{16}$/.test(swBatch), 'SW 路径的 x-mt-batch 不是 16hex');
+    eq(batchOf(fetched[0].init.headers), swBatch, '直连重发换了 batch id —— 服务端去重失效');
+    eq(store[T.KEYS.queue].length, 0, '重发成功后队列没清');
+    eq(store[T.KEYS.directFail], undefined, 'SW 失败被误记成直连失败（直连还没试）');
+    eq(store.mtTelemetryDropped, undefined, 'SW 失败被误记成 dropped');
+    eq(downgradeWarnings(warnings).length, 1, 'SW 失败降级没有 warn');
+    eq(directFailWarnings(warnings).length, 0);
+
+    ageLock(store, T);
+    await T.track('heartbeat');
+    eq(await T.flush(), true);
+    eq(sends(sent).length, 1, '已降级后第二次 flush 仍发了 telemetrySend');
+    eq(pingCount(sent), 1, '已降级后第二次 flush 又探测了');
+    eq(fetched.length, 2, '第二次 flush 应当直接直连');
+  });
+
+  test('③ probe 成功 + SW 15s 超时 ⇒ 同一次 flush 内直连重发 1 次（fake timer）', async () => {
+    const timers = [];
+    const realSet = setTimeout, realClear = clearTimeout;
+    let swCalls = 0;
     const { T, store, sent, fetched } = pageSandbox({
+      onMessage: (msg, cb) => {
+        if (msg.action === 'telemetryPing') return cb && cb({ ok: true });
+        swCalls += 1;
+        // 回调整体不触发（Safari 的第二种失败形态）—— 只能靠 SW_TIMEOUT_MS。
+      },
+      setTimeout: (fn, ms) => {
+        if (ms === 15000) { timers.push(fn); return 9001; }   // SW_TIMEOUT_MS
+        return realSet(fn, ms);
+      },
+      clearTimeout: (id) => { if (id !== 9001) realClear(id); },
+    });
+    eq(T.SW_TIMEOUT_MS, 15000);
+    await T.track('heartbeat');
+    const f = T.flush();
+    await tick(0);
+    eq(fetched.length, 0, 'SW 还在等，flush 就抢跑直连了');
+    eq(timers.length, 1, '没有安排 15s SW 超时');
+    timers[0]();
+    eq(await f, true, '超时后应当直连重发成功');
+    eq(swCalls, 1);
+    eq(fetched.length, 1);
+    eq(store[T.KEYS.queue].length, 0);
+    eq(store[T.KEYS.directFail], undefined, 'SW 超时被误记成直连失败');
+    ageLock(store, T);
+    await T.track('heartbeat');
+    eq(await T.flush(), true);
+    eq(swCalls, 1, '降级后还发 telemetrySend');
+    eq(fetched.length, 2);
+  });
+
+  test('④ probe 失败 ⇒ 直接直连，telemetrySend 0 次；记 mtTelemetryDirectFail + warn', async () => {
+    const { T, store, sent, fetched, warnings } = pageSandbox({
       onMessage: () => { throw new Error('Could not establish connection. Receiving end does not exist.'); },
     });
     await T.track('heartbeat');
     eq(await T.flush(), true);
-    ageLock(store, T);
-    await T.track('heartbeat');
-    eq(await T.flush(), true);
     eq(pingCount(sent), 1);
     eq(sends(sent).length, 0, '探测失败后仍向 SW 发批次');
-    eq(fetched.length, 2, '两次都该直连');
+    eq(fetched.length, 1, '探测失败应当直连');
+    eq(store[T.KEYS.directFail], 1, '探针失败没有记 mtTelemetryDirectFail');
+    eq(warnings.some((w) => w[0] === '[mt] telemetry ping failed'), true, '探针失败没有 warn');
   });
 
-  test('探测失败（lastError）⇒ 本页所有批次直连', async () => {
-    const { T, store, sent, fetched } = pageSandbox({
-      onMessage: (msg, cb, runtime) => {
-        if (msg.action === 'telemetryPing') {
-          runtime.lastError = { message: 'Could not establish connection. Receiving end does not exist.' };
-          cb && cb(undefined);
-          runtime.lastError = null;
-          return;
-        }
-        cb && cb({ ok: true });
-      },
-    });
-    await T.track('heartbeat');
-    eq(await T.flush(), true);
-    ageLock(store, T);
-    await T.track('heartbeat');
-    eq(await T.flush(), true);
-    eq(pingCount(sent), 1);
-    eq(sends(sent).length, 0);
-    eq(fetched.length, 2);
-  });
-
-  test('探测失败（400ms 无回）⇒ 本页所有批次直连', async () => {
-    const pending = [];
-    const realSet = setTimeout, realClear = clearTimeout;
-    const { T, store, sent, fetched } = pageSandbox({
-      onMessage: (msg, cb) => {
-        if (msg.action === 'telemetryPing') return;    // 永不回调（Safari 的第二形态）
-        cb && cb({ ok: true });
-      },
-      setTimeout: (fn, ms) => {
-        if (ms === 400) { pending.push(fn); return 4001; }   // PING_TIMEOUT_MS
-        return realSet(fn, ms);
-      },
-      clearTimeout: (id) => { if (id !== 4001) realClear(id); },
-    });
-    eq(T.PING_TIMEOUT_MS, 400);
-    await T.init();
-    eq(pending.length, 1, '没有安排 400ms 探测超时');
-    await T.track('heartbeat');
-    const f1 = T.flush();
-    await tick(0);
-    eq(fetched.length, 0, '探测还没回，flush 就抢跑了');
-    pending[0]();
-    eq(await f1, true);
-    ageLock(store, T);
-    await T.track('heartbeat');
-    eq(await T.flush(), true);
-    eq(pingCount(sent), 1);
-    eq(sends(sent).length, 0);
-    eq(fetched.length, 2);
-  });
-
-  test('探测成功但某批 SW 返回 false ⇒ 该批回队列，不直连（无重复）', async () => {
+  test('⑤ probe 失败 + 直连也失败 ⇒ flush false、队列保留、不增加 dropped；下次复用同一 batch id', async () => {
     let calls = 0;
+    const { T, store, sent, fetched } = pageSandbox({
+      onMessage: () => { throw new Error('no receiver'); },
+      fetch: async (url, init) => {
+        fetched.push({ url, init });
+        calls += 1;
+        if (calls === 1) throw new TypeError("Refused to connect ... connect-src 'none'");
+        return { ok: true, status: 200 };
+      },
+    });
+    await T.track('heartbeat');
+    eq(await T.flush(), false);
+    eq(store[T.KEYS.queue].length, 1, '直连失败后队列丢了');
+    eq(store.mtTelemetryDropped, undefined, '直连失败被误记成 dropped');
+    eq(store[T.KEYS.directFail], 2, '探针失败 + 直连失败应各记一次');
+    const firstBatch = batchOf(fetched[0].init.headers);
+    ok(/^[0-9a-f]{16}$/.test(firstBatch), '直连批次没有 16hex x-mt-batch');
+    eq(store[T.KEYS.queue][0]._b, firstBatch, '队列项与请求头的 batch id 不一致');
+
+    ageLock(store, T);
+    eq(await T.flush(), true, '下一次 flush 应当重试成功');
+    eq(sends(sent).length, 0, '探针失败的页面不该再发 telemetrySend');
+    eq(batchOf(fetched[1].init.headers), firstBatch, '重发同一批换了 batch id');
+    eq(store[T.KEYS.queue].length, 0);
+  });
+
+  test('⑥ SW 失败 + 直连也失败 ⇒ 队列保留；下次 flush 直接直连且复用同一 batch id', async () => {
+    let fetches = 0;
     const { T, store, sent, fetched, warnings } = pageSandbox({
-      onMessage: (msg, cb) => {
-        if (msg.action === 'telemetryPing') return cb && cb({ ok: true });
-        calls += 1;
-        cb && cb({ ok: false, status: 500 });
+      onMessage: probeOkThen((msg, cb) => cb && cb({ ok: false, status: 503 })),
+      fetch: async (url, init) => {
+        fetched.push({ url, init });
+        fetches += 1;
+        if (fetches === 1) throw new TypeError('network down');
+        return { ok: true, status: 200 };
       },
     });
     await T.track('heartbeat');
     eq(await T.flush(), false);
-    eq(sends(sent).length, 1, '该批只该尝试一次 SW');
-    eq(fetched.length, 0, 'SW 失败后不得直连 —— 那会发两遍');
-    eq(store[T.KEYS.queue].length, 1, '失败批次没回队列');
-    eq(store[T.KEYS.directFail], undefined, 'SW 失败不该记直连失败');
-    eq(store.mtTelemetryDropped, undefined, 'SW 失败不该记 dropped');
-    eq(directFailWarnings(warnings).length, 0);
-    eq(calls, 1);
-  });
+    eq(store[T.KEYS.queue].length, 1, '两路都失败后队列丢了');
+    eq(store.mtTelemetryDropped, undefined);
+    eq(store[T.KEYS.directFail], 1, '这一次只该记直连失败（SW 失败不计）');
+    eq(downgradeWarnings(warnings).length, 1);
+    const firstBatch = batchOf(fetched[0].init.headers);
 
-  test('直连失败（fetch 抛 / 非 2xx）⇒ flush false、队列保留、不增加 dropped', async () => {
-    const thrown = pageSandbox({
-      onMessage: () => { throw new Error('no receiver'); },
-      fetch: async () => { throw new TypeError("Refused to connect ... connect-src 'none'"); },
-    });
-    await thrown.T.track('heartbeat');
-    eq(await thrown.T.flush(), false);
-    eq(thrown.store[thrown.T.KEYS.queue].length, 1, '直连抛错后队列丢了');
-    eq(thrown.store.mtTelemetryDropped, undefined, '直连失败被误记成 dropped');
-    eq(thrown.store.mtTelemetryDirectFail, 1, '直连失败没有本机计数');
-    eq(directFailWarnings(thrown.warnings).length, 1);
-
-    const non2xx = pageSandbox({
-      onMessage: () => { throw new Error('no receiver'); },
-      fetch: async () => ({ ok: false, status: 503 }),
-    });
-    await non2xx.T.track('heartbeat');
-    eq(await non2xx.T.flush(), false);
-    eq(non2xx.store[non2xx.T.KEYS.queue].length, 1);
-    eq(non2xx.store.mtTelemetryDropped, undefined);
-    eq(non2xx.store.mtTelemetryDirectFail, 1);
-    eq(directFailWarnings(non2xx.warnings).length, 1);
-  });
-
-  test('x-mt-batch 是 16hex、只在 header、body 无 _b；重发同一批复用同一个 id', async () => {
-    let calls = 0;
-    const { T, store, sent } = pageSandbox({
-      onMessage: (msg, cb) => {
-        if (msg.action === 'telemetryPing') return cb && cb({ ok: true });
-        calls += 1;
-        cb && cb(calls === 1 ? { ok: false, status: 500 } : { ok: true });
-      },
-    });
-    await T.track('heartbeat');
-    eq(await T.flush(), false);
-    const q = store[T.KEYS.queue];
-    eq(q.length, 1);
-    ok(/^[0-9a-f]{16}$/.test(q[0]._b), '队列项内部没有 16hex _b');
-
-    const first = sends(sent)[0].init;
-    const batch1 = first.headers['x-mt-batch'];
-    ok(/^[0-9a-f]{16}$/.test(batch1), 'x-mt-batch 不是 16hex');
-    eq(batch1, q[0]._b, 'header 与队列里的批次 id 不一致');
-    const body1 = JSON.parse(first.body);
-    eq(Array.isArray(body1), true);
-    eq(body1.length, 1);
-    ok(!Object.prototype.hasOwnProperty.call(body1[0], '_b'), 'body 里漏了 _b');
-    ok(!Object.keys(body1[0]).includes('_b'));
-    // 也不允许把 _b 提升成 body 顶层键（body 是数组，这里顺带守住形状）。
-    ok(!Object.prototype.hasOwnProperty.call(body1, '_b'));
-
-    // 失败后**又入队一条新事件**：老批次仍在队首，重发必须沿用同一个 batch id，
-    // 新事件排在后面拿到更大的 seq（服务端按 (batch_id, batch_seq) 去重旧行）。
-    eq(await T.track('heartbeat'), true);
-    eq(store[T.KEYS.queue].length, 2);
     ageLock(store, T);
-    eq(await T.flush(), true, '同一批重发应当成功');
-    const second = sends(sent)[1].init;
-    eq(second.headers['x-mt-batch'], batch1, '重发同一批换了 batch id —— 服务端去重失效');
-    const body2 = JSON.parse(second.body);
-    eq(body2.length, 2);
-    eq(body2[0].name, 'heartbeat');
-    eq(body2[1].name, 'heartbeat');
-    ok(!Object.prototype.hasOwnProperty.call(body2[0], '_b'));
-    ok(!Object.prototype.hasOwnProperty.call(body2[1], '_b'));
+    await T.track('heartbeat');
+    eq(await T.flush(), true);
+    eq(sends(sent).length, 1, '降级后仍发了 telemetrySend');
+    eq(fetched.length, 2);
+    eq(batchOf(fetched[1].init.headers), firstBatch, '失败批次重发换了 batch id');
+    eq(store[T.KEYS.queue].length, 0);
   });
 
-  test('SW 路径 init：keepalive / text/plain / 无 Authorization / 带 16hex x-mt-batch', async () => {
+  test('⑦ global 网页直连带 16hex x-mt-batch；china 网页直连不带', async () => {
+    const global = pageSandbox({ onMessage: () => { throw new Error('no receiver'); } });
+    await global.T.track('heartbeat');
+    eq(await global.T.flush(), true);
+    eq(global.fetched.length, 1);
+    ok(/^[0-9a-f]{16}$/.test(batchOf(global.fetched[0].init.headers)), 'global 网页直连丢了 x-mt-batch');
+    eq(JSON.parse(global.fetched[0].init.body)[0].flavor, 'global');
+
+    const china = pageSandbox({
+      flavor: 'china',
+      onMessage: () => { throw new Error('no receiver'); },
+    });
+    await china.T.track('heartbeat');
+    eq(await china.T.flush(), true);
+    eq(china.fetched.length, 1);
+    eq(hasBatch(china.fetched[0].init.headers), false, 'china 网页直连带 x-mt-batch 会触发预检');
+    eq(china.fetched[0].init.headers['content-type'], 'text/plain');
+    eq(JSON.parse(china.fetched[0].init.body)[0].flavor, 'china');
+  });
+
+  test('⑧ global 扩展页直连带批次头；china 扩展页不带', async () => {
+    const global = pageSandbox({ webPage: false });
+    await global.T.track('heartbeat');
+    eq(await global.T.flush(), true);
+    eq(global.sent.length, 0, '扩展页不该发 telemetryPing');
+    okayBatch(global.fetched[0]);
+    const china = pageSandbox({ webPage: false, flavor: 'china' });
+    await china.T.track('heartbeat');
+    eq(await china.T.flush(), true);
+    eq(china.sent.length, 0);
+    eq(china.fetched.length, 1);
+    eq(hasBatch(china.fetched[0].init.headers), false, 'china 扩展页不该带 x-mt-batch');
+    eq(china.fetched[0].init.headers['content-type'], 'text/plain');
+
+    function okayBatch(item) {
+      eq(item.url, INGEST);
+      ok(/^[0-9a-f]{16}$/.test(batchOf(item.init.headers)), 'global 扩展页直连丢了 x-mt-batch');
+      eq(item.init.keepalive, true);
+    }
+  });
+
+  test('⑨ body 顶层与单条事件都没有 _b（SW 与直连两条路）', async () => {
     const sw = pageSandbox();
     await sw.T.track('heartbeat');
     eq(await sw.T.flush(), true);
-    eq(sw.fetched.length, 0, '探测成功应走 SW，不该直连');
-    const swInit = sends(sw.sent)[0].init;
-    eq(swInit.keepalive, true);
-    eq(swInit.headers['content-type'], 'text/plain');
-    eq(hasAuth(swInit.headers), false);
-    ok(/^[0-9a-f]{16}$/.test(swInit.headers['x-mt-batch']), 'SW 路径丢了 x-mt-batch');
-  });
+    assertNoB(JSON.parse(sends(sw.sent)[0].init.body), 'SW');
 
-  test('网页直连 init：不带 x-mt-batch（简单请求，不触发预检）', async () => {
-    const direct = pageSandbox({
-      onMessage: () => { throw new Error('no receiver'); },
-    });
+    const direct = pageSandbox({ webPage: false });
     await direct.T.track('heartbeat');
     eq(await direct.T.flush(), true);
-    eq(direct.fetched.length, 1, '探测失败应当直连');
-    const directInit = direct.fetched[0].init;
-    eq(directInit.keepalive, true);
-    eq(directInit.headers['content-type'], 'text/plain');
-    eq(hasAuth(directInit.headers), false);
-    eq(Object.prototype.hasOwnProperty.call(directInit.headers, 'x-mt-batch'), false,
-      '网页直连带 x-mt-batch 会先发 OPTIONS 预检，线上 CORS 未放行');
-    eq(Object.keys(directInit.headers).some((k) => /^x-mt-batch$/i.test(k)), false);
-    const body = JSON.parse(directInit.body);
-    eq(Array.isArray(body), true);
-    ok(!Object.prototype.hasOwnProperty.call(body, '_b'), 'body 顶层漏了 _b');
-    ok(!Object.prototype.hasOwnProperty.call(body[0], '_b'), 'body 里漏了 _b');
+    assertNoB(JSON.parse(direct.fetched[0].init.body), 'direct');
+
+    function assertNoB(body, label) {
+      eq(Array.isArray(body), true, label + ' body 不是数组');
+      ok(!Object.prototype.hasOwnProperty.call(body, '_b'), label + ' body 顶层漏了 _b');
+      for (const e of body) ok(!Object.prototype.hasOwnProperty.call(e, '_b'), label + ' 单条事件漏了 _b');
+    }
   });
 
-  test('扩展页（非 http(s)）不探测、直接直连且仍带 x-mt-batch（回归）', async () => {
-    const { T, sent, fetched } = pageSandbox({ webPage: false });
-    eq(await T.track('heartbeat'), true);
-    eq(await T.flush(), true);
-    eq(sent.length, 0, '扩展页不该发 telemetryPing');
-    eq(fetched.length, 1, '扩展页应当直连');
-    eq(fetched[0].url, INGEST);
-    ok(/^[0-9a-f]{16}$/.test(fetched[0].init.headers['x-mt-batch']),
-      '扩展页不受页面 CORS 管，仍应带批次头');
-    eq(fetched[0].init.headers['content-type'], 'text/plain');
-    eq(fetched[0].init.keepalive, true);
+  test('⑩ Safari 内容页 schedule 用 10s；Chrome 用 60s（fake setTimeout）', async () => {
+    const safariDelays = [];
+    const safari = pageSandbox({
+      ua: SAFARI_UA,
+      setTimeout: (fn, ms) => { safariDelays.push(ms); return safariDelays.length; },
+      clearTimeout: () => {},
+    });
+    eq(safari.T.FLUSH_MS_SAFARI, 10 * 1000);
+    eq(safari.T.FLUSH_MS, 60 * 1000);
+    await safari.T.track('heartbeat');
+    ok(safariDelays.includes(10 * 1000), 'Safari 内容页没有用 10s 定时器：' + JSON.stringify(safariDelays));
+    ok(!safariDelays.includes(60 * 1000), 'Safari 内容页仍用了 60s');
+
+    const chromeDelays = [];
+    const chrome = pageSandbox({
+      setTimeout: (fn, ms) => { chromeDelays.push(ms); return chromeDelays.length; },
+      clearTimeout: () => {},
+    });
+    await chrome.T.track('heartbeat');
+    ok(chromeDelays.includes(60 * 1000), 'Chrome 没有用 60s：' + JSON.stringify(chromeDelays));
+    ok(!chromeDelays.includes(10 * 1000), 'Chrome 误用了 Safari 的 10s');
+  });
+
+  test('⑪ init 注册 pagehide；触发后队列被 flush（direct fetch 收到）', async () => {
+    const sb = pageSandbox({ ua: SAFARI_UA, onMessage: () => { throw new Error('no receiver'); } });
+    seedInit(sb.store);
+    await sb.T.init();
+    await tick(0);
+    eq(typeof sb.listeners.window.pagehide, 'object', '没有注册 pagehide');
+    eq(sb.listeners.window.pagehide.length, 1);
+    await sb.T.track('heartbeat');
+    eq(sb.fetched.length, 0, 'flush 抢跑了');
+    await sb.listeners.window.pagehide[0]();
+    eq(sb.fetched.length, 1, 'pagehide 没有触发 flush');
+    eq(sb.fetched[0].url, INGEST);
+    eq(sb.store[sb.T.KEYS.queue].length, 0);
+  });
+
+  test('⑫ visibilitychange → hidden flush；visible 不 flush', async () => {
+    const hidden = pageSandbox({ ua: SAFARI_UA, onMessage: () => { throw new Error('no receiver'); } });
+    seedInit(hidden.store);
+    await hidden.T.init();
+    await tick(0);
+    eq(typeof hidden.listeners.document.visibilitychange, 'object', '没有注册 visibilitychange');
+    await hidden.T.track('heartbeat');
+    hidden.doc.hidden = true;
+    hidden.listeners.document.visibilitychange[0]();
+    await tick(0);
+    eq(hidden.fetched.length, 1, 'hidden 没有触发 flush');
+
+    const visible = pageSandbox({ ua: SAFARI_UA, onMessage: () => { throw new Error('no receiver'); } });
+    seedInit(visible.store);
+    await visible.T.init();
+    await tick(0);
+    await visible.T.track('heartbeat');
+    visible.doc.hidden = false;
+    visible.listeners.document.visibilitychange[0]();
+    await tick(0);
+    eq(visible.fetched.length, 0, 'visible 也 flush 了');
+    eq(visible.store[visible.T.KEYS.queue].length, 1);
+  });
+
+  test('⑬ china：SW 成功与 SW 失败降级后的直连都不带 x-mt-batch', async () => {
+    const sw = pageSandbox({ flavor: 'china' });
+    await sw.T.track('heartbeat');
+    eq(await sw.T.flush(), true);
+    eq(sends(sw.sent).length, 1);
+    eq(hasBatch(sends(sw.sent)[0].init.headers), false, 'china SW 批次带了 x-mt-batch');
+    eq(sw.fetched.length, 0);
+
+    const down = pageSandbox({
+      flavor: 'china',
+      onMessage: probeOkThen((msg, cb) => cb && cb({ ok: false })),
+    });
+    await down.T.track('heartbeat');
+    eq(await down.T.flush(), true);
+    eq(sends(down.sent).length, 1);
+    eq(hasBatch(sends(down.sent)[0].init.headers), false, 'china SW 失败批次带了 x-mt-batch');
+    eq(down.fetched.length, 1);
+    eq(hasBatch(down.fetched[0].init.headers), false, 'china 降级直连带 x-mt-batch 会触发预检');
+  });
+
+  test('⑭ 回归：keepalive / text/plain / 无 Authorization（SW、网页直连、扩展页直连）', async () => {
+    const sw = pageSandbox();
+    await sw.T.track('heartbeat');
+    eq(await sw.T.flush(), true);
+    assertTransport(sends(sw.sent)[0].init, 'SW');
+
+    const web = pageSandbox({ onMessage: () => { throw new Error('no receiver'); } });
+    await web.T.track('heartbeat');
+    eq(await web.T.flush(), true);
+    assertTransport(web.fetched[0].init, 'web direct');
+
+    const ext = pageSandbox({ webPage: false });
+    await ext.T.track('heartbeat');
+    eq(await ext.T.flush(), true);
+    assertTransport(ext.fetched[0].init, 'extension direct');
+
+    function assertTransport(init, label) {
+      eq(init.method, 'POST', label);
+      eq(init.keepalive, true, label);
+      eq(init.headers['content-type'], 'text/plain', label);
+      eq(hasAuth(init.headers), false, label + ' 带了 Authorization');
+    }
   });
 });
 
@@ -320,13 +443,13 @@ function sendBackground(listeners, msg) {
 }
 
 describe('BEL-304 后台 telemetryPing / SW 既有边界不变', () => {
-  test('后台 telemetryPing 立即回 {ok:true}，不发起 fetch', async () => {
+  test('⑮ 后台 telemetryPing 立即回 {ok:true}，不发起 fetch', async () => {
     const { listeners, calls } = backgroundLoader();
     deepEq(await sendBackground(listeners, { action: 'telemetryPing' }), { ok: true });
     eq(calls.length, 0, '探测不该触发任何网络请求');
   });
 
-  test('SW 白名单 / 64KB 体限 / 拒收不变；x-mt-batch 头原样转发', async () => {
+  test('⑯ SW 白名单 / 64KB 体限 / 拒收不变；x-mt-batch 头原样转发', async () => {
     const { listeners, calls } = backgroundLoader();
     const body = JSON.stringify([{ name: 'heartbeat' }]);
 

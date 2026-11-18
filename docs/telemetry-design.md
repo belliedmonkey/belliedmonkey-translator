@@ -995,8 +995,9 @@ App 原生那一步（`apple-result` 带 `error`）经 `LearnAuth.noteAuthFail('
 
 - **Client module** `extension/learn/telemetry.js` (`MTTelemetry`). `track(name, props)`
   only enqueues (key `tm:queue` in `chrome.storage.local`, cap 200, drop oldest).
-  `flush()` runs when the queue reaches 10, or 60 s have passed, or any extension page
-  opens. The host app runs the same bytes via `Script.js`.
+  `flush()` runs when the queue reaches 10, or 60 s have passed (Safari content pages:
+  10 s), or an extension page opens, or the page fires `pagehide` /
+  `visibilitychange` while hidden. The host app runs the same bytes via `Script.js`.
 - **BEL-277 transport split**: on an **http/https page** the content script cannot rely
   on `fetch` — the visited page's CSP (`connect-src`) can block it. It sends
   `{ action:'telemetrySend', url, init }` to the service worker instead; the SW fetches
@@ -1005,9 +1006,15 @@ App 原生那一步（`apple-result` 带 `error`）经 `LearnAuth.noteAuthFail('
   `providers.gen.js`) and a body ≤ 64 KB; every other URL is rejected. **Extension
   pages and the App keep the direct `fetch(keepalive)` path** (their fetches are not
   governed by a page CSP).
-- **Queue + drops**: a failed SW round trip (unavailable / timeout / non-2xx) returns
-  `ok:false`, and `flush()` puts the batch back at the queue tail. Queues over 200 drop
-  the oldest rows and increment the local storage counter `mtTelemetryDropped` plus
+- **Queue + drops**: a probe is only a fast skip — probe failure sends the page direct,
+  but probe success does **not** prove the SW can reach the network. The first batch of
+  the page still goes through the SW; a failed SW round trip (unavailable / timeout /
+  non-2xx) downgrades the whole page (`pageTransport = 'direct'`) and retries **that
+  batch** once over direct with the same batch id (`x-mt-batch`, global builds), while
+  a `console.warn('[mt] telemetry sw failed, page downgraded')` makes the downgrade
+  non-silent. Only a failed direct retry returns `ok:false`, and `flush()` puts the
+  batch back at the queue tail. Queues over 200 drop the oldest rows and increment the
+  local storage counter `mtTelemetryDropped` plus
   `console.warn('[mt] telemetry dropped', n)` — a drop is never silent. The counter is
   local storage, not a telemetry event.
 - **Endpoint** global: `MT_BACKEND.url + '/functions/v1/bt-ingest'`. China: `MT_BACKEND.china.url + '/functions/v1/bt-ingest'` (in-country; never `*.supabase.co`). `build.js` emits `window.MT_TELEMETRY = { url, spec }` into `providers.gen.js` (which content scripts already
@@ -1036,6 +1043,35 @@ App 原生那一步（`apple-result` 带 `error`）经 `LearnAuth.noteAuthFail('
   `install_id`.
 - **Volume**: ~200 installs/month × ~10 events per active day — tens of thousands of
   rows a month, inside the free tier.
+
+### 4.1 Safari 传输与 CSP 的已知边界（BEL-304，2026-11-18）
+
+2026-11-18 的 14 Pro / 1.23.4(234) 真机取证把「SW 可用」拆成了两件事：App 与扩展页
+事件到达、Safari 内容脚本 0 行，而 `heartbeat`（扩展页）到了。`telemetryPing` 能通
+只证明**消息到得了后台**，不证明**后台发得出去** —— 探头因此只当快速跳过，不作判决。
+
+- **判决在 `sendViaRuntime`。** probe 失败 ⇒ 本页直接直连；probe 成功 ⇒ 本页第一批
+  仍走 SW。SW 返回 `{ok:false}` / throw / lastError / 15 s 超时 ⇒ 立即整页降级
+  （本页后续批次不再探测、不再发 `telemetrySend`），并把**这一批**用直连重发一次，
+  复用同一个 batch id / `x-mt-batch`。服务端 v76 的
+  `(install_id, batch_id, batch_seq)` 唯一索引负责重发幂等。直连也失败 ⇒ `flush()`
+  返回 false，批次按原语义回队列尾（不丢、不重复入队）。SW 失败只 warn
+  （`[mt] telemetry sw failed, page downgraded`），不记成直连失败；探针失败记
+  `mtTelemetryDirectFail` + warn，直连 fetch 失败也记同一个计数器。
+- **直连受页面 CSP 管。** 网页里的 `fetch` 由 `connect-src` 决定；`apple.com` 这类
+  严格 CSP 若挡住直连，事件只留在队列里等下一次 flush。若该页的 SW 也不可用，
+  这一页的遥测就会丢 —— **这是已接受的边界**，但不静默：本机
+  `mtTelemetryDirectFail` 计数器 + `console.warn`，队列本身不丢。无 CSP 的站点
+  （如 `example.com`）在 SW 不可用时仍可直连送达。
+- **`x-mt-batch` 只在 global 加。** 东京 v76 已放行 `content-type, x-mt-batch`；
+  CN 的 `api.belliedmonkey.com` 还没放行。所以 `buildFlavor() === 'global'` 时 SW、
+  网页直连、扩展页 / App 直连都带这个头；`china` 一律不带，保持
+  `content-type: text/plain` 的简单请求（不触发预检）。在 CN 放行该头之前，
+  中国版的失败重发没有批次 id、无法按批次去重 —— 与「CN 这轮不动」的边界一致。
+- **Safari 的 60 s 定时器不是唯一出口。** Safari 内容页的 `schedule()` 改为 10 s，
+  其余宿主仍 60 s；`init()` 另一次性挂 `pagehide` 与 `visibilitychange(hidden)`，
+  让只有 1–2 条事件的短页面不必等满 10 条阈值。`tm:last` 的 5 s 软锁、先清后发、
+  失败回队列、≤50 条 / 64 KB、`keepalive:true` 都不变。
 
 ## 5. What the user sees
 
