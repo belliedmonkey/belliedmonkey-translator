@@ -1,0 +1,89 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "e1b383c18ac5f60becb5b5f0fd37d642f5ce84b19ba5154c82f3f1f9c05fcffd",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate incorrectly attributes swimming, long jump, and pulling strength all being five times that of humans, while the source only specifies pulling strength as five times."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "The number 'five times' is incorrectly applied to swimming and long jump, which are not quantified in the source."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation errors."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omissions."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The candidate adds unsupported quantitative claims for swimming and long jump."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is accurate and consistent."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation is fluent and natural."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "拉力能达到人类大力士的五倍",
+        "targetQuote": "swimming, long jump, and pulling strength are five times that of the strongest humans",
+        "reason": "The source only states that pulling strength is five times that of strong humans, but the translation incorrectly extends this quantity to swimming and long jump."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "五倍",
+        "targetQuote": "five times",
+        "reason": "The number 'five times' is correctly rendered but wrongly applied to multiple abilities instead of only pulling strength."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "游泳、跳远",
+        "targetQuote": "swimming, long jump, and pulling strength are five times that of the strongest humans",
+        "reason": "The translation invents numerical strength claims for swimming and long jump not present in the source."
+      }
+    ]
+  },
+  "usage": {
+    "prompt_tokens": 426,
+    "completion_tokens": 351,
+    "total_tokens": 777,
+    "cost": 0.00033612,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00033612,
+      "upstream_inference_prompt_cost": 0.00005532,
+      "upstream_inference_completions_cost": 0.0002808
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00033612
+}

@@ -1,0 +1,89 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "fleurs-public-candidates/en_us/1678",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "39624e1bec49b733ff9d1190cea096e73181ad95934873e0e65e08ff30c87900",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate misrepresents the source by implying that 'the President's Speech' is a statement made by the president, rather than the title of Sacks's paper."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "The title 'The President's Speech' is incorrectly rendered as if it were a speech by the president, not a paper by Sacks."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation issues."
+      },
+      "omission": {
+        "pass": false,
+        "note": "The candidate omits the fact that the paper is authored by Sacks and misattributes the idea to 'the President's Speech' as if it were a source."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The candidate invents the idea that 'the President's Speech' is a speech made by the president, which is not supported by the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology related to brain injury and sincerity assessment is appropriately used."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The Chinese sentence reads naturally."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "Oliver Sacks, in his paper The President's Speech, indicated how people who are unable to understand speech because of brain damage are nevertheless able to assess sincerity accurately.",
+        "targetQuote": "奥利弗·萨克斯及其论文指出，总统的演讲表明，那些因脑损伤而无法理解言语的人，仍然能够准确地评估真诚度。",
+        "reason": "The candidate incorrectly shifts the subject: it suggests that 'the President's Speech' is a speech that makes a statement, rather than the title of Sacks's paper. This fundamentally alters the meaning."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "The President's Speech",
+        "targetQuote": "总统的演讲",
+        "reason": "The title 'The President's Speech' is not preserved as a paper title but rendered as a generic speech by a president, misrepresenting the entity."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "Oliver Sacks, in his paper The President's Speech, indicated...",
+        "targetQuote": "奥利弗·萨克斯及其论文指出，总统的演讲表明...",
+        "reason": "The candidate omits that Sacks is the author of the paper and instead implies that the speech itself is the source of the observation."
+      }
+    ]
+  },
+  "usage": {
+    "prompt_tokens": 424,
+    "completion_tokens": 490,
+    "total_tokens": 914,
+    "cost": 0.00044704,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00044704,
+      "upstream_inference_prompt_cost": 0.00005504,
+      "upstream_inference_completions_cost": 0.000392
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00044704
+}

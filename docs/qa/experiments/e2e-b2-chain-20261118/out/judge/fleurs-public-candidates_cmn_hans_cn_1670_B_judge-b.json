@@ -1,0 +1,89 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "f46fa402bf91cc2b71eafbae89852726432c0478bdbc5473a22e2292a46c8201",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate mistranslates 'underground deep holes' as 'subsurface rising snow', which drastically alters the meaning."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All names, places, and affiliations are correctly rendered."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation 'not as stable' is correctly preserved."
+      },
+      "omission": {
+        "pass": false,
+        "note": "The phrase 'underground deep holes' is omitted and replaced with unrelated content."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "'Subsurface rising snow' is a hallucinated concept not present in the source."
+      },
+      "terminology": {
+        "pass": false,
+        "note": "'地下深穴' is incorrectly translated as 'subsurface rising snow' instead of 'deep underground holes' or similar."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The target sentence is fluent and grammatically correct."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "地下深穴",
+        "targetQuote": "subsurface rising snow",
+        "reason": "The source refers to deep underground cavities, but the translation incorrectly renders it as 'rising snow', introducing a completely different and unsupported concept."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "地下深穴",
+        "targetQuote": "subsurface rising snow",
+        "reason": "The actual concept of deep underground holes is omitted and replaced with an unrelated idea, resulting in loss of key information."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "地下深穴",
+        "targetQuote": "subsurface rising snow",
+        "reason": "'Rising snow' is an invented concept not mentioned or implied in the source text."
+      }
+    ]
+  },
+  "usage": {
+    "prompt_tokens": 497,
+    "completion_tokens": 346,
+    "total_tokens": 843,
+    "cost": 0.000307,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.000307,
+      "upstream_inference_prompt_cost": 0.0000994,
+      "upstream_inference_completions_cost": 0.0002076
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.000307
+}

@@ -1,0 +1,70 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "0e6702291290fefe2643299cb6a00216b7ff25b1353a05db0d9d5ee40b14b0c1",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The candidate conveys the same meaning as the source."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All entities and numbers are correctly preserved."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation issues."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omissions."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No hallucinations present."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is accurate and consistent."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally."
+      }
+    },
+    "findings": []
+  },
+  "usage": {
+    "prompt_tokens": 422,
+    "completion_tokens": 137,
+    "total_tokens": 559,
+    "cost": 0.000388,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.000388,
+      "upstream_inference_prompt_cost": 0.0001688,
+      "upstream_inference_completions_cost": 0.0002192
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.000388
+}

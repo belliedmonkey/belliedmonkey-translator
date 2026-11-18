@@ -1,0 +1,83 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "e1b383c18ac5f60becb5b5f0fd37d642f5ce84b19ba5154c82f3f1f9c05fcffd",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate translation incorrectly attributes 'swimming, long jump, and pulling strength are five times that of the strongest humans' as a combined fact, whereas the original states only pulling st"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "Numbers and entities are preserved correctly."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation is preserved correctly."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omission."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The candidate implies swimming and long jump abilities are five times human strength, which is not supported by the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is consistent and sensible."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "它会攀爬（虽然攀爬能力不是很强）、游泳、跳远，拉力能达到人类大力士的五倍。",
+        "targetQuote": "They can climb, although their climbing ability is not particularly strong. Their swimming, long jump, and pulling strength are five times that of the strongest humans.",
+        "reason": "The original states that the tiger can climb (though not strongly), swim, and jump far, and that its pulling strength is five times that of a strong human. The candidate translation incorrectly groups swimming, long jump, and pulling strength as all being five times human strength, which distorts the meaning."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "拉力能达到人类大力士的五倍。",
+        "targetQuote": "Their swimming, long jump, and pulling strength are five times that of the strongest humans.",
+        "reason": "The source only supports that pulling strength is five times that of humans; the candidate adds swimming and long jump to this claim, which is unsupported."
+      }
+    ]
+  },
+  "usage": {
+    "prompt_tokens": 441,
+    "completion_tokens": 405,
+    "total_tokens": 846,
+    "cost": 0.0008244,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0008244,
+      "upstream_inference_prompt_cost": 0.0001764,
+      "upstream_inference_completions_cost": 0.000648
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0008244
+}

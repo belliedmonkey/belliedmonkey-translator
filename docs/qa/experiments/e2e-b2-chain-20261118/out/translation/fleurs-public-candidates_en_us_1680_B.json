@@ -1,0 +1,27 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-translation.v1",
+  "itemId": "fleurs-public-candidates/en_us/1680",
+  "condition": "B",
+  "targetLang": "zh-CN",
+  "sourceKind": "sa_hypothesis",
+  "source": "A well-rounded athlete, the tiger can climb, though not well, swim, leave great distances, and pull with 5 times the force of a strong human.",
+  "translation": "老虎是一位全能型运动员，虽然攀爬能力不强，但会游泳，能长途跋涉，拉力更是强壮人类的五倍。",
+  "ok": true,
+  "httpStatus": 200,
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "latencyMs": 2088,
+  "usage": {
+    "prompt_tokens": 158,
+    "total_tokens": 184,
+    "completion_tokens": 26,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 158
+    }
+  },
+  "error": null
+}

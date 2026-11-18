@@ -1,0 +1,27 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-translation.v1",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+  "condition": "B",
+  "targetLang": "en",
+  "sourceKind": "sa_hypothesis",
+  "source": "他们的热行为不像地球上的大型洞穴那么稳定 ，这些大型洞穴通常会保持相当恒定的温度。但它们与地下升雪的情况很相似。亚历桑那州旗甘镇美国地质调查局 USGS太空地质团队和北亚历桑那大学的格伦库星说道。",
+  "translation": "Their thermal behavior is not as stable as that of large caves on Earth, which typically maintain a fairly constant temperature. However, they are quite similar to conditions involving subsurface rising snow, said Glen Cushing of the U.S. Geological Survey (USGS) Astrogeology Team in Flagstaff, Arizona, and Northern Arizona University.",
+  "ok": true,
+  "httpStatus": 200,
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "latencyMs": 2255,
+  "usage": {
+    "prompt_tokens": 182,
+    "total_tokens": 249,
+    "completion_tokens": 67,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 182
+    }
+  },
+  "error": null
+}

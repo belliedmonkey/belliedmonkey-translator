@@ -1,0 +1,12 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-translation-summary.v1",
+  "n": 36,
+  "ok": 36,
+  "latencyMs": {
+    "min": 1103,
+    "p50": 1557,
+    "p90": 2088,
+    "max": 4044
+  },
+  "promptSha256": "75e06b87f485d0f505680a9763ad57103c8777cb28efc2777119aca2488a558b"
+}

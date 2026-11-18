@@ -1,0 +1,27 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-translation.v1",
+  "itemId": "fleurs-public-candidates/en_us/1671",
+  "condition": "B",
+  "targetLang": "zh-CN",
+  "sourceKind": "sa_hypothesis",
+  "source": "Congress began funding the obscenity initiative in fiscal 2005 and specified that the FBI must devote 10 agents to adult pornography.",
+  "translation": "国会从2005财年开始为淫秽物品整治行动提供资金，并明确规定联邦调查局必须指派10名特工专门负责成人色情内容相关事务。",
+  "ok": true,
+  "httpStatus": 200,
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "latencyMs": 1983,
+  "usage": {
+    "prompt_tokens": 154,
+    "total_tokens": 190,
+    "completion_tokens": 36,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 154
+    }
+  },
+  "error": null
+}

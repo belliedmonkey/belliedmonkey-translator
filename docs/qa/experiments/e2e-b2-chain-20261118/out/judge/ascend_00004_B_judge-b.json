@@ -1,0 +1,89 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "ascend/00004",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "37c79ef9f463d8b791af131f4b77c8473c6d49ac37babb45e1b99d8728ba6ad9",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "short"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "short"
+      },
+      "negation": {
+        "pass": true,
+        "note": "short"
+      },
+      "omission": {
+        "pass": false,
+        "note": "short"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "short"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "short"
+      },
+      "fluency": {
+        "pass": false,
+        "note": "short"
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "呃what's the呃",
+        "targetQuote": "I so",
+        "reason": "The candidate translation 'I so' does not convey the meaning of the source, which appears to be a hesitant or interrupted attempt to ask 'what's the...' something. The translation fails to preserve the intended query or hesitation."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "what's the",
+        "targetQuote": "",
+        "reason": "The key part of the utterance 'what's the' is entirely omitted in the translation, resulting in a significant loss of content."
+      },
+      {
+        "dimension": "fluency",
+        "sourceQuote": "呃what's the呃",
+        "targetQuote": "I so",
+        "reason": "The translation 'I so' is not a fluent or grammatical English utterance and does not reflect natural speech, even as a fragment."
+      }
+    ]
+  },
+  "usage": {
+    "prompt_tokens": 365,
+    "completion_tokens": 263,
+    "total_tokens": 628,
+    "cost": 0.0002615,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0002615,
+      "upstream_inference_prompt_cost": 0.0000511,
+      "upstream_inference_completions_cost": 0.0002104
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0002615
+}

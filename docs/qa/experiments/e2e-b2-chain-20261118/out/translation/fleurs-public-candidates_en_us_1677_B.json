@@ -1,0 +1,27 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-translation.v1",
+  "itemId": "fleurs-public-candidates/en_us/1677",
+  "condition": "B",
+  "targetLang": "zh-CN",
+  "sourceKind": "sa_hypothesis",
+  "source": "Today, the only insects that cannot fold back their wings are dragonflies and may flies.",
+  "translation": "如今，唯一不能将翅膀折叠回去的昆虫是蜻蜓和蜉蝣。",
+  "ok": true,
+  "httpStatus": 200,
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "latencyMs": 1485,
+  "usage": {
+    "prompt_tokens": 143,
+    "total_tokens": 161,
+    "completion_tokens": 18,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 143
+    }
+  },
+  "error": null
+}

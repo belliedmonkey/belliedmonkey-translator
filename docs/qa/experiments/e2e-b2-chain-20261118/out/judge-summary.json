@@ -1,0 +1,9 @@
+{
+  "schema": "belliedmonkey.e2e-b2.judge-summary.v1",
+  "calls": 72,
+  "parsed": 72,
+  "pairs": 36,
+  "bothPass": 22,
+  "anyFail": 14,
+  "providerUsd": 0.02470932
+}

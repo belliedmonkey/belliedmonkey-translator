@@ -1,0 +1,92 @@
+{
+  "schema": "belliedmonkey.e2e-b2.compare.v1",
+  "n": 36,
+  "identical": 22,
+  "differing": 14,
+  "diffs": [
+    {
+      "itemId": "ascend/00004",
+      "reason": "text differs",
+      "frozen": "I am so",
+      "fresh": "I so"
+    },
+    {
+      "itemId": "ascend/00009",
+      "reason": "text differs",
+      "frozen": "Then I think love is that ISM, information system management.",
+      "fresh": "Then I think love is that ISM, Information System Management."
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1668",
+      "reason": "text differs",
+      "frozen": "Buying a Universal Card also has many benefits. With this card, you can enter some parks in South Africa or all of the national parks.",
+      "fresh": "Purchasing a Universal Card also offers many benefits. With this card, you can access some parks in South Africa or all of the national parks."
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+      "reason": "text differs",
+      "frozen": "Their thermal behavior is not as stable as that of large caves on Earth, which typically maintain a fairly constant temperature. However, they are quite similar to conditions involving rising snow underground, said Glen Cushing of the U.S. Geological Survey (USGS) Astrogeology Team in Flagstaff, Arizona, and Northern Arizona University.",
+      "fresh": "Their thermal behavior is not as stable as that of large caves on Earth, which typically maintain a fairly constant temperature. However, they are quite similar to conditions involving subsurface rising snow, said Glen Cushing of the U.S. Geological Survey (USGS) Astrogeology Team in Flagstaff, Arizona, and Northern Arizona University."
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "reason": "text differs",
+      "frozen": "Since 2005, Congress has been funding the anti-pornography initiative and mandated that the FBI assign ten agents specifically to combat adult pornography.",
+      "fresh": "Congress began funding the anti-pornography initiative in 2005 and mandated that the FBI assign ten agents specifically to combat adult pornography."
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+      "reason": "text differs",
+      "frozen": "All nouns, except for the letter C representing you, should begin with a capital letter, even in the middle of a sentence.",
+      "fresh": "All nouns except for the one representing your C should begin with a capital letter, even in the middle of a sentence."
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1681",
+      "reason": "text differs",
+      "frozen": "An experiment is a method used to eliminate one or more hypothetical possibilities. However, experiments are not the only approach; posing questions and making observations can also guide scientific research.",
+      "fresh": "An experiment is a method used to eliminate one or more possible hypotheses. However, experiments are not the only approach; posing questions and making observations can also guide scientific research."
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1668",
+      "reason": "text differs",
+      "frozen": "购买一张野生卡也可能对您有益，该卡可让您进入南非的部分公园或所有南非国家公园。",
+      "fresh": "购买一张“Wild Card”也可能对您有益，该卡可让您进入南非的部分公园或所有南非国家公园。"
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1670",
+      "reason": "text differs",
+      "frozen": "它们的热行为不如地球上的大型洞穴那样稳定，后者通常能保持相当恒定的温度。但这一现象与这些洞穴是深入地下的深坑相符，美国地质调查局天体地质学团队、位于亚利桑那州弗拉格斯塔夫的北亚利桑那大学的格伦·卡辛表示。",
+      "fresh": "它们的热行为不如地球上的大型洞穴那样稳定，后者通常能保持相当恒定的温度。但这一现象与这些结构是深入地下的深坑相符，美国地质调查局天体地质学团队、位于亚利桑那州弗拉格斯塔夫的北亚利桑那大学的格伦·卡辛表示。"
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1671",
+      "reason": "text differs",
+      "frozen": "国会从2005财年开始为淫秽物品整治计划提供资金，并明确规定联邦调查局必须指派10名特工专门负责成人色情内容相关事务。",
+      "fresh": "国会从2005财年开始为淫秽物品整治行动提供资金，并明确规定联邦调查局必须指派10名特工专门负责成人色情内容相关事务。"
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1673",
+      "reason": "text differs",
+      "frozen": "在美国独立战争期间，13个州最初建立了一个软弱的中央政府，根据《邦联条例》，国会是其唯一组成部分。",
+      "fresh": "在美国独立战争期间，十三个州首先建立了一个软弱的中央政府，根据《邦联条例》，国会是其唯一组成部分。"
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1676",
+      "reason": "text differs",
+      "frozen": "与所有南非国家公园一样，该公园收取每日保育费和入园费。",
+      "fresh": "与所有南非国家公园一样，该公园收取每日保护费和入场费。"
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1678",
+      "reason": "text differs",
+      "frozen": "奥利弗·萨克斯及其论文指出，总统的演讲表明，尽管因脑损伤而无法理解言语的人，仍能准确评估说话者的真诚度。",
+      "fresh": "奥利弗·萨克斯及其论文指出，总统的演讲表明，那些因脑损伤而无法理解言语的人，仍然能够准确地评估真诚度。"
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1681",
+      "reason": "text differs",
+      "frozen": "然而，实验并非孤立存在。实验是一种用于排除一个或多个可能假设的检验方法，而提出问题与进行观察也指导着科学研究。",
+      "fresh": "然而，实验并非孤立存在。实验是一种用于排除一个或多个可能假设的测试，而提出问题与进行观察也引导着科学研究。"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "f0c3d63030a38c2bdc2dd1f78d62807a9173951ebcacb039f3c0e2405c56966d",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "accurate conveyance of meaning"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "correct insect names"
+      },
+      "negation": {
+        "pass": true,
+        "note": "negation preserved"
+      },
+      "omission": {
+        "pass": true,
+        "note": "no material omitted"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "no added information"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "terms correctly translated"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "natural English"
+      }
+    },
+    "findings": []
+  },
+  "usage": {
+    "prompt_tokens": 405,
+    "completion_tokens": 123,
+    "total_tokens": 528,
+    "cost": 0.0003588,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0003588,
+      "upstream_inference_prompt_cost": 0.000162,
+      "upstream_inference_completions_cost": 0.0001968
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0003588
+}

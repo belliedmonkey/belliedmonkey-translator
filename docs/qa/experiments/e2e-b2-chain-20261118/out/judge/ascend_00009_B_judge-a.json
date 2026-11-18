@@ -1,0 +1,89 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "ascend/00009",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "a402e92222a44839dd1cdc7592f7278ad5a2e3967db33e7b7a4f2848f4568008",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate adds 'Then I think love is' which is not present in the source, changing the meaning."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "ISM and Information Systems Management are correctly preserved."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation in source or target."
+      },
+      "omission": {
+        "pass": false,
+        "note": "The source states 'no' indicating negation or refusal which is omitted in the candidate."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The candidate adds 'Then I think love is' which is not supported by the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology ISM and Information Systems Management is consistent."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The candidate reads naturally in English."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "no我专业是那个i s m information systems management",
+        "targetQuote": "Then I think love is that ISM, Information System Management.",
+        "reason": "The candidate adds 'Then I think love is' which changes the meaning and introduces new content not in the source."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "no",
+        "targetQuote": "Then I think love is",
+        "reason": "The negation 'no' in the source is omitted in the candidate translation."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "no我专业是那个i s m information systems management",
+        "targetQuote": "Then I think love is that ISM, Information System Management.",
+        "reason": "The phrase 'Then I think love is' is invented and not supported by the source."
+      }
+    ]
+  },
+  "usage": {
+    "prompt_tokens": 385,
+    "completion_tokens": 344,
+    "total_tokens": 729,
+    "cost": 0.0007044,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0007044,
+      "upstream_inference_prompt_cost": 0.000154,
+      "upstream_inference_completions_cost": 0.0005504
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0007044
+}

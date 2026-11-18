@@ -1,0 +1,89 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "fleurs-public-candidates/en_us/1675",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "b25b0a7bb64a7dcef28e7951935cbb90d54bb745ae8b5890e7950355351c3e98",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The translation misrepresents 'Sie for you' as '你世界安全', completely altering the meaning."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "'Sie' is incorrectly rendered as '你世界安全' instead of being preserved or correctly translated as a formal pronoun."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation in source or target."
+      },
+      "omission": {
+        "pass": false,
+        "note": "The correct reference to the formal 'you' (Sie) is omitted and replaced with unrelated content."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "Adds '世界安全' (world security), which is not present or implied in the source."
+      },
+      "terminology": {
+        "pass": false,
+        "note": "'Sie' is a grammatical term and should not be translated as '你世界安全'."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The Chinese sentence is fluent but based on incorrect content."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "the word Sie for you",
+        "targetQuote": "你世界安全",
+        "reason": "The phrase 'Sie for you' is mistranslated as '你世界安全', which means 'your world security', introducing a completely different concept."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "Sie for you",
+        "targetQuote": "你世界安全",
+        "reason": "The correct meaning of 'Sie' as the formal 'you' is omitted and replaced with unrelated text."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "Sie for you",
+        "targetQuote": "你世界安全",
+        "reason": "The term '世界安全' (world security) is hallucinated and has no basis in the source text."
+      }
+    ]
+  },
+  "usage": {
+    "prompt_tokens": 403,
+    "completion_tokens": 358,
+    "total_tokens": 761,
+    "cost": 0.0003385,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0003385,
+      "upstream_inference_prompt_cost": 0.0000521,
+      "upstream_inference_completions_cost": 0.0002864
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0003385
+}

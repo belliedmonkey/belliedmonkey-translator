@@ -1,0 +1,89 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "ascend/00028",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "31f937b85ab8fcbc5b0857e432868b59d0d6c78f8174d83da58ad61193888a78",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate translation changes '福建' (Fujian, a place name) to 'attachment', altering the meaning."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "The place name '福建' is mistranslated as 'attachment'."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation present in source or target."
+      },
+      "omission": {
+        "pass": false,
+        "note": "The place name '福建' is omitted in meaning."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The word 'attachment' is an invention not supported by the source."
+      },
+      "terminology": {
+        "pass": false,
+        "note": "The proper noun '福建' is mistranslated."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The target sentence is fluent."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "福建",
+        "targetQuote": "attachment",
+        "reason": "The place name '福建' is mistranslated as 'attachment', changing the meaning."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "福建",
+        "targetQuote": "attachment",
+        "reason": "The place name '福建' is not preserved and incorrectly translated."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "福建",
+        "targetQuote": "attachment",
+        "reason": "The word 'attachment' is not supported by the source text."
+      }
+    ]
+  },
+  "usage": {
+    "prompt_tokens": 367,
+    "completion_tokens": 282,
+    "total_tokens": 649,
+    "cost": 0.000598,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.000598,
+      "upstream_inference_prompt_cost": 0.0001468,
+      "upstream_inference_completions_cost": 0.0004512
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.000598
+}

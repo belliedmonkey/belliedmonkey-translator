@@ -1,0 +1,83 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "6c1429cf918467979c06f956a3681e097516c12e628beed785655c18b4088c1c",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The meaning is distorted due to incorrect translation of 'Sie' as 'C'."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "The term 'Sie' is mistranslated as 'C'."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation is preserved."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omission."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No hallucination present."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is acceptable except for the mistranslation of 'Sie'."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "Fluent English."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "您的“Sie”",
+        "targetQuote": "your C",
+        "reason": "The pronoun 'Sie' is incorrectly translated as 'C', which changes the meaning."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "“Sie”",
+        "targetQuote": "C",
+        "reason": "The German formal pronoun 'Sie' is mistranslated as 'C', losing the original reference."
+      }
+    ]
+  },
+  "usage": {
+    "prompt_tokens": 416,
+    "completion_tokens": 238,
+    "total_tokens": 654,
+    "cost": 0.0005472,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0005472,
+      "upstream_inference_prompt_cost": 0.0001664,
+      "upstream_inference_completions_cost": 0.0003808
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0005472
+}

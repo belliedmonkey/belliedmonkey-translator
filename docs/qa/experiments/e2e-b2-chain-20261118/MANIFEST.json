@@ -1,0 +1,66 @@
+{
+  "record": "e2e-b2-chain-20261118",
+  "date": "2026-11-18",
+  "question": "Can the product chain run end to end from audio, and is it reproducible?",
+  "chain": [
+    "audio (local QA cache)",
+    "Apple SpeechAnalyzer via reviewed-36-runner-aef9aa8f",
+    "product translation prompt + qwen3.7-plus + enable_thinking:false",
+    "unified-prompt two-judge review",
+    "deterministic entity/number check"
+  ],
+  "asr": {
+    "hypotheses": "input/hypotheses.json",
+    "identicalToFrozen": "36/36",
+    "wer": "36/363",
+    "cer": "57/624",
+    "mer": "24/42",
+    "recognizeMs": 10256.055958
+  },
+  "translation": {
+    "n": 36,
+    "ok": 36,
+    "identicalToB1": 22,
+    "differing": 14,
+    "latencyMs": {
+      "p50": 1557,
+      "p90": 2088,
+      "max": 4044
+    }
+  },
+  "judging": {
+    "calls": 72,
+    "parsed": 72,
+    "bothPass": 22,
+    "anyFail": 14,
+    "providerUsd": 0.02470932
+  },
+  "runToRun": {
+    "pairFlips": 2,
+    "flipped": [
+      "cmn_hans_cn/1671 fail->pass",
+      "cmn_hans_cn/1682 pass->fail"
+    ],
+    "maxDimensionDeltaPts": 5.3
+  },
+  "entityCheck": {
+    "pairs": 72,
+    "ok": 66,
+    "warn": 6,
+    "fail": 0,
+    "marginalCatchBeyondJudges": [
+      "en_us/1670 B and A: Glen Cushing -> 格伦·卡辛"
+    ]
+  },
+  "finding": "The ASR stage is byte-reproducible; the translation stage is not (14/36 paraphrased at temperature 0). Aggregate pass rate stayed 22/36, so the noise floor is about +-2 items and +-5 points.",
+  "notMeasured": [
+    "app presentation layer",
+    "per-utterance first-result latency",
+    "audio->ASR on other machines"
+  ],
+  "spend": {
+    "judgingUsd": 0.02470932,
+    "translationUsd": null,
+    "asrUsd": 0
+  }
+}

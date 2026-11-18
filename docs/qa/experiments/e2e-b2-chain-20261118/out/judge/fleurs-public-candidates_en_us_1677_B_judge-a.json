@@ -1,0 +1,70 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "fleurs-public-candidates/en_us/1677",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "ab1dd7d1a70f38dce1cc11daf90125a4b4c2481c09b54aabc44e0611ec881bb1",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "meaning preserved"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "entities correctly rendered"
+      },
+      "negation": {
+        "pass": true,
+        "note": "negation preserved"
+      },
+      "omission": {
+        "pass": true,
+        "note": "no omission"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "no hallucination"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "terminology appropriate"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "natural and fluent"
+      }
+    },
+    "findings": []
+  },
+  "usage": {
+    "prompt_tokens": 408,
+    "completion_tokens": 118,
+    "total_tokens": 526,
+    "cost": 0.000352,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.000352,
+      "upstream_inference_prompt_cost": 0.0001632,
+      "upstream_inference_completions_cost": 0.0001888
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.000352
+}

@@ -1,0 +1,70 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "fleurs-public-candidates/en_us/1670",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "d3ebca629cbc9af7f441b19ab77eb39a3b8f709c3406f657c318b65f9f429dfd",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The main meaning is preserved."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All entities and locations are correctly translated."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation and polarity are preserved."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information omitted."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No hallucinations present."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is consistent and appropriate."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in Chinese."
+      }
+    },
+    "findings": []
+  },
+  "usage": {
+    "prompt_tokens": 509,
+    "completion_tokens": 138,
+    "total_tokens": 647,
+    "cost": 0.0004244,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0004244,
+      "upstream_inference_prompt_cost": 0.0002036,
+      "upstream_inference_completions_cost": 0.0002208
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0004244
+}

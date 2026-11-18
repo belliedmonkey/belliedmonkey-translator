@@ -1,0 +1,976 @@
+{
+  "schema": "belliedmonkey.e2e-b2.entity-check.v1",
+  "glossary": "docs/qa/checks/glossary-reviewed-36.json",
+  "n": 72,
+  "byStatus": {
+    "ok": 66,
+    "warn": 6,
+    "fail": 0
+  },
+  "results": [
+    {
+      "itemId": "ascend/00004",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "ascend/00009",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "ascend/00028",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "ascend/00055",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "ascend/00066",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "ascend/00068",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1668",
+      "condition": "B",
+      "status": "warn",
+      "missingNumbers": [],
+      "missingTerms": [
+        "Wild",
+        "Wild Card"
+      ],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 3
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1669",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 2
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 2,
+        "terms": 2
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1672",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 1,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1674",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+      "condition": "B",
+      "status": "warn",
+      "missingNumbers": [],
+      "missingTerms": [
+        "Sie"
+      ],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 2
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1676",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1678",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 3
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 1,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1681",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1682",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 2,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1668",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [
+        "South",
+        "Africa",
+        "African",
+        "National",
+        "Parks."
+      ],
+      "checked": {
+        "numbers": 1,
+        "terms": 1
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1669",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [
+        "Chandra",
+        "Shekhar",
+        "Solanki"
+      ],
+      "checked": {
+        "numbers": 0,
+        "terms": 1
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1670",
+      "condition": "B",
+      "status": "warn",
+      "missingNumbers": [],
+      "missingTerms": [
+        "Glen Cushing"
+      ],
+      "infoNames": [
+        "Earth",
+        "Glen",
+        "Cushing",
+        "United",
+        "States",
+        "Geological",
+        "Survey",
+        "USGS",
+        "Astrogeology",
+        "Team",
+        "Northern",
+        "Arizona",
+        "University",
+        "Flagstaff",
+        "Arizona."
+      ],
+      "checked": {
+        "numbers": 0,
+        "terms": 3
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1671",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [
+        "FBI"
+      ],
+      "checked": {
+        "numbers": 2,
+        "terms": 1
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1672",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1673",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [
+        "Revolutionary",
+        "War",
+        "Congress",
+        "Articles",
+        "Confederation."
+      ],
+      "checked": {
+        "numbers": 1,
+        "terms": 1
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1674",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1675",
+      "condition": "B",
+      "status": "warn",
+      "missingNumbers": [],
+      "missingTerms": [
+        "Sie"
+      ],
+      "infoNames": [
+        "Sie"
+      ],
+      "checked": {
+        "numbers": 0,
+        "terms": 1
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1676",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [
+        "South",
+        "African",
+        "National",
+        "Parks"
+      ],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1677",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1678",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [
+        "Sacks",
+        "President's",
+        "Speech"
+      ],
+      "checked": {
+        "numbers": 0,
+        "terms": 1
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1679",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 1
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1680",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 1,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1681",
+      "condition": "B",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 1,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1682",
+      "condition": "B",
+      "status": "warn",
+      "missingNumbers": [],
+      "missingTerms": [
+        "unexplained-latin:Serenhu,Roi"
+      ],
+      "infoNames": [],
+      "checked": {
+        "numbers": 2,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "ascend/00004",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "ascend/00009",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "ascend/00028",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "ascend/00055",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "ascend/00066",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "ascend/00068",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1668",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 3
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1669",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 2
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 2,
+        "terms": 2
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1672",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 1,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1674",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 2
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1676",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1678",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 3
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1679",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 1,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1681",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/cmn_hans_cn/1682",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 2,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1668",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [
+        "South",
+        "Africa",
+        "African",
+        "National",
+        "Parks."
+      ],
+      "checked": {
+        "numbers": 1,
+        "terms": 1
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1669",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [
+        "Chandra",
+        "Shekhar",
+        "Solanki"
+      ],
+      "checked": {
+        "numbers": 0,
+        "terms": 1
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1670",
+      "condition": "A",
+      "status": "warn",
+      "missingNumbers": [],
+      "missingTerms": [
+        "Glen Cushing"
+      ],
+      "infoNames": [
+        "Earth",
+        "Glen",
+        "Cushing",
+        "United",
+        "States",
+        "Geological",
+        "Survey",
+        "Astrogeology",
+        "Team",
+        "Northern",
+        "Arizona",
+        "University",
+        "Flagstaff",
+        "Arizona."
+      ],
+      "checked": {
+        "numbers": 0,
+        "terms": 3
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1671",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [
+        "FBI"
+      ],
+      "checked": {
+        "numbers": 2,
+        "terms": 1
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1672",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1673",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [
+        "Revolutionary",
+        "War",
+        "Congress",
+        "Articles",
+        "Confederation."
+      ],
+      "checked": {
+        "numbers": 1,
+        "terms": 1
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1674",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1675",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 1
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1676",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [
+        "South",
+        "African",
+        "National",
+        "Parks"
+      ],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1677",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1678",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [
+        "Sacks",
+        "President's",
+        "Speech"
+      ],
+      "checked": {
+        "numbers": 0,
+        "terms": 1
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1679",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 0,
+        "terms": 1
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1680",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 1,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1681",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 1,
+        "terms": 0
+      }
+    },
+    {
+      "itemId": "fleurs-public-candidates/en_us/1682",
+      "condition": "A",
+      "status": "ok",
+      "missingNumbers": [],
+      "missingTerms": [],
+      "infoNames": [],
+      "checked": {
+        "numbers": 2,
+        "terms": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "schema": "belliedmonkey.qa.glossary.v1",
+  "set": "reviewed-36 + hard-set subset",
+  "note": "Accepted renderings for names, brands and terms in this frozen set. Curated from the public references, not from any judge verdict. A term is only checked when it appears in the source. A new set must ship its own file; without one the checker enforces numbers only.",
+  "updated": "2026-11-18",
+  "terms": [
+    { "term": "Wild Card", "accept": ["Wild Card", "WildCard"] },
+    { "term": "USGS", "accept": ["USGS", "美国地质调查局"] },
+    { "term": "United States Geological Survey", "accept": ["United States Geological Survey", "USGS", "美国地质调查局"] },
+    { "term": "FBI", "accept": ["FBI", "联邦调查局"] },
+    { "term": "ISM", "accept": ["ISM"] },
+    { "term": "Aerosmith", "accept": ["Aerosmith", "史密斯飞船", "空中铁匠"] },
+    { "term": "Oliver Sacks", "accept": ["Oliver Sacks", "奥利弗·萨克斯", "萨克斯"] },
+    { "term": "Glen Cushing", "accept": ["Glen Cushing", "Cushing", "格伦·库欣", "库欣"] },
+    { "term": "Chandra Shekhar Solanki", "accept": ["Chandra Shekhar Solanki", "Solanki", "钱德拉·希卡尔·索兰基", "索兰基"] },
+    { "term": "Sie", "accept": ["Sie", "您"] },
+    { "term": "Articles of Confederation", "accept": ["Articles of Confederation", "邦联条例"] },
+    { "term": "Bank of England", "accept": ["Bank of England", "英格兰银行"] },
+    { "term": "habeas corpus", "accept": ["habeas corpus", "人身保护令", "人身保护状"] }
+  ]
+}

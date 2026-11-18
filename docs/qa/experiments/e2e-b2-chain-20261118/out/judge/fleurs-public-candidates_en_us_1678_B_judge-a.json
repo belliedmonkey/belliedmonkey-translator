@@ -1,0 +1,89 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "fleurs-public-candidates/en_us/1678",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "39624e1bec49b733ff9d1190cea096e73181ad95934873e0e65e08ff30c87900",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate translation incorrectly implies that Oliver Sacks and his paper are separate entities, and the phrase '总统的演讲' (the President's speech) is misinterpreted as the title of the paper rather "
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "The name 'Oliver Sacks' is correct, but 'The President's Speech' is mistranslated as '总统的演讲' in a way that suggests it is a paper by Oliver Sacks rather than the title of his paper."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation is preserved."
+      },
+      "omission": {
+        "pass": false,
+        "note": "The candidate omits the indication that the paper is titled 'The President's Speech' and misrepresents the relationship between Oliver Sacks and the paper."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The candidate translation invents that Oliver Sacks and his paper are separate entities and misrepresents the title as a separate statement."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is acceptable."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The sentence reads naturally in Chinese."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "Oliver Sacks, in his paper The President's Speech, indicated how people who are unable to understand speech because of brain damage are nevertheless able to assess sincerity accurately.",
+        "targetQuote": "奥利弗·萨克斯及其论文指出，总统的演讲表明，那些因脑损伤而无法理解言语的人，仍然能够准确地评估真诚度。",
+        "reason": "The candidate translation separates Oliver Sacks and his paper as two entities and misinterprets 'The President's Speech' as a statement rather than the title of the paper."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "Oliver Sacks, in his paper The President's Speech",
+        "targetQuote": "奥利弗·萨克斯及其论文指出，总统的演讲表明",
+        "reason": "The title 'The President's Speech' is mistranslated and misrepresented as a separate statement rather than the title of the paper."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "Oliver Sacks, in his paper The President's Speech",
+        "targetQuote": "奥利弗·萨克斯及其论文指出，总统的演讲表明",
+        "reason": "The candidate translation invents a separation between Oliver Sacks and his paper and misrepresents the title as a separate statement."
+      }
+    ]
+  },
+  "usage": {
+    "prompt_tokens": 437,
+    "completion_tokens": 532,
+    "total_tokens": 969,
+    "cost": 0.001026,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.001026,
+      "upstream_inference_prompt_cost": 0.0001748,
+      "upstream_inference_completions_cost": 0.0008512
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.001026
+}

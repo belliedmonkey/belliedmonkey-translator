@@ -1,0 +1,83 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "fleurs-public-candidates/en_us/1682",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "3086f778c13a3bdd0f7afcdd3740581d1f806fc6cbb5c13b0ab962d31f9d880b",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "incorrect subject name changes meaning"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "numbers and measurements preserved"
+      },
+      "negation": {
+        "pass": true,
+        "note": "negation preserved"
+      },
+      "omission": {
+        "pass": true,
+        "note": "no material omission"
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "added 'Serenhu Roi' not in source"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "terminology appropriate"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "fluently written"
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "While no one knows for certain who wrote it",
+        "targetQuote": "虽然无人知晓Serenhu Roi的情况",
+        "reason": "The candidate introduces 'Serenhu Roi' which is not in the source, changing the meaning of who is unknown."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "While no one knows for certain who wrote it",
+        "targetQuote": "虽然无人知晓Serenhu Roi的情况",
+        "reason": "The candidate invents 'Serenhu Roi', a proper noun not present in the source text."
+      }
+    ]
+  },
+  "usage": {
+    "prompt_tokens": 458,
+    "completion_tokens": 246,
+    "total_tokens": 704,
+    "cost": 0.0005768,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0005768,
+      "upstream_inference_prompt_cost": 0.0001832,
+      "upstream_inference_completions_cost": 0.0003936
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0005768
+}
