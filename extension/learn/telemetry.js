@@ -53,25 +53,187 @@ var MTTelemetry = (() => {
     try { if (typeof navigator !== 'undefined' && navigator.webdriver === true) return null; } catch (_) {}
     return sp;
   }
+  // BEL-304 237：Safari 内容脚本的浏览器扩展 API 与存储桥兜底。
+  //
+  // 这是 `content/request-shape.js` 同一个 Safari 存储桥坑的兜底（那边的注释
+  // `storageGet` 记录得更详细）：WebKit 的 `chrome.storage.local.get(..., cb)`
+  // **回调可能根本不来** —— 不报错、不抛异常，promise 永远不 settle。内容脚本
+  // 的遥测因此整条卡在 `enabled()` / 队列读写上，FAB 翻了、页面进入「翻译中…」，
+  // 但 `translate_start` 一条也出不去。`request-shape.js` 用 3s 超时躲开了它；
+  // 这里做同一件事，并且**不把超时当错误**：读不到就按内存值继续。
+  //
+  // 兜底的三条边界：
+  //   ① `browser`（Safari / 标准 WebExtensions，Promise 风格）优先，`chrome`
+  //      （回调风格）其次。同一个 get 只发一次请求，两种返回都接。
+  //   ② 1.5s 内没有答案（回调不来 / promise 不 resolve / 同步抛）⇒ 用 MEM 里的
+  //      内存值继续；MEM 也没有的键按「从来没写过」处理（`tm:on` 缺省 true）。
+  //   ③ storage 正常时行为完全不变：持久化仍走 storage，MEM 只是同一份写入的
+  //      镜像。桥一旦在**本页**超时，本页后续读写不再逐笔等 1.5s（storage 仍
+  //      尽力写一次，但不等待），这样 10s flush 不会因为每笔超时被拖到 20s。
+  //      `storageDead` 是模块级、每页一份 —— 下一页 / 刷新后重新试桥。
+  const STORAGE_TIMEOUT_MS = 1500;
+
+  function api() {
+    // Safari 的内容脚本里通常只有 `browser`（Promise 风格）；Chrome 只有
+    // `chrome`（回调风格）；某些 polyfill 两个都在。优先标准扩展 API。
+    try { if (typeof browser !== 'undefined' && browser) return browser; } catch (_) {}
+    try { if (typeof chrome !== 'undefined' && chrome) return chrome; } catch (_) {}
+    return null;
+  }
+  // 按成员回落：`browser` 可能只被 polyfill 出一部分（例如只有 runtime），
+  // 不能因为它存在就假装它有 storage / i18n。
+  function part(name) {
+    const a = api();
+    try { if (a && a[name]) return a[name]; } catch (_) {}
+    try { if (typeof chrome !== 'undefined' && chrome && chrome[name]) return chrome[name]; } catch (_) {}
+    try { if (typeof browser !== 'undefined' && browser && browser[name]) return browser[name]; } catch (_) {}
+    return null;
+  }
   function storage() {
-    try { return chrome.storage && chrome.storage.local; } catch (_) { return null; }
+    const s = part('storage');
+    try { return (s && s.local) || null; } catch (_) { return null; }
   }
+
+  // 本页的内存镜像。键面与 K 一一对应：开关 / 安装 id / 队列 / 软锁 / 日心跳 /
+  // 去重表 / 两个本机计数器。队列是对象数组，写入时整体替换（与 storage 的语义
+  // 一致），不做原地修改，避免读到一半的数组被另一笔 track 改掉。
+  const MEM = new Map();
+  let storageDead = false;
+
+  function keyList(keys) {
+    if (typeof keys === 'string') return [keys];
+    if (Array.isArray(keys)) return keys.slice();
+    if (keys && typeof keys === 'object') return Object.keys(keys);
+    return [];
+  }
+  function memGet(key) {
+    if (MEM.has(key)) return MEM.get(key);
+    // 缺省 = 开（设计 §2 第 4 条）。这也是 sget 超时时 `enabled()` 仍要看到的
+    // 值；不能因为桥不回话就把用户当成「关掉了遥测」。
+    if (key === K.on) return true;
+    return undefined;
+  }
+  function memSnapshot(keys) {
+    const out = {};
+    for (const k of keys) {
+      const v = memGet(k);
+      if (v !== undefined) out[k] = v;
+    }
+    return out;
+  }
+  function noteStorageDead(reason) {
+    if (storageDead) return;
+    storageDead = true;
+    try { console.warn('[mt] telemetry storage fallback (memory)', reason || 'unavailable'); } catch (_) {}
+  }
+
+  // 读：storage 正常 ⇒ 返回 storage 的值并写回 MEM；超时 / 抛 / 无 API ⇒ 返回
+  // MEM 的值。两种路径都只发一次 get。回调式和 Promise 式同时接（谁先到算谁），
+  // 同一个 promise 只 settle 一次。
   function sget(keys) {
+    const list = keyList(keys);
     return new Promise((resolve) => {
-      const s = storage(); if (!s) return resolve({});
-      try { s.get(keys, (r) => resolve(r || {})); } catch (_) { resolve({}); }
+      let settled = false;
+      let timer = null;
+      const finish = (r) => {
+        if (settled) return;
+        settled = true;
+        if (timer !== null) clearTimeout(timer);
+        const out = memSnapshot(list);
+        if (r && typeof r === 'object') {
+          for (const k of list) {
+            if (!Object.prototype.hasOwnProperty.call(r, k)) continue;
+            if (r[k] === undefined) continue;
+            out[k] = r[k];
+            MEM.set(k, r[k]);
+          }
+        }
+        resolve(out);
+      };
+      const fallback = (why) => {
+        if (settled) return;
+        settled = true;
+        if (timer !== null) clearTimeout(timer);
+        if (why) noteStorageDead(why);
+        // 超时不是错误：按内存值继续。MEM 没有的键就不返回（调用方自己按缺省处理）。
+        resolve(memSnapshot(list));
+      };
+      // 本页已经判定桥不响应：后续读直接用内存值，不再逐笔等 1.5s。
+      if (storageDead) return fallback(null);
+      const s = storage();
+      if (!s || typeof s.get !== 'function') return fallback('storage_unavailable');
+      // 先挂表再发起：get() 若同步抛，或回调永远不来，截止时间都已经在。
+      timer = setTimeout(() => fallback('timeout'), STORAGE_TIMEOUT_MS);
+      try {
+        const ret = s.get(list, (r) => finish(r || {}));
+        if (ret && typeof ret.then === 'function') {
+          ret.then((r) => finish(r || {}),
+            (e) => fallback(String((e && (e.message || e)) || 'rejected')));
+        }
+      } catch (e) {
+        fallback(String((e && (e.message || e)) || 'throw'));
+      }
     });
   }
+
+  // 写：先写 MEM（同步、永远成功），再调 storage。storage 正常时等它的回调
+  // 再 resolve；超时后本页转入内存模式。桥已死时仍然「调一次」storage（不等待），
+  // 让恢复后的桥有机会把内存里的队列落盘。
   function sset(obj) {
+    if (!obj || typeof obj !== 'object') return Promise.resolve();
+    for (const k of Object.keys(obj)) MEM.set(k, obj[k]);
+    const s = storage();
+    if (!s || typeof s.set !== 'function') return Promise.resolve();
+    if (storageDead) {
+      try {
+        const ret = s.set(obj, () => {});
+        if (ret && typeof ret.then === 'function') ret.then(() => {}, () => {});
+      } catch (_) {}
+      return Promise.resolve();
+    }
     return new Promise((resolve) => {
-      const s = storage(); if (!s) return resolve();
-      try { s.set(obj, () => resolve()); } catch (_) { resolve(); }
+      let settled = false;
+      let timer = null;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        if (timer !== null) clearTimeout(timer);
+        resolve();
+      };
+      timer = setTimeout(() => { noteStorageDead('set_timeout'); done(); }, STORAGE_TIMEOUT_MS);
+      try {
+        const ret = s.set(obj, done);
+        if (ret && typeof ret.then === 'function') ret.then(done, done);
+      } catch (_) { done(); }
     });
   }
+
   function sremove(keys) {
+    const list = keyList(keys);
+    for (const k of list) MEM.delete(k);
+    const s = storage();
+    if (!s || typeof s.remove !== 'function') return Promise.resolve();
+    if (storageDead) {
+      try {
+        const ret = s.remove(list, () => {});
+        if (ret && typeof ret.then === 'function') ret.then(() => {}, () => {});
+      } catch (_) {}
+      return Promise.resolve();
+    }
     return new Promise((resolve) => {
-      const s = storage(); if (!s) return resolve();
-      try { s.remove(keys, () => resolve()); } catch (_) { resolve(); }
+      let settled = false;
+      let timer = null;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        if (timer !== null) clearTimeout(timer);
+        resolve();
+      };
+      timer = setTimeout(() => { noteStorageDead('remove_timeout'); done(); }, STORAGE_TIMEOUT_MS);
+      try {
+        const ret = s.remove(list, done);
+        if (ret && typeof ret.then === 'function') ret.then(done, done);
+      } catch (_) { done(); }
     });
   }
 
@@ -124,7 +286,10 @@ var MTTelemetry = (() => {
       };
       const timer = setTimeout(() => finish(false, 'timeout'), PING_TIMEOUT_MS);
       try {
-        const runtime = (typeof chrome !== 'undefined' && chrome && chrome.runtime) || null;
+        // BEL-304 237：Safari 内容脚本可能只暴露 `browser.runtime`，不暴露
+        // `chrome.runtime`。探针也必须走同一套 api() 兜底，否则会把「没有
+        // chrome」误判成「后台不在」，白白整页直连。
+        const runtime = part('runtime');
         if (!runtime || typeof runtime.sendMessage !== 'function') return finish(false, 'no_runtime');
         const ret = runtime.sendMessage({ action: 'telemetryPing' }, (resp) => {
           let lastError = null;
@@ -149,7 +314,7 @@ var MTTelemetry = (() => {
       const finish = (ok) => { if (done) return; done = true; clearTimeout(timer); resolve(ok); };
       const timer = setTimeout(() => finish(false), SW_TIMEOUT_MS);
       try {
-        const runtime = (typeof chrome !== 'undefined' && chrome && chrome.runtime) || null;
+        const runtime = part('runtime');
         if (!runtime || typeof runtime.sendMessage !== 'function') return finish(false);
         const ret = runtime.sendMessage({ action: 'telemetrySend', url, init }, (resp) => {
           let lastError = null;
@@ -242,13 +407,20 @@ var MTTelemetry = (() => {
   }
   function ui() {
     let lang = '';
-    try { lang = chrome.i18n.getUILanguage() || ''; } catch (_) {}
+    try {
+      const i18n = part('i18n');
+      if (i18n && typeof i18n.getUILanguage === 'function') lang = i18n.getUILanguage() || '';
+    } catch (_) {}
     if (!lang) { try { lang = navigator.language || ''; } catch (_) {} }
     const m = /^([a-z]{2,3})/i.exec(String(lang)); return m ? m[1].toLowerCase() : '';
   }
   function version() {
     try { if (window.MT_VERSION) return String(window.MT_VERSION); } catch (_) {}
-    try { return chrome.runtime.getManifest().version || ''; } catch (_) { return ''; }
+    try {
+      const runtime = part('runtime');
+      if (!runtime || typeof runtime.getManifest !== 'function') return '';
+      return runtime.getManifest().version || '';
+    } catch (_) { return ''; }
   }
   // 取整到分钟：精确时间是不采的东西之一。
   function ts(now) {
@@ -725,6 +897,7 @@ var MTTelemetry = (() => {
     // 测试与调试
     _shape: shape, _okValue: okValue, _envelope: envelope, host, device, KEYS: K, FLUSH_AT, QUEUE_CAP,
     SW_TIMEOUT_MS, BODY_MAX, REJ_KEY, PING_TIMEOUT_MS, FLUSH_MS, FLUSH_MS_SAFARI,
+    STORAGE_TIMEOUT_MS,
     // 本机诊断（没有遥测规格时的 auth_fail）：只读出口，给测试与设备容器回读用。
     _diag: diag, DIAG_KEY: DIAG_KEY, DIAG_CAP: DIAG_CAP,
   };
