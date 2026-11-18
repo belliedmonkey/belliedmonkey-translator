@@ -9,6 +9,9 @@
 //  ② 直连失败不是丢弃：放回队列 + 本机 mtTelemetryDirectFail 计数 + console.warn。
 //  ③ 每批一个 16hex batch id，只进 `x-mt-batch` 头；队列项内部 `_b` 不进 body；
 //     同一批重发复用同一个 id。
+//  ④ 上线顺序的临时门：页面直连（探测失败）**不带** `x-mt-batch` —— 线上 ingest 的
+//     CORS 只放行 content-type，带自定义头会先发预检、整批被挡；SW 代发与扩展页 /
+//     App 直连不受页面 CORS 管，照常带。hosted #11 部署后打开。
 const { loadModule, describe, test, ok, eq, deepEq, tick } = require('./harness');
 const cfg = require('../build/telemetry.config.js');
 
@@ -233,35 +236,49 @@ describe('BEL-304 每页一次探测：SW / 直连二选一', () => {
     ok(!Object.prototype.hasOwnProperty.call(body2[1], '_b'));
   });
 
-  test('keepalive / content-type / 无 Authorization：SW 与直连的 init 都断言', async () => {
+  test('SW 路径 init：keepalive / text/plain / 无 Authorization / 带 16hex x-mt-batch', async () => {
     const sw = pageSandbox();
     await sw.T.track('heartbeat');
     eq(await sw.T.flush(), true);
+    eq(sw.fetched.length, 0, '探测成功应走 SW，不该直连');
     const swInit = sends(sw.sent)[0].init;
     eq(swInit.keepalive, true);
     eq(swInit.headers['content-type'], 'text/plain');
     eq(hasAuth(swInit.headers), false);
-    ok(/^[0-9a-f]{16}$/.test(swInit.headers['x-mt-batch']));
+    ok(/^[0-9a-f]{16}$/.test(swInit.headers['x-mt-batch']), 'SW 路径丢了 x-mt-batch');
+  });
 
+  test('网页直连 init：不带 x-mt-batch（简单请求，不触发预检）', async () => {
     const direct = pageSandbox({
       onMessage: () => { throw new Error('no receiver'); },
     });
     await direct.T.track('heartbeat');
     eq(await direct.T.flush(), true);
+    eq(direct.fetched.length, 1, '探测失败应当直连');
     const directInit = direct.fetched[0].init;
     eq(directInit.keepalive, true);
     eq(directInit.headers['content-type'], 'text/plain');
     eq(hasAuth(directInit.headers), false);
-    ok(/^[0-9a-f]{16}$/.test(directInit.headers['x-mt-batch']));
+    eq(Object.prototype.hasOwnProperty.call(directInit.headers, 'x-mt-batch'), false,
+      '网页直连带 x-mt-batch 会先发 OPTIONS 预检，线上 CORS 未放行');
+    eq(Object.keys(directInit.headers).some((k) => /^x-mt-batch$/i.test(k)), false);
+    const body = JSON.parse(directInit.body);
+    eq(Array.isArray(body), true);
+    ok(!Object.prototype.hasOwnProperty.call(body, '_b'), 'body 顶层漏了 _b');
+    ok(!Object.prototype.hasOwnProperty.call(body[0], '_b'), 'body 里漏了 _b');
   });
 
-  test('扩展页（非 http(s)）不探测、直接直连（回归）', async () => {
+  test('扩展页（非 http(s)）不探测、直接直连且仍带 x-mt-batch（回归）', async () => {
     const { T, sent, fetched } = pageSandbox({ webPage: false });
     eq(await T.track('heartbeat'), true);
     eq(await T.flush(), true);
     eq(sent.length, 0, '扩展页不该发 telemetryPing');
     eq(fetched.length, 1, '扩展页应当直连');
     eq(fetched[0].url, INGEST);
+    ok(/^[0-9a-f]{16}$/.test(fetched[0].init.headers['x-mt-batch']),
+      '扩展页不受页面 CORS 管，仍应带批次头');
+    eq(fetched[0].init.headers['content-type'], 'text/plain');
+    eq(fetched[0].init.keepalive, true);
   });
 });
 
