@@ -4413,6 +4413,22 @@
     "message": "在系统设置里打开「麦克风」权限，回到这里点「重试」就能开始，不用重开 App。",
     "description": "BEL-273 microphone permission gate"
   },
+  "listen_perm_first_hint": {
+    "message": "第一次开始会弹出麦克风授权，点「允许」即可。",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_waiting": {
+    "message": "等待系统授权…",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_denied_inline": {
+    "message": "麦克风权限未开启。到系统设置打开麦克风，回来点开始即可。",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_open_settings": {
+    "message": "去设置",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
   "app_e1_label": {
     "message": "中文听译 SenseVoice"
   },

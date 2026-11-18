@@ -4412,6 +4412,22 @@
     "message": "시스템 설정에서 「마이크」를 켜고 여기로 돌아와 「다시 시도」를 누르면 시작됩니다. 앱을 다시 시작할 필요는 없습니다.",
     "description": "BEL-273 microphone permission gate"
   },
+  "listen_perm_first_hint": {
+    "message": "처음 시작할 때 마이크 접근 권한을 요청합니다. \"허용\"을 탭하세요.",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_waiting": {
+    "message": "시스템 권한을 기다리는 중…",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_denied_inline": {
+    "message": "마이크 접근이 꺼져 있습니다. 시스템 설정에서 마이크를 켠 뒤 돌아와서 \"시작\"을 탭하세요.",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_open_settings": {
+    "message": "설정 열기",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
   "app_e1_label": {
     "message": "중국어 음성 인식 SenseVoice"
   },

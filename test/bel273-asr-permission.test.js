@@ -7,7 +7,7 @@
 // /^[a-z0-9_-]{1,32}$/ 短码；原始 NSError domain/description/用户内容不进事件。
 const fs = require('fs');
 const path = require('path');
-const { test, ok, eq, loadSrc } = require('./harness');
+const { test, ok, eq, match, loadSrc } = require('./harness');
 const cfg = require('../build/telemetry.config.js');
 const C = require('../app/listen-core.js');
 
@@ -49,12 +49,16 @@ function mkEl() {
     querySelector() { return mkEl(); }, querySelectorAll() { return []; }, getAttribute() { return ''; } };
 }
 
-function boot() {
+function boot(opts) {
+  const o = opts || {};
+  // 默认真机形态：Mac（audioCaps 报 system:ok）；要测 iPhone 麦克风字幕就传
+  // { caps: { system: 'unsupported', sources: ['mic'] } }。
+  const caps = o.caps || { system: 'ok', sources: ['mic', 'system'] };
   const tracked = [];
   const captured = { h: null, native: null, reads: 0, starts: 0, settings: 0 };
   const clk = fakeClock();
   const NativeAudio = {
-    available: () => true, suspends: () => false, audioCaps: () => ({ system: 'ok', sources: ['mic', 'system'] }),
+    available: () => true, suspends: () => false, audioCaps: () => caps,
     micStart: (_rate, h) => { captured.h = h; captured.starts++; return true; }, micStop: () => {}, recordMode: () => {},
     sessionStart: () => {}, sessionStop: () => {},
     onEvent: (fn) => { captured.native = fn; }, onTick: () => {},
@@ -70,7 +74,7 @@ function boot() {
       addEventListener() {}, createElement: () => mkEl(), body: mkEl(), documentElement: mkEl(),
       hidden: false, visibilityState: 'visible',
     },
-    navigator: { platform: 'MacIntel', maxTouchPoints: 0, language: 'zh-CN', userAgent: 'test' },
+    navigator: { platform: o.platform || 'MacIntel', maxTouchPoints: 0, language: 'zh-CN', userAgent: 'test' },
     btoa: (s) => Buffer.from(s, 'binary').toString('base64'),
     atob: (s) => Buffer.from(s, 'base64').toString('binary'),
     chrome: { storage: { local: {
@@ -113,19 +117,19 @@ function boot() {
   return { A: ctx.AppListen, tracked, captured, clk };
 }
 
-test('BEL-273 状态机：未决定 → 先解释 → 请求；拒绝 → 设置；授权 → 开', () => {
+test('BEL-273 方案 B 状态机：未决定直接放行；拒绝 → 设置；授权 → 开', () => {
   const M = loadSrc('src/app/mic-permission.js', 'MicPermission').MicPermission;
   let m = M.initial();
   eq(m.state, 'unknown');
   eq(M.canStart(m), true, '还没读到状态时放行（老壳退回原生请求）');
 
   m = M.enter(m, 'not_determined');
-  eq(m.gate, 'explain');
-  eq(M.canStart(m), false, '未决定且没解释过时不能直接开麦');
+  eq(m.gate, '', '方案 B：未决定不再停「解释」门');
+  eq(M.canStart(m), true, '未决定直接放行，同时由页面画 first-hint（与 #701 相反）');
 
-  m = M.explain(m);
+  m = M.observe(m, 'prompted');
   eq(m.gate, 'requesting');
-  eq(M.canStart(m), true, '解释之后才允许触发系统框');
+  eq(M.canStart(m), false, '系统框在飞时挡住开麦');
 
   m = M.observe(m, 'granted');
   eq(m.gate, '');
@@ -139,10 +143,18 @@ test('BEL-273 状态机：未决定 → 先解释 → 请求；拒绝 → 设置
   d = M.observe(d, 'granted');
   d = M.retry(d);
   eq(d.gate, '');
-  eq(M.canStart(d), true, '从设置回来重试必须能开，不要求重启');
+  eq(M.canStart(d), true, '从设置回来已授权，点开始必须能开，不要求重启');
+
+  const r = M.enter(M.initial(), 'restricted');
+  eq(r.gate, 'denied');
+  eq(M.canStart(r), false, 'restricted 与 denied 一样挡住');
+  eq(M.GATES.indexOf('explain'), -1, '解释步已从状态机拿掉');
 });
 
-test('BEL-273 接线：进听译不再显示权限卡；点开始直接发 mic-start', async () => {
+// iPhone 字幕听的是麦克风（Mac 的 audioCaps 才报 system:ok）。
+const IPHONE = { caps: { system: 'unsupported', sources: ['mic'] } };
+
+test('BEL-273 方案 B：进听译不显示独立权限卡，也没有「继续」', async () => {
   const { A, captured, clk } = boot();
   A.wire();
   captured.native({ type: 'mic-perm', state: 'not_determined', kind: 'mic' });
@@ -154,56 +166,181 @@ test('BEL-273 接线：进听译不再显示权限卡；点开始直接发 mic-s
   const pv = A.permView();
   eq(pv.shown, false, '进听译不再显示独立权限卡');
   eq(pv.primary, null, '没有「继续」按钮可点');
+  eq(pv.secondary, null, '没有第二个按钮');
   eq(A._debug().perm.pending, null, '没有待放行的开始');
-  eq(A.pttToggle('other'), true, '未决定时点开始直接放行，不再画门');
-  await clk.runTo(0);
-  eq(captured.starts, 1, '点开始直接发 mic-start（由系统弹授权框）');
+  eq(A.permInlineView().shown, false, '没点开始前不画 first-hint');
+
+  for (const st of ['not_determined', 'prompted', 'granted', 'denied', 'restricted']) {
+    captured.native({ type: 'mic-perm', state: st, kind: 'mic' });
+    await clk.runTo(0);
+    eq(A.permView().shown, false, `${st} 也不显示独立权限屏`);
+  }
+
+  const src = fs.readFileSync(path.join(__dirname, '..', 'src/app/listen-view.jsx'), 'utf8');
+  ok(!/\bid="app-listen-perm"/.test(src), 'DOM 里不许再有 #app-listen-perm 独立卡');
+  ok(!/\bid="app-listen-perm-continue"/.test(src), 'DOM 里不许有「继续」按钮');
 });
 
-test('BEL-273 接线：拒绝后仍不出现独立屏；开始走原生请求/既有 fail 文案', async () => {
-  const { A, tracked, captured, clk } = boot();
-  A.wire();
-  captured.native({ type: 'mic-perm', state: 'denied', kind: 'mic' });
-  A.open('conv');
-  await clk.runTo(0);
-  eq(A.permView().shown, false, '拒绝态也不再有独立权限屏');
-  eq(A.pttToggle('other'), true, '拒绝后点开始仍放行，交给原生请求/失败');
-  await clk.runTo(0);
-  eq(captured.starts, 1, '点开始直接发 mic-start');
-  ok(captured.h, 'mic-start 之后原生才有 h 回调');
+test('BEL-273 方案 B：not_determined 点开始 / PTT 立刻 mic-start 并画 first-hint', async () => {
+  // 对话 PTT
+  const a = boot();
+  a.A.wire();
+  a.captured.native({ type: 'mic-perm', state: 'not_determined', kind: 'mic' });
+  a.A.open('conv');
+  await a.clk.runTo(0);
+  eq(a.A.pttToggle('other'), true, '未决定时点 PTT 直接放行');
+  await a.clk.runTo(0);
+  eq(a.captured.starts, 1, 'PTT 立刻发 mic-start（系统框只一次）');
+  const iv = a.A.permInlineView();
+  eq(iv.kind, 'hint');
+  match(iv.hint, /第一次开始会弹出麦克风授权/, '同时能读到 first-hint 文案');
+  eq(a.A.permView().shown, false, 'first-hint 不是独立卡');
 
-  // 原生拒绝：走既有 fail 文案，不再有「去设置」独立屏。
+  // 字幕单键
+  const b = boot(IPHONE);
+  b.A.wire();
+  b.captured.native({ type: 'mic-perm', state: 'not_determined', kind: 'mic' });
+  b.A.open('subtitle');
+  await b.clk.runTo(0);
+  b.A.toggle();
+  await b.clk.runTo(0);
+  eq(b.captured.starts, 1, '字幕「开始」直接发 mic-start');
+  eq(b.A.permInlineView().kind, 'hint');
+  match(b.A.permInlineView().hint, /第一次开始会弹出麦克风授权/);
+  eq(b.A.toggleView().text, '开始', 'hint 期间同一颗按钮仍叫「开始」，不闪成「准备中…」');
+});
+
+test('BEL-273 方案 B：prompted 字幕按钮置灰短句；PTT 双键置灰 + 行内等待', async () => {
+  const a = boot(IPHONE);
+  a.A.wire();
+  a.captured.native({ type: 'mic-perm', state: 'prompted', kind: 'mic' });
+  a.A.open('subtitle');
+  await a.clk.runTo(0);
+  const tv = a.A.toggleView();
+  eq(tv.disabled, true, '系统框在飞：同一颗「开始」置灰');
+  match(tv.text, /等待系统授权/, '按钮文案换成 listening_perm_waiting 短句');
+  ok(!/弹出的权限框/.test(tv.text), '不把 subtitle_bar_waiting 长句贴到主按钮');
+  eq(a.A.permInlineView().kind, 'waiting');
+
+  const b = boot();
+  b.A.wire();
+  b.captured.native({ type: 'mic-perm', state: 'prompted', kind: 'mic' });
+  b.A.open('conv');
+  await b.clk.runTo(0);
+  const pv = b.A.pttView();
+  eq(pv.mineDisabled, true, 'PTT 左键置灰');
+  eq(pv.otherDisabled, true, 'PTT 右键置灰');
+  eq(b.A.permInlineView().kind, 'waiting');
+  match(b.A.permInlineView().hint, /等待系统授权/, '等待文案走行内 note');
+  ok(!/等待系统授权/.test(pv.mineLabel + pv.otherLabel), '不把某一侧 PTT 改名当第三颗按钮');
+});
+
+test('BEL-273 方案 B：denied 行内 + 文本链去设置；开始仍是开始且挡住开麦', async () => {
+  const a = boot(IPHONE);
+  a.A.wire();
+  a.captured.native({ type: 'mic-perm', state: 'denied', kind: 'mic' });
+  a.A.open('subtitle');
+  await a.clk.runTo(0);
+  const iv = a.A.permInlineView();
+  eq(iv.kind, 'denied');
+  match(iv.hint, /麦克风权限未开启/, '行内 denied 文案');
+  match(iv.link, /去设置/, '文本链「去设置」');
+  eq(a.A.toggleView().text, '开始', '主按钮仍是「开始」');
+  ok(!/重试/.test(a.A.toggleView().text), '不把「开始」改成「重试」');
+  a.A.toggle();
+  await a.clk.runTo(0);
+  eq(a.captured.starts, 0, 'denied 时点开始不发 mic-start');
+  a.A.permOpenSettings();
+  eq(a.captured.settings, 1, '文本链走 NativeAudio.micPermOpenSettings');
+  eq(a.A.permView().shown, false, '去设置不打开独立屏');
+
+  a.captured.native({ type: 'mic-perm', state: 'granted', kind: 'mic' });
+  await a.clk.runTo(0);
+  eq(a.A.permInlineView().shown, false, '从设置回来已授权：hint / denied 都收起');
+  a.A.toggle();
+  await a.clk.runTo(0);
+  eq(a.captured.starts, 1, '已授权后点「开始」才开麦');
+
+  // 对话 PTT 同一套
+  const b = boot();
+  b.A.wire();
+  b.captured.native({ type: 'mic-perm', state: 'denied', kind: 'mic' });
+  b.A.open('conv');
+  await b.clk.runTo(0);
+  eq(b.A.permInlineView().kind, 'denied');
+  eq(b.A.pttToggle('other'), false, 'denied 时 PTT 不放行');
+  await b.clk.runTo(0);
+  eq(b.captured.starts, 0, 'denied 时 PTT 不发 mic-start');
+  b.A.permOpenSettings();
+  eq(b.captured.settings, 1);
+  b.captured.native({ type: 'mic-perm', state: 'granted', kind: 'mic' });
+  await b.clk.runTo(0);
+  eq(b.A.pttToggle('other'), true);
+  await b.clk.runTo(0);
+  eq(b.captured.starts, 1, '已授权后点 PTT 才开麦');
+});
+
+test('BEL-273 方案 B：拒绝后 halted 主按钮仍是「开始」；授权前点它不开麦，授权后才 resume', async () => {
+  const { A, captured, clk } = boot(IPHONE);
+  A.wire();
+  captured.native({ type: 'mic-perm', state: 'not_determined', kind: 'mic' });
+  A.open('subtitle');
+  await clk.runTo(0);
+  A.toggle();
+  await clk.runTo(0);
+  eq(captured.starts, 1, '第一次点开始发 mic-start');
+  ok(captured.h, 'mic-start 之后原生才有 h 回调');
   captured.h.onState('denied', '', 'mic');
   await clk.runTo(0);
-  eq(A.permView().shown, false, '原生拒绝后仍不画独立屏');
-  eq(captured.settings, 0, '不再由权限屏触发设置深链');
-  ok(/麦克风被拒绝/.test(A.noteView().text), '拒绝仍走既有 fail 文案');
-  eq(names(tracked, 'asr_fail')[0][1].fail_reason, 'permission', '拒绝的统计仍是 permission');
-  ok(names(tracked, 'mic_permission').some((e) => e[1].permission_state === 'denied'),
-    'mic_permission 遥测保留');
-  eq(A._debug().perm.state, 'denied', '静默探测的状态仍收敛到 denied');
-});
-
-test('BEL-273 接线：已授权直接开始，不显示权限门', async () => {
-  const { A, captured, clk } = boot();
-  A.wire();
+  eq(A._debug().perm.state, 'denied');
+  eq(A.toggleView().text, '开始', '拒绝后主按钮仍叫「开始」');
+  ok(!/重试|继续/.test(A.toggleView().text), '不改成「重试」也不退回「继续」');
+  eq(A.permInlineView().kind, 'denied');
+  A.toggle();
+  await clk.runTo(0);
+  eq(captured.starts, 1, '仍 denied 时再点「开始」不发第二次 mic-start');
   captured.native({ type: 'mic-perm', state: 'granted', kind: 'mic' });
-  A.open('conv');
   await clk.runTo(0);
-  eq(A.permView().shown, false);
-  A.pttToggle('other');
+  eq(A.toggleView().text, '开始', '从设置回来已授权，这颗按钮仍叫「开始」');
+  eq(A.permInlineView().shown, false, '已授权后行内 denied 收起');
+  A.toggle();
   await clk.runTo(0);
-  eq(captured.starts, 1);
-  ok(A._debug().perm.gate === '');
+  eq(captured.starts, 2, '已授权后点「开始」才 resume 开麦');
 });
 
-test('BEL-273 边界：Mac 实时字幕听系统声音，不被麦克风门拦住', async () => {
-  const { A, captured, clk } = boot();
+test('BEL-273 方案 B：已授权无 hint / 无 denied', async () => {
+  const a = boot(IPHONE);
+  a.A.wire();
+  a.captured.native({ type: 'mic-perm', state: 'granted', kind: 'mic' });
+  a.A.open('subtitle');
+  await a.clk.runTo(0);
+  eq(a.A.permView().shown, false);
+  eq(a.A.permInlineView().shown, false, '已授权不画任何权限提示');
+  eq(a.A.toggleView().text, '开始');
+  a.A.toggle();
+  await a.clk.runTo(0);
+  eq(a.captured.starts, 1);
+
+  const b = boot();
+  b.A.wire();
+  b.captured.native({ type: 'mic-perm', state: 'granted', kind: 'mic' });
+  b.A.open('conv');
+  await b.clk.runTo(0);
+  eq(b.A.permInlineView().shown, false);
+  b.A.pttToggle('other');
+  await b.clk.runTo(0);
+  eq(b.captured.starts, 1);
+  ok(b.A._debug().perm.gate === '');
+});
+
+test('BEL-273 方案 B：Mac 实时字幕听系统声音，无麦克风门、toggle 仍发 start', async () => {
+  const { A, captured, clk } = boot();   // 默认 caps system:ok = Mac
   A.wire();
   captured.native({ type: 'mic-perm', state: 'not_determined', kind: 'mic' });
   A.open('subtitle');
   await clk.runTo(0);
   eq(A.permView().shown, false, '系统声音字幕不该显示麦克风门');
+  eq(A.permInlineView().shown, false, '系统声音字幕不画任何麦克风提示');
   A.toggle();
   await clk.runTo(0);
   eq(captured.starts, 1, '系统声音采集照常开始');
