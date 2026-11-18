@@ -1,46 +1,43 @@
-// src/app/mic-permission.js — BEL-273：进入听译前的麦克风权限状态机（纯逻辑）。
+// src/app/mic-permission.js — BEL-273：听译页的麦克风权限状态机（纯逻辑）。
 //
-// 这里只回答「现在该画哪一屏、能不能开麦、用户这一下点了之后去哪里」，
+// 这里只回答「现在是什么状态、能不能开麦、用户点去设置之后记什么」，
 // 不碰 DOM、不碰原生桥、不碰存储 —— 桥的副作用留在 listen-model.js。
 //
-// 为什么要单独一个状态机：以前只有「点了开始 → 原生要权限 → 失败后显示拒绝」这一条路。
-// 用户在看到任何解释之前就被系统框问一次；拒绝之后只在失败文案里看到一句「去设置」，
-// 没有任何可点的动作，也没有「从设置回来再试一次」的路径。BEL-273 把这三步拆开：
+// 方案 B（2026-11-18 用户过审）把 #701 的「先解释、再继续」整步拿掉了：
+// 页面里只有一颗「开始」，第一次点在 not_determined 上**直接**触发原生
+// mic-start（系统框只弹一次），同时由 listen-model 画一行 first-hint。
+// 因此这里不再有 explain 门，not_determined 的 canStart 是 true。
 //
-//   unknown / not_determined ──(进入听译)──> explain ──(继续)──> requesting
-//                                              │                     │
-//                                              │              ┌──────┴──────┐
-//                                              │          granted        denied/restricted
-//                                              │              │              │
-//                                              │              ▼              ▼
-//                                              │            start          denied
-//                                              │                              │
-//                                              └──────────────────────(重试/去设置)
+//   unknown ────────────────► 放行（老壳没有预检，让原生去问）
+//   not_determined ─────────► 放行 + 行内 first-hint（本页只画一次）
+//   granted ────────────────► 放行
+//   prompted ───────────────► 挡住（系统框在飞）
+//   denied / restricted ────► 挡住（行内 denied + 文本链「去设置」）
 //
-// 状态只有下面这些；未知状态一律不猜。`unknown` 不是「没权限」，是「还没读到」——
-// 老壳不认 mic-perm-read 时它保持 unknown，开始流程退回 BEL-273 之前的原生请求路径。
+// `unknown` 不是「没权限」，是「还没读到」。未知状态一律不猜。
 'use strict';
 
 export const STATES = ['unknown', 'not_determined', 'prompted', 'granted', 'denied', 'restricted'];
-export const GATES = ['', 'explain', 'requesting', 'denied'];
+export const GATES = ['', 'requesting', 'denied'];
 
-/** 当前是否是可以开麦的状态。unknown 放行（老壳没有预检，只能让原生去问）。 */
+/** 当前是否是可以开麦的状态。 */
 export function canStart(m) {
   const s = m && m.state;
-  if (s === 'granted' || s === 'unknown') return true;
-  if (s === 'not_determined') return !!(m && m.explained);
+  if (s === 'granted' || s === 'unknown' || s === 'not_determined') return true;
   return false;   // prompted（请求在飞）/ denied / restricted
 }
 
-/** 进入听译页时的门：已拒绝就直接给「去设置」，没问过就先解释。 */
+function gateFor(s) {
+  if (s === 'denied' || s === 'restricted') return 'denied';
+  if (s === 'prompted') return 'requesting';
+  return '';
+}
+
+/** 进入听译页时的门：只记录状态与派生 gate，不再有解释步。 */
 export function enter(m, state) {
   const next = Object.assign({}, m);
   if (state) next.state = norm(state);
-  const s = next.state;
-  if (s === 'granted' || s === 'unknown') next.gate = '';
-  else if (s === 'denied' || s === 'restricted') next.gate = 'denied';
-  else if (s === 'not_determined') next.gate = next.explained ? 'requesting' : 'explain';
-  else if (s === 'prompted') next.gate = 'requesting';
+  next.gate = gateFor(next.state);
   return next;
 }
 
@@ -48,33 +45,24 @@ export function enter(m, state) {
 export function observe(m, state) {
   const s = norm(state);
   if (!s) return m;
-  const next = Object.assign({}, m, { state: s });
-  if (s === 'granted') next.gate = '';
-  else if (s === 'denied' || s === 'restricted') next.gate = 'denied';
-  else if (s === 'prompted') next.gate = 'requesting';
-  else if (s === 'not_determined') next.gate = next.explained ? 'requesting' : 'explain';
-  return next;
+  return Object.assign({}, m, { state: s, gate: gateFor(s) });
 }
 
-/** 用户点了「继续」：先解释过，下一次开麦才会触发系统框。 */
-export function explain(m) {
-  if (!m || m.gate !== 'explain') return m;
-  return Object.assign({}, m, { explained: true, gate: 'requesting' });
-}
-
-/** 用户点了「去设置」：只记一笔，状态等原生回读；不在这里假装 granted。 */
+/** 用户点了文本链「去设置」：只记一笔，状态等原生回读；不在这里假装 granted。 */
 export function openSettings(m) {
   return Object.assign({}, m, { settingsOpened: true });
 }
 
-/** 从设置回来后的显式「重试」：授权了就清门，没授权就留在拒绝门。 */
+/** 从设置回来后的显式重读：授权了就清门，没授权就留在 gate。 */
 export function retry(m) {
-  if (m && m.state === 'granted') return Object.assign({}, m, { gate: '' });
+  if (m && (m.state === 'granted' || m.state === 'unknown' || m.state === 'not_determined')) {
+    return Object.assign({}, m, { gate: '' });
+  }
   return m;
 }
 
 export function initial() {
-  return { state: 'unknown', gate: '', explained: false, settingsOpened: false };
+  return { state: 'unknown', gate: '', settingsOpened: false };
 }
 
 export function norm(state) {

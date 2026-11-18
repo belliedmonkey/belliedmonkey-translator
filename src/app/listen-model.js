@@ -185,10 +185,12 @@ const listenModel = (() => {
   let lastSpoken = '';               // 最后读出去的那句（端到端测试的读取点）
   // 页内麦克风（无桥宿主的退路）
   let audioCtx = null, stream = null, proc = null, srcNode = null;
-  // BEL-273：麦克风权限预检。`micPerm` 是纯状态机；pending 记「被权限门挡住的那一次开始」，
-  // 用户在解释卡上点「继续」或从设置回来点「重试」时原样重放，不要求重开 App。
+  // BEL-273 方案 B（2026-11-18 过审）：麦克风权限只做行内提示，不再有独立卡 / 继续步。
+  // `micPermFirstHint` 记「本页第一次在 not_determined 上点开始」——只画一行 note，
+  // 同时照常发 mic-start（系统框只出现一次）。
   let micPerm = MicPerm.initial();
-  let micPermPending = null;
+  let micPermPending = null;   // 旧「继续」路径的 pending；方案 B 不再写入，保留只读读数兼容
+  let micPermFirstHint = false;
   let lastAsrNativeCode = '';
 
   // ── 原来从 DOM 读的四处，提取为模型状态（PR6c）────────────────────────────
@@ -771,15 +773,15 @@ const listenModel = (() => {
     try { return C.captureSource(NativeAudio.audioCaps()) !== 'system'; } catch (_) { return true; }
   }
   function micPermEnter() {
+    // Mac 字幕听的是系统声音，不是麦克风：不预检、不画任何麦克风提示。
     if (!micPermRequired()) {
       micPerm = Object.assign({}, micPerm, { gate: '' });
+      micPermFirstHint = false;
       canvas.view('state');
       return;
     }
     micPerm = MicPerm.enter(micPerm, micPerm.state);
-    // 还没读到（原生回话在路上）：先把解释画出来，别让用户抢在预检之前被系统框问。
-    // 老壳不认 mic-perm-read 时也会停在这张解释卡上，点「继续」仍走原生请求。
-    if (micPerm.state === 'unknown') micPerm = Object.assign({}, micPerm, { gate: 'explain' });
+    micPermFirstHint = false;   // 本页还没点过开始
     // 进听译页就读一次真实状态，不弹框（BEL-273；老壳不认这条就保持 unknown）。
     if (bridged() && NativeAudio.micPermRead) { try { NativeAudio.micPermRead(); } catch (_) {} }
     canvas.view('state');
@@ -787,49 +789,76 @@ const listenModel = (() => {
   function micPermObserve(state) {
     if (!MicPerm.norm(state)) return;
     micPerm = MicPerm.observe(micPerm, state);
+    // 授权 / 拒绝 / 系统框已出：first-hint 的使命结束（waiting 由按钮/行内 note 接管）。
+    if (micPerm.state !== 'not_determined') micPermFirstHint = false;
     canvas.view('state');
   }
-  // 返回 true = 可以开麦；false = 已经画好门并把这一次开始记在 pending 里。
-  // BEL-273 回退（UI 冻结）：单按钮交互。权限不再由独立屏拦截；点「开始」后仍由原生
-  // 请求权限，失败走既有 fail 文案。mic-perm-read 探测与 native_code 记录保留。
+  // 返回 true = 可以开麦。
+  // 方案 B：not_determined **放行**（并标记本页画 first-hint，与 #701「先解释再继续」相反）；
+  // prompted / denied / restricted 挡住开麦；granted / unknown / 无需麦克风放行且不画提示。
   function micPermCanStart(intent) {
+    if (!micPermRequired()) { micPermFirstHint = false; return true; }
+    const st = micPerm.state;
+    if (st === 'denied' || st === 'restricted') { micPermFirstHint = false; return false; }
+    if (st === 'prompted') { micPermFirstHint = false; return false; }
+    if (st === 'not_determined') {
+      micPermFirstHint = true;
+      canvas.view('state');
+      return true;
+    }
+    micPermFirstHint = false;
     return true;
   }
-  function micPermRunPending() {
-    const p = micPermPending;
-    micPermPending = null;
-    if (p && p.kind === 'ptt' && p.side) { pttToggle(p.side); return; }
-    // 对话页没有「交给哪一侧」的 pending 时，默认用本机语言那一侧开麦；不能只 start()，
-    // 否则会开麦却没有收音侧。字幕页仍走 start()。
-    if (mode !== 'subtitle') { pttToggle(pttView().mineSide); return; }
-    // 拒绝后会话停在 halted：从设置回来点「重试」要走 resume，而不是 start()（那个只收 idle）。
-    if (phase === 'paused' || phase === 'halted') { resumeByUser(); return; }
-    start();
+  // 返回本页要画的行内权限视图。`kind`:
+  //   'hint'   第一次点开始（not_determined）—— 一行 note，同时已发 mic-start
+  //   'waiting'系统框在飞（prompted）—— 字幕页由按钮文案承载；PTT 页画在双键上方
+  //   'denied' denied / restricted —— 一行 fail + 文本链「去设置」
+  // 没有要画的就 shown:false。独立权限卡（permView）恒不显示，这里也不是卡。
+  function permInlineView() {
+    const empty = { shown: false, kind: '', hint: '', link: '' };
+    if (!micPermRequired()) return empty;
+    const st = micPerm.state;
+    if (st === 'denied' || st === 'restricted') {
+      return {
+        shown: true,
+        kind: 'denied',
+        hint: t('listen_perm_denied_inline', '麦克风权限未开启。到系统设置打开麦克风，回来点开始即可。'),
+        link: t('listen_perm_open_settings', '去设置'),
+      };
+    }
+    if (st === 'prompted') {
+      return {
+        shown: true,
+        kind: 'waiting',
+        hint: t('listen_perm_waiting', '等待系统授权…'),
+        link: '',
+      };
+    }
+    if (st === 'not_determined' && micPermFirstHint) {
+      return {
+        shown: true,
+        kind: 'hint',
+        hint: t('listen_perm_first_hint', '第一次开始会弹出麦克风授权，点「允许」即可。'),
+        link: '',
+      };
+    }
+    return empty;
   }
   function permView() {
+    // 方案 B：永远没有独立权限卡。保留这个 getter 只为旧接线与「必须恒 false」的断言。
     return { shown: false, gate: '', title: '', next: '', primary: null, secondary: null };
   }
+  // 文本链「去设置」：只走原生设置深链；回来由 visibilitychange 自动 micPermRead。
+  function permOpenSettings() {
+    micPerm = MicPerm.openSettings(micPerm);
+    try {
+      if (typeof NativeAudio !== 'undefined' && NativeAudio.micPermOpenSettings) NativeAudio.micPermOpenSettings();
+    } catch (_) {}
+    canvas.view('state');
+  }
+  // 「继续 / 重试」主路径已废：permAct 只保留设置深链一种动作，其它一律不动。
   function permAct(which) {
-    if (which === 'secondary') {
-      micPerm = MicPerm.retry(micPerm);
-      canvas.view('state');
-      if (micPerm.state === 'granted') { micPermRunPending(); return; }
-      if (bridged() && NativeAudio.micPermRead) { try { NativeAudio.micPermRead(); } catch (_) {} }
-      return;
-    }
-    if (micPerm.gate === 'denied') {
-      micPerm = MicPerm.openSettings(micPerm);
-      try {
-        if (typeof NativeAudio !== 'undefined' && NativeAudio.micPermOpenSettings) NativeAudio.micPermOpenSettings();
-      } catch (_) {}
-      canvas.view('state');
-      return;
-    }
-    if (micPerm.gate === 'explain') {
-      micPerm = MicPerm.explain(micPerm);
-      canvas.view('state');
-      micPermRunPending();
-    }
+    if (which === 'settings') permOpenSettings();
   }
 
   const permSeen = {};
@@ -1869,6 +1898,9 @@ const listenModel = (() => {
       };
     }
     const canUse = !sub && liveCapable();
+    // 方案 B waiting：系统框在飞 ⇒ 双键置灰，等待文案走行内 note（不把某一侧 PTT
+    // 改成「等待系统授权…」当第三颗主按钮）。
+    const permWaiting = !sub && micPermRequired() && micPerm.state === 'prompted';
     // 高亮只在这一侧真的在录（相位已经是 listening）。没下好的那一侧保持灰，不亮成「正在录」。
     const on = !!ptt && phase === 'listening';
     const mineChrome = FirstRun.talkChrome({
@@ -1893,9 +1925,9 @@ const listenModel = (() => {
       otherLabel: langLabel(cfg && cfg.otherLang),
       otherHint: pttHintFor(otherChrome, cfg && cfg.otherLang),
       activeSide: on ? ptt.side : '',
-      disabled: mineChrome.disabled,
-      mineDisabled: mineChrome.disabled,
-      otherDisabled: otherChrome.disabled,
+      disabled: permWaiting || mineChrome.disabled,
+      mineDisabled: permWaiting || mineChrome.disabled,
+      otherDisabled: permWaiting || otherChrome.disabled,
       whyText: canUse
         ? ((mineChrome.hint === 'preparing' || otherChrome.hint === 'preparing')
           ? t('listen_ptt_preparing_why', '正在准备本机识别包…')
@@ -3012,9 +3044,15 @@ const listenModel = (() => {
   }
   function resumeByUser() { earlyRetries = 0; return resume(); }
   function toggle() {
-    if (phase === 'listening') pause('user');
-    else if (phase === 'paused' || phase === 'halted') resumeByUser();
-    else if (phase === 'idle' || phase === 'ended') start();
+    if (phase === 'listening') { pause('user'); return; }
+    if (phase === 'paused' || phase === 'halted') {
+      // 方案 B：拒绝 / 系统框在飞时这颗「开始」不开麦、也不 resume；
+      // 从设置回来授权之后才放行（not_determined 放行并画 first-hint）。
+      if (!micPermCanStart({ kind: 'start' })) return;
+      resumeByUser();
+      return;
+    }
+    if (phase === 'idle' || phase === 'ended') start();
   }
   function end() {
     const wasPtt = !!(ptt || pttStopTimer);   // 同 pause：先记，再清（方案 1）
@@ -3116,6 +3154,7 @@ const listenModel = (() => {
     if (!session) {
       micPerm = Object.assign(MicPerm.initial(), { state: micPerm.state });
       micPermPending = null;
+      micPermFirstHint = false;
     }
     // BEL-223：把这次进入的功能面记给冷启会话 —— listen（对话听译）/ live_caption（实时字幕）。
     // App 没有 web_caption 这个面（它只由扩展的网页字幕会话产生），这里不发。
@@ -3604,14 +3643,29 @@ const listenModel = (() => {
   }
   function toggleView() {
     const ended = phase === 'ended';
+    // 方案 B waiting：系统框还在飞时，**同一颗**「开始」置灰、文案换短句。
+    // 注意不要贴现网长句 subtitle_bar_waiting（那是字幕条 / Mac 系统声音等待用的）。
+    const permWaiting = micPermRequired() && micPerm.state === 'prompted';
+    // 第一次点开始（not_determined）到原生回 prompted 之间：这颗按钮仍叫「开始」，
+    // 配合上方 first-hint（框还没出、或刚出），不要闪成「准备中…」。
+    const permFirstHint = micPermRequired() && micPerm.state === 'not_determined' && micPermFirstHint;
+    // 拒绝态：这颗按钮仍是「开始」（不是「重试」），由 micPermCanStart 挡住开麦。
+    // 从设置回来已授权但会话还停在 denied 的 halted 上时，也仍叫「开始」——点它才 resume。
+    const permDenied = micPermRequired()
+      && (micPerm.state === 'denied' || micPerm.state === 'restricted') && phase !== 'listening';
+    const permResumeFromDenied = micPermRequired() && micPerm.state === 'granted'
+      && phase === 'halted' && pauseReason === 'denied';
+    const startText = mode === 'subtitle' ? t('subtitle_start', '开始') : t('listen_toggle_start', '开始听');
     return {
-      text: phase === 'listening'
+      text: permWaiting ? t('listen_perm_waiting', '等待系统授权…')
+        : (permDenied || permResumeFromDenied || permFirstHint) ? startText
+        : phase === 'listening'
           ? (mode === 'subtitle' ? t('subtitle_ctl_pause', '暂停') : t('listen_toggle_pause', '● 正在听 · 暂停'))
         : (phase === 'preparing' || phase === 'downloading') ? t('listen_toggle_preparing', '准备中…')
         : (phase === 'halted' && pauseReason === 'socket-retry') ? t('listen_toggle_reconnecting', '重连中…')
         : mode === 'subtitle' ? (session && phase !== 'ended' ? t('subtitle_ctl_resume', '继续') : t('subtitle_start', '开始'))
         : t('listen_toggle_start', '开始听'),
-      disabled: phase === 'preparing' || phase === 'downloading' || (phase === 'halted' && pauseReason === 'socket-retry'),
+      disabled: permWaiting || phase === 'preparing' || phase === 'downloading' || (phase === 'halted' && pauseReason === 'socket-retry'),
       ended,                                       // 结束后主按钮与上卡都不出现（要说话就「再来一段」）
       endHidden: !session || ended,                // 「结束」按钮：没有会话或已结束时藏（原 :1216）
     };
@@ -4021,8 +4075,8 @@ const listenModel = (() => {
     quotaView, quotaOpenSheet, quotaCloseSheet, quotaPick, quotaYieldAndRestore,
     // 收音（点一下开 / 停；改稿 D）；listen-view 的点击事件 → 状态机
     pttToggle, pttView,
-    // BEL-273：麦克风权限门（解释 → 系统请求 / 拒绝 → 去设置 / 回来重试）
-    permView, permAct,
+    // BEL-273 方案 B：行内 hint / waiting / denied（不再有独立权限卡或「继续」）
+    permView, permAct, permInlineView, permOpenSettings,
     retranslate, toggleStar,   // 历史行内的「重试译文」与加星（原 renderHistory 逐行挂的 handler）
     meterView, failView, failAct,
     // 渲染数据（listen-view.jsx 渲染期调用）
@@ -4094,7 +4148,7 @@ const listenModel = (() => {
       rescueWorth: (ev, p, at) => partialWorthRescue(ev, p, at),
       asrFailReason: (reason, why) => asrFailReason(reason, why),
       // BEL-273：权限门与采集链 native_code 的只读读数点（native_code 现在进 asr_fail 契约）。
-      perm: { state: micPerm.state, gate: micPerm.gate, explained: micPerm.explained,
+      perm: { state: micPerm.state, gate: micPerm.gate, firstHint: micPermFirstHint,
         settingsOpened: micPerm.settingsOpened, pending: micPermPending },
       asrNativeCode: lastAsrNativeCode,
       normalizeNativeCode: (v) => normalizeNativeCode(v),

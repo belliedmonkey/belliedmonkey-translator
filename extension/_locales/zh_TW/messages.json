@@ -4413,6 +4413,22 @@
     "message": "在系統設定裡開啟「麥克風」權限，回到這裡點「重試」就能開始，不用重開 App。",
     "description": "BEL-273 microphone permission gate"
   },
+  "listen_perm_first_hint": {
+    "message": "第一次開始會跳出麥克風授權，點「允許」即可。",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_waiting": {
+    "message": "等待系統授權…",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_denied_inline": {
+    "message": "麥克風權限未開啟。到系統設定開啟麥克風，回來點開始即可。",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_open_settings": {
+    "message": "去設定",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
   "halt_balance_row": {
     "message": "這個引擎沒餘額了 —— 點此去換",
     "description": "BEL-274 fail surface"

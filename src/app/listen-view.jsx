@@ -301,6 +301,8 @@ export function ListenView() {
   const meter = listenModel.meterView();
   const fail = listenModel.failView();
   const perm = listenModel.permView();
+  // BEL-273 方案 B：行内权限提示（不是卡）。字幕页画在「开始」上方；对话页画在双键上方。
+  const iv = listenModel.permInlineView();
   const stage = mv.sub ? subtitleStageLines(nv, hv) : null;
   // 字幕进行中/已暂停：有会话且未 ended ⇒ 露出「暂停/继续 + 停止」双钮（batch3 Duo-05）
   const subSessionOn = !!(mv.sub && !tv.ended && tv.endHidden === false);
@@ -429,7 +431,21 @@ export function ListenView() {
         onKeyDown={note.go ? (e) => { if (e.key === 'Enter' || e.key === ' ') listenModel.noteTap(); } : undefined}>{note.text}</p>
       {/* 「正在听·暂停」大按钮**只留给实时字幕**（改稿 D，2026-10-09）：对话页的启停就是底部
           那两个「点一下」键（＝开麦 / 关麦）。 */}
-      <div id="app-listen-actions" className={mv.sub && subSessionOn ? 'subs-actions-row' : undefined} hidden={tv.ended || !mv.sub}>
+      <div id="app-listen-actions" className={mv.sub && subSessionOn && !iv.shown ? 'subs-actions-row' : undefined} hidden={tv.ended || !mv.sub}>
+        {/* BEL-273 方案 B：行内权限提示，画在「开始」上方（不是独立卡）。
+            hint = 第一次点开始；denied = 一行 fail + 文本链「去设置」；
+            waiting 由「开始」按钮自己的文案承载，这里不重复画。 */}
+        <div id="app-listen-perm-inline" className="listen-perm-inline" hidden={!iv.shown || iv.kind === 'waiting'}>
+          {iv.kind === 'denied' ? (
+            <>
+              <p className="listen-perm-fail" id="app-listen-perm-denied">{iv.hint}</p>
+              <button type="button" className="link listen-perm-link" id="app-listen-perm-settings"
+                onClick={listenModel.permOpenSettings}>{iv.link}</button>
+            </>
+          ) : (
+            <p className="note" id="app-listen-perm-hint">{iv.hint}</p>
+          )}
+        </div>
         <button id="app-listen-toggle" type="button" disabled={tv.disabled} onClick={listenModel.toggle}>{tv.text}</button>
       </div>
       {/* 控制区（改稿 E）：**语言对做成一个胶囊**（两个 select 包在同一个圆角壳里，中间 ⇄
@@ -496,6 +512,19 @@ export function ListenView() {
           点一下开始收音（起会话 / 开麦 / 挂灵动岛），再点同键停止；点另一个键 = 先定稿这边、
           换到那一侧。两键的小字都跟界面语言：未收音「点一下开始」，收音中「● 正在录 · 点一下结束」。 */}
       <div className="listen-ptt-wrap" id="app-listen-ptt" hidden={!pv.shown}>
+        {/* 同一套行内权限提示，画在双键上方 —— 不新增第三颗填充按钮。
+            waiting 文案走这里，双键只置灰、不改字。 */}
+        <div id="app-listen-ptt-perm-inline" className="listen-perm-inline" hidden={!iv.shown}>
+          {iv.kind === 'denied' ? (
+            <>
+              <p className="listen-perm-fail" id="app-listen-ptt-perm-denied">{iv.hint}</p>
+              <button type="button" className="link listen-perm-link" id="app-listen-ptt-perm-settings"
+                onClick={listenModel.permOpenSettings}>{iv.link}</button>
+            </>
+          ) : (
+            <p className="note" id="app-listen-ptt-perm-hint">{iv.hint}</p>
+          )}
+        </div>
         <div className="listen-ptt" id="app-listen-ptt-bar">
           <button id="app-listen-ptt-mine" type="button" className={'listen-ptt-btn' + (pv.activeSide === pv.mineSide ? ' on' : '')}
             disabled={pv.mineDisabled != null ? pv.mineDisabled : pv.disabled} aria-pressed={pv.activeSide === pv.mineSide ? 'true' : 'false'}

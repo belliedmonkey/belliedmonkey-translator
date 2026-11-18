@@ -4225,6 +4225,22 @@
     "message": "เปิด «ไมโครโฟน» ในการตั้งค่าระบบ แล้วกลับมาที่นี่แล้วแตะ «ลองอีกครั้ง» — ไม่ต้องรีสตาร์ทแอป",
     "description": "BEL-273 microphone permission gate"
   },
+  "listen_perm_first_hint": {
+    "message": "เมื่อเริ่มครั้งแรก ระบบจะขออนุญาตใช้ไมโครโฟน — แตะ «อนุญาต»",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_waiting": {
+    "message": "กำลังรอการอนุญาตจากระบบ…",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_denied_inline": {
+    "message": "การเข้าถึงไมโครโฟนถูกปิดอยู่ เปิดในการตั้งค่าระบบ แล้วกลับมาแตะ «เริ่ม»",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_open_settings": {
+    "message": "เปิดการตั้งค่า",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
   "halt_balance_row": {
     "message": "เอนจินนี้ไม่มีเครดิตแล้ว — แตะเพื่อเปลี่ยน",
     "description": "BEL-274 fail surface"

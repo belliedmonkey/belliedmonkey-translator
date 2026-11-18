@@ -4412,6 +4412,22 @@
     "message": "Включите «Микрофон» в системных настройках, вернитесь сюда и нажмите «Повторить» — перезапускать приложение не нужно.",
     "description": "BEL-273 microphone permission gate"
   },
+  "listen_perm_first_hint": {
+    "message": "При первом запуске появится запрос доступа к микрофону — нажмите «Разрешить».",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_waiting": {
+    "message": "Ожидание разрешения системы…",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_denied_inline": {
+    "message": "Доступ к микрофону выключен. Включите его в Системных настройках, затем вернитесь и нажмите «Начать».",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_open_settings": {
+    "message": "Открыть настройки",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
   "halt_balance_row": {
     "message": "У этого движка нет средств — нажмите, чтобы сменить",
     "description": "BEL-274 fail surface"

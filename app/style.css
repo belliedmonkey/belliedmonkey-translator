@@ -762,6 +762,13 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-fail { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
 :where(#app-listen) .listen-fail-title { margin: 0; font-weight: 700; }
 :where(#app-listen) .listen-fail .note { margin: 0; }
+/* BEL-273 方案 B（2026-11-18 过审）：麦克风行内提示 —— 不是独立卡、不是第二个填充按钮。
+   hint 用 .note；denied 一行沿用 ink 气质；去设置是文本链（与「返回」同类）。
+   同一套标记在字幕页（「开始」上方）与对话 PTT 页（双键上方）各渲染一次。 */
+:where(#app-listen) .listen-perm-inline { display: flex; flex-direction: column; gap: 4px; margin: 0; }
+:where(#app-listen) .listen-perm-inline .note { margin: 0; }
+:where(#app-listen) .listen-perm-fail { margin: 0; color: var(--text); font-size: 0.9rem; line-height: 1.45; overflow-wrap: anywhere; }
+:where(#app-listen) .listen-perm-link { align-self: flex-start; font: inherit; background: none; border: 0; color: var(--accent-deep); font-weight: 600; min-height: 32px; padding: 0; text-align: left; cursor: pointer; }
 :where(#app-listen) .listen-fail-acts { display: flex; flex-direction: column; gap: 8px; }
 :where(#app-listen) .listen-fail-acts button { width: 100%; }
 :where(#app-listen) .listen-tr.halt { color: var(--danger); font-style: normal; }
