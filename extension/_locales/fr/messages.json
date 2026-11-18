@@ -4412,6 +4412,22 @@
     "message": "Activez « Microphone » dans les réglages système, revenez ici et touchez « Réessayer » — inutile de relancer l’app.",
     "description": "BEL-273 microphone permission gate"
   },
+  "listen_perm_first_hint": {
+    "message": "Le premier démarrage demande l’accès au micro — appuyez sur « Autoriser ».",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_waiting": {
+    "message": "En attente de l’autorisation…",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_denied_inline": {
+    "message": "L’accès au micro est désactivé. Activez-le dans Réglages Système, puis revenez et appuyez sur « Démarrer ».",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_open_settings": {
+    "message": "Ouvrir les réglages",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
   "app_e1_label": {
     "message": "Transcription chinoise avec SenseVoice"
   },

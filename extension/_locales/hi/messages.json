@@ -4245,6 +4245,22 @@
     "message": "सिस्टम सेटिंग में «माइक्रोफ़ोन» चालू करें, यहाँ वापस आकर «फिर कोशिश करें» दबाएँ — ऐप को फिर से शुरू करने की ज़रूरत नहीं।",
     "description": "BEL-273 microphone permission gate"
   },
+  "listen_perm_first_hint": {
+    "message": "पहली बार शुरू करने पर माइक्रोफ़ोन की अनुमति माँगी जाएगी — «अनुमति दें» पर टैप करें।",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_waiting": {
+    "message": "सिस्टम अनुमति की प्रतीक्षा हो रही है…",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_denied_inline": {
+    "message": "माइक्रोफ़ोन की पहुँच बंद है। सिस्टम सेटिंग्स में इसे चालू करें, फिर लौटकर «शुरू करें» पर टैप करें।",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_open_settings": {
+    "message": "सेटिंग्स खोलें",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
   "app_e1_label": {
     "message": "SenseVoice के साथ चीनी भाषण पहचान"
   },

@@ -4412,6 +4412,22 @@
     "message": "Turn on Microphone in System Settings, then come back and tap “Retry” — no need to restart the app.",
     "description": "BEL-273 microphone permission gate"
   },
+  "listen_perm_first_hint": {
+    "message": "The first Start will ask for microphone access — tap Allow.",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_waiting": {
+    "message": "Waiting for permission…",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_denied_inline": {
+    "message": "Microphone access is off. Turn it on in System Settings, then come back and tap Start.",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
+  "listen_perm_open_settings": {
+    "message": "Open Settings",
+    "description": "BEL-273 alt-B inline microphone permission"
+  },
   "app_e1_label": {
     "message": "Chinese speech-to-text with SenseVoice"
   },
