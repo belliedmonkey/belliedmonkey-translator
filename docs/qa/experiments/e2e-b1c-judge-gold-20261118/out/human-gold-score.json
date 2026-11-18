@@ -1,0 +1,6870 @@
+{
+  "schema": "belliedmonkey.e2e-b1c.gold-score.v1",
+  "mode": "gold",
+  "cases": 50,
+  "judges": {
+    "judge-a": {
+      "model": "openai/gpt-4.1-mini",
+      "recordsAbstained": 1,
+      "cells": {
+        "tp": 20,
+        "fp": 2,
+        "tn": 305,
+        "fn": 16,
+        "abstain": 7,
+        "scored": 343
+      },
+      "tpr": {
+        "p": 0.5556,
+        "lo": 0.3958,
+        "hi": 0.7046,
+        "n": 36
+      },
+      "tnr": {
+        "p": 0.9935,
+        "lo": 0.9766,
+        "hi": 0.9982,
+        "n": 307
+      },
+      "cells_detail": [
+        {
+          "caseId": "B1-B-ascend/00004",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00004",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00004",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00004",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00004",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00004",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00004",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00009",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00009",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00009",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00009",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00009",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "F",
+          "judge": "P",
+          "cell": "FN"
+        },
+        {
+          "caseId": "B1-B-ascend/00009",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00009",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00028",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00028",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "F",
+          "judge": "P",
+          "cell": "FN"
+        },
+        {
+          "caseId": "B1-B-ascend/00028",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00028",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "F",
+          "judge": "P",
+          "cell": "FN"
+        },
+        {
+          "caseId": "B1-B-ascend/00028",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00028",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00028",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00055",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00055",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00055",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00055",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00055",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00055",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00055",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00066",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00066",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00066",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00066",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00066",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00066",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00066",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00068",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00068",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00068",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00068",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00068",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00068",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00068",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "F",
+          "judge": "P",
+          "cell": "FN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "F",
+          "judge": "P",
+          "cell": "FN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "F",
+          "judge": "P",
+          "cell": "FN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "F",
+          "judge": "P",
+          "cell": "FN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "F",
+          "judge": "P",
+          "cell": "FN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "F",
+          "judge": "P",
+          "cell": "FN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "P",
+          "cell": "FN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1682",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1682",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1682",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1682",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1682",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1682",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1682",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "F",
+          "judge": "P",
+          "cell": "FN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "F",
+          "judge": "P",
+          "cell": "FN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "F",
+          "judge": "P",
+          "cell": "FN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "F",
+          "judge": "P",
+          "cell": "FN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "F",
+          "judge": "P",
+          "cell": "FN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "F",
+          "cell": "FP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "F",
+          "cell": "FP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-ascend/00066",
+          "set": "b1",
+          "condition": "A",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-ascend/00066",
+          "set": "b1",
+          "condition": "A",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-ascend/00066",
+          "set": "b1",
+          "condition": "A",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-ascend/00066",
+          "set": "b1",
+          "condition": "A",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-ascend/00066",
+          "set": "b1",
+          "condition": "A",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-ascend/00066",
+          "set": "b1",
+          "condition": "A",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-ascend/00066",
+          "set": "b1",
+          "condition": "A",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "A",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "A",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "A",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "A",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "A",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "A",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "A",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "A",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "A",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "A",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "A",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "A",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "A",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "A",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "A",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "A",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "A",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "A",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "A",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "A",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "A",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "A",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "A",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "A",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "A",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "A",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "A",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "A",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "A",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "A",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "A",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "A",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "A",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "A",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "A",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-zh_92816176",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-zh_92816176",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "entities_numbers",
+          "human": "F",
+          "judge": "P",
+          "cell": "FN"
+        },
+        {
+          "caseId": "HS-zh_92816176",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-zh_92816176",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-zh_92816176",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-zh_92816176",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-zh_92816176",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385458475",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385458475",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385458475",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385458475",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385458475",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385458475",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385458475",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385049036",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385049036",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385049036",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385049036",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385049036",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385049036",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385049036",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1378366143",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1378366143",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1378366143",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1378366143",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1378366143",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1378366143",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1378366143",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        }
+      ]
+    },
+    "judge-b": {
+      "model": "qwen/qwen3-235b-a22b-2507",
+      "recordsAbstained": 0,
+      "cells": {
+        "tp": 34,
+        "fp": 17,
+        "tn": 294,
+        "fn": 5,
+        "abstain": 0,
+        "scored": 350
+      },
+      "tpr": {
+        "p": 0.8718,
+        "lo": 0.7329,
+        "hi": 0.944,
+        "n": 39
+      },
+      "tnr": {
+        "p": 0.9453,
+        "lo": 0.9142,
+        "hi": 0.9656,
+        "n": 311
+      },
+      "cells_detail": [
+        {
+          "caseId": "B1-B-ascend/00004",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00004",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00004",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00004",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00004",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00004",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00004",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00009",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00009",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00009",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00009",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "F",
+          "judge": "P",
+          "cell": "FN"
+        },
+        {
+          "caseId": "B1-B-ascend/00009",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00009",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00009",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00028",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00028",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00028",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00028",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00028",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00028",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "F",
+          "cell": "FP"
+        },
+        {
+          "caseId": "B1-B-ascend/00028",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00055",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00055",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00055",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00055",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00055",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00055",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00055",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00066",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00066",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00066",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00066",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00066",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00066",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00066",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00068",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00068",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00068",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-ascend/00068",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00068",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00068",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-ascend/00068",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "F",
+          "cell": "FP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "F",
+          "cell": "FP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "F",
+          "cell": "FP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "F",
+          "cell": "FP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "F",
+          "cell": "FP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "F",
+          "cell": "FP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "F",
+          "cell": "FP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "F",
+          "cell": "FP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "F",
+          "cell": "FP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "F",
+          "cell": "FP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1682",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1682",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1682",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1682",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1682",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1682",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1682",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "F",
+          "judge": "P",
+          "cell": "FN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1668",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "F",
+          "judge": "P",
+          "cell": "FN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1669",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "F",
+          "judge": "P",
+          "cell": "FN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1670",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1671",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1672",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1674",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "F",
+          "cell": "FP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1675",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "F",
+          "judge": "P",
+          "cell": "FN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1676",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "F",
+          "cell": "FP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "F",
+          "cell": "FP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "F",
+          "cell": "FP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "F",
+          "cell": "FP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1680",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1681",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1682",
+          "set": "b1",
+          "condition": "B",
+          "dim": "meaning",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1682",
+          "set": "b1",
+          "condition": "B",
+          "dim": "entities_numbers",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1682",
+          "set": "b1",
+          "condition": "B",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1682",
+          "set": "b1",
+          "condition": "B",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1682",
+          "set": "b1",
+          "condition": "B",
+          "dim": "hallucination",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1682",
+          "set": "b1",
+          "condition": "B",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-B-fleurs-public-candidates/en_us/1682",
+          "set": "b1",
+          "condition": "B",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-ascend/00066",
+          "set": "b1",
+          "condition": "A",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-ascend/00066",
+          "set": "b1",
+          "condition": "A",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-ascend/00066",
+          "set": "b1",
+          "condition": "A",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-ascend/00066",
+          "set": "b1",
+          "condition": "A",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-ascend/00066",
+          "set": "b1",
+          "condition": "A",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-ascend/00066",
+          "set": "b1",
+          "condition": "A",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-ascend/00066",
+          "set": "b1",
+          "condition": "A",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "A",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "A",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "A",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "A",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "A",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "A",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1669",
+          "set": "b1",
+          "condition": "A",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "A",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "A",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "A",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "A",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "A",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "A",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1672",
+          "set": "b1",
+          "condition": "A",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "A",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "A",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "A",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "A",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "A",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "A",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1675",
+          "set": "b1",
+          "condition": "A",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "A",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "A",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "A",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "A",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "A",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "A",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1673",
+          "set": "b1",
+          "condition": "A",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1677",
+          "set": "b1",
+          "condition": "A",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "A",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "A",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "A",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "A",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "A",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "A",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1678",
+          "set": "b1",
+          "condition": "A",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "B1-A-fleurs-public-candidates/en_us/1679",
+          "set": "b1",
+          "condition": "A",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-zh_92816176",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "F",
+          "cell": "FP"
+        },
+        {
+          "caseId": "HS-zh_92816176",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "entities_numbers",
+          "human": "F",
+          "judge": "F",
+          "cell": "TP"
+        },
+        {
+          "caseId": "HS-zh_92816176",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-zh_92816176",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-zh_92816176",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-zh_92816176",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-zh_92816176",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385458475",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385458475",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385458475",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385458475",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385458475",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385458475",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385458475",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385049036",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385049036",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385049036",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385049036",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385049036",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385049036",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1385049036",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1378366143",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "meaning",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1378366143",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "entities_numbers",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1378366143",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "negation",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1378366143",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "omission",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1378366143",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "hallucination",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1378366143",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "terminology",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        },
+        {
+          "caseId": "HS-en_1378366143",
+          "set": "hardset",
+          "condition": "H",
+          "dim": "fluency",
+          "human": "P",
+          "judge": "P",
+          "cell": "TN"
+        }
+      ]
+    }
+  },
+  "pairLevel": {
+    "judge-a": {
+      "tp": 10,
+      "fp": 0,
+      "tn": 33,
+      "fn": 6,
+      "skipped": 1,
+      "tpr": {
+        "p": 0.625,
+        "lo": 0.3864,
+        "hi": 0.8152,
+        "n": 16
+      },
+      "tnr": {
+        "p": 1,
+        "lo": 0.8957,
+        "hi": 1,
+        "n": 33
+      }
+    },
+    "judge-b": {
+      "tp": 14,
+      "fp": 1,
+      "tn": 32,
+      "fn": 3,
+      "skipped": 0,
+      "tpr": {
+        "p": 0.8235,
+        "lo": 0.5897,
+        "hi": 0.9381,
+        "n": 17
+      },
+      "tnr": {
+        "p": 0.9697,
+        "lo": 0.8468,
+        "hi": 0.9946,
+        "n": 33
+      }
+    }
+  },
+  "perDimension": {
+    "meaning": {
+      "tp": 22,
+      "fp": 3,
+      "tn": 73,
+      "fn": 1,
+      "tpr": {
+        "p": 0.9565,
+        "lo": 0.7901,
+        "hi": 0.9923,
+        "n": 23
+      },
+      "tnr": {
+        "p": 0.9605,
+        "lo": 0.8903,
+        "hi": 0.9865,
+        "n": 76
+      }
+    },
+    "entities_numbers": {
+      "tp": 5,
+      "fp": 5,
+      "tn": 81,
+      "fn": 8,
+      "tpr": {
+        "p": 0.3846,
+        "lo": 0.1771,
+        "hi": 0.6448,
+        "n": 13
+      },
+      "tnr": {
+        "p": 0.9419,
+        "lo": 0.871,
+        "hi": 0.9749,
+        "n": 86
+      }
+    },
+    "negation": {
+      "tp": 0,
+      "fp": 0,
+      "tn": 99,
+      "fn": 0,
+      "tpr": {
+        "p": null,
+        "lo": null,
+        "hi": null,
+        "n": 0
+      },
+      "tnr": {
+        "p": 1,
+        "lo": 0.9626,
+        "hi": 1,
+        "n": 99
+      }
+    },
+    "omission": {
+      "tp": 9,
+      "fp": 4,
+      "tn": 83,
+      "fn": 3,
+      "tpr": {
+        "p": 0.75,
+        "lo": 0.4677,
+        "hi": 0.9111,
+        "n": 12
+      },
+      "tnr": {
+        "p": 0.954,
+        "lo": 0.8877,
+        "hi": 0.982,
+        "n": 87
+      }
+    },
+    "hallucination": {
+      "tp": 13,
+      "fp": 3,
+      "tn": 81,
+      "fn": 2,
+      "tpr": {
+        "p": 0.8667,
+        "lo": 0.6212,
+        "hi": 0.9626,
+        "n": 15
+      },
+      "tnr": {
+        "p": 0.9643,
+        "lo": 0.9002,
+        "hi": 0.9878,
+        "n": 84
+      }
+    },
+    "terminology": {
+      "tp": 4,
+      "fp": 4,
+      "tn": 87,
+      "fn": 4,
+      "tpr": {
+        "p": 0.5,
+        "lo": 0.2152,
+        "hi": 0.7848,
+        "n": 8
+      },
+      "tnr": {
+        "p": 0.956,
+        "lo": 0.8924,
+        "hi": 0.9828,
+        "n": 91
+      }
+    },
+    "fluency": {
+      "tp": 1,
+      "fp": 0,
+      "tn": 95,
+      "fn": 3,
+      "tpr": {
+        "p": 0.25,
+        "lo": 0.0456,
+        "hi": 0.6994,
+        "n": 4
+      },
+      "tnr": {
+        "p": 1,
+        "lo": 0.9611,
+        "hi": 1,
+        "n": 95
+      }
+    }
+  },
+  "perSet": {
+    "b1": {
+      "tp": 53,
+      "fp": 18,
+      "tn": 546,
+      "fn": 20,
+      "tpr": {
+        "p": 0.726,
+        "lo": 0.6144,
+        "hi": 0.8151,
+        "n": 73
+      },
+      "tnr": {
+        "p": 0.9681,
+        "lo": 0.9501,
+        "hi": 0.9797,
+        "n": 564
+      }
+    },
+    "hardset": {
+      "tp": 1,
+      "fp": 1,
+      "tn": 53,
+      "fn": 1,
+      "tpr": {
+        "p": 0.5,
+        "lo": 0.0945,
+        "hi": 0.9055,
+        "n": 2
+      },
+      "tnr": {
+        "p": 0.9815,
+        "lo": 0.9023,
+        "hi": 0.9967,
+        "n": 54
+      }
+    }
+  },
+  "disagreements": [
+    {
+      "judge": "P",
+      "caseId": "B1-B-ascend/00009",
+      "set": "b1",
+      "condition": "B",
+      "dim": "hallucination",
+      "human": "F",
+      "cell": "FN"
+    },
+    {
+      "judge": "P",
+      "caseId": "B1-B-ascend/00028",
+      "set": "b1",
+      "condition": "B",
+      "dim": "entities_numbers",
+      "human": "F",
+      "cell": "FN"
+    },
+    {
+      "judge": "P",
+      "caseId": "B1-B-ascend/00028",
+      "set": "b1",
+      "condition": "B",
+      "dim": "omission",
+      "human": "F",
+      "cell": "FN"
+    },
+    {
+      "judge": "P",
+      "caseId": "B1-B-ascend/00068",
+      "set": "b1",
+      "condition": "B",
+      "dim": "fluency",
+      "human": "F",
+      "cell": "FN"
+    },
+    {
+      "judge": "P",
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1668",
+      "set": "b1",
+      "condition": "B",
+      "dim": "entities_numbers",
+      "human": "F",
+      "cell": "FN"
+    },
+    {
+      "judge": "P",
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1675",
+      "set": "b1",
+      "condition": "B",
+      "dim": "entities_numbers",
+      "human": "F",
+      "cell": "FN"
+    },
+    {
+      "judge": "P",
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1675",
+      "set": "b1",
+      "condition": "B",
+      "dim": "omission",
+      "human": "F",
+      "cell": "FN"
+    },
+    {
+      "judge": "P",
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1675",
+      "set": "b1",
+      "condition": "B",
+      "dim": "hallucination",
+      "human": "F",
+      "cell": "FN"
+    },
+    {
+      "judge": "P",
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1675",
+      "set": "b1",
+      "condition": "B",
+      "dim": "terminology",
+      "human": "F",
+      "cell": "FN"
+    },
+    {
+      "judge": "P",
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1678",
+      "set": "b1",
+      "condition": "B",
+      "dim": "meaning",
+      "human": "F",
+      "cell": "FN"
+    },
+    {
+      "judge": "P",
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1668",
+      "set": "b1",
+      "condition": "B",
+      "dim": "entities_numbers",
+      "human": "F",
+      "cell": "FN"
+    },
+    {
+      "judge": "P",
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1669",
+      "set": "b1",
+      "condition": "B",
+      "dim": "terminology",
+      "human": "F",
+      "cell": "FN"
+    },
+    {
+      "judge": "P",
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1670",
+      "set": "b1",
+      "condition": "B",
+      "dim": "entities_numbers",
+      "human": "F",
+      "cell": "FN"
+    },
+    {
+      "judge": "P",
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1675",
+      "set": "b1",
+      "condition": "B",
+      "dim": "terminology",
+      "human": "F",
+      "cell": "FN"
+    },
+    {
+      "judge": "P",
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1675",
+      "set": "b1",
+      "condition": "B",
+      "dim": "fluency",
+      "human": "F",
+      "cell": "FN"
+    },
+    {
+      "judge": "F",
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1678",
+      "set": "b1",
+      "condition": "B",
+      "dim": "entities_numbers",
+      "human": "P",
+      "cell": "FP"
+    },
+    {
+      "judge": "F",
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1680",
+      "set": "b1",
+      "condition": "B",
+      "dim": "omission",
+      "human": "P",
+      "cell": "FP"
+    },
+    {
+      "judge": "P",
+      "caseId": "HS-zh_92816176",
+      "set": "hardset",
+      "condition": "H",
+      "dim": "entities_numbers",
+      "human": "F",
+      "cell": "FN"
+    },
+    {
+      "judge": "P",
+      "caseId": "B1-B-ascend/00009",
+      "set": "b1",
+      "condition": "B",
+      "dim": "omission",
+      "human": "F",
+      "cell": "FN"
+    },
+    {
+      "judge": "F",
+      "caseId": "B1-B-ascend/00028",
+      "set": "b1",
+      "condition": "B",
+      "dim": "terminology",
+      "human": "P",
+      "cell": "FP"
+    },
+    {
+      "judge": "F",
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1668",
+      "set": "b1",
+      "condition": "B",
+      "dim": "meaning",
+      "human": "P",
+      "cell": "FP"
+    },
+    {
+      "judge": "F",
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1668",
+      "set": "b1",
+      "condition": "B",
+      "dim": "terminology",
+      "human": "P",
+      "cell": "FP"
+    },
+    {
+      "judge": "F",
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1670",
+      "set": "b1",
+      "condition": "B",
+      "dim": "omission",
+      "human": "P",
+      "cell": "FP"
+    },
+    {
+      "judge": "F",
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1670",
+      "set": "b1",
+      "condition": "B",
+      "dim": "terminology",
+      "human": "P",
+      "cell": "FP"
+    },
+    {
+      "judge": "F",
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1671",
+      "set": "b1",
+      "condition": "B",
+      "dim": "meaning",
+      "human": "P",
+      "cell": "FP"
+    },
+    {
+      "judge": "F",
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1678",
+      "set": "b1",
+      "condition": "B",
+      "dim": "entities_numbers",
+      "human": "P",
+      "cell": "FP"
+    },
+    {
+      "judge": "F",
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1678",
+      "set": "b1",
+      "condition": "B",
+      "dim": "hallucination",
+      "human": "P",
+      "cell": "FP"
+    },
+    {
+      "judge": "F",
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1678",
+      "set": "b1",
+      "condition": "B",
+      "dim": "terminology",
+      "human": "P",
+      "cell": "FP"
+    },
+    {
+      "judge": "F",
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1680",
+      "set": "b1",
+      "condition": "B",
+      "dim": "entities_numbers",
+      "human": "P",
+      "cell": "FP"
+    },
+    {
+      "judge": "F",
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1680",
+      "set": "b1",
+      "condition": "B",
+      "dim": "hallucination",
+      "human": "P",
+      "cell": "FP"
+    },
+    {
+      "judge": "P",
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1668",
+      "set": "b1",
+      "condition": "B",
+      "dim": "entities_numbers",
+      "human": "F",
+      "cell": "FN"
+    },
+    {
+      "judge": "P",
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1669",
+      "set": "b1",
+      "condition": "B",
+      "dim": "terminology",
+      "human": "F",
+      "cell": "FN"
+    },
+    {
+      "judge": "P",
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1670",
+      "set": "b1",
+      "condition": "B",
+      "dim": "entities_numbers",
+      "human": "F",
+      "cell": "FN"
+    },
+    {
+      "judge": "F",
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1675",
+      "set": "b1",
+      "condition": "B",
+      "dim": "entities_numbers",
+      "human": "P",
+      "cell": "FP"
+    },
+    {
+      "judge": "P",
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1675",
+      "set": "b1",
+      "condition": "B",
+      "dim": "fluency",
+      "human": "F",
+      "cell": "FN"
+    },
+    {
+      "judge": "F",
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1678",
+      "set": "b1",
+      "condition": "B",
+      "dim": "entities_numbers",
+      "human": "P",
+      "cell": "FP"
+    },
+    {
+      "judge": "F",
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1678",
+      "set": "b1",
+      "condition": "B",
+      "dim": "omission",
+      "human": "P",
+      "cell": "FP"
+    },
+    {
+      "judge": "F",
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1678",
+      "set": "b1",
+      "condition": "B",
+      "dim": "hallucination",
+      "human": "P",
+      "cell": "FP"
+    },
+    {
+      "judge": "F",
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1680",
+      "set": "b1",
+      "condition": "B",
+      "dim": "omission",
+      "human": "P",
+      "cell": "FP"
+    },
+    {
+      "judge": "F",
+      "caseId": "HS-zh_92816176",
+      "set": "hardset",
+      "condition": "H",
+      "dim": "meaning",
+      "human": "P",
+      "cell": "FP"
+    }
+  ],
+  "goldProvenance": {
+    "draftCells": 350,
+    "acceptedUnchanged": 350,
+    "humanOverridden": 0,
+    "overrides": []
+  }
+}

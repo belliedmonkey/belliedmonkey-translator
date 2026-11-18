@@ -1,8 +1,8 @@
 {
   "record": "e2e-b1c-judge-gold-20261118",
   "date": "2026-11-18",
-  "status": "awaiting human fill",
-  "purpose": "measure judge TPR/TNR against human gold; no score exists until gold/human-gold.csv is filled",
+  "status": "gold filled; labels are DRAFT-DERIVED (user accepted the draft unchanged, 0/350 cells overridden)",
+  "purpose": "measure judge TPR/TNR against the draft-derived gold; results must be quoted with draft-derived",
   "sample": {
     "schema": "belliedmonkey.e2e-b1c.gold-sheet.v1",
     "seed": "b1c-gold-v1",
@@ -50,6 +50,108 @@
     "worksheet": "gold/human-gold-worksheet.md"
   },
   "scorer": "score-human-gold.js",
-  "outputs": "out/human-gold-score.json (not present until scored)",
-  "instrument": "../e2e-b1b-unified-judge-20261118 (unified-v1 prompt records)"
+  "outputs": "out/human-gold-score.json, out/human-gold-score.md",
+  "instrument": "../e2e-b1b-unified-judge-20261118 (unified-v1 prompt records)",
+  "provenance": {
+    "gold": "gold filled; labels are DRAFT-DERIVED (user accepted the draft unchanged, 0/350 cells overridden)",
+    "acceptedBy": "用户（聊天指令「接受草案」）",
+    "acceptedAt": "2026-11-18",
+    "cellsCompared": 350,
+    "acceptedUnchanged": 350,
+    "humanOverridden": 0,
+    "record": "gold/ACCEPTANCE.md"
+  },
+  "results": {
+    "mode": "draft-derived",
+    "pairLevel": {
+      "judge-a": {
+        "tp": 10,
+        "fp": 0,
+        "tn": 33,
+        "fn": 6,
+        "tpr": {
+          "p": 0.625,
+          "lo": 0.3864,
+          "hi": 0.8152,
+          "n": 16
+        },
+        "tnr": {
+          "p": 1,
+          "lo": 0.8957,
+          "hi": 1,
+          "n": 33
+        }
+      },
+      "judge-b": {
+        "tp": 14,
+        "fp": 1,
+        "tn": 32,
+        "fn": 3,
+        "tpr": {
+          "p": 0.8235,
+          "lo": 0.5897,
+          "hi": 0.9381,
+          "n": 17
+        },
+        "tnr": {
+          "p": 0.9697,
+          "lo": 0.8468,
+          "hi": 0.9946,
+          "n": 33
+        }
+      }
+    },
+    "cellLevel": {
+      "judge-a": {
+        "tp": 20,
+        "fp": 2,
+        "tn": 305,
+        "fn": 16,
+        "abstain": 7,
+        "tpr": {
+          "p": 0.5556,
+          "lo": 0.3958,
+          "hi": 0.7046,
+          "n": 36
+        },
+        "tnr": {
+          "p": 0.9935,
+          "lo": 0.9766,
+          "hi": 0.9982,
+          "n": 307
+        }
+      },
+      "judge-b": {
+        "tp": 34,
+        "fp": 17,
+        "tn": 294,
+        "fn": 5,
+        "abstain": 0,
+        "tpr": {
+          "p": 0.8718,
+          "lo": 0.7329,
+          "hi": 0.944,
+          "n": 39
+        },
+        "tnr": {
+          "p": 0.9453,
+          "lo": 0.9142,
+          "hi": 0.9656,
+          "n": 311
+        }
+      }
+    },
+    "unionOfTwoJudges": {
+      "humanFail": 17,
+      "caught": 14,
+      "missed": 3,
+      "falseAlarm": 1,
+      "missedCases": [
+        "en_us/1668 wild card brand",
+        "en_us/1669 superintendent rank",
+        "en_us/1670 Cushing transliteration"
+      ]
+    },
+    "file": "out/human-gold-score.json"
+  }
 }
