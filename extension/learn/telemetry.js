@@ -482,16 +482,27 @@ var MTTelemetry = (() => {
     const body = JSON.stringify(events);
     if (byteLen(body) > BODY_MAX) return false;
     const headers = { 'content-type': 'text/plain' };
-    // BEL-304：批次 id 只走请求头。SW 转发时原样带走（background 对 init 不做改写）。
-    if (batchId) headers['x-mt-batch'] = batchId;
     const init = { method: 'POST', body, keepalive: true, headers };
-    // 网页内容脚本：先问一次后台在不在（每页一次，结果缓存）。在 ⇒ SW 代发
-    // （页面 CSP connect-src 'none' 也发得出去）；不在 ⇒ 本页所有批次直连。
-    // 扩展页 / App：不探测，保持直连 —— 它们的 fetch 不受页面 CSP 管。
+    // BEL-304（追加修正，2026-11-18）：`x-mt-batch` 是**上线顺序的临时门**。
+    // 线上 ingest 的 CORS 只放行 `content-type`（东京 OPTIONS 与 api.belliedmonkey.com
+    // 的回执都没有 `x-mt-batch`），而网页内容脚本的直连是跨域请求：带自定义头会先发
+    // OPTIONS 预检，线上未放行 ⇒ 预检失败 ⇒ 整条直连批次被浏览器挡掉。
+    // hosted PR #11（CORS 放行 + 批次列/唯一索引）尚未部署，所以：
+    //   · 网页 + 探测成功（SW 代发）：带 —— 扩展后台 fetch 有 host 权限，不走页面 CORS；
+    //   · 网页 + 探测失败（直连）：**不带** —— 保持 text/plain 简单请求，不触发预检；
+    //   · 扩展页 / App（!inWebPage()）：带 —— 扩展上下文直连，不受页面 CORS 管。
+    // hosted #11 部署后，把下面 webDirectBatch 改成 true（一行），网页直连也带批次头。
+    const webDirectBatch = false;
     if (inWebPage()) {
-      if (await probeSw()) return sendViaRuntime(sp.url, init);
+      if (await probeSw()) {
+        // BEL-304：批次 id 只走请求头。SW 转发时原样带走（background 对 init 不做改写）。
+        if (batchId) headers['x-mt-batch'] = batchId;
+        return sendViaRuntime(sp.url, init);
+      }
+      if (webDirectBatch && batchId) headers['x-mt-batch'] = batchId;
       return sendDirect(sp.url, init);
     }
+    if (batchId) headers['x-mt-batch'] = batchId;
     return sendDirect(sp.url, init);
   }
   // 单飞（#387 后半，2026-09-22）：app.js 与 review.js 各调一次 init({flushNow})，同一页面里两个
