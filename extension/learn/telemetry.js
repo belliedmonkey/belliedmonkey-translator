@@ -16,8 +16,8 @@
 // 时，`auth_fail` 才留在本机（`mt:diag`，上限 20 条）。那不是「中国版不发」的承诺。
 //
 // 传输：事件先入 chrome.storage.local 的队列（上限 200，满了丢最旧），满 10 条、或
-// 距上次 ≥ 60 s（Safari 内容页 10 s）、或扩展页打开 / pagehide / 页面转后台时 flush
-// 一次。请求体用 text/plain —— 简单请求，不触发预检；边缘函数按 JSON 解析正文，
+// 距上次 ≥ 60 s（Safari 内容页 10 s）、或扩展页打开时 flush 一次。请求体用
+// text/plain —— 简单请求，不触发预检；边缘函数按 JSON 解析正文，
 // 不看这个头。**http/https 内容脚本每页先探测一次后台**（BEL-304）：探测只用来
 // **跳过**已知不可用的 SW；探测成功也不代表 SW 发得出去，所以本页第一批仍走 SW，
 // SW 返回失败（含 15s 超时 / {ok:false}）就**立刻整页降级**并把这一批用直连重发
@@ -499,7 +499,7 @@ var MTTelemetry = (() => {
     } catch (_) { return false; }
   }
   // Safari 内容页 10s、其余 60s。Safari 上 1–2 条事件的短页面等不到 10 条阈值，
-  // 60s 又常常比页面寿命长；pagehide / visibilitychange 是第二道兜底（init 里挂）。
+  // 60s 又常常比页面寿命长，所以内容页用更短的 10s。
   function flushMs() {
     return inWebPage() && host() === 'safari' ? FLUSH_MS_SAFARI : FLUSH_MS;
   }
@@ -685,25 +685,7 @@ var MTTelemetry = (() => {
   // 单飞（#387）：App 包里 app.js 与 review.js 各调一次 init，两次并发。同一页面只跑一次，
   // 后来的调用等第一次的结果；flushNow 各自照办（flush 自带 5 秒软锁）。
   let initFlight = null;
-  // BEL-304：页面退出 / 转后台时再推一次，别让 1–2 条事件的短页面等到 10s 或
-  // 下一次打开。同一个页面只挂一次；没有 window/document 的宿主（测试 / 服务端）
-  // 直接跳过。
-  let pageFlushWired = false;
-  function wirePageFlush() {
-    if (pageFlushWired) return;
-    if (typeof window === 'undefined' || typeof document === 'undefined') return;
-    pageFlushWired = true;
-    try { if (typeof window.addEventListener === 'function') window.addEventListener('pagehide', () => flush()); } catch (_) {}
-    try {
-      if (typeof document.addEventListener === 'function') {
-        document.addEventListener('visibilitychange', () => {
-          try { if (document.hidden) flush(); } catch (_) {}
-        });
-      }
-    } catch (_) {}
-  }
   function init(opts) {
-    wirePageFlush();
     // BEL-304：内容脚本在 init 时启动本页唯一一次探测，但不阻塞 init（探测失败
     // 时 400ms 才回；installed/heartbeat 不该等它）。send() 会 await 同一个 Promise，
     // 所以即使 init 还没跑完，第一批也不会抢跑。
