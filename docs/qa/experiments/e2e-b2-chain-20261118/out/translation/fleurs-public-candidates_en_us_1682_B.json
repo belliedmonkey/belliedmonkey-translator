@@ -1,0 +1,27 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-translation.v1",
+  "itemId": "fleurs-public-candidates/en_us/1682",
+  "condition": "B",
+  "targetLang": "zh-CN",
+  "sourceKind": "sa_hypothesis",
+  "source": "While no one knows for Serenhu Roi, it is known that early in its life, the large parchment document, in Messrs. 29, 3/4 inches by 24 and half inches, was rolled up for storage.",
+  "translation": "虽然无人知晓Serenhu Roi的情况，但众所周知的是，在其早期阶段，这份大型羊皮纸文件（尺寸为29又3/4英寸×24.5英寸）曾被卷起以便存放。",
+  "ok": true,
+  "httpStatus": 200,
+  "systemPromptSha256": "6542d07f1a07fb01a09b56a1ca5291bbc6a827fb9edadb2a211cbf06fb84b3a1",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "latencyMs": 1810,
+  "usage": {
+    "prompt_tokens": 176,
+    "total_tokens": 223,
+    "completion_tokens": 47,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 176
+    }
+  },
+  "error": null
+}

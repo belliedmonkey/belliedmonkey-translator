@@ -1,0 +1,83 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1670",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "f46fa402bf91cc2b71eafbae89852726432c0478bdbc5473a22e2292a46c8201",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate adds 'subsurface rising snow,' which is not mentioned in the source and changes the meaning."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All entities and numbers are correctly preserved."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation is preserved."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omission."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The phrase 'subsurface rising snow' is a hallucination not supported by the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is consistent and sensible."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "它们与地下深穴的情况很相似",
+        "targetQuote": "they are quite similar to conditions involving subsurface rising snow",
+        "reason": "The source says 'similar to underground deep caves,' but the candidate introduces 'subsurface rising snow,' which is not in the source, altering the meaning."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "它们与地下深穴的情况很相似",
+        "targetQuote": "they are quite similar to conditions involving subsurface rising snow",
+        "reason": "The candidate invents 'subsurface rising snow,' which is not mentioned in the source."
+      }
+    ]
+  },
+  "usage": {
+    "prompt_tokens": 507,
+    "completion_tokens": 287,
+    "total_tokens": 794,
+    "cost": 0.000662,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.000662,
+      "upstream_inference_prompt_cost": 0.0002028,
+      "upstream_inference_completions_cost": 0.0004592
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.000662
+}

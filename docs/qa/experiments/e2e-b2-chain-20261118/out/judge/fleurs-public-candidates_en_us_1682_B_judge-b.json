@@ -1,0 +1,89 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "fleurs-public-candidates/en_us/1682",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "3086f778c13a3bdd0f7afcdd3740581d1f806fc6cbb5c13b0ab962d31f9d880b",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The translation introduces an unmentioned entity 'Serenhu Roi' and distorts the original meaning."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "'Serenhu Roi' is a hallucinated entity not present in the source; dimensions are partially incorrect (24.5 vs 24½)."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation errors."
+      },
+      "omission": {
+        "pass": false,
+        "note": "The phrase 'who wrote it' is omitted and replaced with unrelated content."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "'Serenhu Roi' is a complete fabrication not supported by the source."
+      },
+      "terminology": {
+        "pass": false,
+        "note": "'large parchment document' is mistranslated due to hallucinated context."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The target sentence is fluent despite inaccuracies."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "While no one knows for certain who wrote it",
+        "targetQuote": "虽然无人知晓Serenhu Roi的情况",
+        "reason": "The source refers to uncertainty about authorship, but the translation fabricates a named entity 'Serenhu Roi', completely altering the meaning."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "24½ inches",
+        "targetQuote": "24.5 inches",
+        "reason": "The translation incorrectly renders 24½ as 24.5, which is numerically imprecise in a formal context."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "who wrote it",
+        "targetQuote": "Serenhu Roi的情况",
+        "reason": "The key phrase 'who wrote it' is omitted and replaced with an unrelated hallucinated clause."
+      }
+    ]
+  },
+  "usage": {
+    "prompt_tokens": 449,
+    "completion_tokens": 365,
+    "total_tokens": 814,
+    "cost": 0.00035054,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00035054,
+      "upstream_inference_prompt_cost": 0.00005854,
+      "upstream_inference_completions_cost": 0.000292
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00035054
+}

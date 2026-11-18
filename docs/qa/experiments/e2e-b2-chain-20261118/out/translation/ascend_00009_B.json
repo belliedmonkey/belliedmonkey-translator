@@ -1,0 +1,27 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-translation.v1",
+  "itemId": "ascend/00009",
+  "condition": "B",
+  "targetLang": "en",
+  "sourceKind": "sa_hypothesis",
+  "source": "那我觉爱是那个 ISM impormation sistancemangement。",
+  "translation": "Then I think love is that ISM, Information System Management.",
+  "ok": true,
+  "httpStatus": 200,
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "latencyMs": 1275,
+  "usage": {
+    "prompt_tokens": 138,
+    "total_tokens": 151,
+    "completion_tokens": 13,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 138
+    }
+  },
+  "error": null
+}

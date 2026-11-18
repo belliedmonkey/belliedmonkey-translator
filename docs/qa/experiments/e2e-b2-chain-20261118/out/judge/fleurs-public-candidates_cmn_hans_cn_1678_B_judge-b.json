@@ -1,0 +1,89 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1678",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "a052f7f11b6ef0e33a129df52d368b7f08ad388e6ae24ac63dac382083e5d564",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate mistranslates '论文《总统的演讲》' as 'presidential address', which changes the meaning."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "'《总统的演讲》' is a specific essay title, not 'presidential address', leading to incorrect rendering of a named work."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation issues."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omissions."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No hallucinations."
+      },
+      "terminology": {
+        "pass": false,
+        "note": "'论文' should be 'essay' or 'paper', not implied as 'address'; '《总统的演讲》' is a proper title and must be preserved or accurately translated."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation is fluent and natural."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "在他的论文《总统的演讲》中",
+        "targetQuote": "in his presidential address",
+        "reason": "The phrase '论文《总统的演讲》' means 'essay titled The President's Speech', not 'presidential address', which inaccurately suggests Sacks delivered a speech as president rather than writing an essay."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "《总统的演讲》",
+        "targetQuote": "presidential address",
+        "reason": "The proper title of the essay is omitted and replaced with a misleading phrase that alters the reference."
+      },
+      {
+        "dimension": "terminology",
+        "sourceQuote": "论文",
+        "targetQuote": "presidential address",
+        "reason": "'论文' is incorrectly rendered as 'presidential address', which is neither a correct translation nor a proper equivalent; it misrepresents the genre and context."
+      }
+    ]
+  },
+  "usage": {
+    "prompt_tokens": 432,
+    "completion_tokens": 367,
+    "total_tokens": 799,
+    "cost": 0.00034976,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00034976,
+      "upstream_inference_prompt_cost": 0.00005616,
+      "upstream_inference_completions_cost": 0.0002936
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00034976
+}

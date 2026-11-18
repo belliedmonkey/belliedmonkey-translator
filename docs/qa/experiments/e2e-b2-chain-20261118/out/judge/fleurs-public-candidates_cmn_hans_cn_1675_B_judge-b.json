@@ -1,0 +1,89 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1675",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "6c1429cf918467979c06f956a3681e097516c12e628beed785655c18b4088c1c",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate mistranslates 'Sie' as 'your C', which distorts the original meaning."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "No entities or numbers present."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation is correctly rendered."
+      },
+      "omission": {
+        "pass": false,
+        "note": "The specific pronoun 'Sie' is omitted and replaced with 'your C', which is not equivalent."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "'your C' is a hallucinated element not present in the source."
+      },
+      "terminology": {
+        "pass": false,
+        "note": "'Sie' is a formal pronoun in German and should not be rendered as 'your C'."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The sentence is fluent in English."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "除去表示您的“Sie”之外的所有名词",
+        "targetQuote": "All nouns except for the one representing your C",
+        "reason": "'Sie' is a formal second-person pronoun in German, not 'your C'; the translation fails to convey the correct meaning."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "表示您的“Sie”",
+        "targetQuote": "representing your C",
+        "reason": "The specific term 'Sie' is omitted and inaccurately replaced with 'your C'."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "表示您的“Sie”",
+        "targetQuote": "your C",
+        "reason": "'your C' is an invented phrase not supported by the source."
+      }
+    ]
+  },
+  "usage": {
+    "prompt_tokens": 405,
+    "completion_tokens": 329,
+    "total_tokens": 734,
+    "cost": 0.0003261,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0003261,
+      "upstream_inference_prompt_cost": 0.000054675,
+      "upstream_inference_completions_cost": 0.000271425
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0003261
+}

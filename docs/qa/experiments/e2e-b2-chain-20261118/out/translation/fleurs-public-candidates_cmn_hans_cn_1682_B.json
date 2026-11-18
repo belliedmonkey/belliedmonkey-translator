@@ -1,0 +1,27 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-translation.v1",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1682",
+  "condition": "B",
+  "targetLang": "en",
+  "sourceKind": "sa_hypothesis",
+  "source": "虽然没有人能确定作者是谁 ，但这个大型羊皮纸文档尺寸为 29又四分之三英寸乘以 24有二分之一英寸。据称在刚写成的时候是卷起来存放的。",
+  "translation": "Although no one can be certain of the author’s identity, this large parchment document measures 29¾ inches by 24½ inches. It is said to have been stored rolled up when it was first written.",
+  "ok": true,
+  "httpStatus": 200,
+  "systemPromptSha256": "80d5ac552061474609e61827d60f4905d39685f4208120b6b9e477132e96b2a8",
+  "model": "qwen3.7-plus",
+  "reasoning": {
+    "enable_thinking": false
+  },
+  "latencyMs": 1568,
+  "usage": {
+    "prompt_tokens": 167,
+    "total_tokens": 211,
+    "completion_tokens": 44,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "text_tokens": 167
+    }
+  },
+  "error": null
+}

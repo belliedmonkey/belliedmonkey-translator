@@ -1,0 +1,89 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "ascend/00028",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "31f937b85ab8fcbc5b0857e432868b59d0d6c78f8174d83da58ad61193888a78",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "short"
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "short"
+      },
+      "negation": {
+        "pass": true,
+        "note": "short"
+      },
+      "omission": {
+        "pass": false,
+        "note": "short"
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "short"
+      },
+      "terminology": {
+        "pass": false,
+        "note": "short"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "short"
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "福建",
+        "targetQuote": "attachment",
+        "reason": "The source refers to Fujian, a province in China, while the translation renders it as 'attachment', which is entirely unrelated in meaning."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "福建",
+        "targetQuote": "attachment",
+        "reason": "The proper noun '福建' (Fujian) is not preserved and incorrectly translated as 'attachment'."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "福建",
+        "targetQuote": "attachment",
+        "reason": "The specific geographical reference '福建' is omitted and replaced with an unrelated term."
+      }
+    ]
+  },
+  "usage": {
+    "prompt_tokens": 363,
+    "completion_tokens": 219,
+    "total_tokens": 582,
+    "cost": 0.000204,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.000204,
+      "upstream_inference_prompt_cost": 0.0000726,
+      "upstream_inference_completions_cost": 0.0001314
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.000204
+}

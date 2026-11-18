@@ -1,0 +1,83 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1682",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "7785da2a64b9eb3e0065167c1feb4f9beea0c8c362e70a3c9f661b10fcb67693",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate splits the complex sentence into two, potentially weakening the connection between the document's size and its storage condition at the time of creation."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "Dimensions 29¾ by 24½ inches correctly rendered."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation issues."
+      },
+      "omission": {
+        "pass": false,
+        "note": "The temporal clause 'when it was first written' is attached only to the storage condition, but in the source, '据称在刚写成的时候' modifies the storage, implying immediacy after completion. The candidate sligh"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No hallucinations."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "'parchment document', 'stored rolled up' are appropriate."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "Fluent and natural."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "这个大型羊皮纸文档（尺寸为 29¾ 英寸乘以 24½ 英寸）据称在刚写成的时候是卷起来存放的。",
+        "targetQuote": "this large parchment document measures 29¾ inches by 24½ inches. It is said to have been stored rolled up when it was first written.",
+        "reason": "The source links the document's size and storage condition in a single descriptive clause, emphasizing that right after being written, it was stored rolled. The split in the target may imply the measurement is a current fact, not necessarily at the time of creation, slightly altering the original meaning."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "在刚写成的时候",
+        "targetQuote": "when it was first written",
+        "reason": "While the phrase is translated, its close connection to the storage state at the moment of completion is slightly weakened by the sentence structure, potentially omitting the immediacy implied in the source."
+      }
+    ]
+  },
+  "usage": {
+    "prompt_tokens": 447,
+    "completion_tokens": 418,
+    "total_tokens": 865,
+    "cost": 0.00039266,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00039266,
+      "upstream_inference_prompt_cost": 0.00005826,
+      "upstream_inference_completions_cost": 0.0003344
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00039266
+}

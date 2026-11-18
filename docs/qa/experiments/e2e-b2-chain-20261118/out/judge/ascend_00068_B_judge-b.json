@@ -1,0 +1,89 @@
+{
+  "schema": "belliedmonkey.e2e-b2.chain-judge.v1",
+  "promptVersion": "unified-v1",
+  "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+  "itemId": "ascend/00068",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "d0c0da8165ea8dfd15f1a78ce410ad81c686a2f7935dabd0793291a253aa8433",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate translation does not convey the meaning of the source, which refers to 'computer languages' as a subject, while the translation says 'Maybe usually all language' which is unrelated."
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "The term 'computer languages' is not preserved or correctly rendered."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation in source or translation."
+      },
+      "omission": {
+        "pass": false,
+        "note": "The key term 'computer languages' is omitted in the translation."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The phrase 'Maybe usually all language' introduces content not present in the source."
+      },
+      "terminology": {
+        "pass": false,
+        "note": "The domain term 'computer languages' is mistranslated."
+      },
+      "fluency": {
+        "pass": false,
+        "note": "The translation is not fluent or natural in English."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "computer languages是",
+        "targetQuote": "Maybe usually all language",
+        "reason": "The translation fails to convey that the subject is 'computer languages' and adds speculative wording like 'Maybe usually' not present in the source."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "computer languages",
+        "targetQuote": "",
+        "reason": "The key term 'computer languages' is entirely missing in the target translation."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "",
+        "targetQuote": "Maybe usually",
+        "reason": "The words 'Maybe usually' are invented and not supported by the source."
+      }
+    ]
+  },
+  "usage": {
+    "prompt_tokens": 365,
+    "completion_tokens": 317,
+    "total_tokens": 682,
+    "cost": 0.00030038,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00030038,
+      "upstream_inference_prompt_cost": 0.00004678,
+      "upstream_inference_completions_cost": 0.0002536
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00030038
+}
