@@ -16,22 +16,26 @@
 // 时，`auth_fail` 才留在本机（`mt:diag`，上限 20 条）。那不是「中国版不发」的承诺。
 //
 // 传输：事件先入 chrome.storage.local 的队列（上限 200，满了丢最旧），满 10 条、或
-// 距上次 ≥ 60 s、或扩展页打开时 flush 一次。请求体用 text/plain —— 简单请求，不触发
-// 预检；边缘函数按 JSON 解析正文，不看这个头。**http/https 内容脚本每页先探测一次
-// 后台**（BEL-304）：后台在 ⇒ 经 SW 的 telemetrySend 代发（页面 CSP 拦不到），后台
-// 不在（iOS Safari 锁屏后 SW 永久不可用）⇒ 本页所有批次直连；扩展页 / App 不探测，
-// 一直直连。SW 只放行本 build 的 ingest 端点；直连受页面 CSP 管，失败时事件留在队列
-// 等下一次 flush。端点**不带任何 key**（build.js 的铁律：anon key 不进内容脚本）。
+// 距上次 ≥ 60 s（Safari 内容页 10 s）、或扩展页打开 / pagehide / 页面转后台时 flush
+// 一次。请求体用 text/plain —— 简单请求，不触发预检；边缘函数按 JSON 解析正文，
+// 不看这个头。**http/https 内容脚本每页先探测一次后台**（BEL-304）：探测只用来
+// **跳过**已知不可用的 SW；探测成功也不代表 SW 发得出去，所以本页第一批仍走 SW，
+// SW 返回失败（含 15s 超时 / {ok:false}）就**立刻整页降级**并把这一批用直连重发
+// 一次（复用同一个 batch id，服务端按 (install_id, batch_id, batch_seq) 去重）。
+// 扩展页 / App 不探测，一直直连。SW 只放行本 build 的 ingest 端点；直连受页面 CSP
+// 管，失败时事件留在队列等下一次 flush。端点**不带任何 key**（build.js 的铁律：
+// anon key 不进内容脚本）。
 var MTTelemetry = (() => {
   const K = { on: 'tm:on', id: 'tm:id', queue: 'tm:queue', day: 'tm:day', once: 'tm:once', last: 'tm:last', dropped: 'mtTelemetryDropped', directFail: 'mtTelemetryDirectFail' };
-  const FLUSH_AT = 10, FLUSH_MS = 60 * 1000, QUEUE_CAP = 200;
+  const FLUSH_AT = 10, FLUSH_MS = 60 * 1000, FLUSH_MS_SAFARI = 10 * 1000, QUEUE_CAP = 200;
   // BEL-277：http/https 内容脚本不再直接 fetch（页面 CSP 的 connect-src 可以把它
   // 整个拦掉），改由 service worker 代发。扩展页 / App 仍走直连 —— 只有网页上下文
   // 的 fetch 会被页面 CSP 管。两个上限与 SW 侧同一组数字。
   // BEL-304：每页只探一次后台。iOS Safari 在设备锁屏后 SW 会永久不可用，此前
   // 内容脚本无条件走 telemetrySend，于是「真翻成功、事件 0 行」而没有任何报错。
-  // 这里在**发第一批之前**问一次「后台在吗」，400ms 内答不上来就整页直连，不再
-  // 按批重试 / 回落 —— 每批都重新判断会把同一份事件发两遍。
+  // 这里在**发第一批之前**问一次「后台在吗」，400ms 内答不上来就整页直连；答得上
+  // 只代表消息通道通，SW 仍可能发不出去 —— 所以它只是「快速跳过」，不是判决。
+  // 判决在 sendViaRuntime：失败即整页 direct + 本批直连重发（见 send()）。
   const PING_TIMEOUT_MS = 400;
   const SW_TIMEOUT_MS = 15000, BODY_MAX = 64 * 1024;
   const STR_MAX = 64;
@@ -93,11 +97,15 @@ var MTTelemetry = (() => {
   }
 
   // BEL-304：本页传输探测。只问「SW 现在收不收得到消息」，不做任何网络 I/O。
-  // 成功（400ms 内 {ok:true}）⇒ 本页所有批次走 SW；其余（无 receiver / lastError /
-  // throw / 超时）⇒ 本页所有批次直连。结果缓存在模块内：每页只探一次。
+  // 它只是**快速跳过**：探测失败（无 receiver / lastError / throw / 超时）⇒ 本页
+  // 直接直连；探测成功只说明消息通道通，**不证明 SW 发得出去** ⇒ 本页第一批仍走
+  // SW，失败后由 send() 整页降级。结果缓存在模块内：每页只探一次。
   // 两种 Safari 失败形态（sendMessage 立刻 lastError；回调根本不触发）都在这里
   // 收敛成同一个 false —— 不依赖某一种实现细节。
   let pageProbe = null;
+  // 本页判决：null = 未定（第一批按 probe 决定）；'sw' = 走 SW；'direct' = 已降级，
+  // 后续批次不再探测、不再发 telemetrySend。
+  let pageTransport = null;
   function probeSw() {
     if (pageProbe) return pageProbe;
     pageProbe = new Promise((resolve) => {
@@ -106,7 +114,12 @@ var MTTelemetry = (() => {
         if (done) return;
         done = true;
         clearTimeout(timer);
-        if (!ok) { try { console.warn('[mt] telemetry ping failed', reason || 'unavailable'); } catch (_) {} }
+        if (!ok) {
+          // 探针失败要留在本机计数器里（不是事件），并 warn；但不冒充「直连失败」——
+          // 直连还没试过。这里只加计数，警告由下面这一条 ping failed 承担。
+          bumpDirectFail();
+          try { console.warn('[mt] telemetry ping failed', reason || 'unavailable'); } catch (_) {}
+        }
         resolve(ok);
       };
       const timer = setTimeout(() => finish(false, 'timeout'), PING_TIMEOUT_MS);
@@ -151,14 +164,26 @@ var MTTelemetry = (() => {
     });
   }
 
-  // BEL-304：直连失败是可观测的，但**不是丢弃**。计数器只在本机（不是事件），
-  // 队列仍由 flush 放回；CSP 挡住直连时事件留在队列里等下个扩展页 / 下一页。
+  // 本机直连失败计数（storage，不是事件）。探针失败与直连 fetch 失败都进这里；
+  // SW 失败本身**不**进 —— 那只是「这个通道不行」，直连还没试。
+  // 串行化读-改-写：探针失败与紧随其后的直连失败可能同拍发生，不串行会各读到
+  // 旧值、两次都写成 1。
+  let directFailChain = Promise.resolve();
+  function bumpDirectFail() {
+    const run = directFailChain.then(async () => {
+      try {
+        const r = await sget([K.directFail]);
+        const prev = Number(r[K.directFail]) || 0;
+        await sset({ [K.directFail]: prev + 1 });
+      } catch (_) {}
+    }, async () => {});
+    directFailChain = run.catch(() => {});
+    return run;
+  }
+  // BEL-304：直连失败是可观测的，但**不是丢弃**。队列仍由 flush 放回；
+  // CSP 挡住直连时事件留在队列里等下个扩展页 / 下一页。
   async function noteDirectFail(reason) {
-    try {
-      const r = await sget([K.directFail]);
-      const prev = Number(r[K.directFail]) || 0;
-      await sset({ [K.directFail]: prev + 1 });
-    } catch (_) {}
+    await bumpDirectFail();
     try { console.warn('[mt] telemetry direct failed', reason); } catch (_) {}
   }
   async function sendDirect(url, init) {
@@ -473,9 +498,14 @@ var MTTelemetry = (() => {
       return true;
     } catch (_) { return false; }
   }
+  // Safari 内容页 10s、其余 60s。Safari 上 1–2 条事件的短页面等不到 10 条阈值，
+  // 60s 又常常比页面寿命长；pagehide / visibilitychange 是第二道兜底（init 里挂）。
+  function flushMs() {
+    return inWebPage() && host() === 'safari' ? FLUSH_MS_SAFARI : FLUSH_MS;
+  }
   function schedule() {
     if (flushTimer) return;
-    flushTimer = setTimeout(() => { flushTimer = null; flush(); }, FLUSH_MS);
+    flushTimer = setTimeout(() => { flushTimer = null; flush(); }, flushMs());
   }
   async function send(events, batchId) {
     const sp = spec(); if (!sp || !sp.url) return false;
@@ -483,26 +513,30 @@ var MTTelemetry = (() => {
     if (byteLen(body) > BODY_MAX) return false;
     const headers = { 'content-type': 'text/plain' };
     const init = { method: 'POST', body, keepalive: true, headers };
-    // BEL-304（追加修正，2026-11-18）：`x-mt-batch` 是**上线顺序的临时门**。
-    // 线上 ingest 的 CORS 只放行 `content-type`（东京 OPTIONS 与 api.belliedmonkey.com
-    // 的回执都没有 `x-mt-batch`），而网页内容脚本的直连是跨域请求：带自定义头会先发
-    // OPTIONS 预检，线上未放行 ⇒ 预检失败 ⇒ 整条直连批次被浏览器挡掉。
-    // hosted PR #11（CORS 放行 + 批次列/唯一索引）尚未部署，所以：
-    //   · 网页 + 探测成功（SW 代发）：带 —— 扩展后台 fetch 有 host 权限，不走页面 CORS；
-    //   · 网页 + 探测失败（直连）：**不带** —— 保持 text/plain 简单请求，不触发预检；
-    //   · 扩展页 / App（!inWebPage()）：带 —— 扩展上下文直连，不受页面 CORS 管。
-    // hosted #11 部署后，把下面 webDirectBatch 改成 true（一行），网页直连也带批次头。
-    const webDirectBatch = false;
-    if (inWebPage()) {
-      if (await probeSw()) {
-        // BEL-304：批次 id 只走请求头。SW 转发时原样带走（background 对 init 不做改写）。
-        if (batchId) headers['x-mt-batch'] = batchId;
-        return sendViaRuntime(sp.url, init);
+    // `x-mt-batch` 只在 global 加：东京 v76 的 CORS/唯一索引已放行该头；CN 的
+    // api.belliedmonkey.com 还没放行，带自定义头会先发 OPTIONS 预检、整批被挡。
+    // 所以 china 一律保持 content-type:text/plain 简单请求（SW 代发也遵守同一条，
+    // 便于按 flavor 解释线上行为）。批次 id 只走请求头，SW 转发原样带走。
+    const batchable = !!(batchId && buildFlavor() === 'global');
+    if (batchable) headers['x-mt-batch'] = batchId;
+    // 扩展页 / App：不探测，一直直连。
+    if (!inWebPage()) return sendDirect(sp.url, init);
+    // 本页已降级：后续批次不再探测、不再发 telemetrySend。
+    if (pageTransport !== 'direct') {
+      if (!pageTransport) {
+        const ok = await probeSw();
+        pageTransport = ok ? 'sw' : 'direct';
       }
-      if (webDirectBatch && batchId) headers['x-mt-batch'] = batchId;
-      return sendDirect(sp.url, init);
+      if (pageTransport === 'sw') {
+        const ok = await sendViaRuntime(sp.url, init);
+        if (ok) return true;
+        // 探头只证明消息到了后台；这里才是「后台发不发得出去」的判决。
+        // 立刻整页降级，并把**这一批**用直连重发一次；同一个 batch id / header
+        // （global）原样复用，服务端按 (install_id, batch_id, batch_seq) 去重。
+        pageTransport = 'direct';
+        try { console.warn('[mt] telemetry sw failed, page downgraded'); } catch (_) {}
+      }
     }
-    if (batchId) headers['x-mt-batch'] = batchId;
     return sendDirect(sp.url, init);
   }
   // 单飞（#387 后半，2026-09-22）：app.js 与 review.js 各调一次 init({flushNow})，同一页面里两个
@@ -651,7 +685,25 @@ var MTTelemetry = (() => {
   // 单飞（#387）：App 包里 app.js 与 review.js 各调一次 init，两次并发。同一页面只跑一次，
   // 后来的调用等第一次的结果；flushNow 各自照办（flush 自带 5 秒软锁）。
   let initFlight = null;
+  // BEL-304：页面退出 / 转后台时再推一次，别让 1–2 条事件的短页面等到 10s 或
+  // 下一次打开。同一个页面只挂一次；没有 window/document 的宿主（测试 / 服务端）
+  // 直接跳过。
+  let pageFlushWired = false;
+  function wirePageFlush() {
+    if (pageFlushWired) return;
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    pageFlushWired = true;
+    try { if (typeof window.addEventListener === 'function') window.addEventListener('pagehide', () => flush()); } catch (_) {}
+    try {
+      if (typeof document.addEventListener === 'function') {
+        document.addEventListener('visibilitychange', () => {
+          try { if (document.hidden) flush(); } catch (_) {}
+        });
+      }
+    } catch (_) {}
+  }
   function init(opts) {
+    wirePageFlush();
     // BEL-304：内容脚本在 init 时启动本页唯一一次探测，但不阻塞 init（探测失败
     // 时 400ms 才回；installed/heartbeat 不该等它）。send() 会 await 同一个 Promise，
     // 所以即使 init 还没跑完，第一批也不会抢跑。
@@ -690,7 +742,7 @@ var MTTelemetry = (() => {
     track, once, flush, init, enabled, setEnabled, installId, relayHeaders, dwell,
     // 测试与调试
     _shape: shape, _okValue: okValue, _envelope: envelope, host, device, KEYS: K, FLUSH_AT, QUEUE_CAP,
-    SW_TIMEOUT_MS, BODY_MAX, REJ_KEY, PING_TIMEOUT_MS,
+    SW_TIMEOUT_MS, BODY_MAX, REJ_KEY, PING_TIMEOUT_MS, FLUSH_MS, FLUSH_MS_SAFARI,
     // 本机诊断（没有遥测规格时的 auth_fail）：只读出口，给测试与设备容器回读用。
     _diag: diag, DIAG_KEY: DIAG_KEY, DIAG_CAP: DIAG_CAP,
   };

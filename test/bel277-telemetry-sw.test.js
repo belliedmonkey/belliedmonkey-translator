@@ -1,10 +1,11 @@
 // test/bel277-telemetry-sw.test.js — BEL-277：内容脚本遥测经 SW 代发。
 //
 // 两条边界在这里钉死：
-//  ① 网页内容脚本（http/https）不走直接 fetch，只发 {action:'telemetrySend', url, init}；
-//     扩展页 / App 保持直连。SW 不可用 / 非 2xx / 超时 ⇒ false，flush 把批次放回队列。
+//  ① 网页内容脚本（http/https）优先发 {action:'telemetrySend', url, init}；SW 不可用 /
+//     非 2xx / 超时 ⇒ 立即整页降级，并在**同一批**上直连重发一次（复用同一 batch id）。
+//     直连也失败才把批次放回队列。扩展页 / App 始终直连。
 //  ② SW 只放行本 build 的 ingest 端点（origin+pathname 逐字相等）、body ≤64KB；
-//     其他 URL 一律拒绝。被 SW 拒绝的批次同样留在队列，不静默丢。
+//     其他 URL 一律拒绝。被 SW 拒绝的批次走同一条降级路径，不静默丢。
 const { loadModule, describe, test, ok, eq, deepEq, tick } = require('./harness');
 const cfg = require('../build/telemetry.config.js');
 
@@ -115,34 +116,40 @@ describe('BEL-277 SW — 内容脚本路由与队列保留', () => {
     eq(store[T.KEYS.queue].length, 0, '成功之后队列没清');
   });
 
-  test('SW 非 2xx ⇒ flush false，批次放回队列（不静默丢）', async () => {
-    const { T, store } = contentSandbox({
+  // BEL-304 A 案：SW 仍优先；只有 SW 失败时才在同一批上直连重发一次。
+  test('SW 非 2xx ⇒ 同一次 flush 内直连重发一次，队列清空', async () => {
+    const { T, store, sent, fetched } = contentSandbox({
       sendMessage: (msg, cb) => {
         if (msg.action === 'telemetryPing') return probeOk(cb);
         cb({ ok: false, status: 500 });
       },
     });
     await T.track('heartbeat');
-    eq(await T.flush(), false);
-    eq(store[T.KEYS.queue].length, 1, '失败批次没回队列');
+    eq(await T.flush(), true, 'SW 失败后直连重发成功，flush 应为 true');
+    eq(swSends(sent).length, 1, 'SW 只该尝试一次');
+    eq(fetched.length, 1, 'SW 失败后应当直连重发一次');
+    eq(fetched[0].init.headers['x-mt-batch'], swSends(sent)[0].init.headers['x-mt-batch'],
+      '直连重发换了 batch id');
+    eq(store[T.KEYS.queue].length, 0, '重发成功后队列没清');
   });
 
-  test('SW 不可用（sendMessage 抛）⇒ 队列保留', async () => {
-    const { T, store } = contentSandbox({
+  test('SW 不可用（sendMessage 抛）⇒ 本批直连重发，队列清空', async () => {
+    const { T, store, fetched } = contentSandbox({
       sendMessage: (msg, cb) => {
         if (msg.action === 'telemetryPing') return probeOk(cb);
         throw new Error('Could not establish connection.');
       },
     });
     await T.track('heartbeat');
-    eq(await T.flush(), false);
-    eq(store[T.KEYS.queue].length, 1);
+    eq(await T.flush(), true);
+    eq(fetched.length, 1);
+    eq(store[T.KEYS.queue].length, 0);
   });
 
-  test('SW 超时 ⇒ 队列保留（timeout 兜底，不悬着）', async () => {
+  test('SW 超时 ⇒ 15s 后直连重发，队列清空（timeout 兜底，不悬着）', async () => {
     const timers = [];
     const realSet = setTimeout, realClear = clearTimeout;
-    const { T, store } = contentSandbox({
+    const { T, store, fetched } = contentSandbox({
       sendMessage: (msg, cb) => {
         if (msg.action === 'telemetryPing') return probeOk(cb);
         return undefined;   // 批次永不回调
@@ -156,10 +163,12 @@ describe('BEL-277 SW — 内容脚本路由与队列保留', () => {
     await T.track('heartbeat');
     const f = T.flush();
     await tick(0);
+    eq(fetched.length, 0, 'SW 还在等，flush 就抢跑直连了');
     eq(timers.length, 1, '没有安排 SW 超时');
     timers[0]();
-    eq(await f, false);
-    eq(store[T.KEYS.queue].length, 1);
+    eq(await f, true);
+    eq(fetched.length, 1);
+    eq(store[T.KEYS.queue].length, 0);
   });
 
   test('扩展页（chrome-extension://）保持直连 fetch', async () => {
