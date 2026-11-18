@@ -84,7 +84,7 @@ for (const key of hsPicked) {
     caseId: 'HS-' + key,
     set: 'hardset', condition: 'H', itemId: key, targetLang: r.targetLang,
     source: src.source, translation: r.translation,
-    note: key === known ? 'known real defect: 威廉一世 -> "William III"' : src.title,
+    note: key === known ? 'source says 威廉一世; target says William III. Historically III is right, so this is an unfaithful rendering, not a translator error' : src.title,
   });
 }
 
@@ -150,6 +150,12 @@ const manifest = {
   blinding: 'worksheet shows authoritative source + candidate translation only; ASR hypothesis withheld',
   csv: 'gold/human-gold.csv',
   worksheet: 'gold/human-gold-worksheet.md',
+  draft: {
+    role: 'LLM third reviewer — not human gold',
+    labels: 'gold/draft-labels.json',
+    csv: 'gold/human-gold-draft.csv',
+    built: 'build-draft.js',
+  },
 };
 fs.writeFileSync(path.join(__dirname, 'gold', 'MANIFEST.json'), JSON.stringify(manifest, null, 2) + '\n');
 console.log(JSON.stringify(manifest, null, 2));

@@ -474,7 +474,7 @@ labels: `meaning` · `entities_numbers` · `negation` · `omission` · `hallucin
 
 ## Hard set (Wikipedia, CC BY-SA 4.0)
 
-### HS-zh_92816176 — known real defect: 威廉一世 -> "William III"
+### HS-zh_92816176 — source says 威廉一世; target says William III. Historically III is right, so this is an unfaithful rendering, not a translator error
 
 | | |
 |---|---|

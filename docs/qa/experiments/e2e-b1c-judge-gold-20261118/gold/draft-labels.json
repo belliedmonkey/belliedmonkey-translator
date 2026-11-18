@@ -1,0 +1,815 @@
+{
+  "schema": "belliedmonkey.e2e-b1c.draft.v1",
+  "role": "LLM third reviewer — NOT human gold",
+  "by": "agent-58a6cf7f-25c3-42a8-a363-d86cd56f66fc",
+  "basis": "authoritative source + candidate translation only; ASR text and existing judge verdicts not consulted",
+  "standard": "a dimension fails when a careful professional reviewer would require a fix before publication",
+  "cases": [
+    {
+      "caseId": "B1-B-ascend/00004",
+      "dims": {
+        "meaning": "F",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "F",
+        "hallucination": "F",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {
+        "meaning": "原文「呃what's the呃」只剩填充词，译文「I am so」没有对应命题",
+        "omission": "「what's the」这一疑问内容被整段丢弃",
+        "hallucination": "「I am so」原文没有"
+      },
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-ascend/00009",
+      "dims": {
+        "meaning": "F",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "F",
+        "hallucination": "F",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {
+        "meaning": "「我专业是 ISM」变成「love is that ISM」，专业这一命题消失",
+        "omission": "「no我专业是」被丢弃",
+        "hallucination": "「love」原文没有"
+      },
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-ascend/00028",
+      "dims": {
+        "meaning": "F",
+        "entities_numbers": "F",
+        "negation": "P",
+        "omission": "F",
+        "hallucination": "F",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {
+        "meaning": "「ok福建」变成「OK, attachment」",
+        "entities_numbers": "「福建」是地名，译成「attachment」，地名消失",
+        "omission": "「福建」整词被替换",
+        "hallucination": "「attachment」原文没有"
+      },
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-ascend/00055",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-ascend/00066",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-ascend/00068",
+      "dims": {
+        "meaning": "F",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "F",
+        "hallucination": "F",
+        "terminology": "F",
+        "fluency": "F"
+      },
+      "confidence": "high",
+      "evidence": {
+        "meaning": "「computer languages」变成「all language」",
+        "omission": "「computer」这一限定消失",
+        "hallucination": "「Maybe usually」原文没有",
+        "terminology": "「computer languages」是术语，译成「all language」",
+        "fluency": "「Maybe usually all language」不成句"
+      },
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1668",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "F",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "medium",
+      "evidence": {
+        "entities_numbers": "原文括注品牌名「(Wild Card)」，译文改成「Universal Card」，品牌消失"
+      },
+      "note": "品牌名改写；意义仍可读，只判实体"
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1669",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1670",
+      "dims": {
+        "meaning": "F",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "F",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {
+        "meaning": "「它们与地下深穴的情况很相似」变成「conditions involving rising snow underground」",
+        "hallucination": "「rising snow」原文没有"
+      },
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1671",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": "「2005 财年」简化成「Since 2005」，不影响命题"
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1672",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1673",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1674",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1675",
+      "dims": {
+        "meaning": "F",
+        "entities_numbers": "F",
+        "negation": "P",
+        "omission": "F",
+        "hallucination": "F",
+        "terminology": "F",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {
+        "meaning": "「除去表示您的 Sie 之外」变成「except for the letter C representing you」",
+        "entities_numbers": "引号内的德语词「Sie」被替换成「C」",
+        "omission": "对「Sie」（尊称您）的说明整段丢失",
+        "hallucination": "「the letter C」原文没有",
+        "terminology": "语法对象「Sie」被误作字母 C"
+      },
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1676",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1677",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1678",
+      "dims": {
+        "meaning": "F",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "medium",
+      "evidence": {
+        "meaning": "论文标题《总统的演讲》被读成「his presidential address」，暗示萨克斯本人发表总统演说，事实关系改变"
+      },
+      "note": "标题被当作事件；命题主干仍在，只判意义"
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1679",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1680",
+      "dims": {
+        "meaning": "F",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "medium",
+      "evidence": {
+        "meaning": "原文只说「拉力」是人类大力士的五倍，译文把游泳、跳远一并说成五倍，扩大了命题范围"
+      },
+      "note": "范围扩大；数字本身没错，只判意义"
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1681",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/cmn_hans_cn/1682",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1668",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "F",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "medium",
+      "evidence": {
+        "entities_numbers": "品牌「Wild Card」译成「野生卡」，读者无法识别该卡"
+      },
+      "note": "品牌名直译；意义仍可读，只判实体"
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1669",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "F",
+        "fluency": "P"
+      },
+      "confidence": "medium",
+      "evidence": {
+        "terminology": "「Police superintendent」译成「警察总监」，把警司级抬成总监级"
+      },
+      "note": "警衔误译；只判术语"
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1670",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "F",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "medium",
+      "evidence": {
+        "entities_numbers": "「Glen Cushing」译成「格伦·卡辛」，通行译名是「库欣」，指向另一个人名"
+      },
+      "note": "人名音译偏差；只判实体"
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1671",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1672",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": "开头多一个「好的」，不构成命题增删"
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1673",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1674",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": "「several minutes」泛化成「更长时间」，不算缺陷"
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1675",
+      "dims": {
+        "meaning": "F",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "F",
+        "hallucination": "F",
+        "terminology": "F",
+        "fluency": "F"
+      },
+      "confidence": "high",
+      "evidence": {
+        "meaning": "「All nouns, alongside the word Sie for you」变成「所有与你世界安全相关的名词」",
+        "omission": "「Sie」与「for you」消失",
+        "hallucination": "「世界安全」原文没有",
+        "terminology": "语法对象「nouns / Sie」被换成「与你世界安全相关的名词」",
+        "fluency": "「所有与你世界安全相关的名词」语义不通"
+      },
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1676",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1677",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1678",
+      "dims": {
+        "meaning": "F",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "medium",
+      "evidence": {
+        "meaning": "论文标题 The President's Speech 被当作说话主体：「总统的演讲表明」；原文是萨克斯在论文中指出"
+      },
+      "note": "标题被当作事件；只判意义"
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1679",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1680",
+      "dims": {
+        "meaning": "F",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "medium",
+      "evidence": {
+        "meaning": "「leap great distances」（跳远）译成「能长途跋涉」（长途行走），动作改变"
+      },
+      "note": "动作误译；只判意义"
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1681",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-B-fleurs-public-candidates/en_us/1682",
+      "dims": {
+        "meaning": "F",
+        "entities_numbers": "F",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "F",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {
+        "meaning": "「无人知晓作者是谁」变成「无人知晓 Serenhu Roi 的情况」",
+        "entities_numbers": "「Serenhu Roi」是原文没有的人名",
+        "hallucination": "凭空出现人名 Serenhu Roi"
+      },
+      "note": ""
+    },
+    {
+      "caseId": "B1-A-ascend/00066",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1669",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1672",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1675",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1677",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-A-fleurs-public-candidates/cmn_hans_cn/1679",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-A-fleurs-public-candidates/en_us/1673",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-A-fleurs-public-candidates/en_us/1677",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-A-fleurs-public-candidates/en_us/1678",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "B1-A-fleurs-public-candidates/en_us/1679",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "HS-zh_92816176",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "F",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "medium",
+      "evidence": {
+        "entities_numbers": "原文「威廉一世」，译文「William III」：数字与世系变了。按史实 1694 年在位的是威廉三世，疑似原文有误、译者自行更正，但译文确实不忠于原文"
+      },
+      "note": "注意：这不是「译者写错」，是「原文与译文不一致」；如果按史实优先，这一格可改 P，改判会直接改变 judge-a 的评价"
+    },
+    {
+      "caseId": "HS-en_1385458475",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "HS-en_1385049036",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    },
+    {
+      "caseId": "HS-en_1378366143",
+      "dims": {
+        "meaning": "P",
+        "entities_numbers": "P",
+        "negation": "P",
+        "omission": "P",
+        "hallucination": "P",
+        "terminology": "P",
+        "fluency": "P"
+      },
+      "confidence": "high",
+      "evidence": {},
+      "note": ""
+    }
+  ]
+}
