@@ -1,0 +1,90 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "ascend/00004|B",
+  "itemId": "ascend/00004",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "978072c16a7a373b1234927d3360994105a30a31a8074247ff53d9236a2975b3",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate translation does not convey the question or hesitation implied by '呃what's the呃'."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "No entities or numbers present."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation present."
+      },
+      "omission": {
+        "pass": false,
+        "note": "The candidate omits the questioning and hesitation elements."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The candidate adds 'I am so' which is not supported by the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "No domain-specific terminology."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The candidate is fluent English."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "呃what's the呃",
+        "targetQuote": "I am so",
+        "reason": "The candidate does not convey the questioning or hesitation present in the source."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "呃what's the呃",
+        "targetQuote": "I am so",
+        "reason": "The candidate omits the question and hesitation from the source."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "呃what's the呃",
+        "targetQuote": "I am so",
+        "reason": "The candidate adds content not present in the source."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 372,
+    "completion_tokens": 278,
+    "total_tokens": 650,
+    "cost": 0.0005936,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0005936,
+      "upstream_inference_prompt_cost": 0.0001488,
+      "upstream_inference_completions_cost": 0.0004448
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0005936
+}

@@ -1,0 +1,84 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "fleurs-public-candidates/en_us/1680|B",
+  "itemId": "fleurs-public-candidates/en_us/1680",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "71f7aa2c8a017af31fee193b8ed084ff13df315e76f2c2834f7f4d4cfd2e06ee",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "'leap great distances' is mistranslated as '长途跋涉' (long-distance trekking), which changes the meaning to sustained travel rather than jumping."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All numbers and entities correctly rendered."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation issues."
+      },
+      "omission": {
+        "pass": false,
+        "note": "'leap great distances' is materially omitted in meaning due to incorrect translation."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No invented content."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Domain terms used appropriately."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "Translation reads naturally."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "leap great distances",
+        "targetQuote": "长途跋涉",
+        "reason": "'Leap great distances' refers to jumping ability, but '长途跋涉' means long-distance overland travel, which is a significant semantic shift."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "leap great distances",
+        "targetQuote": "长途跋涉",
+        "reason": "The physical ability to jump far is not conveyed; instead, endurance walking is implied, omitting a key athletic trait."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 419,
+    "completion_tokens": 266,
+    "total_tokens": 685,
+    "cost": 0.00026282,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 96,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00026282,
+      "upstream_inference_prompt_cost": 0.00005002,
+      "upstream_inference_completions_cost": 0.0002128
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00026282
+}

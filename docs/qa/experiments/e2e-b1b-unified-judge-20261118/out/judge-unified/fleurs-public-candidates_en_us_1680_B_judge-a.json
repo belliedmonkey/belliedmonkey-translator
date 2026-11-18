@@ -1,0 +1,84 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "fleurs-public-candidates/en_us/1680|B",
+  "itemId": "fleurs-public-candidates/en_us/1680",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "71f7aa2c8a017af31fee193b8ed084ff13df315e76f2c2834f7f4d4cfd2e06ee",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate translation changes 'leap great distances' to '能长途跋涉' (can travel long distances), which alters the meaning."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "Numbers and entities are preserved correctly."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation is preserved ('though not well' is translated as '虽然攀爬能力不强')."
+      },
+      "omission": {
+        "pass": false,
+        "note": "The action 'leap great distances' is omitted and replaced with '能长途跋涉' (can travel long distances), which is not equivalent."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No hallucinations detected."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is appropriate and consistent."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally in Chinese."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "leap great distances",
+        "targetQuote": "能长途跋涉",
+        "reason": "The candidate translation replaces 'leap great distances' with 'can travel long distances', which changes the meaning from jumping to traveling."
+      },
+      {
+        "dimension": "omission",
+        "sourceQuote": "leap great distances",
+        "targetQuote": "能长途跋涉",
+        "reason": "The original action of leaping is omitted and replaced with traveling long distances, which is not equivalent."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 435,
+    "completion_tokens": 302,
+    "total_tokens": 737,
+    "cost": 0.0006572,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0006572,
+      "upstream_inference_prompt_cost": 0.000174,
+      "upstream_inference_completions_cost": 0.0004832
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0006572
+}

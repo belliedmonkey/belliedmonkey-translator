@@ -1,0 +1,71 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1677|A",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1677",
+  "condition": "A",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "f0c3d63030a38c2bdc2dd1f78d62807a9173951ebcacb039f3c0e2405c56966d",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The translation accurately conveys that only dragonflies and mayflies cannot fold their wings backward."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "Dragonflies and mayflies are correctly rendered."
+      },
+      "negation": {
+        "pass": true,
+        "note": "The negation 'cannot' is correctly preserved."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information is omitted."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No invented content is present."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Technical terms like 'fold their wings backward' are appropriately used."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The sentence is natural and fluent in English."
+      }
+    },
+    "findings": []
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 391,
+    "completion_tokens": 164,
+    "total_tokens": 555,
+    "cost": 0.00018162,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00018162,
+      "upstream_inference_prompt_cost": 0.00005042,
+      "upstream_inference_completions_cost": 0.0001312
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00018162
+}

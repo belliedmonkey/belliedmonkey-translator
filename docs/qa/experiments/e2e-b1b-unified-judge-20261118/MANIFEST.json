@@ -1,0 +1,54 @@
+{
+  "record": "e2e-b1b-unified-judge-20261118",
+  "date": "2026-11-18",
+  "question": "How much of the published B1 A-vs-B gap came from the B-only 'what the system heard' prompt block?",
+  "method": "re-judge the 72 frozen B1 translations with one prompt for both conditions, no channel hint; translations not re-run, sha256 verified against B1 SHA256SUMS (72/72)",
+  "instrument": {
+    "promptVersion": "unified-v1",
+    "promptSkeletonSha256": "2fa67bbeecf7198bdb9096d4361b400588511f6794ae243a5c3a9cbf6ca56e50",
+    "judges": [
+      "openai/gpt-4.1-mini",
+      "qwen/qwen3-235b-a22b-2507"
+    ],
+    "temperature": 0
+  },
+  "result": {
+    "pairLevelB": {
+      "old": 14,
+      "new": 22,
+      "of": 36
+    },
+    "itemAPassBFail": {
+      "old": 22,
+      "new": 14,
+      "of": 36
+    },
+    "meaningPassB": {
+      "old": 58.3,
+      "new": 66.2
+    },
+    "aCondition": "36/36 both judges all-pass, unchanged",
+    "judgeAgreement": {
+      "old": "51/72",
+      "new": "60/71"
+    },
+    "verdictFlips": {
+      "failToPass": 9,
+      "passToFail": 2
+    }
+  },
+  "spend": {
+    "b1RejudgeUsd": 0.04367117,
+    "hardsetUsd": 0.00267672,
+    "totalUsd": 0.04634789,
+    "approvedEstimateUsd": 0.045,
+    "capUsd": 0.09
+  },
+  "knownIssue": "B1 REPORT.md says B pair-level 15/35; recomputing from the archived verdicts gives 14/36. Archive is authoritative here.",
+  "files": {
+    "report": "REPORT.md",
+    "judgeRecords": "out/judge-unified/",
+    "hardsetRecords": "out/judge-hardset/",
+    "compare": "out/compare.json"
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1674|A",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1674",
+  "condition": "A",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "93cdeab76998707ad708751a6d5d3164020ce50374d262beed2ba9ae39346a46",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "accurate conveyance of boiling time differences"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "numbers and regions correctly rendered"
+      },
+      "negation": {
+        "pass": true,
+        "note": "no negation present"
+      },
+      "omission": {
+        "pass": true,
+        "note": "all information included"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "no added information"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "terms correctly translated"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "natural English phrasing"
+      }
+    },
+    "findings": []
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 402,
+    "completion_tokens": 129,
+    "total_tokens": 531,
+    "cost": 0.0003672,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0003672,
+      "upstream_inference_prompt_cost": 0.0001608,
+      "upstream_inference_completions_cost": 0.0002064
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0003672
+}

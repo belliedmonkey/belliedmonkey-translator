@@ -1,0 +1,90 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "fleurs-public-candidates/en_us/1678|B",
+  "itemId": "fleurs-public-candidates/en_us/1678",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "0367014473000c05eefffa9086b516a97dd6235d31d9105aca9432828bf211b7",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate misrepresents the source by implying Oliver Sacks and his paper are separate entities and that 'the President's Speech' is a statement about the speech rather than the title of the paper"
+      },
+      "entities_numbers": {
+        "pass": false,
+        "note": "The title 'The President's Speech' is incorrectly rendered as if it were content rather than a paper title."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation issues."
+      },
+      "omission": {
+        "pass": false,
+        "note": "The structure of the original sentence is altered, omitting the correct attribution of the paper's title and its role in presenting the finding."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The translation adds the idea that 'the President's speech' is a subject discussed in the paper, which is not supported by the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Appropriate terms used."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "Oliver Sacks, in his paper The President's Speech, indicated how people who are unable to understand speech because of brain damage are nevertheless able to assess sincerity accurately.",
+        "targetQuote": "奥利弗·萨克斯及其论文指出，总统的演讲表明，尽管因脑损伤而无法理解言语的人，仍能准确评估说话者的真诚度。",
+        "reason": "The candidate incorrectly restructures the sentence, making 'the President's speech' a content clause rather than the title of the paper, thereby distorting the original meaning."
+      },
+      {
+        "dimension": "entities_numbers",
+        "sourceQuote": "The President's Speech",
+        "targetQuote": "总统的演讲",
+        "reason": "The title of the paper is not marked as a title and is instead interpreted as a common noun phrase, leading to misinterpretation."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "in his paper The President's Speech",
+        "targetQuote": "及其论文指出，总统的演讲表明",
+        "reason": "The translation invents the idea that the content of a presidential speech is making a statement, which is not present in the source."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 425,
+    "completion_tokens": 448,
+    "total_tokens": 873,
+    "cost": 0.00041358,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00041358,
+      "upstream_inference_prompt_cost": 0.00005518,
+      "upstream_inference_completions_cost": 0.0003584
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00041358
+}

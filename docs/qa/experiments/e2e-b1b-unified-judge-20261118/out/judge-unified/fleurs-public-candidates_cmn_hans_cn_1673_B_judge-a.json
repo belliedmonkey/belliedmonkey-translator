@@ -1,0 +1,71 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1673|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1673",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "0e6702291290fefe2643299cb6a00216b7ff25b1353a05db0d9d5ee40b14b0c1",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "The main idea of forming a weak central government with Congress as the sole component is preserved."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "The number 'thirteen' and 'Articles of Confederation' are correctly rendered."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation or polarity issues."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material information omitted."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No added information beyond the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terms like 'Articles of Confederation' and 'Congress' are correctly used."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The sentence reads naturally in English."
+      }
+    },
+    "findings": []
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 422,
+    "completion_tokens": 170,
+    "total_tokens": 592,
+    "cost": 0.0004408,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0004408,
+      "upstream_inference_prompt_cost": 0.0001688,
+      "upstream_inference_completions_cost": 0.000272
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0004408
+}

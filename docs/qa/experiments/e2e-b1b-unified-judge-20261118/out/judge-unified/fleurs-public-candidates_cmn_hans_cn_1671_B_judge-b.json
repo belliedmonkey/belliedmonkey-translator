@@ -1,0 +1,78 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1671|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1671",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "ac7b0f19d77c038fbb6241ea72b08c43288d4be47f5c566f858be92ce95a9ae2",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate translation incorrectly states 'Since 2005' instead of 'from the 2005 fiscal year', which alters the temporal reference and could imply funding began at the start of the calendar year 20"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "All entities and numbers (Congress, 2005, FBI, 10 agents) are correctly rendered."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negations present; polarity is preserved."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omissions beyond the fiscal year issue already covered in meaning."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No invented content beyond the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "'anti-pornography initiative', 'FBI', 'agents', 'adult pornography' are appropriate and consistent."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally to a native English speaker."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "从 2005 财年开始",
+        "targetQuote": "Since 2005",
+        "reason": "The source specifies 'from the 2005 fiscal year', which is more precise than 'Since 2005'. The translation loses the fiscal year specification, potentially altering the intended timeframe and thus the meaning."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 428,
+    "completion_tokens": 318,
+    "total_tokens": 746,
+    "cost": 0.0003027,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 48,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0003027,
+      "upstream_inference_prompt_cost": 0.0000642,
+      "upstream_inference_completions_cost": 0.0002385
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0003027
+}

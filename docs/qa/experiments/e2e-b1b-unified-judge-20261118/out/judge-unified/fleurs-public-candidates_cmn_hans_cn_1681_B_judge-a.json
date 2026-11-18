@@ -1,0 +1,71 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1681|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1681",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "b966f939cc9efed3d76d9355aac638f00f7e5eddbcd0e15c9da47765c5facef9",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": true,
+        "note": "accurate conveyance of experimental method and alternatives"
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "no entities or numbers involved"
+      },
+      "negation": {
+        "pass": true,
+        "note": "negation preserved correctly"
+      },
+      "omission": {
+        "pass": true,
+        "note": "all key points included"
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "no added information"
+      },
+      "terminology": {
+        "pass": true,
+        "note": "terms translated appropriately"
+      },
+      "fluency": {
+        "pass": true,
+        "note": "natural English phrasing"
+      }
+    },
+    "findings": []
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 430,
+    "completion_tokens": 131,
+    "total_tokens": 561,
+    "cost": 0.0003816,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0003816,
+      "upstream_inference_prompt_cost": 0.000172,
+      "upstream_inference_completions_cost": 0.0002096
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0003816
+}

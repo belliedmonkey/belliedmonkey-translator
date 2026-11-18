@@ -1,0 +1,78 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "fleurs-public-candidates/cmn_hans_cn/1680|B",
+  "itemId": "fleurs-public-candidates/cmn_hans_cn/1680",
+  "condition": "B",
+  "judgeId": "judge-a",
+  "model": "openai/gpt-4.1-mini",
+  "promptSha256": "e1b383c18ac5f60becb5b5f0fd37d642f5ce84b19ba5154c82f3f1f9c05fcffd",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate translation incorrectly implies that swimming, long jump, and pulling strength are all five times that of the strongest humans, whereas the original states only pulling strength reaches "
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "Numbers and entities are preserved correctly."
+      },
+      "negation": {
+        "pass": true,
+        "note": "Negation is preserved correctly."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omission."
+      },
+      "hallucination": {
+        "pass": true,
+        "note": "No hallucination present."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Terminology is appropriate and consistent."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation reads naturally."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "它会攀爬（虽然攀爬能力不是很强）、游泳、跳远，拉力能达到人类大力士的五倍。",
+        "targetQuote": "They can climb, although their climbing ability is not particularly strong. Their swimming, long jump, and pulling strength are five times that of the strongest humans.",
+        "reason": "The original states only pulling strength is five times that of humans, but the candidate translation implies swimming and long jump also have this strength, which is inaccurate."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 441,
+    "completion_tokens": 278,
+    "total_tokens": 719,
+    "cost": 0.0006212,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.0006212,
+      "upstream_inference_prompt_cost": 0.0001764,
+      "upstream_inference_completions_cost": 0.0004448
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.0006212
+}

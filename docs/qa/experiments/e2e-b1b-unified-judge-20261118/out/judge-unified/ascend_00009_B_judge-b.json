@@ -1,0 +1,84 @@
+{
+  "schema": "belliedmonkey.e2e-b1b.judge-record.v1",
+  "promptVersion": "unified-v1",
+  "pairId": "ascend/00009|B",
+  "itemId": "ascend/00009",
+  "condition": "B",
+  "judgeId": "judge-b",
+  "model": "qwen/qwen3-235b-a22b-2507",
+  "promptSha256": "72943e2164e3d0b236d66676f8eea824e3c4df776794453b9508f661f622b96f",
+  "httpStatus": 200,
+  "ok": true,
+  "parseCode": "parsed",
+  "verdict": {
+    "dimensions": {
+      "meaning": {
+        "pass": false,
+        "note": "The candidate adds 'I think love is' which distorts the original self-introduction about the speaker's major."
+      },
+      "entities_numbers": {
+        "pass": true,
+        "note": "ISM and information systems management are correctly rendered."
+      },
+      "negation": {
+        "pass": true,
+        "note": "No negation in source or translation."
+      },
+      "omission": {
+        "pass": true,
+        "note": "No material omission from the source."
+      },
+      "hallucination": {
+        "pass": false,
+        "note": "The phrase 'I think love is' is a hallucination not supported by the source."
+      },
+      "terminology": {
+        "pass": true,
+        "note": "Information systems management is correctly translated."
+      },
+      "fluency": {
+        "pass": true,
+        "note": "The translation is fluent and natural."
+      }
+    },
+    "findings": [
+      {
+        "dimension": "meaning",
+        "sourceQuote": "my professional is that i s m information systems management",
+        "targetQuote": "I think love is that ISM, information system management",
+        "reason": "The candidate misrepresents the source by introducing an emotional metaphor ('love') not present in the original."
+      },
+      {
+        "dimension": "hallucination",
+        "sourceQuote": "no I professional is that i s m information systems management",
+        "targetQuote": "Then I think love is that ISM, information system management",
+        "reason": "The phrase 'I think love is' is entirely fabricated and not supported by the source."
+      }
+    ]
+  },
+  "finishReason": "stop",
+  "usage": {
+    "prompt_tokens": 381,
+    "completion_tokens": 287,
+    "total_tokens": 668,
+    "cost": 0.00028294,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00028294,
+      "upstream_inference_prompt_cost": 0.00005334,
+      "upstream_inference_completions_cost": 0.0002296
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "providerUsd": 0.00028294
+}
