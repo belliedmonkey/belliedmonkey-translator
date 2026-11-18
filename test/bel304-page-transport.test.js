@@ -10,8 +10,8 @@
 //     批次回队列；后续 flush 不再探测、不再发 telemetrySend。
 //  ③ `x-mt-batch` 只在 global 加（SW / 网页直连 / 扩展页 / App 一致）；china 不加，
 //     保持 text/plain 简单请求。`_b` 只在队列项与请求头，不进 body。
-//  ④ Safari 内容页 schedule 10s（其余 60s）；init 一次性挂 pagehide +
-//     visibilitychange(hidden) → flush。
+//  ④ Safari 内容页 schedule 10s（其余 60s）；init 不再挂 pagehide /
+//     visibilitychange（236 二分：它可能在 App 的 WKWebView / 扩展页挂死 init）。
 const { loadModule, describe, test, ok, eq, deepEq, tick } = require('./harness');
 const cfg = require('../build/telemetry.config.js');
 
@@ -44,13 +44,13 @@ function pageSandbox(opts = {}) {
     MT_TELEMETRY: opts.telemetry || TEL,
     addEventListener: (t, fn) => { (listeners.window[t] = listeners.window[t] || []).push(fn); },
   };
+  if (opts.webkit) win.webkit = opts.webkit;
   const doc = {
     hidden: false,
     addEventListener: (t, fn) => { (listeners.document[t] = listeners.document[t] || []).push(fn); },
   };
   const sandbox = {
     window: win,
-    document: doc,
     navigator: { userAgent: opts.ua || CHROME_UA, platform: 'Mac', language: 'en' },
     crypto: require('crypto').webcrypto,
     console: Object.assign({}, console, { warn: (...a) => warnings.push(a) }),
@@ -65,8 +65,11 @@ function pageSandbox(opts = {}) {
       runtime,
     },
   };
-  // 扩展页 / App 没有 http(s) 的 location（inWebPage() === false）。
-  if (opts.webPage !== false) sandbox.location = { protocol: 'https:' };
+  // App 的 WKWebView 里没有 DOM，也可能没有 document；扩展页同样没有 http(s)
+  // location（inWebPage() === false）。这两类宿主是 235 回归的现场。
+  if (opts.document !== false) sandbox.document = doc;
+  if (opts.protocol) sandbox.location = { protocol: opts.protocol };
+  else if (opts.webPage !== false) sandbox.location = { protocol: 'https:' };
   if (opts.setTimeout) sandbox.setTimeout = opts.setTimeout;
   if (opts.clearTimeout) sandbox.clearTimeout = opts.clearTimeout;
   const ctx = loadModule(['learn/telemetry.js'], sandbox);
@@ -321,46 +324,7 @@ describe('BEL-304 A — probe 只是快速跳过，SW 失败整页降级', () =>
     ok(!chromeDelays.includes(10 * 1000), 'Chrome 误用了 Safari 的 10s');
   });
 
-  test('⑪ init 注册 pagehide；触发后队列被 flush（direct fetch 收到）', async () => {
-    const sb = pageSandbox({ ua: SAFARI_UA, onMessage: () => { throw new Error('no receiver'); } });
-    seedInit(sb.store);
-    await sb.T.init();
-    await tick(0);
-    eq(typeof sb.listeners.window.pagehide, 'object', '没有注册 pagehide');
-    eq(sb.listeners.window.pagehide.length, 1);
-    await sb.T.track('heartbeat');
-    eq(sb.fetched.length, 0, 'flush 抢跑了');
-    await sb.listeners.window.pagehide[0]();
-    eq(sb.fetched.length, 1, 'pagehide 没有触发 flush');
-    eq(sb.fetched[0].url, INGEST);
-    eq(sb.store[sb.T.KEYS.queue].length, 0);
-  });
-
-  test('⑫ visibilitychange → hidden flush；visible 不 flush', async () => {
-    const hidden = pageSandbox({ ua: SAFARI_UA, onMessage: () => { throw new Error('no receiver'); } });
-    seedInit(hidden.store);
-    await hidden.T.init();
-    await tick(0);
-    eq(typeof hidden.listeners.document.visibilitychange, 'object', '没有注册 visibilitychange');
-    await hidden.T.track('heartbeat');
-    hidden.doc.hidden = true;
-    hidden.listeners.document.visibilitychange[0]();
-    await tick(0);
-    eq(hidden.fetched.length, 1, 'hidden 没有触发 flush');
-
-    const visible = pageSandbox({ ua: SAFARI_UA, onMessage: () => { throw new Error('no receiver'); } });
-    seedInit(visible.store);
-    await visible.T.init();
-    await tick(0);
-    await visible.T.track('heartbeat');
-    visible.doc.hidden = false;
-    visible.listeners.document.visibilitychange[0]();
-    await tick(0);
-    eq(visible.fetched.length, 0, 'visible 也 flush 了');
-    eq(visible.store[visible.T.KEYS.queue].length, 1);
-  });
-
-  test('⑬ china：SW 成功与 SW 失败降级后的直连都不带 x-mt-batch', async () => {
+  test('⑪ china：SW 成功与 SW 失败降级后的直连都不带 x-mt-batch', async () => {
     const sw = pageSandbox({ flavor: 'china' });
     await sw.T.track('heartbeat');
     eq(await sw.T.flush(), true);
@@ -380,7 +344,7 @@ describe('BEL-304 A — probe 只是快速跳过，SW 失败整页降级', () =>
     eq(hasBatch(down.fetched[0].init.headers), false, 'china 降级直连带 x-mt-batch 会触发预检');
   });
 
-  test('⑭ 回归：keepalive / text/plain / 无 Authorization（SW、网页直连、扩展页直连）', async () => {
+  test('⑫ 回归：keepalive / text/plain / 无 Authorization（SW、网页直连、扩展页直连）', async () => {
     const sw = pageSandbox();
     await sw.T.track('heartbeat');
     eq(await sw.T.flush(), true);
@@ -402,6 +366,58 @@ describe('BEL-304 A — probe 只是快速跳过，SW 失败整页降级', () =>
       eq(init.headers['content-type'], 'text/plain', label);
       eq(hasAuth(init.headers), false, label + ' 带了 Authorization');
     }
+  });
+});
+
+describe('BEL-304 236 — init 回到 234 形状：不挂页面退出；App / 扩展页沙箱能发', () => {
+  test('⑬ init() 不再注册 pagehide / visibilitychange', async () => {
+    const sb = pageSandbox({ ua: SAFARI_UA, onMessage: () => { throw new Error('no receiver'); } });
+    seedInit(sb.store);
+    await sb.T.init();
+    await tick(0);
+    eq(sb.listeners.window.pagehide, undefined, 'init 仍注册了 pagehide —— 235 回归的嫌疑代码没拿掉');
+    eq(sb.listeners.document.visibilitychange, undefined, 'init 仍注册了 visibilitychange');
+  });
+
+  test('⑭ App 沙箱（window.webkit + file://，无 document）init 不抛；app_open 直连发出', async () => {
+    const sb = pageSandbox({
+      webPage: false,
+      protocol: 'file:',
+      document: false,
+      ua: SAFARI_UA,
+      webkit: { messageHandlers: { controller: { postMessage() {} } } },
+    });
+    seedInit(sb.store);
+    await sb.T.init();                        // 235 的 init 可能在这里挂死；抛/挂都算失败
+    eq(sb.T.host(), 'app');
+    eq(await sb.T.track('app_open', { surface: 'app_home', auth_state: 'signed_in' }), true);
+    eq(await sb.T.flush(), true);
+    eq(sb.sent.length, 0, 'App 不该探测 SW / 发 telemetryPing');
+    eq(sb.fetched.length, 1, 'App 的 app_open 没有直连发出');
+    eq(sb.fetched[0].url, INGEST);
+    const body = JSON.parse(sb.fetched[0].init.body);
+    eq(body.length, 1);
+    eq(body[0].name, 'app_open');
+    eq(body[0].host, 'app');
+    eq(body[0].install_id, sb.store['tm:id']);
+    eq(body[0].props.surface, 'app_home');
+    eq(sb.fetched[0].init.keepalive, true);
+    eq(sb.fetched[0].init.headers['content-type'], 'text/plain');
+    eq(hasAuth(sb.fetched[0].init.headers), false);
+    eq(sb.store[sb.T.KEYS.queue].length, 0);
+  });
+
+  test('⑮ 扩展页沙箱（无 document / 无 webkit）init 不抛；track + flush 直连发出', async () => {
+    const sb = pageSandbox({ webPage: false, document: false });
+    seedInit(sb.store);
+    await sb.T.init();
+    eq(sb.T.host(), 'chrome');
+    eq(await sb.T.track('heartbeat'), true);
+    eq(await sb.T.flush(), true);
+    eq(sb.sent.length, 0, '扩展页不该探测 SW');
+    eq(sb.fetched.length, 1, '扩展页的 heartbeat 没有直连发出');
+    eq(JSON.parse(sb.fetched[0].init.body)[0].name, 'heartbeat');
+    eq(sb.store[sb.T.KEYS.queue].length, 0);
   });
 });
 
@@ -443,13 +459,13 @@ function sendBackground(listeners, msg) {
 }
 
 describe('BEL-304 后台 telemetryPing / SW 既有边界不变', () => {
-  test('⑮ 后台 telemetryPing 立即回 {ok:true}，不发起 fetch', async () => {
+  test('⑯ 后台 telemetryPing 立即回 {ok:true}，不发起 fetch', async () => {
     const { listeners, calls } = backgroundLoader();
     deepEq(await sendBackground(listeners, { action: 'telemetryPing' }), { ok: true });
     eq(calls.length, 0, '探测不该触发任何网络请求');
   });
 
-  test('⑯ SW 白名单 / 64KB 体限 / 拒收不变；x-mt-batch 头原样转发', async () => {
+  test('⑰ SW 白名单 / 64KB 体限 / 拒收不变；x-mt-batch 头原样转发', async () => {
     const { listeners, calls } = backgroundLoader();
     const body = JSON.stringify([{ name: 'heartbeat' }]);
 
