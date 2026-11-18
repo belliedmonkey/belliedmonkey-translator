@@ -42,5 +42,11 @@
   ],
   "blinding": "worksheet shows authoritative source + candidate translation only; ASR hypothesis withheld",
   "csv": "gold/human-gold.csv",
-  "worksheet": "gold/human-gold-worksheet.md"
+  "worksheet": "gold/human-gold-worksheet.md",
+  "draft": {
+    "role": "LLM third reviewer — not human gold",
+    "labels": "gold/draft-labels.json",
+    "csv": "gold/human-gold-draft.csv",
+    "built": "build-draft.js"
+  }
 }

@@ -72,7 +72,12 @@ function judgeRecord(set, caseId, pairId, judgeId) {
 }
 
 function main() {
-  const csvPath = process.env.GOLD_CSV || path.join(HERE, 'gold', 'human-gold.csv');
+  const ARGS = process.argv.slice(2);
+  const draftMode = ARGS.includes('--draft');
+  const csvPath = process.env.GOLD_CSV || path.join(HERE, 'gold', draftMode ? 'human-gold-draft.csv' : 'human-gold.csv');
+  if (!fs.existsSync(csvPath)) {
+    throw new Error('no sheet at ' + csvPath + (draftMode ? '' : ' — fill gold/human-gold.csv first, or preview with --draft'));
+  }
   const rows = parseCsv(fs.readFileSync(csvPath, 'utf8'));
   const head = rows[0];
   const idx = Object.fromEntries(head.map((h, i) => [h, i]));
@@ -100,7 +105,27 @@ function main() {
     cases.push(c);
   }
 
-  const out = { schema: 'belliedmonkey.e2e-b1c.gold-score.v1', cases: cases.length, judges: {}, pairLevel: {}, perDimension: {}, perSet: {}, disagreements: [] };
+  const out = { schema: 'belliedmonkey.e2e-b1c.gold-score.v1', mode: draftMode ? 'draft' : 'gold', cases: cases.length, judges: {}, pairLevel: {}, perDimension: {}, perSet: {}, disagreements: [] };
+
+  // Provenance: how much of a filled gold sheet is the draft, unchanged.
+  const draftPath = path.join(HERE, 'gold', 'draft-labels.json');
+  if (fs.existsSync(draftPath)) {
+    const draft = readJson(draftPath);
+    const byId = new Map(draft.cases.map((c) => [c.caseId, c]));
+    let same = 0, changed = 0;
+    const changedCells = [];
+    for (const c of cases) {
+      const d = byId.get(c.caseId);
+      if (!d) continue;
+      for (const dim of DIMS) {
+        const dv = d.dims[dim];
+        if (c.human[dim] === '?') continue;
+        if (c.human[dim] === dv) same++;
+        else { changed++; changedCells.push({ caseId: c.caseId, dim, draft: dv, human: c.human[dim] }); }
+      }
+    }
+    out.goldProvenance = { draftCells: same + changed, acceptedUnchanged: same, humanOverridden: changed, overrides: changedCells };
+  }
 
   // Cell level.
   for (const j of JUDGES) {
@@ -176,7 +201,8 @@ function main() {
     }
   }
 
-  writeJson(process.env.GOLD_OUT || path.join(HERE, 'out', 'human-gold-score.json'), out);
+  // Draft mode is a preview, never a result: print only, write nothing.
+  if (!draftMode) writeJson(process.env.GOLD_OUT || path.join(HERE, 'out', 'human-gold-score.json'), out);
   printMd(out);
 }
 
@@ -185,9 +211,24 @@ function ci(w) { return w.p == null ? '' : ' [' + (w.lo * 100).toFixed(1) + ', '
 
 function printMd(out) {
   const L = [];
-  L.push('# Judge calibration against human gold');
+  if (out.mode === 'draft') {
+    L.push('# DRAFT ONLY — judge vs a model-written draft, not vs human gold');
+    L.push('');
+    L.push('These numbers exist so the draft can be sanity-checked. They are **not** TPR/TNR and must not be cited as acceptance evidence. Fill `gold/human-gold.csv` and run without `--draft` for the real figures.');
+  } else {
+    L.push('# Judge calibration against human gold');
+  }
   L.push('');
   L.push('`' + out.cases + '` cases. `TPR` = catches a real defect; `TNR` = clears a clean translation. 95% Wilson interval.');
+  if (out.goldProvenance) {
+    const p = out.goldProvenance;
+    L.push('');
+    L.push('> Provenance: ' + p.acceptedUnchanged + ' of ' + p.draftCells + ' cells match the model-written draft unchanged, ' +
+      p.humanOverridden + ' were overridden by the human. ' +
+      (p.humanOverridden / Math.max(1, p.draftCells) < 0.2
+        ? '**Under 20% overridden — treat this gold as draft-derived and say so wherever the numbers are used.**'
+        : 'Human review changed a substantial share of cells.'));
+  }
   L.push('');
   L.push('## Pair level (all seven dimensions)');
   L.push('');
