@@ -669,6 +669,8 @@ describe('sync-app-assets: audio bridge block (§9.5)', () => {
         '"granted"', '"denied"', '"failed"', '"interrupted"', '"ended"', '"input-format"', '"converter"',
         '"now-playing-artwork"', '"image"', '"artwork-size"', '"AppIcon"',
         '","', '"w"', '"h"',
+        // BEL-294/BEL-295：原生 caps 的构建号来自 CFBundleVersion；页面在 documentStart 读它。
+        '"build"', '"CFBundleVersion"', '"window.MT_APP_CAPS = \\(json);"',
         '"window.NativeAudio && window.NativeAudio._fromNative(\\(json))"']);
       for (const lit of strings) {
         ok(allowed.has(lit), `原生侧出现了非协议字符串（可能是文案）：${lit}`);

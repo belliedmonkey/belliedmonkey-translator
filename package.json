@@ -66,6 +66,7 @@
     "node": ">=20.0.0"
   },
   "devDependencies": {
+    "@sentry/browser": "11.14.0",
     "esbuild": "0.28.2",
     "react": "19.3.0",
     "react-dom": "19.3.0"

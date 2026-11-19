@@ -226,11 +226,41 @@ var MTTelemetry = (() => {
     } catch (_) {}
     return 'global';
   }
+  // BEL-294/BEL-295（BEL-303 携带同形 helper）：App 的构建号。来源是**原生**暴露的
+  // caps（CFBundleVersion）：原生注入 window.MT_APP_CAPS，NativeAudio.caps() 合并它；
+  // macOS 的 AppQuickHost 也回一份。拿不到 / 不是非负整数 ⇒ 返回 undefined，envelope
+  // **整键省略** —— 不写 0 冒充「已归因」。扩展没有原生 caps，所以永远省略。
+  // 这是 buildNo 的唯一实现：Sentry 的 dist 也调 MTTelemetry.buildNo()。
+  function buildNo() {
+    try {
+      const pick = (c) => {
+        if (!c || typeof c !== 'object') return undefined;
+        const n = c.build;
+        return Number.isInteger(n) && n >= 0 && n < 1e10 ? n : undefined;
+      };
+      try {
+        if (typeof NativeAudio !== 'undefined' && NativeAudio && typeof NativeAudio.caps === 'function') {
+          const n = pick(NativeAudio.caps()); if (n !== undefined) return n;
+        }
+      } catch (_) {}
+      try {
+        if (typeof AppQuickHost !== 'undefined' && AppQuickHost && typeof AppQuickHost.caps === 'function') {
+          const n = pick(AppQuickHost.caps()); if (n !== undefined) return n;
+        }
+      } catch (_) {}
+      try {
+        const c = (typeof window !== 'undefined' && window.MT_APP_CAPS) || null;
+        return pick(c);
+      } catch (_) { return undefined; }
+    } catch (_) { return undefined; }
+  }
   function envelope(id, e) {
-    return {
+    const out = {
       install_id: id, ts: e.ts, v: version(), flavor: buildFlavor(), host: host(),
       device: device(), ui: ui(), name: e.name, props: e.props,
     };
+    const b = buildNo(); if (b !== undefined) out.build = b;
+    return out;
   }
 
   // ── 本机诊断（只有「这个 build 根本没有遥测规格」时才写）────────────────────
@@ -490,8 +520,16 @@ var MTTelemetry = (() => {
     return '30+';
   }
 
+  // BEL-303：crash 的 Sentry `dist` 用**同一份** buildNo（不写第二套）。
+  // crash.js 不读 MT_*，由这里把函数注册进去；扩展 SW 不加载本文件，dist 省略。
+  try {
+    if (typeof MTCrash !== 'undefined' && MTCrash && typeof MTCrash.setBuildNo === 'function') {
+      MTCrash.setBuildNo(buildNo);
+    }
+  } catch (_) {}
+
   return {
-    track, once, flush, init, enabled, setEnabled, installId, relayHeaders, dwell,
+    track, once, flush, init, enabled, setEnabled, installId, relayHeaders, dwell, buildNo,
     // 测试与调试
     _shape: shape, _envelope: envelope, host, device, KEYS: K, FLUSH_AT, QUEUE_CAP,
     SW_TIMEOUT_MS, BODY_MAX,

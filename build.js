@@ -67,6 +67,7 @@ const APP_OUT_NAME = FLAVOR === 'china' ? 'dist-app-china' : 'dist-app';
 // build still succeeds but deliberately points at *.invalid — it cannot reach a real
 // backend, and `log` says so below.
 const backendInject = require('./build/backend-inject.js');
+const sentryInject = require('./build/sentry-inject.js');
 const backendInjection = backendInject.install(ROOT);
 // 免费额度三档的模型名：与三张注册表、中继 /spec 同源（BEL-236 单源）。
 const GRANT_MODELS = require('./build/grant-models.config.js');
@@ -1564,6 +1565,15 @@ function contentSyncBytesGate(distDir) {
   }
   log(`contentSyncBytesGate: 同步注入面 ${total} 字节 ≤ ${PIN}+150KB`);
 }
+// BEL-303：SDK/DSN 注入必须发生在所有 flavor 覆写之后、合规门之前。
+// 国际版把 minify IIFE 写进 DIST/vendor/ 并 prepend 到 background.js；中国版只
+// prepend crash 模块（空 DSN），**不写 vendor 文件** —— 所以 copyDir 永远带不过去。
+{
+  const s = sentryInject.applyToDist(ROOT, DIST, FLAVOR);
+  log(`Sentry: ${s.dsnSet ? 'global DSN injected' : 'no DSN — crash capture disabled'}`
+    + ` (vendor=${s.vendorWritten ? 'dist only' : 'none'})`);
+}
+
 contentSyncBytesGate(DIST);
 
 // China compliance gate (after all DIST content is final)
@@ -1600,8 +1610,8 @@ nameLengthGate(DIST);
   // 中国版从 dist-china/ 取生成物（那里才是 flavor 过滤后的注册表）。
   buildAppBundle(path.join(ROOT, APP_OUT), log,
     FLAVOR === 'china' ? { genRoot: DIST, limitProviders,
-      rewriteHostLiterals: true,
-      switchBackend: chinaBackendReady() ? (text, what) => switchBackend(text, what, chinaBackend()) : null } : {});
+      rewriteHostLiterals: true, sentryFlavor: 'china',
+      switchBackend: chinaBackendReady() ? (text, what) => switchBackend(text, what, chinaBackend()) : null } : { sentryFlavor: 'global' });
   // BEL-259: mark the host-app tree as soon as it exists (preview / E2E builds
   // must not leave an unmarked dist-app* behind if a later gate fails).
   if (SKIP_ZIP) fs.writeFileSync(path.join(ROOT, APP_OUT, '.not-shippable'), SKIP_ZIP + '\n');

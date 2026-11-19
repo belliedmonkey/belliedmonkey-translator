@@ -69,6 +69,9 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
 
     private weak var webView: WKWebView?
     private var commandsInstalled = false
+    /// BEL-294/BEL-295：CFBundleVersion 只在第一次 install 时注入一次。页面脚本
+    /// （遥测信封）在 documentStart 就能读到，不必等 caps-probe 往返。
+    private var capsInjected = false
 
     /// 当前卡片的封面（由 JS 画好送过来）。锁屏那一档用它。
     private var cardArt: MTImage?
@@ -96,6 +99,19 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         // 在某些生命周期下确实会跑第二次。
         ucc.removeScriptMessageHandler(forName: MTAudioBridge.channel)
         ucc.add(self, name: MTAudioBridge.channel)
+        // BEL-294/BEL-295：把 CFBundleVersion 在 documentStart 交给页面。构建号不是
+        // 营销版本；拿不到就不注入，JS 侧据此整键省略（不写 0）。
+        if !capsInjected {
+            capsInjected = true
+            let caps = nativeCaps()
+            if !caps.isEmpty,
+               let data = try? JSONSerialization.data(withJSONObject: caps),
+               let json = String(data: data, encoding: .utf8) {
+                ucc.addUserScript(WKUserScript(source: "window.MT_APP_CAPS = \(json);",
+                                               injectionTime: .atDocumentStart,
+                                               forMainFrameOnly: true))
+            }
+        }
 
 #if os(iOS)
         let nc = NotificationCenter.default
@@ -992,7 +1008,21 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         emit(["type": "remote", "command": command])
     }
 
+    /// BEL-294/BEL-295：原生 caps 里的构建号（CFBundleVersion 的整数形式）。
+    /// 拿不到 / 不是非负整数 ⇒ 空字典，不写 0。
+    private func nativeCaps() -> [String: Any] {
+        var out: [String: Any] = [:]
+        let raw = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""
+        if let n = Int(raw), n >= 0 { out["build"] = n }
+        return out
+    }
+
     private func emit(_ payload: [String: Any]) {
+        var payload = payload
+        // audio-caps 是能力回执；把构建号并入同一份 caps，老调用方多一个键不受影响。
+        if (payload["type"] as? String) == "audio-caps" {
+            for (k, v) in nativeCaps() where payload[k] == nil { payload[k] = v }
+        }
         guard let webView = self.webView,
               let data = try? JSONSerialization.data(withJSONObject: payload),
               let json = String(data: data, encoding: .utf8) else { return }

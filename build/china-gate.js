@@ -19,6 +19,10 @@
 // carry the Grok STT protocol event or the xAI endpoints. This is a product peel, not
 // the region policy that moved to the private compliance repo (BOUNDARY.md §4).
 const BRANDS = /ChatGPT|OpenAI|\bClaude\b|api\.openai\.com|api\.anthropic\.com|api\.x\.ai|wss:\/\/api\.x\.ai|grok-stt-open/i;
+// BEL-303 US_INGEST：任何路径的 sentry.io 主机都红。这是**主机**规则，不是品牌词，
+// 所以不塞进 BRANDS（BRANDS 是 App Store Guideline 5 的品牌指代）。`.invalid` 占位与
+// 裸词 `sentry` 不命中：前者不是 sentry.io，后者不是主机名。
+const US_INGEST = /(^|\.)sentry\.io$/i;
 const TOKYO = /(^|\.)supabase\.co$/i;
 const URL_RE = /https?:\/\/[^\s"'`)\\]+/g;
 
@@ -35,11 +39,13 @@ function scan(files, _opts) {
       const at = `${f.name}:${i + 1}  ${line.trim().slice(0, 100)}`;
       if (BRANDS.test(line)) { hits.push(at); return; }
       for (const raw of line.match(URL_RE) || []) {
-        if (TOKYO.test(hostOf(raw))) { hits.push(at + '   ← *.supabase.co host'); return; }
+        const host = hostOf(raw);
+        if (US_INGEST.test(host)) { hits.push(at + '   ← sentry.io host'); return; }
+        if (TOKYO.test(host)) { hits.push(at + '   ← *.supabase.co host'); return; }
       }
     });
   }
   return hits;
 }
 
-module.exports = { scan, BRANDS, TOKYO };
+module.exports = { scan, BRANDS, TOKYO, US_INGEST };
