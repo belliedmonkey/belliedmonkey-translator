@@ -24,6 +24,7 @@ const { buildOptions } = require('./run-esbuild.js');
 const { rewriteBundledCredentials } = require('./china-host-literals.js');
 const backendInject = require('./backend-inject.js');
 const sentryInject = require('./sentry-inject.js');
+const test400 = require('./test400.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -255,6 +256,10 @@ const PANEL_HASH_TEST = "/^#quick\\b/.test(String(location.hash || ''))";
 
 function buildAppBundle(outDir, log, opts) {
   opts = opts || {};
+  // BEL-280: read the test-400 flag directly from the environment (not through
+  // opts) so the global build's options stay `{}` — the China host-literal gate
+  // asserts that the international call site carries no rewrite options at all.
+  const test400Reason = test400.reasonFromEnv(process.env);
   const modules = modulesFor(opts);
   fs.mkdirSync(outDir, { recursive: true });
 
@@ -320,6 +325,11 @@ function buildAppBundle(outDir, log, opts) {
       throw new Error(`app bundle: missing source ${rel}`);
     }
     let text = fs.readFileSync(abs, 'utf8');
+    // BEL-280: the app bundle is a CONCATENATION of the source tree, so the test-400
+    // sentinels in request-shape.js must be resolved here as well as in dist/. With
+    // MT_TEST_400 unset this replaces them with '' — the literal header name never
+    // enters Script.js (check-shippable scans for it independently).
+    text = test400.apply(text, test400Reason);
     // BEL-197（P0）: **同一份 backend.config.js、两条发射路径。** build.js 把真实
     // host / anon key 注入 dist/ 的那份（`backendInject.applyToDir`），而 App 包拼的是
     // **源码**这份 —— 于是 `node build.js` 直出的 dist-app/Script.js 仍指向
