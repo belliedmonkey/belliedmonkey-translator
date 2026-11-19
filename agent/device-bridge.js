@@ -369,7 +369,23 @@ function createClient(options) {
     const data = out.data || {};
     const ttl_sec = Number(data.ttl_sec) > 0 ? Number(data.ttl_sec) : 0;
     if (ttl_sec) store.set(KEYS.credTtl, String(ttl_sec));
-    return { ok: true, ttl_sec, last_seen: data.last_seen || '', status: out.status };
+    // BEL-151 B-PUSH: the Worker owns pending_confirm and now returns the rows
+    // bound to this session on the same 200. Carry them out unopened — the host
+    // decides whether a card can be shown; nothing here creates an OS URL, and an
+    // absent/malformed list is an honest empty array, never a reason to claim a
+    // surface opened. No args / text / translation ever rides this response.
+    const pending = [];
+    if (Array.isArray(data.pending)) {
+      for (const row of data.pending) {
+        const pending_id = pendingIdOf(row && row.pending_id);
+        const action = row && typeof row.action === 'string' ? row.action.slice(0, 64) : '';
+        if (!pending_id || !action) continue;
+        const expires_at = Number(row.expires_at) > 0 ? Number(row.expires_at) : 0;
+        const expires_in_sec = Number(row.expires_in_sec) >= 0 ? Number(row.expires_in_sec) : 0;
+        pending.push({ pending_id, action, expires_at, expires_in_sec });
+      }
+    }
+    return { ok: true, ttl_sec, last_seen: data.last_seen || '', status: out.status, pending };
   }
 
   // Short-lived "I am here" after open_setup. The cloud may hand back a

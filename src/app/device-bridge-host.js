@@ -54,6 +54,12 @@ export const PAIR_HINT = ACTIONS[PAIR_ACTION].touches[0];
 // four states (connected / pending / reconnect / unpaired) read from this lock.
 export const DISCONNECT = DISCONNECT_COPY;
 
+// BEL-151 B-PUSH: the pairing TTL heartbeat stays clamped at 2–5 min
+// (`agent/device-bridge.js` HEARTBEAT_*); a pending_confirm only lives 120 s on
+// the Worker, so the foreground opens a SEPARATE 5 s watch. 429 backs off to 15 s.
+export const PENDING_WATCH_MS = 5 * 1000;
+export const PENDING_WATCH_BACKOFF_MS = 15 * 1000;
+
 // The client's own keys plus one host key: which account asked for this pairing.
 // A device_cred belongs to the session that registered it, and a second account
 // signing in on the same Mac must not keep beating with it. The MCP OAuth meta keys
@@ -147,6 +153,16 @@ export function createHost(options) {
   let bootedDoc = null;
   let grants = { device: {}, assistants: {} };
   let status = { state: 'unknown', code: '', at: 0 };
+  // BEL-151 B-PUSH pending watch (separate from the 2–5 min pairing heartbeat).
+  let pendingPresenter = typeof opts.presentPending === 'function' ? opts.presentPending : null;
+  let pendingTimer = null;
+  let pendingProbeTimer = null;
+  let pendingProbeLeft = 0;
+  let pendingRunning = false;
+  let pendingDelayMs = PENDING_WATCH_MS;
+  let pendingActive = '';
+  const pendingQueue = [];
+  const pendingSeen = new Set();
   // ACCEPT-U2: a revoke that answers 401 must not repaint the reconnect state in
   // the middle of an explicit disconnect. The user asked to unpair; unpair wins.
   let disconnecting = false;
@@ -344,6 +360,7 @@ export function createHost(options) {
       store.setItem(CRED_USER_KEY, account);
       store.removeItem(RECONNECT_KEY);
       startHeartbeat();
+      startPendingWatch();
       setStatus({ state: 'paired', code: 'ok' });
       return { ok: true, handled: true, resumed: true, register: reg };
     }
@@ -398,12 +415,200 @@ export function createHost(options) {
   }
 
   function stopHeartbeat() {
+    stopPendingWatch();
     if (!client) return false;
     return client.stopHeartbeat();
   }
 
   function isHeartbeatRunning() {
     return !!(client && client.isHeartbeatRunning());
+  }
+
+  // ── B-PUSH pending watch ────────────────────────────────────────────────
+  // Foreground + paired only. This is deliberately NOT the 2–5 min pairing
+  // heartbeat: it is its own 5 s timer calling the same client.heartbeat(), so a
+  // 120 s Worker pending is discovered while it can still be shown. Hidden /
+  // occluded stops the timer; coming back runs onForeground() immediately.
+  function currentVisibility() {
+    const doc = bootedDoc || (typeof document !== 'undefined' ? document : null);
+    if (!doc) return 'visible';
+    return String(doc.visibilityState || 'visible');
+  }
+
+  function setPendingPresenter(fn) {
+    pendingPresenter = typeof fn === 'function' ? fn : null;
+    if (pendingPresenter) drainPending();
+    return !!pendingPresenter;
+  }
+
+  // Overlay already in the DOM (or a confirm POST already on the wire). Silent
+  // present / throw must NOT add: the next 5 s watch is allowed to re-queue.
+  function notePendingMounted(pending_id) {
+    const id = Bridge.pendingIdOf(pending_id);
+    if (!id) return '';
+    pendingSeen.add(id);
+    try { if (typeof localStorage !== 'undefined') localStorage.setItem('mt:dbg_seen', JSON.stringify({ at: now(), id, seen: pendingSeen.size })); } catch (_) {}
+    return id;
+  }
+
+  // The presenter is the App face's presentPending() → handlePendingConfirm.
+  // No NSWorkspace / open / shell here, and no path that opens a surface
+  // without a card and a user click.
+  function presentPendingNow(pending) {
+    try { if (typeof localStorage !== 'undefined') localStorage.setItem('mt:dbg_present', JSON.stringify({ at: now(), id: pending && pending.pending_id, presenter: typeof pendingPresenter })); } catch (_) {}
+    if (typeof pendingPresenter !== 'function') return Promise.resolve(null);
+    const onErr = (e) => {
+      try { if (typeof localStorage !== 'undefined') localStorage.setItem('mt:dbg_err', JSON.stringify({ at: now(), msg: String((e && e.message) || e), stack: String((e && e.stack) || '').slice(0, 600) })); } catch (_) {}
+      return null;
+    };
+    try { return Promise.resolve(pendingPresenter(pending)).catch(onErr); }
+    catch (e) { return Promise.resolve(onErr(e)); }
+  }
+
+  async function drainPending() {
+    try { if (typeof localStorage !== 'undefined') localStorage.setItem('mt:dbg_drain', JSON.stringify({ at: now(), active: pendingActive, queued: pendingQueue.length, presenter: typeof pendingPresenter })); } catch (_) {}
+    if (pendingActive || !pendingQueue.length) return;
+    // No presenter (e.g. a headless host) keeps the queue; it must never fall
+    // through to a silent action / openedSubtitles claim.
+    if (typeof pendingPresenter !== 'function') return;
+    const next = pendingQueue.shift();
+    pendingActive = next.pending_id;
+    try {
+      const rec = await presentPendingNow(next);
+      if (rec && rec.mounted) notePendingMounted(next.pending_id);
+    } catch (_) { /* the face reports its own failure */ }
+    pendingActive = '';
+    if (pendingQueue.length) drainPending();
+  }
+
+  // One card at a time, oldest first. A pending_id already in the DOM
+  // (pendingActive) or already mounted (pendingSeen) is not re-queued; a
+  // silent miss is left unseen so the next watch can try again.
+  function enqueuePending(rows) {
+    if (!Array.isArray(rows)) return [];
+    const added = [];
+    for (const row of rows) {
+      const pending_id = Bridge.pendingIdOf(row && row.pending_id);
+      if (!pending_id || pending_id === pendingActive || pendingSeen.has(pending_id)) continue;
+      if (pendingQueue.some((q) => q.pending_id === pending_id)) continue;
+      pendingQueue.push({ pending_id, action: String((row && row.action) || '') });
+      added.push(pending_id);
+    }
+    try { if (typeof localStorage !== 'undefined') localStorage.setItem('mt:dbg_enqueue', JSON.stringify({ at: now(), added, presenter: typeof pendingPresenter, active: pendingActive, queued: pendingQueue.length, seen: pendingSeen.size, rows: Array.isArray(rows) ? rows.length : -1 })); } catch (_) {}
+    if (added.length) drainPending();
+    return added;
+  }
+
+  function pendingDelayFor(out) {
+    if (out && out.ok) return PENDING_WATCH_MS;
+    if (out && Number(out.status) === 429) return PENDING_WATCH_BACKOFF_MS;
+    return PENDING_WATCH_MS;
+  }
+
+  async function pollPendingOnce() {
+    if (!client || !hasCred() || currentVisibility() !== 'visible') return null;
+    let out = null;
+    try { out = await client.heartbeat(); }
+    catch (_) { out = { ok: false, code: 'network_unavailable', status: 0 }; }
+    if (out && out.ok) enqueuePending(out.pending);
+    pendingDelayMs = pendingDelayFor(out);
+    // The client's onUnauthorized already ran unauthorizedFallout; make sure the
+    // watch cannot keep polling a credential that no longer exists.
+    if (out && out.code === 'unauthorized') stopPendingWatch();
+    return out;
+  }
+
+  // WKWebView brands setTimeout/clearTimeout as Window methods: calling them as
+  // `timers.setTimeout(...)` throws "Can only call Window.setTimeout on instances
+  // of Window". Reflect.apply keeps injected test timers working while giving the
+  // native ones the receiver they demand (the same trap agent/device-bridge.js hit).
+  function setTimer(fn, ms) {
+    try { return Reflect.apply(timers.setTimeout, globalThis, [fn, ms]); }
+    catch (_) { return setTimeout(fn, ms); }
+  }
+  function clearTimer(id) {
+    try { Reflect.apply(timers.clearTimeout, globalThis, [id]); }
+    catch (_) { try { clearTimeout(id); } catch (_) {} }
+  }
+
+  function schedulePending(ms) {
+    if (!pendingRunning) return;
+    pendingTimer = setTimer(() => {
+      pendingTimer = null;
+      if (!pendingRunning) return;
+      if (!hasCred() || currentVisibility() !== 'visible') { stopPendingWatch(); return; }
+      Promise.resolve(pollPendingOnce()).catch(noop).then(() => {
+        if (pendingRunning) schedulePending(pendingDelayMs);
+      });
+    }, ms);
+    if (pendingTimer && typeof pendingTimer.unref === 'function') pendingTimer.unref();
+  }
+
+  function startPendingWatch(watchOptions) {
+    const o = watchOptions || {};
+    if (Object.prototype.hasOwnProperty.call(o, 'presentPending')) setPendingPresenter(o.presentPending);
+    if (!client) return { ok: false, code: 'no_client' };
+    if (!hasCred()) return { ok: false, code: 'not_paired' };
+    if (pendingRunning) return { ok: true, interval_ms: pendingDelayMs };
+    pendingDelayMs = PENDING_WATCH_MS;
+    if (currentVisibility() === 'visible') return beginPendingWatch();
+    // WKWebView can report `hidden` right before the window becomes key and then
+    // never emit a visibilitychange when it appears (the same D.8 shape the launch
+    // beat already handles). Probe briefly instead of permanently missing the
+    // pending; an explicit background event still wins because stopPendingWatch
+    // clears this probe.
+    pendingProbeLeft = 5;
+    schedulePendingProbe();
+    return { ok: false, code: 'hidden', probing: true };
+  }
+
+  function beginPendingWatch() {
+    if (pendingRunning) return { ok: true, interval_ms: pendingDelayMs };
+    if (!client || !hasCred()) return { ok: false, code: 'not_paired' };
+    if (pendingProbeTimer != null) {
+      clearTimer(pendingProbeTimer);
+      pendingProbeTimer = null;
+    }
+    pendingProbeLeft = 0;
+    pendingRunning = true;
+    pendingDelayMs = PENDING_WATCH_MS;
+    schedulePending(PENDING_WATCH_MS);
+    return { ok: true, interval_ms: PENDING_WATCH_MS };
+  }
+
+  function schedulePendingProbe() {
+    if (pendingRunning || pendingProbeLeft <= 0) return;
+    pendingProbeTimer = setTimer(() => {
+      pendingProbeTimer = null;
+      if (pendingRunning || !hasCred()) return;
+      if (currentVisibility() === 'visible') { beginPendingWatch(); return; }
+      pendingProbeLeft -= 1;
+      schedulePendingProbe();
+    }, 1000);
+  }
+
+  function stopPendingWatch() {
+    pendingRunning = false;
+    pendingProbeLeft = 0;
+    if (pendingTimer != null) {
+      clearTimer(pendingTimer);
+      pendingTimer = null;
+    }
+    if (pendingProbeTimer != null) {
+      clearTimer(pendingProbeTimer);
+      pendingProbeTimer = null;
+    }
+    return true;
+  }
+
+  function pendingWatchState() {
+    return {
+      running: pendingRunning,
+      delay_ms: pendingDelayMs,
+      active: pendingActive,
+      queued: pendingQueue.length,
+      seen: pendingSeen.size,
+    };
   }
 
   // Signed out (or a different account on the same Mac): the old credential is
@@ -538,6 +743,7 @@ export function createHost(options) {
       if (session && session.userId) store.setItem(CRED_USER_KEY, session.userId);
       store.removeItem(RECONNECT_KEY);
       startHeartbeat();
+      startPendingWatch();
       setStatus({ state: 'paired', code: 'ok' });
       return;
     }
@@ -704,6 +910,10 @@ export function createHost(options) {
     if (out && out.ok) {
       store.removeItem(RECONNECT_KEY);
       setStatus({ state: 'paired', code: 'ok' });
+      // The foreground beat is also an immediate pending poll: no reason to wait
+      // a full 5 s for the first card. Then open the fast watch while visible.
+      enqueuePending(out.pending);
+      startPendingWatch();
     } else if (out && out.code === 'unauthorized') {
       // The client's 401 branch already called unauthorizedFallout through
       // onUnauthorized; call it again so a future client without the hook (or a
@@ -736,14 +946,22 @@ export function createHost(options) {
     return out;
   }
 
-  function boot(docRef) {
+  function boot(docRef, bootOptions) {
     const doc = docRef || (typeof document !== 'undefined' ? document : null);
+    if (bootOptions && Object.prototype.hasOwnProperty.call(bootOptions, 'presentPending')) {
+      setPendingPresenter(bootOptions.presentPending);
+    }
     if (!doc || typeof doc.addEventListener !== 'function') return { installed: false };
     if (bootedDoc === doc) return { installed: false };
     bootedDoc = doc;
 
     const onVisibility = () => {
-      if (doc.visibilityState !== 'visible') return Promise.resolve(null);
+      if (doc.visibilityState !== 'visible') {
+        // Background / occluded: stop the 5 s table. The 2–5 min pairing
+        // heartbeat keeps its own interval.
+        stopPendingWatch();
+        return Promise.resolve(null);
+      }
       return onForeground().catch(noop);
     };
     doc.addEventListener('visibilitychange', onVisibility);
@@ -775,6 +993,7 @@ export function createHost(options) {
       // client itself on 401 and by every disconnect path.
       rememberPending: (o) => withClient((c) => c.rememberPending(o)),
       confirm: (o) => withClient((c) => c.confirm(o)),
+      notePendingMounted: (id) => notePendingMounted(id),
       pendingIds: () => withClient((c) => c.pendingIds()),
       // T6: revoke ends the device session, so the MCP access token that was used
       // for it goes too. The refresh token stays in its Keychain slot — the next
@@ -816,6 +1035,14 @@ export function createHost(options) {
     startHeartbeat,
     stopHeartbeat,
     isHeartbeatRunning,
+    // BEL-151 B-PUSH
+    startPendingWatch,
+    stopPendingWatch,
+    isPendingWatchRunning: () => pendingRunning,
+    pendingWatchState,
+    notePendingMounted,
+    setPendingPresenter,
+    pollPendingOnce,
     hasCred,
     clearLocalCred,
     pairedSession: () => store.getItem(CRED_USER_KEY),
@@ -845,7 +1072,7 @@ function defaultHost() {
 }
 
 export const deviceBridgeHost = {
-  boot: (doc) => defaultHost().boot(doc),
+  boot: (doc, o) => defaultHost().boot(doc, o),
   pair: (o) => defaultHost().pair(o),
   disconnect: () => defaultHost().disconnect(),
   isOAuthCallback: (raw) => defaultHost().isOAuthCallback(raw),
@@ -856,6 +1083,9 @@ export const deviceBridgeHost = {
   agentBridge: () => defaultHost().agentBridge(),
   noteSession: (s) => defaultHost().noteSession(s),
   isHeartbeatRunning: () => defaultHost().isHeartbeatRunning(),
+  setPendingPresenter: (fn) => defaultHost().setPendingPresenter(fn),
+  startPendingWatch: (o) => defaultHost().startPendingWatch(o),
+  stopPendingWatch: () => defaultHost().stopPendingWatch(),
   hasCred: () => defaultHost().hasCred(),
   clearLocalCred: () => defaultHost().clearLocalCred(),
 };
