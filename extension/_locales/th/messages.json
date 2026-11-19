@@ -4246,5 +4246,41 @@
   },
   "app_e1_note": {
     "message": "เปิดเป็นค่าเริ่มต้นสำหรับภาษาจีน (zh) เท่านั้น โมเดลจะดาวน์โหลดในเบื้องหลังเมื่อใช้งานครั้งแรก (ประมาณ 160MB) ระหว่างที่ยังดาวน์โหลดไม่เสร็จและเมื่อล้มเหลวจะใช้การพิมพ์ตามเสียงของระบบ การเปลี่ยนแปลงจะมีผลในเซสชันถัดไป เมื่อปิดจะกลับไปใช้การพิมพ์ตามเสียงของระบบ"
+  },
+  "halt_balance_row": {
+    "message": "เอนจินนี้ไม่มีเครดิตแล้ว — แตะเพื่อเปลี่ยน",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_balance_title": {
+    "message": "บัญชีของเอนจินนี้ไม่มีเงินคงเหลือ",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_balance_next": {
+    "message": "ผู้ให้บริการตอบกลับ 402: บัญชีของ Key นี้ไม่มีเงินแล้ว หลังเติมเงินให้แตะ «ทดสอบการเชื่อมต่อ» ด้านล่าง หรือจะเปลี่ยนเป็น Key ที่มีเงินเหลือ หรือเปลี่ยนเอนจินก็ได้",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_switch_engine": {
+    "message": "เปลี่ยนเอนจิน",
+    "description": "BEL-274 fail surface"
+  },
+  "halt_no_base_row": {
+    "message": "เอนจินนี้ต้องระบุที่อยู่ — แตะเพื่อกรอก",
+    "description": "BEL-274 fail surface"
+  },
+  "no_base_field_hint": {
+    "message": "ยังไม่มีที่อยู่: เอนจินนี้ต้องมีที่อยู่บริการจึงจะทำงานได้ ใส่โปรโตคอลและพาธ เช่น https://your-host/v1",
+    "description": "BEL-274 fail surface"
+  },
+  "halt_streak_row": {
+    "message": "ล้มเหลวติดกัน 3 ครั้ง — แตะเพื่อจัดการ",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_streak_title": {
+    "message": "ล้มเหลวติดกัน 3 ครั้ง",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_streak_next": {
+    "message": "เอนจินนี้ไม่สำเร็จติดกัน 3 ครั้ง ครั้งล่าสุดคือ HTTP 429 (จำกัดอัตรา) ส่วนใหญ่เป็นปัญหาการตั้งค่าหรือโควตา เปลี่ยนเอนจินเร็วกว่า หรือจะลองอีกครั้งก็ได้",
+    "description": "BEL-274 fail surface"
   }
 }

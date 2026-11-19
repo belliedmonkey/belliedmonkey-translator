@@ -16,17 +16,27 @@
 // 时，`auth_fail` 才留在本机（`mt:diag`，上限 20 条）。那不是「中国版不发」的承诺。
 //
 // 传输：事件先入 chrome.storage.local 的队列（上限 200，满了丢最旧），满 10 条、或
-// 距上次 ≥ 60 s、或扩展页打开时 flush 一次。请求体用 text/plain —— 简单请求，不触发
-// 预检；边缘函数按 JSON 解析正文，不看这个头。**http/https 内容脚本不直接 fetch**
-// （页面 CSP 的 connect-src 会把它拦掉）：经 SW 的 telemetrySend 代发，SW 只放行本
-// build 的 ingest 端点；扩展页 / App 仍直连。端点**不带任何 key**（build.js 的铁律：
+// 距上次 ≥ 60 s（Safari 内容页 10 s）、或扩展页打开时 flush 一次。请求体用
+// text/plain —— 简单请求，不触发预检；边缘函数按 JSON 解析正文，
+// 不看这个头。**http/https 内容脚本每页先探测一次后台**（BEL-304）：探测只用来
+// **跳过**已知不可用的 SW；探测成功也不代表 SW 发得出去，所以本页第一批仍走 SW，
+// SW 返回失败（含 15s 超时 / {ok:false}）就**立刻整页降级**并把这一批用直连重发
+// 一次（复用同一个 batch id，服务端按 (install_id, batch_id, batch_seq) 去重）。
+// 扩展页 / App 不探测，一直直连。SW 只放行本 build 的 ingest 端点；直连受页面 CSP
+// 管，失败时事件留在队列等下一次 flush。端点**不带任何 key**（build.js 的铁律：
 // anon key 不进内容脚本）。
 var MTTelemetry = (() => {
-  const K = { on: 'tm:on', id: 'tm:id', queue: 'tm:queue', day: 'tm:day', once: 'tm:once', last: 'tm:last', dropped: 'mtTelemetryDropped' };
-  const FLUSH_AT = 10, FLUSH_MS = 60 * 1000, QUEUE_CAP = 200;
+  const K = { on: 'tm:on', id: 'tm:id', queue: 'tm:queue', day: 'tm:day', once: 'tm:once', last: 'tm:last', dropped: 'mtTelemetryDropped', directFail: 'mtTelemetryDirectFail' };
+  const FLUSH_AT = 10, FLUSH_MS = 60 * 1000, FLUSH_MS_SAFARI = 10 * 1000, QUEUE_CAP = 200;
   // BEL-277：http/https 内容脚本不再直接 fetch（页面 CSP 的 connect-src 可以把它
   // 整个拦掉），改由 service worker 代发。扩展页 / App 仍走直连 —— 只有网页上下文
   // 的 fetch 会被页面 CSP 管。两个上限与 SW 侧同一组数字。
+  // BEL-304：每页只探一次后台。iOS Safari 在设备锁屏后 SW 会永久不可用，此前
+  // 内容脚本无条件走 telemetrySend，于是「真翻成功、事件 0 行」而没有任何报错。
+  // 这里在**发第一批之前**问一次「后台在吗」，400ms 内答不上来就整页直连；答得上
+  // 只代表消息通道通，SW 仍可能发不出去 —— 所以它只是「快速跳过」，不是判决。
+  // 判决在 sendViaRuntime：失败即整页 direct + 本批直连重发（见 send()）。
+  const PING_TIMEOUT_MS = 400;
   const SW_TIMEOUT_MS = 15000, BODY_MAX = 64 * 1024;
   const STR_MAX = 64;
   let flushTimer = null;
@@ -43,25 +53,187 @@ var MTTelemetry = (() => {
     try { if (typeof navigator !== 'undefined' && navigator.webdriver === true) return null; } catch (_) {}
     return sp;
   }
+  // BEL-304 237：Safari 内容脚本的浏览器扩展 API 与存储桥兜底。
+  //
+  // 这是 `content/request-shape.js` 同一个 Safari 存储桥坑的兜底（那边的注释
+  // `storageGet` 记录得更详细）：WebKit 的 `chrome.storage.local.get(..., cb)`
+  // **回调可能根本不来** —— 不报错、不抛异常，promise 永远不 settle。内容脚本
+  // 的遥测因此整条卡在 `enabled()` / 队列读写上，FAB 翻了、页面进入「翻译中…」，
+  // 但 `translate_start` 一条也出不去。`request-shape.js` 用 3s 超时躲开了它；
+  // 这里做同一件事，并且**不把超时当错误**：读不到就按内存值继续。
+  //
+  // 兜底的三条边界：
+  //   ① `browser`（Safari / 标准 WebExtensions，Promise 风格）优先，`chrome`
+  //      （回调风格）其次。同一个 get 只发一次请求，两种返回都接。
+  //   ② 1.5s 内没有答案（回调不来 / promise 不 resolve / 同步抛）⇒ 用 MEM 里的
+  //      内存值继续；MEM 也没有的键按「从来没写过」处理（`tm:on` 缺省 true）。
+  //   ③ storage 正常时行为完全不变：持久化仍走 storage，MEM 只是同一份写入的
+  //      镜像。桥一旦在**本页**超时，本页后续读写不再逐笔等 1.5s（storage 仍
+  //      尽力写一次，但不等待），这样 10s flush 不会因为每笔超时被拖到 20s。
+  //      `storageDead` 是模块级、每页一份 —— 下一页 / 刷新后重新试桥。
+  const STORAGE_TIMEOUT_MS = 1500;
+
+  function api() {
+    // Safari 的内容脚本里通常只有 `browser`（Promise 风格）；Chrome 只有
+    // `chrome`（回调风格）；某些 polyfill 两个都在。优先标准扩展 API。
+    try { if (typeof browser !== 'undefined' && browser) return browser; } catch (_) {}
+    try { if (typeof chrome !== 'undefined' && chrome) return chrome; } catch (_) {}
+    return null;
+  }
+  // 按成员回落：`browser` 可能只被 polyfill 出一部分（例如只有 runtime），
+  // 不能因为它存在就假装它有 storage / i18n。
+  function part(name) {
+    const a = api();
+    try { if (a && a[name]) return a[name]; } catch (_) {}
+    try { if (typeof chrome !== 'undefined' && chrome && chrome[name]) return chrome[name]; } catch (_) {}
+    try { if (typeof browser !== 'undefined' && browser && browser[name]) return browser[name]; } catch (_) {}
+    return null;
+  }
   function storage() {
-    try { return chrome.storage && chrome.storage.local; } catch (_) { return null; }
+    const s = part('storage');
+    try { return (s && s.local) || null; } catch (_) { return null; }
   }
+
+  // 本页的内存镜像。键面与 K 一一对应：开关 / 安装 id / 队列 / 软锁 / 日心跳 /
+  // 去重表 / 两个本机计数器。队列是对象数组，写入时整体替换（与 storage 的语义
+  // 一致），不做原地修改，避免读到一半的数组被另一笔 track 改掉。
+  const MEM = new Map();
+  let storageDead = false;
+
+  function keyList(keys) {
+    if (typeof keys === 'string') return [keys];
+    if (Array.isArray(keys)) return keys.slice();
+    if (keys && typeof keys === 'object') return Object.keys(keys);
+    return [];
+  }
+  function memGet(key) {
+    if (MEM.has(key)) return MEM.get(key);
+    // 缺省 = 开（设计 §2 第 4 条）。这也是 sget 超时时 `enabled()` 仍要看到的
+    // 值；不能因为桥不回话就把用户当成「关掉了遥测」。
+    if (key === K.on) return true;
+    return undefined;
+  }
+  function memSnapshot(keys) {
+    const out = {};
+    for (const k of keys) {
+      const v = memGet(k);
+      if (v !== undefined) out[k] = v;
+    }
+    return out;
+  }
+  function noteStorageDead(reason) {
+    if (storageDead) return;
+    storageDead = true;
+    try { console.warn('[mt] telemetry storage fallback (memory)', reason || 'unavailable'); } catch (_) {}
+  }
+
+  // 读：storage 正常 ⇒ 返回 storage 的值并写回 MEM；超时 / 抛 / 无 API ⇒ 返回
+  // MEM 的值。两种路径都只发一次 get。回调式和 Promise 式同时接（谁先到算谁），
+  // 同一个 promise 只 settle 一次。
   function sget(keys) {
+    const list = keyList(keys);
     return new Promise((resolve) => {
-      const s = storage(); if (!s) return resolve({});
-      try { s.get(keys, (r) => resolve(r || {})); } catch (_) { resolve({}); }
+      let settled = false;
+      let timer = null;
+      const finish = (r) => {
+        if (settled) return;
+        settled = true;
+        if (timer !== null) clearTimeout(timer);
+        const out = memSnapshot(list);
+        if (r && typeof r === 'object') {
+          for (const k of list) {
+            if (!Object.prototype.hasOwnProperty.call(r, k)) continue;
+            if (r[k] === undefined) continue;
+            out[k] = r[k];
+            MEM.set(k, r[k]);
+          }
+        }
+        resolve(out);
+      };
+      const fallback = (why) => {
+        if (settled) return;
+        settled = true;
+        if (timer !== null) clearTimeout(timer);
+        if (why) noteStorageDead(why);
+        // 超时不是错误：按内存值继续。MEM 没有的键就不返回（调用方自己按缺省处理）。
+        resolve(memSnapshot(list));
+      };
+      // 本页已经判定桥不响应：后续读直接用内存值，不再逐笔等 1.5s。
+      if (storageDead) return fallback(null);
+      const s = storage();
+      if (!s || typeof s.get !== 'function') return fallback('storage_unavailable');
+      // 先挂表再发起：get() 若同步抛，或回调永远不来，截止时间都已经在。
+      timer = setTimeout(() => fallback('timeout'), STORAGE_TIMEOUT_MS);
+      try {
+        const ret = s.get(list, (r) => finish(r || {}));
+        if (ret && typeof ret.then === 'function') {
+          ret.then((r) => finish(r || {}),
+            (e) => fallback(String((e && (e.message || e)) || 'rejected')));
+        }
+      } catch (e) {
+        fallback(String((e && (e.message || e)) || 'throw'));
+      }
     });
   }
+
+  // 写：先写 MEM（同步、永远成功），再调 storage。storage 正常时等它的回调
+  // 再 resolve；超时后本页转入内存模式。桥已死时仍然「调一次」storage（不等待），
+  // 让恢复后的桥有机会把内存里的队列落盘。
   function sset(obj) {
+    if (!obj || typeof obj !== 'object') return Promise.resolve();
+    for (const k of Object.keys(obj)) MEM.set(k, obj[k]);
+    const s = storage();
+    if (!s || typeof s.set !== 'function') return Promise.resolve();
+    if (storageDead) {
+      try {
+        const ret = s.set(obj, () => {});
+        if (ret && typeof ret.then === 'function') ret.then(() => {}, () => {});
+      } catch (_) {}
+      return Promise.resolve();
+    }
     return new Promise((resolve) => {
-      const s = storage(); if (!s) return resolve();
-      try { s.set(obj, () => resolve()); } catch (_) { resolve(); }
+      let settled = false;
+      let timer = null;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        if (timer !== null) clearTimeout(timer);
+        resolve();
+      };
+      timer = setTimeout(() => { noteStorageDead('set_timeout'); done(); }, STORAGE_TIMEOUT_MS);
+      try {
+        const ret = s.set(obj, done);
+        if (ret && typeof ret.then === 'function') ret.then(done, done);
+      } catch (_) { done(); }
     });
   }
+
   function sremove(keys) {
+    const list = keyList(keys);
+    for (const k of list) MEM.delete(k);
+    const s = storage();
+    if (!s || typeof s.remove !== 'function') return Promise.resolve();
+    if (storageDead) {
+      try {
+        const ret = s.remove(list, () => {});
+        if (ret && typeof ret.then === 'function') ret.then(() => {}, () => {});
+      } catch (_) {}
+      return Promise.resolve();
+    }
     return new Promise((resolve) => {
-      const s = storage(); if (!s) return resolve();
-      try { s.remove(keys, () => resolve()); } catch (_) { resolve(); }
+      let settled = false;
+      let timer = null;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        if (timer !== null) clearTimeout(timer);
+        resolve();
+      };
+      timer = setTimeout(() => { noteStorageDead('remove_timeout'); done(); }, STORAGE_TIMEOUT_MS);
+      try {
+        const ret = s.remove(list, done);
+        if (ret && typeof ret.then === 'function') ret.then(done, done);
+      } catch (_) { done(); }
     });
   }
 
@@ -86,6 +258,54 @@ var MTTelemetry = (() => {
     catch (_) { return false; }
   }
 
+  // BEL-304：本页传输探测。只问「SW 现在收不收得到消息」，不做任何网络 I/O。
+  // 它只是**快速跳过**：探测失败（无 receiver / lastError / throw / 超时）⇒ 本页
+  // 直接直连；探测成功只说明消息通道通，**不证明 SW 发得出去** ⇒ 本页第一批仍走
+  // SW，失败后由 send() 整页降级。结果缓存在模块内：每页只探一次。
+  // 两种 Safari 失败形态（sendMessage 立刻 lastError；回调根本不触发）都在这里
+  // 收敛成同一个 false —— 不依赖某一种实现细节。
+  let pageProbe = null;
+  // 本页判决：null = 未定（第一批按 probe 决定）；'sw' = 走 SW；'direct' = 已降级，
+  // 后续批次不再探测、不再发 telemetrySend。
+  let pageTransport = null;
+  function probeSw() {
+    if (pageProbe) return pageProbe;
+    pageProbe = new Promise((resolve) => {
+      let done = false;
+      const finish = (ok, reason) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        if (!ok) {
+          // 探针失败要留在本机计数器里（不是事件），并 warn；但不冒充「直连失败」——
+          // 直连还没试过。这里只加计数，警告由下面这一条 ping failed 承担。
+          bumpDirectFail();
+          try { console.warn('[mt] telemetry ping failed', reason || 'unavailable'); } catch (_) {}
+        }
+        resolve(ok);
+      };
+      const timer = setTimeout(() => finish(false, 'timeout'), PING_TIMEOUT_MS);
+      try {
+        // BEL-304 237：Safari 内容脚本可能只暴露 `browser.runtime`，不暴露
+        // `chrome.runtime`。探针也必须走同一套 api() 兜底，否则会把「没有
+        // chrome」误判成「后台不在」，白白整页直连。
+        const runtime = part('runtime');
+        if (!runtime || typeof runtime.sendMessage !== 'function') return finish(false, 'no_runtime');
+        const ret = runtime.sendMessage({ action: 'telemetryPing' }, (resp) => {
+          let lastError = null;
+          try { lastError = runtime.lastError; } catch (_) {}
+          if (lastError) return finish(false, String((lastError && lastError.message) || lastError));
+          finish(!!(resp && resp.ok), 'no_ok');
+        });
+        if (ret && typeof ret.then === 'function') {
+          ret.then((resp) => finish(!!(resp && resp.ok), 'no_ok'),
+            (e) => finish(false, String((e && e.message) || e || 'rejected')));
+        }
+      } catch (e) { finish(false, String((e && e.message) || e || 'throw')); }
+    });
+    return pageProbe;
+  }
+
   // SW 不可用 / 非 2xx / 超时 ⇒ false，调用方把批次放回队列。回调式与 Promise 式
   // 两种 sendMessage 都接；两种都不到就由 SW_TIMEOUT_MS 兜底，绝不悬着。
   function sendViaRuntime(url, init) {
@@ -94,7 +314,7 @@ var MTTelemetry = (() => {
       const finish = (ok) => { if (done) return; done = true; clearTimeout(timer); resolve(ok); };
       const timer = setTimeout(() => finish(false), SW_TIMEOUT_MS);
       try {
-        const runtime = (typeof chrome !== 'undefined' && chrome && chrome.runtime) || null;
+        const runtime = part('runtime');
         if (!runtime || typeof runtime.sendMessage !== 'function') return finish(false);
         const ret = runtime.sendMessage({ action: 'telemetrySend', url, init }, (resp) => {
           let lastError = null;
@@ -107,6 +327,40 @@ var MTTelemetry = (() => {
         }
       } catch (_) { finish(false); }
     });
+  }
+
+  // 本机直连失败计数（storage，不是事件）。探针失败与直连 fetch 失败都进这里；
+  // SW 失败本身**不**进 —— 那只是「这个通道不行」，直连还没试。
+  // 串行化读-改-写：探针失败与紧随其后的直连失败可能同拍发生，不串行会各读到
+  // 旧值、两次都写成 1。
+  let directFailChain = Promise.resolve();
+  function bumpDirectFail() {
+    const run = directFailChain.then(async () => {
+      try {
+        const r = await sget([K.directFail]);
+        const prev = Number(r[K.directFail]) || 0;
+        await sset({ [K.directFail]: prev + 1 });
+      } catch (_) {}
+    }, async () => {});
+    directFailChain = run.catch(() => {});
+    return run;
+  }
+  // BEL-304：直连失败是可观测的，但**不是丢弃**。队列仍由 flush 放回；
+  // CSP 挡住直连时事件留在队列里等下个扩展页 / 下一页。
+  async function noteDirectFail(reason) {
+    await bumpDirectFail();
+    try { console.warn('[mt] telemetry direct failed', reason); } catch (_) {}
+  }
+  async function sendDirect(url, init) {
+    try {
+      const r = await fetch(url, init);
+      if (r && r.ok) return true;
+      await noteDirectFail('http_' + String((r && r.status) || 0));
+      return false;
+    } catch (e) {
+      await noteDirectFail(String((e && (e.name || e.message)) || e || 'fetch_failed'));
+      return false;
+    }
   }
 
   // 丢弃不是静默的：本机计数器（storage，不冒充事件）+ 控制台警告。
@@ -153,13 +407,20 @@ var MTTelemetry = (() => {
   }
   function ui() {
     let lang = '';
-    try { lang = chrome.i18n.getUILanguage() || ''; } catch (_) {}
+    try {
+      const i18n = part('i18n');
+      if (i18n && typeof i18n.getUILanguage === 'function') lang = i18n.getUILanguage() || '';
+    } catch (_) {}
     if (!lang) { try { lang = navigator.language || ''; } catch (_) {} }
     const m = /^([a-z]{2,3})/i.exec(String(lang)); return m ? m[1].toLowerCase() : '';
   }
   function version() {
     try { if (window.MT_VERSION) return String(window.MT_VERSION); } catch (_) {}
-    try { return chrome.runtime.getManifest().version || ''; } catch (_) { return ''; }
+    try {
+      const runtime = part('runtime');
+      if (!runtime || typeof runtime.getManifest !== 'function') return '';
+      return runtime.getManifest().version || '';
+    } catch (_) { return ''; }
   }
   // 取整到分钟：精确时间是不采的东西之一。
   function ts(now) {
@@ -180,19 +441,40 @@ var MTTelemetry = (() => {
     if (rule === 'iso') return typeof v === 'string' && Number.isFinite(Date.parse(v));
     return false;
   }
-  // 返回可入队的事件，或 null（原因写在 reason 上，测试用）。
+  // 返回可入队的事件，或 null（只在这条事件根本不登记时）。
+  //
+  // BEL-294/BEL-298：表外 / 非法键**只丢该键，保留事件**。以前多一个未知键就把整条
+  // 事件（连同已校验的 code / provider / op_id）一起扔掉；现在丢的是键，不是归因。
+  // 被丢的键只记在本机 rech 环（事件名 + 键名，不记值）—— 值里可能是用户内容。
   function shape(name, props, now) {
     const sp = spec(); if (!sp || !sp.spec) return null;
     const ev = sp.spec.events || {};
     if (!Object.prototype.hasOwnProperty.call(ev, name)) return null;
     const out = {};
     const given = props || {};
+    const dropped = [];
     for (const k of Object.keys(given)) {
-      if (!Object.prototype.hasOwnProperty.call(ev[name], k)) return null;      // 表外的键：整条不要
-      if (!okValue(ev[name][k], given[k])) return null;
+      // BEL-294/BEL-298：status=0 不是「HTTP 0」，是「没有 status」。省略这个键，
+      // 让缺席看得出来；不要写一个假的整数。
+      if (name === 'translate_fail' && k === 'status' && given[k] === 0) continue;
+      if (!Object.prototype.hasOwnProperty.call(ev[name], k)) { dropped.push(k); continue; }
+      if (!okValue(ev[name][k], given[k])) { dropped.push(k); continue; }
+      out[k] = given[k];
     }
-    for (const k of Object.keys(given)) out[k] = given[k];
+    if (dropped.length) rejectNote(name, dropped);
     return { name, props: out, ts: ts(now) };
+  }
+  // BEL-294/BEL-298：被丢键的本机记录。只存事件名 + 键名，不存值。
+  const REJ_KEY = 'mt:tm:rech', REJ_CAP = 20;
+  function rejectNote(name, keys) {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      const prev = JSON.parse(localStorage.getItem(REJ_KEY) || '[]');
+      const q = Array.isArray(prev) ? prev : [];
+      q.push({ n: String(name).slice(0, 40), k: keys.slice(0, 6).map((x) => String(x).slice(0, 24)), ts: ts() });
+      while (q.length > REJ_CAP) q.shift();
+      localStorage.setItem(REJ_KEY, JSON.stringify(q));
+    } catch (_) {}
   }
 
   // ── 状态 ────────────────────────────────────────────────────────────────────
@@ -254,7 +536,53 @@ var MTTelemetry = (() => {
       } catch (_) { return undefined; }
     } catch (_) { return undefined; }
   }
+  // BEL-294/BEL-296：16-hex 操作 id。一次用户操作一个：translate_start 生成、
+  // translate_ok / translate_fail 沿用；engine_test 每次测试一个。只在本模块内存里
+  // 记「当前这次操作」，不进存储 —— 它是会话标识，不是安装/启动标识。
+  const opIds = Object.create(null);
+  function newOpId() {
+    try {
+      const b = new Uint8Array(8);
+      crypto.getRandomValues(b);
+      return [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
+    } catch (_) { return ''; }
+  }
+  // BEL-304：一批事件一个 16-hex 批次 id，放请求头 `x-mt-batch`（服务端按
+  // (install_id, batch_id) 去重）。它记在队列项的内部字段 `_b` 上，**不进 body**：
+  // envelope() 只挑白名单字段，BEL-294 的服务端会把未知顶层键丢掉。
+  function newBatchId() {
+    try {
+      const b = new Uint8Array(8);
+      crypto.getRandomValues(b);
+      return [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
+    } catch (_) {
+      let s = '';
+      for (let i = 0; i < 16; i += 1) s += Math.floor(Math.random() * 16).toString(16);
+      return s;
+    }
+  }
+  function withOpId(name, props) {
+    const p = Object.assign({}, props || {});
+    const kind = typeof p.kind === 'string' ? p.kind : '';
+    if (name === 'engine_test') {
+      if (!p.op_id) p.op_id = newOpId();
+      return p;
+    }
+    if (name === 'translate_start') {
+      if (!p.op_id) p.op_id = newOpId();
+      if (p.op_id) opIds[kind] = p.op_id;
+      return p;
+    }
+    if (name === 'translate_ok' || name === 'translate_fail') {
+      // 有 start 的 kind 沿用；没有 start 的路径（doc / quick / 无 start 的 subtitle）
+      // 每次终态生成一个，不把两条不相干的操作串起来。
+      if (!p.op_id) p.op_id = opIds[kind] || newOpId();
+      return p;
+    }
+    return p;
+  }
   function envelope(id, e) {
+    // BEL-304：只挑白名单字段。队列项上的内部字段 `_b`（批次 id）绝不能漏进 body。
     const out = {
       install_id: id, ts: e.ts, v: version(), flavor: buildFlavor(), host: host(),
       device: device(), ui: ui(), name: e.name, props: e.props,
@@ -300,7 +628,7 @@ var MTTelemetry = (() => {
         return false;
       }
       if (!(await enabled())) return false;
-      const e = shape(name, props, now);
+      const e = shape(name, withOpId(name, props), now);
       if (!e) return false;
       // grant_exhausted（telemetry-design §3.4）：09-08 进注册表，到 09-19 全仓库**零发送点**，
       // 线上 0 行 —— 而它是「这笔钱该不该继续花」的唯一依据。挂在这里而不是某个调用方：
@@ -342,22 +670,46 @@ var MTTelemetry = (() => {
       return true;
     } catch (_) { return false; }
   }
+  // Safari 内容页 10s、其余 60s。Safari 上 1–2 条事件的短页面等不到 10 条阈值，
+  // 60s 又常常比页面寿命长，所以内容页用更短的 10s。
+  function flushMs() {
+    return inWebPage() && host() === 'safari' ? FLUSH_MS_SAFARI : FLUSH_MS;
+  }
   function schedule() {
     if (flushTimer) return;
-    flushTimer = setTimeout(() => { flushTimer = null; flush(); }, FLUSH_MS);
+    flushTimer = setTimeout(() => { flushTimer = null; flush(); }, flushMs());
   }
-  async function send(events) {
+  async function send(events, batchId) {
     const sp = spec(); if (!sp || !sp.url) return false;
     const body = JSON.stringify(events);
     if (byteLen(body) > BODY_MAX) return false;
-    const init = { method: 'POST', body, keepalive: true, headers: { 'content-type': 'text/plain' } };
-    // 网页内容脚本：SW 代发（页面 CSP connect-src 'none' 也发得出去）。
-    // 扩展页 / App：保持直连 —— 它们的 fetch 不受页面 CSP 管。
-    if (inWebPage()) return sendViaRuntime(sp.url, init);
-    try {
-      const r = await fetch(sp.url, init);
-      return !!(r && r.ok);
-    } catch (_) { return false; }
+    const headers = { 'content-type': 'text/plain' };
+    const init = { method: 'POST', body, keepalive: true, headers };
+    // `x-mt-batch` 只在 global 加：东京 v76 的 CORS/唯一索引已放行该头；CN 的
+    // api.belliedmonkey.com 还没放行，带自定义头会先发 OPTIONS 预检、整批被挡。
+    // 所以 china 一律保持 content-type:text/plain 简单请求（SW 代发也遵守同一条，
+    // 便于按 flavor 解释线上行为）。批次 id 只走请求头，SW 转发原样带走。
+    const batchable = !!(batchId && buildFlavor() === 'global');
+    if (batchable) headers['x-mt-batch'] = batchId;
+    // 扩展页 / App：不探测，一直直连。
+    if (!inWebPage()) return sendDirect(sp.url, init);
+    // 本页已降级：后续批次不再探测、不再发 telemetrySend。
+    if (pageTransport !== 'direct') {
+      if (!pageTransport) {
+        const ok = await probeSw();
+        pageTransport = ok ? 'sw' : 'direct';
+      }
+      if (pageTransport === 'sw') {
+        const ok = await sendViaRuntime(sp.url, init);
+        if (ok) return true;
+        // 探头只证明消息到了后台；这里才是「后台发不发得出去」的判决。
+        // 立刻整页降级，并把**这一批**用直连重发一次；同一个 batch id / header
+        // （global）原样复用，服务端按 (install_id, batch_id, batch_seq) 去重。
+        pageTransport = 'direct';
+        try { console.warn('[mt] telemetry sw failed, page downgraded'); } catch (_) {}
+      }
+    }
+    return sendDirect(sp.url, init);
   }
   // 单飞（#387 后半，2026-09-22）：app.js 与 review.js 各调一次 init({flushNow})，同一页面里两个
   // flush 并发，都在对方清队列之前读到同一批 ⇒ 整批 POST 两遍（表里成对、相隔 20–50ms）。
@@ -383,20 +735,35 @@ var MTTelemetry = (() => {
       // 一批 ≤50 条，且编码后 ≤64KB —— SW 的体限不是「发送后才发现」的失败。
       // 正常事件（单条 ≤1KB 白名单值上限）远到不了，这里守的是异常膨胀。
       const batch = [];
+      const picked = [];
       let bytes = 2;                                   // "[]"
       for (const e of q.slice(0, 50)) {
         const row = envelope(id, e);
         const rowBytes = byteLen(JSON.stringify(row)) + (batch.length ? 1 : 0);
         if (batch.length && bytes + rowBytes > BODY_MAX) break;
-        batch.push(row); bytes += rowBytes;
+        picked.push(e); batch.push(row); bytes += rowBytes;
       }
-      const ok = await send(batch);
+      // BEL-304：同一批被放回队列后重发必须复用同一个 batch id（服务端按
+      // (install_id, batch_id, batch_seq) 去重）。队列只往尾部追加：失败批次回队时
+      // 老事件仍在队首，所以沿用队首的 `_b`。之后新入队的事件排在后面，服务端看到
+      // 的是同一个 batch id 下更大的 seq —— 旧行被去重、新行照常入库。
+      let batchId = '';
+      if (picked.length) {
+        const prev = picked[0] && picked[0]._b;
+        batchId = (typeof prev === 'string' && /^[0-9a-f]{16}$/.test(prev)) ? prev : newBatchId();
+        for (const e of picked) { if (e && typeof e === 'object') e._b = batchId; }
+      }
+      const ok = await send(batch, batchId);
       if (!ok) {
         const r2 = await sget([K.queue]);
         const q2 = Array.isArray(r2[K.queue]) ? r2[K.queue] : [];
         const merged = q.concat(q2);
         const over = Math.max(0, merged.length - QUEUE_CAP);
-        await sset({ [K.queue]: over ? merged.slice(over) : merged });
+        const keep = over ? merged.slice(over) : merged;
+        // 溢出丢的是队首老事件：同一个 batch id 下的 seq 会整体前移，再复用 id 会
+        // 让服务端把事件 A 当成事件 B 去重。让下一轮换新 id，宁可重复也不张冠李戴。
+        if (over) for (const e of keep) { if (e && typeof e === 'object') delete e._b; }
+        await sset({ [K.queue]: keep });
         if (over) await noteDropped(over);
       }
       return ok;
@@ -411,7 +778,7 @@ var MTTelemetry = (() => {
     if (r[K.id]) {
       await send([envelope(r[K.id], { name: 'telemetry_off', props: {}, ts: ts() })]);
     }
-    await sremove([K.id, K.queue, K.once, K.day, K.last, K.dropped]);
+    await sremove([K.id, K.queue, K.once, K.day, K.last, K.dropped, K.directFail]);
     await sset({ [K.on]: false });
     idFlight = null;                           // 下次打开要生成新 id，不能复用内存里的旧的
     initFlight = null;
@@ -491,6 +858,10 @@ var MTTelemetry = (() => {
   // 后来的调用等第一次的结果；flushNow 各自照办（flush 自带 5 秒软锁）。
   let initFlight = null;
   function init(opts) {
+    // BEL-304：内容脚本在 init 时启动本页唯一一次探测，但不阻塞 init（探测失败
+    // 时 400ms 才回；installed/heartbeat 不该等它）。send() 会 await 同一个 Promise，
+    // 所以即使 init 还没跑完，第一批也不会抢跑。
+    if (spec() && inWebPage()) probeSw();
     if (!initFlight) initFlight = initOnce();
     return initFlight.then(() => { if (opts && opts.flushNow) flush(); });
   }
@@ -508,7 +879,8 @@ var MTTelemetry = (() => {
 
   // 停留时长 → 桶（telemetry-design §3.9，2026-09-24）。注册表里 dwell 是枚举，
   // 所以这里**只能**吐出那四个值之一；算不出来（没记开始时间、时钟倒流）就吐 ''，
-  // 调用方据此**整个不带这个键** —— 带一个空串会被 shape() 判成非法值，整条事件丢掉。
+  // 调用方据此**整个不带这个键** —— 带一个空串会被 shape() 当成非法值剔掉
+  // （BEL-294/BEL-298：丢的是键，事件仍保留）。
   function dwell(startMs, now) {
     const t0 = Number(startMs);
     if (!Number.isFinite(t0) || t0 <= 0) return '';
@@ -531,8 +903,9 @@ var MTTelemetry = (() => {
   return {
     track, once, flush, init, enabled, setEnabled, installId, relayHeaders, dwell, buildNo,
     // 测试与调试
-    _shape: shape, _envelope: envelope, host, device, KEYS: K, FLUSH_AT, QUEUE_CAP,
-    SW_TIMEOUT_MS, BODY_MAX,
+    _shape: shape, _okValue: okValue, _envelope: envelope, host, device, KEYS: K, FLUSH_AT, QUEUE_CAP,
+    SW_TIMEOUT_MS, BODY_MAX, REJ_KEY, PING_TIMEOUT_MS, FLUSH_MS, FLUSH_MS_SAFARI,
+    STORAGE_TIMEOUT_MS,
     // 本机诊断（没有遥测规格时的 auth_fail）：只读出口，给测试与设备容器回读用。
     _diag: diag, DIAG_KEY: DIAG_KEY, DIAG_CAP: DIAG_CAP,
   };

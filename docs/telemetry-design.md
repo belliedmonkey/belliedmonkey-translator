@@ -116,7 +116,9 @@ If a proposed event does not serve one of these rows, it does not go in.
 **On every event:** `install_id` · `ts` (client time, rounded to the minute) · `v`
 (extension version) · `flavor` · `host` (`safari | chrome | firefox | app`, from
 `MTFeedback.host()`) · `device` (`iPhone | iPad | Mac | Windows | Android | Linux`,
-from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
+from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …) ·
+`build`（**可缺**，BEL-294/BEL-295：App 的 `CFBundleVersion`，从原生 caps 取；
+扩展没有独立包构建号 ⇒ 整键省略，不写 0）。
 
 | Event | Props | When | Seam (located 2026-09-05) |
 |---|---|---|---|
@@ -125,14 +127,14 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `onboarding_done` | `surface: ext \| app \| app_resume` · `result: done \| skipped \| shown \| dismissed \| expired \| web_only` · `step`（离开时停在哪一屏，取值与两个宿主的屏序数组同源） · `dwell: 0-2 \| 3-9 \| 10-29 \| 30+`（从引导出现到离开的秒数，**分桶**；只有 `ext` / `app` 带，`app_resume` 没有停留可言） | 引导**离开**时 —— 走完与跳过都发，靠 `result` 分开（2026-09-22，§3.6）。`surface:'app_resume'` = App 首页「继续设置」卡：出现（`shown`，每次启动至多一条）· 点 ✕（`dismissed`）· 第 4 次启动自动收起（`expired`）（2026-09-22，§3.8）。`dwell` 分开「没读就跳」与「读了还是跳」（2026-09-24，§3.9 提案 A）。`result:'web_only'` = 第一屏那条「我只要网页翻译 →」，与 done / skipped **并列**，只有 `surface:'app'` 会发（2026-09-24，§3.9 提案 B）。**← 2026-10-02（#547）：那条出口撤了 ⇒ `web_only` 不再产生**（枚举照留，用来收老客户端的行） | `extension/onboard/onboard.js` `finish()` · `src/app/shell-model.js` `obFinish()` 与 `obResumeTrack()` |
 | `onboard_intent` | `goal: read \| listen \| both` | 迎新首屏「你想怎么用」的选择（2026-09-28，#486/#487，用户评审通过；`interaction-spec.md`「迎新页意图分叉」）。只记选择，不含任何内容。选 `listen` 的人首页不挂扩展横幅 | `src/app/shell-model.js`（用户选定时） |
 | `engine_set` | `provider` | **配置真的完成了**（不是「在下拉里选了一下」） | `options.js` 的 `saveAll()` 末尾（`maybeTrackEngineSet`）· `app/settings.js` 的 `trackEngineSet()`（一键卡**与领免费额度**两条路都走它，§3.4）。**判据是 `EngineState.needsSetup`**，两个宿主同一个出口，不另写一份。2026-09-16 修正：此前挂在 provider 的 `change` 上，点开下拉就记一条 —— 理由见 §3.3 |
-| `engine_test` | `slot: chat \| notes \| tts \| stt` · `result: ok \| fail` · `code`（失败时，**自己的**枚举，见 §3.3.1）· `http`（失败时，100–599 的整数；越界不写）· `route: direct \| proxy`（失败时，拿不到不写）· `provider`（失败时，本次测试的 cfg；`id` 规则同 `engine_set.provider`）· `surface: listen \| live_caption \| quick \| doc \| web_caption \| setup_quick \| setup_fields \| setup_onboard`（BEL-290 追加后三值） | 用户点了一次「测试」并拿到结果（2026-09-16 用户裁定） | `learn/engine-test.js` 的**导出处**（`probe()` 包住四个方法）——设置页 / 字段行 / 一键卡 / 引导页都调这四个函数，包在这一层一处覆盖全部，也覆盖 App（该文件在 App 包里）。不带 key、不带端点、**不带 `serverMessage`**（它会引用用户输入，原则 1 明禁） |
+| `engine_test` | `slot: chat \| notes \| tts \| stt` · `result: ok \| fail` · `op_id`（16-hex，一次测试一个；可缺） · `code`（失败时，**自己的**枚举，见 §3.3.1）· `http`（失败时，100–599 的整数；越界不写）· `route: direct \| proxy`（失败时，拿不到不写）· `provider`（失败时，本次测试的 cfg；`id` 规则同 `engine_set.provider`）· `surface: listen \| live_caption \| quick \| doc \| web_caption \| setup_quick \| setup_fields \| setup_onboard`（BEL-290 追加后三值） | 用户点了一次「测试」并拿到结果（2026-09-16 用户裁定） | `learn/engine-test.js` 的**导出处**（`probe()` 包住四个方法）——设置页 / 字段行 / 一键卡 / 引导页都调这四个函数，包在这一层一处覆盖全部，也覆盖 App（该文件在 App 包里）。不带 key、不带端点、**不带 `serverMessage`**（它会引用用户输入，原则 1 明禁） |
 | `setup_apply_ok` | `surface: ext_settings \| app_feature \| onboard` · `wrote: none \| any` · `replaced: none \| grant` | 一键设定 `await onApply` 成功后（BEL-290，2026-11-17 产品定稿）。`wrote` 把「真的写了」与「三槽早已配好」的 no-op 分开；`replaced` 记「顶掉了免费额度」 | `src/shared/quick-setup-view.jsx`（三宿主共用；拍 B 落码） |
 | `setup_apply_fail` | `surface: ext_settings \| app_feature \| onboard` · `stage: precheck \| read \| write` · `code: no_key \| no_base \| storage \| unknown` | 一键设定的前置检查 / 读设置 / 写盘失败（BEL-290）。`verify` 归 `engine_test`，不双计；`e.message` 与任何自由文本都不进遥测 | `src/shared/quick-setup-view.jsx`（拍 B 落码） |
 | `settings_open` | `surface: app_home \| app_onboard \| app_feature \| ext_settings` | 设置页打开时一条（BEL-290 归因分母）；`settings_dwell` 按产品定稿不做 | App `src/app/shell-model.js` `openSettings`；扩展 `src/pages/options.jsx` boot（拍 B 落码） |
 | `perm_denied` | —（零 props） | 站点访问权限被拒（BEL-290）。只从扩展 popup 发，权限 / 表面 / fail-closed 三个条件同时成立才发；`permission` 只有 host、`surface` 只有 popup 两个常量，不重复进 props | `src/pages/popup.jsx`（拍 B 落码）；App 有意不发 |
 | `auth_fail` | `provider: apple \| google \| email \| phone \| unknown` · `stage: prepare \| authorize \| exchange \| id_token \| native \| otp \| verify \| password \| post_login \| unknown` · `code`（归一化的错误码，`id` 型）· `http`（int，没有响应就 0）· `attempt: 1 \| 2+`（**本页面/会话里第几次失败**，`1` = 第一次） | 一次登录失败（2026-10-02，§3.14；用户报「新账号第一次登录失败、第二次成功」，第三方登录，扩展与 App 都有）。此前登录失败只在用户眼前一闪，服务端零行 | `extension/learn/auth.js` 的六个断点（prepare / authorize / exchange / id_token / otp / verify）——两宿主同一份字节。App 原生那一步（`apple-result` 带 error）由 `src/app/shell-model.js` 调 `LearnAuth.noteAuthFail('apple','native',…)` |
-| `translate_ok` | `provider` `kind: page \| subtitle \| doc \| quick` `ms` `surface: listen \| live_caption \| quick \| doc \| web_caption`（BEL-223；`kind` 保留） | **once per page session** (first translation painted), never per paragraph | `content-webpage.js` `makeEngine().onOk`（`okSent` 每会话一次；2026-09-10 修正，此前写的 `tick()` 与代码不符）· `subtitle-adapter.js` `onOk` · `learn/doc-view.js` `onOk`（`kind:'doc'`，两宿主同一份字节）· **App 的听译/实时字幕（2026-09-16）**：`app/listen.js` 定稿出译文处，`kind:'subtitle'` —— **不新增 kind**，理由见 §3.3 |
-| `translate_fail` | `provider` `kind: page \| subtitle \| doc \| quick`（与 `translate_ok` **同一枚举**，BEL-247） `code` `status` (number only) `route` `ms`（**这一次请求**的耗时；与 `translate_ok.ms` 含义不同，后者是「从开启到第一段译文」—— 2026-09-24，§3.11 A 提案，落地前它量的是页面会话已开多久，**历史数据不可用于延迟分析**） | a request fails for good | `translation-core.js` where `it._err = true`; `code` ∈ `timeout / network / http / reasoning_starved / no_base / unknown_provider / credit_exhausted / grant_unavailable / model_not_allowed / auth / stalled`（`stalled` = 单单元 120 s 不落地；BEL-247） from `translation-api.js`（`credit_*`/`grant_*`/`model_*` 来自免费额度中继，§8.10；**`auth`** = 2026-09-10 加：HTTP 401/403 且请求带了**非空、非额度令牌**的 key —— 「这把 key 被服务商拒绝」，引擎停机，见 §3.1） · **2026-09-19（§3.4 裁定 A、B）**：`app/listen.js` 定稿句译文失败处（每会话每 code 一条）· `learn/doc-view.js` 的 `onFail`（每页一条，两宿主同一份字节） |
+| `translate_ok` | `provider` `kind: page \| subtitle \| doc \| quick` `ms` `op_id`（16-hex，与同一次操作的 start/fail 相同；老行 NULL） `surface: listen \| live_caption \| quick \| doc \| web_caption`（BEL-223；`kind` 保留） | **once per page session** (first translation painted), never per paragraph | `content-webpage.js` `makeEngine().onOk`（`okSent` 每会话一次；2026-09-10 修正，此前写的 `tick()` 与代码不符）· `subtitle-adapter.js` `onOk` · `learn/doc-view.js` `onOk`（`kind:'doc'`，两宿主同一份字节）· **App 的听译/实时字幕（2026-09-16）**：`app/listen.js` 定稿出译文处，`kind:'subtitle'` —— **不新增 kind**，理由见 §3.3 |
+| `translate_fail` | `provider` `kind: page \| subtitle \| doc \| quick`（与 `translate_ok` **同一枚举**，BEL-247） `op_id`（16-hex，同一次操作沿用） `code` `status` (number only；BEL-294 起 `0` 不写、整键省略) `route` `ms`（**这一次请求**的耗时；与 `translate_ok.ms` 含义不同，后者是「从开启到第一段译文」—— 2026-09-24，§3.11 A 提案，落地前它量的是页面会话已开多久，**历史数据不可用于延迟分析**） | a request fails for good | `translation-core.js` where `it._err = true`; `code` ∈ `timeout / network / http / reasoning_starved / no_base / unknown_provider / credit_exhausted / grant_unavailable / model_not_allowed / auth / stalled / cancelled`（`stalled` = 单单元 120 s 不落地；BEL-247） from `translation-api.js`（`credit_*`/`grant_*`/`model_*` 来自免费额度中继，§8.10；**`auth`** = 2026-09-10 加：HTTP 401/403 且请求带了**非空、非额度令牌**的 key —— 「这把 key 被服务商拒绝」，引擎停机，见 §3.1） · **2026-09-19（§3.4 裁定 A、B）**：`app/listen.js` 定稿句译文失败处（每会话每 code 一条）· `learn/doc-view.js` 的 `onFail`（每页一条，两宿主同一份字节） |
 | `subtitle_on` | `site: youtube \| substack \| podcast \| other` (a **class**, not a domain) | a subtitle session starts | `subtitle-adapter.js` `setActive(true)` |
 | `capture_first` | — | first capture ever written on this install | `learn-collector.js` inside the write-success callback — **never** on the failure path (Collector law 2) |
 | `doc_open` | `kind: pdf \| docx \| txt \| image` · `pages` (int) | a document is opened in the reader（2026-09-11，learning-design §9.7）；`translate_ok{kind:'doc'}` 是该文档第一页译文落地那一次 | `learn/doc-view.js` 打开文档处（两个宿主同一份代码）。不带文件名、字数、页文本 —— 只回答「有没有人用、文档多大」 |
@@ -148,7 +150,7 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `mic_permission` | `permission_state: prompted \| granted \| denied \| restricted \| not_determined` · `kind: mic \| system` · 可选 `engine` · `locale_pair` · `surface: listen \| live_caption` | App 读到麦克风（或 Mac 系统录音）权限的结果。系统框弹出记 `prompted`，框关掉记最终态；回到前台（含从系统设置返回）再读一次。同一种 `kind`+状态不重复记。**不是**自由文本 | `src/app/listen-model.js`：原生 `mic-perm`（启动 / 回前台 / 请求回调）与 `mic-state` 的 granted·denied·waiting-permission。扩展不发（§3.16） |
 | `asr_start` | 可选 `engine` · `locale_pair` · `surface: listen \| live_caption` | App 里用户**真的开始一场听译或实时字幕**（开麦那一下），每场一次。打开页面只算 `asr_entry` | `src/app/listen-model.js` `micStart()`；若在开麦前就停机，由 `asr_fail` 补记这一条，使「开了又失败」成对 |
 | `asr_fail` | `fail_reason`（短枚举，见 §3.16）· 可选 `engine` · `locale_pair` | 这一场听译/字幕**停机**，每场第一条。用户暂停、点结束、断线重连中途都不算。`fail_reason` 禁止塞系统长文 | `src/app/listen-model.js` `halt()`（`socket-retry` 除外）与开麦前的名额已满 |
-| `translate_start` | 可选 `engine` · `locale_pair` · `kind: page \| subtitle \| doc \| quick` · `surface: listen \| live_caption \| quick \| doc \| web_caption`（仅 App，可缺） | 页面翻译每会话一条 `kind:'page'`（BEL-290）；App 这场已经有识别文字、**并且翻译请求即将发出**，每场一次。没配引擎、请求没发出去，不记 —— 那一格就是「听过但翻译没跑」 | `extension/content/content-webpage.js` `enable()` · `src/app/listen-model.js`：`translate()` / `passRow()` / `segCall()` 真正调用翻译之前 |
+| `translate_start` | 可选 `engine` · `locale_pair` · `kind: page \| subtitle \| doc \| quick` · `surface: listen \| live_caption \| quick \| doc \| web_caption`（仅 App，可缺） · `op_id`（16-hex，在这一刻生成；同一次操作的 ok/fail 沿用） | 页面翻译每会话一条 `kind:'page'`（BEL-290）；App 这场已经有识别文字、**并且翻译请求即将发出**，每场一次。没配引擎、请求没发出去，不记 —— 那一格就是「听过但翻译没跑」 | `extension/content/content-webpage.js` `enable()` · `src/app/listen-model.js`：`translate()` / `passRow()` / `segCall()` 真正调用翻译之前 |
 | `telemetry_off` | — | the user turns the switch off | settings switch `change` |
 | `offline_video_asr_task` | `result: ok \| fail \| cancelled` · `code`（失败或取消时，见 §3.15；成功不带 `code`） | Mac App 一条完整视频离线字幕任务结束。**不是**听译漏斗，扩展不发 | `app/offline-video-asr.js`（只发 `result` 与 `code`） |
 | `grant_debited` | `surface: listen \| live_caption \| quick \| doc \| web_caption` · `kind: chat \| tts \| stt` | 免费额度**记账成功**时记一条（BEL-224）：回答「哪个功能面、哪一档真的花掉了额度」。只在 `bt_grant_charge` 写成功那一步记，不按请求或重试记；不带金额、模型、内容 | hosted `bt_grant_charge` 调用点（`functions/bt-relay`；P0 落码，P1 客户端补 `install_id` / `surface`） |
@@ -213,6 +215,35 @@ post-1.19.4 窗里海外 App 是 `installed` → `asr_entry` → `translate_ok`�
 （403 钉住模型）、`grant_unavailable`（503 池空）—— 不在枚举里的 code 会被客户端白名单
 **静默丢掉**，于是「有多少人用完了」这个数永远是 0，而那正是判断这笔钱该不该继续花的
 唯一依据。台账与遥测可由 `install_id` 连接（原则 7；仅支持与滥用排查，不进第三方）。
+
+### 3.17 2026-11-17（BEL-294 合约：build / op_id / 丢键保事件 / 取消）
+
+**BEL-295 `build`。** 公共信封加 `build: int`（可缺）。`v` 是营销版本，回答不了「同版本
+的哪一次构建」；App 从原生 caps 的 `CFBundleVersion` 取（iOS / macOS 同一份
+`MTAudioBridge`，documentStart 注入 `MT_APP_CAPS`，`NativeAudio.caps()` 合并它），
+拿不到就**整键省略**，不写 0；扩展没有独立包构建号，同样省略。服务端把 `build` 列入
+「可缺省例外」（与 `device` / `ui` 同组），1.23.3 老客户端不带它不会整条拒。
+
+**BEL-296 `op_id`。** 只加在 `translate_start / translate_ok / translate_fail` 与
+`engine_test`：16-hex，`id` 型，一次用户操作一个。客户端在 `translate_start` 生成，
+同一次操作的 terminal 沿用；`engine_test` 每次测试生成一个。老行没有这个键 ⇒ NULL。
+**不给 `grant_debited / grant_debit_fail` 加**：那两条是服务端记账事件；下载继续用
+`download_id`，`launch_id` 不替代 `op_id`。
+
+**BEL-298 丢键保事件。** 客户端 `shape()` 与服务端 `validate()` 对未知 / 非法属性都只丢
+该键、保留事件其余字段；只有未知事件名、非对象、超限这类「整条没有可保留的东西」才进
+`rejected`。服务端把被丢键写进 `bt_events_rejected`（复用 BEL-293 的
+`bt_event_rejected_bump`，`n` 按事件数），响应加 `droppedKeys`。客户端多一个未知键时
+事件仍发出，未知键被剔除并记进本机 rech 环（只记事件名 + 键名，不记值）。
+
+**取消与超时分码。** `translate_fail.code` 加 `cancelled`：用户主动取消记 `cancelled`，
+不计入 `timeout` / 连续超时熔断。`status = 0` 不再作为状态码写进事件 —— 整键省略，
+让「没有 HTTP 响应」与「HTTP 0」不再混在同一列。
+
+**事件量台阶。** 本拍之后事件总量会**台阶式上移**：此前「多一个未知/非法键 ⇒ 整条丢弃」
+的客户端与服务端行为同时取消，加上 `translate_start` 与 `engine_test` 的 `op_id` 不再
+因一个坏键拖垮整条，历史对比要按 2026-11-17 划线（上线前 vs 上线后），不能把台阶读成
+增长。被丢键的规模看 `bt_events_rejected.n`，不看 `rejected` 条数。
 
 ### 3.1 2026-09-10 amendment（第八期：评分为 0 的真因是激活）
 
@@ -964,8 +995,9 @@ App 原生那一步（`apple-result` 带 `error`）经 `LearnAuth.noteAuthFail('
 
 - **Client module** `extension/learn/telemetry.js` (`MTTelemetry`). `track(name, props)`
   only enqueues (key `tm:queue` in `chrome.storage.local`, cap 200, drop oldest).
-  `flush()` runs when the queue reaches 10, or 60 s have passed, or any extension page
-  opens. The host app runs the same bytes via `Script.js`.
+  `flush()` runs when the queue reaches 10, or 60 s have passed (Safari content pages:
+  10 s), or an extension page opens, or the page fires `pagehide` /
+  `visibilitychange` while hidden. The host app runs the same bytes via `Script.js`.
 - **BEL-277 transport split**: on an **http/https page** the content script cannot rely
   on `fetch` — the visited page's CSP (`connect-src`) can block it. It sends
   `{ action:'telemetrySend', url, init }` to the service worker instead; the SW fetches
@@ -974,9 +1006,15 @@ App 原生那一步（`apple-result` 带 `error`）经 `LearnAuth.noteAuthFail('
   `providers.gen.js`) and a body ≤ 64 KB; every other URL is rejected. **Extension
   pages and the App keep the direct `fetch(keepalive)` path** (their fetches are not
   governed by a page CSP).
-- **Queue + drops**: a failed SW round trip (unavailable / timeout / non-2xx) returns
-  `ok:false`, and `flush()` puts the batch back at the queue tail. Queues over 200 drop
-  the oldest rows and increment the local storage counter `mtTelemetryDropped` plus
+- **Queue + drops**: a probe is only a fast skip — probe failure sends the page direct,
+  but probe success does **not** prove the SW can reach the network. The first batch of
+  the page still goes through the SW; a failed SW round trip (unavailable / timeout /
+  non-2xx) downgrades the whole page (`pageTransport = 'direct'`) and retries **that
+  batch** once over direct with the same batch id (`x-mt-batch`, global builds), while
+  a `console.warn('[mt] telemetry sw failed, page downgraded')` makes the downgrade
+  non-silent. Only a failed direct retry returns `ok:false`, and `flush()` puts the
+  batch back at the queue tail. Queues over 200 drop the oldest rows and increment the
+  local storage counter `mtTelemetryDropped` plus
   `console.warn('[mt] telemetry dropped', n)` — a drop is never silent. The counter is
   local storage, not a telemetry event.
 - **Endpoint** global: `MT_BACKEND.url + '/functions/v1/bt-ingest'`. China: `MT_BACKEND.china.url + '/functions/v1/bt-ingest'` (in-country; never `*.supabase.co`). `build.js` emits `window.MT_TELEMETRY = { url, spec }` into `providers.gen.js` (which content scripts already
@@ -988,6 +1026,13 @@ App 原生那一步（`apple-result` 带 `error`）经 `LearnAuth.noteAuthFail('
   limit (60/min); on `telemetry_off`, one RPC `bt_forget_install` **atomically** deletes
   that install's `bt_events` rows and its matching `bt_auth_ok` rows; it does **not**
   touch `bt_grant_usage` (billing rows, 90-day retention); writes with the service role.
+- **Server validation (BEL-294/BEL-298)**: `validate()` returns `{row, dropped}`.
+  Unknown / invalid keys are **removed from the row, not the event**; only
+  non-object / too-big / unknown-event (and a missing required common field) go to
+  `rejected`. Dropped keys are written to `bt_events_rejected` via
+  `bt_event_rejected_bump(p_name, p_keys, p_n)` (`n` = number of events), and the
+  response carries `droppedKeys` (unique key names). `build` joins `device` / `ui`
+  in the optional-common set, so 1.23.3 clients that do not send it are still accepted.
 - **Table** (`supabase/schema.sql`): `bt_events(id bigint identity, install_id uuid,
   ts timestamptz, v text, flavor text, host text, device text, ui text, name text,
   props jsonb, received_at timestamptz default now())`. RLS **denies everything** to
@@ -998,6 +1043,35 @@ App 原生那一步（`apple-result` 带 `error`）经 `LearnAuth.noteAuthFail('
   `install_id`.
 - **Volume**: ~200 installs/month × ~10 events per active day — tens of thousands of
   rows a month, inside the free tier.
+
+### 4.1 Safari 传输与 CSP 的已知边界（BEL-304，2026-11-18）
+
+2026-11-18 的 14 Pro / 1.23.4(234) 真机取证把「SW 可用」拆成了两件事：App 与扩展页
+事件到达、Safari 内容脚本 0 行，而 `heartbeat`（扩展页）到了。`telemetryPing` 能通
+只证明**消息到得了后台**，不证明**后台发得出去** —— 探头因此只当快速跳过，不作判决。
+
+- **判决在 `sendViaRuntime`。** probe 失败 ⇒ 本页直接直连；probe 成功 ⇒ 本页第一批
+  仍走 SW。SW 返回 `{ok:false}` / throw / lastError / 15 s 超时 ⇒ 立即整页降级
+  （本页后续批次不再探测、不再发 `telemetrySend`），并把**这一批**用直连重发一次，
+  复用同一个 batch id / `x-mt-batch`。服务端 v76 的
+  `(install_id, batch_id, batch_seq)` 唯一索引负责重发幂等。直连也失败 ⇒ `flush()`
+  返回 false，批次按原语义回队列尾（不丢、不重复入队）。SW 失败只 warn
+  （`[mt] telemetry sw failed, page downgraded`），不记成直连失败；探针失败记
+  `mtTelemetryDirectFail` + warn，直连 fetch 失败也记同一个计数器。
+- **直连受页面 CSP 管。** 网页里的 `fetch` 由 `connect-src` 决定；`apple.com` 这类
+  严格 CSP 若挡住直连，事件只留在队列里等下一次 flush。若该页的 SW 也不可用，
+  这一页的遥测就会丢 —— **这是已接受的边界**，但不静默：本机
+  `mtTelemetryDirectFail` 计数器 + `console.warn`，队列本身不丢。无 CSP 的站点
+  （如 `example.com`）在 SW 不可用时仍可直连送达。
+- **`x-mt-batch` 只在 global 加。** 东京 v76 已放行 `content-type, x-mt-batch`；
+  CN 的 `api.belliedmonkey.com` 还没放行。所以 `buildFlavor() === 'global'` 时 SW、
+  网页直连、扩展页 / App 直连都带这个头；`china` 一律不带，保持
+  `content-type: text/plain` 的简单请求（不触发预检）。在 CN 放行该头之前，
+  中国版的失败重发没有批次 id、无法按批次去重 —— 与「CN 这轮不动」的边界一致。
+- **Safari 的 60 s 定时器不是唯一出口。** Safari 内容页的 `schedule()` 改为 10 s，
+  其余宿主仍 60 s；`init()` 另一次性挂 `pagehide` 与 `visibilitychange(hidden)`，
+  让只有 1–2 条事件的短页面不必等满 10 条阈值。`tm:last` 的 5 s 软锁、先清后发、
+  失败回队列、≤50 条 / 64 KB、`keepalive:true` 都不变。
 
 ## 5. What the user sees
 

@@ -4433,5 +4433,41 @@
   },
   "app_e1_note": {
     "message": "Activé par défaut pour le chinois (zh) uniquement. Le modèle se télécharge en arrière-plan à la première utilisation (environ 160 Mo) ; jusqu'à la fin du téléchargement et en cas d'échec, la dictée du système est utilisée. La modification prend effet à la session suivante. La désactivation rétablit la dictée du système."
+  },
+  "halt_balance_row": {
+    "message": "Ce moteur n'a plus de crédit — touchez pour changer",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_balance_title": {
+    "message": "Le compte de ce moteur n'a pas de solde",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_balance_next": {
+    "message": "Le fournisseur a renvoyé 402 : le compte de cette clé n'a plus d'argent. Après recharge, touchez « Tester la connexion » ci-dessous ; vous pouvez aussi passer à une clé avec du solde, ou changer de moteur.",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_switch_engine": {
+    "message": "Changer de moteur",
+    "description": "BEL-274 fail surface"
+  },
+  "halt_no_base_row": {
+    "message": "Ce moteur a besoin d'une adresse — touchez pour la saisir",
+    "description": "BEL-274 fail surface"
+  },
+  "no_base_field_hint": {
+    "message": "Pas encore d'adresse : ce moteur a besoin d'une adresse de service pour fonctionner. Indiquez le protocole et le chemin, par exemple https://your-host/v1",
+    "description": "BEL-274 fail surface"
+  },
+  "halt_streak_row": {
+    "message": "3 échecs d'affilée — touchez pour traiter",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_streak_title": {
+    "message": "3 échecs d'affilée",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_streak_next": {
+    "message": "Ce moteur n'a pas réussi 3 fois d'affilée ; le dernier était HTTP 429 (limite de débit). Le plus souvent, c'est la configuration ou le quota, changer de moteur est plus rapide ; vous pouvez aussi réessayer.",
+    "description": "BEL-274 fail surface"
   }
 }

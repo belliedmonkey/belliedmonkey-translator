@@ -290,6 +290,10 @@ async function handleTelemetrySend(msg) {
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  // BEL-304：内容脚本的**每页一次**传输探测。只回答「SW 现在收不收得到消息」，
+  // 立刻回、不做任何 I/O。iOS Safari 锁屏后 SW 会永久不可用 —— 那种情况下这条
+  // 消息要么 lastError、要么回调不触发，内容脚本按 400ms 超时判本页直连。
+  if (msg && msg.action === 'telemetryPing') { sendResponse({ ok: true }); return; }
   if (!msg || msg.action !== 'telemetrySend') return;
   handleTelemetrySend(msg).then(sendResponse, () => sendResponse({ ok: false, error: 'internal' }));
   return true;

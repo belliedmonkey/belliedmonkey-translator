@@ -2395,4 +2395,39 @@ final class S56UITests: XCTestCase {
         }
         sleep(2); dump(app1170, "rev1170-final"); shot("rev1170-final", full: true)
     }
+
+    // BEL-304 内容脚本真机：打开 example.org，点 FAB 翻一页，留够 10s flush + SW 失败重发。
+    // 236 是 A 案首次取证的测试；237 是存储桥兜底：点后 15s 内查 translate_start 必须落表。
+    func testBel304Content236() throws { try bel304Content(version: "236", waitAfterTap: 22) }
+    func testBel304Content237() throws { try bel304Content(version: "237", waitAfterTap: 15) }
+
+    private func bel304Content(version: String, waitAfterTap: UInt32) throws {
+        XCUIDevice.shared.system.open(URL(string: "https://example.org/?v=\(version)")!)
+        sleep(8)
+        let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
+        allowSystemAlerts("bel304", timeout: 2)
+        var fab = safari.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'mt-fab'")).firstMatch
+        var found = fab.waitForExistence(timeout: 10)
+        if !found {
+            // Safari iOS 不把 DOM id 放进 AX 树，只暴露 #mt-fab 的 aria-label（BEL-304 实测：
+            // identifier 候选 0，label「切换翻译」可点）。测试侧兜底，不改客户端。
+            let byLabel = safari.descendants(matching: .any)
+                .matching(NSPredicate(format: "label == '切换翻译' OR label == 'Translate' OR label == '翻译'")).firstMatch
+            if byLabel.waitForExistence(timeout: 3) {
+                fab = byLabel; found = true
+                note("bel304 fab found via label '\(byLabel.label)'")
+            }
+        }
+        note("bel304 fab found=\(found) hittable=\(found ? fab.isHittable : false)")
+        if found && fab.isHittable {
+            fab.tap(); note("bel304 fab tapped epoch=\(Date().timeIntervalSince1970)")
+        } else {
+            let all = safari.descendants(matching: .any)
+                .matching(NSPredicate(format: "identifier == 'mt-fab'")).allElementsBoundByIndex
+            note("bel304 fab candidates=\(all.count) " + all.prefix(4).map { $0.debugDescription }.joined(separator: " | "))
+        }
+        sleep(waitAfterTap)
+        shot("bel304-content-\(version)", full: true)
+    }
 }

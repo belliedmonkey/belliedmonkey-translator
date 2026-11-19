@@ -238,7 +238,7 @@ var SubtitleAdapter = (() => {
           provider: String((settings && settings.provider) || ''),
           kind: 'subtitle',
           code: (e && typeof e.code === 'string') ? e.code : 'network',
-          status: Number.isInteger(e && e.status) ? e.status : 0,
+          ...(Number.isInteger(e && e.status) ? { status: e.status } : {}),
           route: (e && e.route === 'proxy') ? 'proxy' : ((e && e.route === 'direct') ? 'direct' : ''),
         };
         if (Number.isInteger(e && e.ms)) fail.ms = e.ms;
@@ -255,6 +255,12 @@ var SubtitleAdapter = (() => {
       // `translate` above was already a late-reading closure; this now matches it.
       // See docs/domain-design.md §4.
       targetLang: () => settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
+      // BEL-274: same 400/429 threshold identity as the page engine (provider+endpoint+model).
+      failKey: () => [
+        TranslationAPI.resolveProvider(settings.provider),
+        String(settings.apiBaseUrl || ''),
+        String(settings.apiModel || ''),
+      ].join('|'),
       // Optional browser-native detector — see docs/domain-design.md §5.3. Probed in
       // the adapter, never inside TranslationCore. Absent on every Safari.
       detect: (typeof LangDetect !== 'undefined' && LangDetect.available())

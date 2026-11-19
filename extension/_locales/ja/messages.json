@@ -4433,5 +4433,41 @@
   },
   "app_e1_note": {
     "message": "中国語（zh）のみ既定でオンです。初回使用時にモデルをバックグラウンドでダウンロードします（約 160MB）。ダウンロード完了前および失敗時はシステムの音声入力を使用し、完了後の次回セッションから有効になります。オフにするとシステムの音声入力に戻ります。"
+  },
+  "halt_balance_row": {
+    "message": "このエンジンは残高がありません — タップして切り替え",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_balance_title": {
+    "message": "このエンジンのアカウントに残高がありません",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_balance_next": {
+    "message": "プロバイダーが 402 を返しました：この Key のアカウントにお金がありません。チャージ後、下の「接続をテスト」をタップしてください。残高のある Key に切り替えるか、エンジンを変更することもできます。",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_switch_engine": {
+    "message": "エンジンを変更",
+    "description": "BEL-274 fail surface"
+  },
+  "halt_no_base_row": {
+    "message": "このエンジンにはアドレスが必要です — タップして入力",
+    "description": "BEL-274 fail surface"
+  },
+  "no_base_field_hint": {
+    "message": "アドレスが未入力です：このエンジンはサービスアドレスがないと動作しません。プロトコルとパスを含めてください（例：https://your-host/v1）",
+    "description": "BEL-274 fail surface"
+  },
+  "halt_streak_row": {
+    "message": "3 回連続で失敗 — タップして対処",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_streak_title": {
+    "message": "3 回連続で失敗",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_streak_next": {
+    "message": "このエンジンは 3 回連続で成功していません。直近は HTTP 429（レート制限）でした。多くは設定か利用上限の問題で、エンジンを変えるほうが早いです。もう一度試すこともできます。",
+    "description": "BEL-274 fail surface"
   }
 }

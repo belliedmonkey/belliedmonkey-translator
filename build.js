@@ -1562,6 +1562,7 @@ validateManifest(DIST, isFirefox);
 //   故显式重钉，未改 BUDGET。
 //   BEL-273: +10838 bytes (i18n table +5419 × 2 blocks); 7932 over the old budget;
 //   global and firefox both measure 4305753.
+// 2026-11-19 回补 BEL-274 失败面 13 locale × 9 条文案；PIN 仍 4305753，+150KB 预算覆盖增量。
 function contentSyncBytesGate(distDir) {
   const manifest = JSON.parse(fs.readFileSync(path.join(distDir, "manifest.json"), "utf8"));
   let total = 0;

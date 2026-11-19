@@ -160,7 +160,11 @@ Rules:
     // 保留 name：BEL-247 / ACCEPT-6 要遥测仍能看见 `AbortError`（而不是被冲成
     // 泛泛的 Error）。`code` 仍是 timeout，分类与遥测的既有判据不变。
     if (e && e.name) err.name = e.name;
-    err.code = (e && e.name === 'AbortError') ? 'timeout' : 'network';
+    // BEL-294/BEL-298：调用方主动取消（e.cancelled / e.code === 'cancelled'）与
+    // 超时分码；取消不计 timeout。计时器自己 abort 的 AbortError 仍是 timeout。
+    if (e && (e.cancelled === true || e.code === 'cancelled')) err.code = 'cancelled';
+    else if (e && e.code === 'timeout') err.code = 'timeout';
+    else err.code = (e && e.name === 'AbortError') ? 'timeout' : 'network';
     // ACCEPT-6：proxy 超时走的是「**保留原回退**」那一条 —— 名字还原成 AbortError
     // 之后，如果只看 code!=='network' 就不再回退直连，等于改了 BEL-114 的路由策略。
     // 这个标志让 apiFetchInner 仍然执行原来的回退，遥测同时拿到 AbortError。

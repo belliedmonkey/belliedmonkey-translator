@@ -4434,5 +4434,41 @@
   },
   "app_e1_note": {
     "message": "預設開啟，僅中文（zh）。首次使用會在背景下載約 160MB；下載完成前及失敗時仍用系統聽寫，完成後的下一次工作階段生效。關閉後回到系統聽寫。"
+  },
+  "halt_balance_row": {
+    "message": "這個引擎沒餘額了 —— 點此去換",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_balance_title": {
+    "message": "這個引擎的帳戶沒有餘額",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_balance_next": {
+    "message": "服務商回了 402：這把 Key 的帳戶沒錢了。儲值後點下面的「測試連線」；也可以換一把有餘額的 Key，或者換引擎。",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_switch_engine": {
+    "message": "換引擎",
+    "description": "BEL-274 fail surface"
+  },
+  "halt_no_base_row": {
+    "message": "這個引擎要填地址 —— 點此去填",
+    "description": "BEL-274 fail surface"
+  },
+  "no_base_field_hint": {
+    "message": "還沒填地址：這個引擎必須先有服務地址才會工作。地址要帶協定和路徑，例如 https://your-host/v1",
+    "description": "BEL-274 fail surface"
+  },
+  "halt_streak_row": {
+    "message": "連續 3 次失敗 —— 點此去處理",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_streak_title": {
+    "message": "連續 3 次都失敗",
+    "description": "BEL-274 fail surface"
+  },
+  "fail_streak_next": {
+    "message": "同一個引擎連續 3 次沒成功，最近一次是 HTTP 429（限流）。多數時候是設定或限額的問題，換引擎更快；想再試一次也可以。",
+    "description": "BEL-274 fail surface"
   }
 }
