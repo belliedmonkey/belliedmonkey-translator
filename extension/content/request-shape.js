@@ -32,6 +32,16 @@ var RequestShape = (() => {
   // 唯一的一份。原来 translation-api.js 与 notes.js 各写了一个 0.3。
   const DEFAULT_TEMPERATURE = 0.3;
 
+  // ─── BEL-280：TEST BUILD ONLY 的中继 400 探针 ─────────────────────────
+  //
+  // 线上额度令牌的模型钉死，改模型只换来 403；四种 400 没有用户路径，所以 BEL-270
+  // 的客户端归因只有单测。`MT_TEST_400=<reason>` 构建时，build/test400.js 把下面两个
+  // 哨兵替换成头名与 reason，**只加在 grant 令牌的请求上**；未设的构建把两个哨兵都
+  // 替换成空串 —— 于是这个测试头的名字在出货包里一个字都不存在
+  // （scripts/check-shippable.js 会再扫一遍 dist*）。
+  const TEST400_HEADER = '__MT_TEST400_HEADER__';
+  const TEST400_REASON = '__MT_TEST400_REASON__';
+
   // ─── 凭证类别 / 归属 / 端点（BEL-257）─────────────────────────────────
   //
   // 这一层回答的是「这把凭证属于谁、能不能发到这个地址」，不是「发哪些字段」。
@@ -499,6 +509,13 @@ var RequestShape = (() => {
     // speech / transcribe）全部经过这里，所以不存在「某个适配器忘了检查」的旁路。
     const key = String(o.apiKey == null ? '' : o.apiKey).trim();
     const role = GRANT_PREFIX.test(key) ? 'grant' : (key ? 'byok' : '');
+    // BEL-280：只在 grant 令牌上挂测试头；未设 MT_TEST_400 的构建里两个哨兵都是空串，
+    // 这里连一次赋值都不会发生，头名也不在包里。
+    const grantHeaders = (h) => {
+      if (role !== 'grant' || !TEST400_HEADER || !TEST400_REASON) return h;
+      h[TEST400_HEADER] = TEST400_REASON;
+      return h;
+    };
     const pid = String(o.providerId || '');
     // 调用方没传 keyOwner 时读 flow-key 缓存；speech / transcribe / notes 的调用方
     // 会显式传对应槽的 owner（见 tts.js / speech-input.js / notes.js）。
@@ -533,13 +550,13 @@ var RequestShape = (() => {
     if (fmt === 'messages-compat') {
       const budget = (p.reqMaxTokens > 0) ? p.reqMaxTokens : o.budget;
       return {
-        headers: {
+        headers: grantHeaders({
           'Content-Type': 'application/json',
           'x-api-key': key,
           // 协议头，不是品牌引用（build.js 的合规门注释里写明了这一点）。
           'anthropic-version': '2023-06-01',
           'anthropic-dangerous-direct-browser-access': 'true',
-        },
+        }),
         // max_tokens 在这条链路上是**协议必填**，不是可选字段：表说 false 也照发。
         // 一行观测表不能推翻一条 API 契约。
         body: applyCustom(put({
@@ -563,7 +580,7 @@ var RequestShape = (() => {
       // 嵌套的 reasoning.effort，顶层写法会 400，原话为证：「In the Responses API,
       // this parameter has moved to 'reasoning.effort'」（实测）。其余字段原样带过去。
       applyReasoning(body, caps.reasoning, 'responses');
-      return { headers: bearer, body: applyCustom(body, o.providerId), extract: extractResponses, caps };
+      return { headers: grantHeaders(bearer), body: applyCustom(body, o.providerId), extract: extractResponses, caps };
     }
 
     // 翻译专用形状（qwen-mt 家族）。三条硬约束全部来自 2026-08-20 的实测：
@@ -589,7 +606,7 @@ var RequestShape = (() => {
       if (caps.budget !== false) {
         put(body, 'max_tokens', optional(true, p.reqMaxTokens, o.budget));
       }
-      return { headers: bearer, body: applyCustom(body, o.providerId), extract: extractChat, caps };
+      return { headers: grantHeaders(bearer), body: applyCustom(body, o.providerId), extract: extractChat, caps };
     }
 
     if (fmt === 'speech-compat') {
@@ -602,8 +619,8 @@ var RequestShape = (() => {
       // **不合并自定义参数**：那是对话能力的旋钮，朗读是另一种能力。把 thinking 之类的
       // 字段发给语音端点，最好的结果是被忽略，最坏的是 400 打断一条本来能用的路。
       return {
-        headers: Object.assign({ 'Content-Type': 'application/json' },
-          key ? { Authorization: 'Bearer ' + key } : {}),
+        headers: grantHeaders(Object.assign({ 'Content-Type': 'application/json' },
+          key ? { Authorization: 'Bearer ' + key } : {})),
         body, extract: null, caps,
       };
     }
@@ -615,8 +632,8 @@ var RequestShape = (() => {
       // 那一步能成立是因为扩展的 host_permissions 是 <all_urls>：那个 OSS 地址
       // **没有** CORS 头，普通网页取不到，扩展页可以。
       return {
-        headers: Object.assign({ 'Content-Type': 'application/json' },
-          key ? { Authorization: 'Bearer ' + key } : {}),
+        headers: grantHeaders(Object.assign({ 'Content-Type': 'application/json' },
+          key ? { Authorization: 'Bearer ' + key } : {})),
         body: { model: o.model, input: { text: o.input, voice: o.voice } },
         // 调用方据此判断要不要走第二步。没有这个字段的形状一步就拿到字节。
         //
@@ -645,8 +662,8 @@ var RequestShape = (() => {
       //     所以回包里的 transcript 要拿来核对（见 parseAudioStream）。
       const say = String(o.input == null ? '' : o.input);
       return {
-        headers: Object.assign({ 'Content-Type': 'application/json' },
-          key ? { Authorization: 'Bearer ' + key } : {}),
+        headers: grantHeaders(Object.assign({ 'Content-Type': 'application/json' },
+          key ? { Authorization: 'Bearer ' + key } : {})),
         body: {
           model: o.model,
           stream: true,
@@ -679,7 +696,7 @@ var RequestShape = (() => {
       // 会让服务端解不出分段。这是一个经典坑，所以写在这里而不是靠调用方记得。
       // 同上：转写也不合并。而且这条是 multipart，往里塞任意 JSON 字段无从谈起。
       return {
-        headers: key ? { Authorization: 'Bearer ' + key } : {},
+        headers: grantHeaders(key ? { Authorization: 'Bearer ' + key } : {}),
         body: fd, isForm: true, extract: null, caps,
         extractCues: o.wantCues ? extractCuesSegments : null,
         // verbose_json 报 duration —— 分块上传时下一块的时间偏移就靠它
@@ -722,10 +739,10 @@ var RequestShape = (() => {
         return { headers: {}, body: null, error: 'no_audio', caps };
       }
       return {
-        headers: {
+        headers: grantHeaders({
           'Content-Type': 'application/json',
           Authorization: 'Bearer ' + key,
-        },
+        }),
         body: JSON.stringify({
           model: o.model,
           messages: [{
@@ -751,10 +768,10 @@ var RequestShape = (() => {
         return { headers: {}, body: null, error: 'no_audio', caps };
       }
       return {
-        headers: {
+        headers: grantHeaders({
           'Content-Type': 'application/json',
           Authorization: 'Bearer ' + key,
-        },
+        }),
         body: JSON.stringify({
           model: o.model,
           input: { messages: [{ role: 'user', content: [{ type: 'input_audio', input_audio: { data: o.audioDataUri } }] }] },
@@ -793,7 +810,7 @@ var RequestShape = (() => {
       optional(caps.budget === undefined ? undefined : caps.budget !== false,
         p.reqMaxTokens, o.budget));
     // 最后合并 ⇒ 用户覆盖表。这一行就是「用户赢」。
-    return { headers: bearer, body: applyCustom(body, o.providerId), extract: extractChat, caps };
+    return { headers: grantHeaders(bearer), body: applyCustom(body, o.providerId), extract: extractChat, caps };
   }
 
   // ─── 转写回包 → 字幕 cue ──────────────────────────────────────────────

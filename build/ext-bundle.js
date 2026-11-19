@@ -11,6 +11,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
+const test400 = require('./test400.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -108,6 +109,7 @@ function buildExtCopy(outDir, log) {
 
 function buildExtBundle(outDir, log, opts) {
   opts = opts || {};
+  const test400Reason = test400.reasonFromEnv(process.env);
   fs.mkdirSync(outDir, { recursive: true });
 
   const srcFor = (rel) => {
@@ -132,7 +134,10 @@ function buildExtBundle(outDir, log, opts) {
       throw new Error(`ext bundle: missing source ${rel}`);
     }
     parts.push(`// ─── ${rel} ${'─'.repeat(Math.max(0, 60 - rel.length))}`);
-    parts.push(fs.readFileSync(abs, 'utf8'));
+    // BEL-280: same sentinel resolution as dist/ and dist-app/Script.js. This bundle
+    // is the system-translate engine; it must not carry the test header's literal
+    // name in a normal build either.
+    parts.push(test400.apply(fs.readFileSync(abs, 'utf8'), test400Reason));
     parts.push('');
   }
 
