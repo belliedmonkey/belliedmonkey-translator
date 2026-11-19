@@ -125,3 +125,25 @@ describe('中国合规门：native-speech china peel（SPEC-THAI-GROK-RELEASE-PE
     ok(modulesFor({}).includes('app/grok-stt.js'), '国际默认包应链入 grok-stt.js');
   });
 });
+
+// ─── BEL-303：US_INGEST 主机规则（sentry.io），不塞进 BRANDS ───────────────────
+describe('BEL-303 US_INGEST：任意路径的 sentry.io 主机都红', () => {
+  test('sentry.io / 子域 / 任意路径红', () => {
+    for (const p of ['/1', '/api/1/envelope/', '/anything?x=1']) {
+      ok(scan(`u = "https://o.ingest.us.sentry.io${p}"`).length === 1, `sentry.io 漏了：${p}`);
+      ok(scan(`u = "https://x.sentry.io${p}"`).length === 1, `子域 sentry.io 漏了：${p}`);
+    }
+  });
+
+  test('占位 .invalid 与裸词 sentry 不红', () => {
+    ok(scan('u = "https://public@crash.invalid/1";').length === 0, '.invalid 占位被误拦');
+    ok(scan('const sentry = 1;').length === 0, '裸词 sentry 被误拦');
+    ok(scan('sentry.io.evil.com').length === 0, 'sentry.io.evil.com 被误拦');
+  });
+
+  test('★ 规则是独立的 US_INGEST，不在 BRANDS 里', () => {
+    const SRC = require('fs').readFileSync(require('path').join(__dirname, '..', 'build', 'china-gate.js'), 'utf8');
+    ok(/US_INGEST/.test(SRC), 'china-gate 没有 US_INGEST');
+    ok(!/BRANDS\s*=[^\n]*sentry/i.test(SRC), 'sentry.io 被塞进了 BRANDS（品牌词）');
+  });
+});

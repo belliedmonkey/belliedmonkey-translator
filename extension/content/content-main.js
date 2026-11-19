@@ -7,6 +7,15 @@
   if (window.__mtMainLoaded) return;
   window.__mtMainLoaded = true;
 
+  // BEL-303：网页侧 uncaught / unhandledrejection 走 crash-forward，由 SW 组事件；
+  // content 不加载 SDK、不直连任何 DSN host。构建时 crash-forward 的 IIFE 被 prepend
+  // 到本文件之前；源码测试里它不存在，所以守卫。
+  try {
+    if (typeof MTCrashForward !== 'undefined' && MTCrashForward && typeof MTCrashForward.install === 'function') {
+      MTCrashForward.install();
+    }
+  } catch (_) { /* 崩溃上报失败绝不能影响翻译本身 */ }
+
   // Read settings directly from storage (never ask service worker — Safari iOS bug).
   // EXPLICIT KEYS, never get(null): the same bucket also holds the unbounded `tr:`
   // translation cache and the `lq:` learning outbox, and pulling the whole bucket on

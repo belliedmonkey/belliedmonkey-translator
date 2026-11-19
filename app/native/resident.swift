@@ -96,8 +96,12 @@ final class MTResident: NSObject, WKScriptMessageHandler {
     /// 能力回执。loginItem 读的是系统的**实际状态**，不是我们存的意图：用户可以在系统设置里把登录项关掉。
     private func emitCaps() {
         let appName = (Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String) ?? ""
-        emit(["type": "quick-caps", "resident": true, "panel": true, "postEvent": MTQuickCapture.granted, "appName": appName,
-              "sck": MTScreenShot.supported, "screen": MTScreenShot.granted, "loginItem": MTLoginItem.status])
+        var caps: [String: Any] = ["type": "quick-caps", "resident": true, "panel": true, "postEvent": MTQuickCapture.granted, "appName": appName,
+              "sck": MTScreenShot.supported, "screen": MTScreenShot.granted, "loginItem": MTLoginItem.status]
+        // BEL-294/BEL-295：构建号随同一份 caps 回给页面；拿不到就不写这个键。
+        let rawBuild = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""
+        if let n = Int(rawBuild), n >= 0 { caps["build"] = n }
+        emit(caps)
     }
 
     // MARK: - 菜单栏

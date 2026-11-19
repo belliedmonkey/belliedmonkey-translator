@@ -3,6 +3,12 @@
 // where the service worker becomes permanently undefined after device lock.
 // All translation fetches happen directly in content scripts (translation-api.js).
 
+// BEL-303：crash reporter 的 SW 侧。构建产物里 build/sentry-inject.js 会把 SDK
+// （仅国际）与 src/lib/crash.js 的 IIFE prepend 到本文件；源码测试里 MTCrash 不存在，
+// 所以每一处调用都必须 typeof 守卫。SDK 不进 content，只进 SW。
+try { if (typeof MTCrash !== 'undefined' && MTCrash) MTCrash.init({ host: 'extension' }); } catch (_) {}
+try { if (typeof MTCrash !== 'undefined' && MTCrash) MTCrash.flushRing(); } catch (_) {}
+
 const DEFAULT_SETTINGS = {
   enabled: false,
   targetLang: 'zh-CN',
@@ -286,5 +292,31 @@ async function handleTelemetrySend(msg) {
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || msg.action !== 'telemetrySend') return;
   handleTelemetrySend(msg).then(sendResponse, () => sendResponse({ ok: false, error: 'internal' }));
+  return true;
+});
+
+// ─── BEL-303：内容脚本崩溃转发（新 action，校验 sender）────────────────────
+// 内容脚本只发 { message, stack, code, filename }；**不**在这里把 payload.message
+// 重新包成 Error —— 那会丢掉 Safari masked / 无栈的真实形状。MTCrash 用
+// captureEvent + 原始 stack 字符串组事件，masked / stackless 打 tag 后仍上报。
+// sender.id 必须是本扩展：网页直抛（伪造 sender）一律丢，且不触发任何 capture。
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (!msg || (msg.action !== 'crashReport' && msg.action !== 'crashFlush')) return;
+  const mine = !!(chrome.runtime.id && sender && sender.id === chrome.runtime.id);
+  if (!mine) { sendResponse({ ok: false, dropped: 'foreign_sender' }); return true; }
+  if (typeof MTCrash === 'undefined' || !MTCrash) {
+    sendResponse({ ok: false, dropped: 'no_crash_module' });
+    return true;
+  }
+  if (msg.action === 'crashFlush') {
+    MTCrash.flushRing().then((n) => sendResponse({ ok: true, flushed: n }), () => sendResponse({ ok: false }));
+    return true;
+  }
+  const payload = msg.payload;
+  if (!payload || typeof payload.message !== 'string') {
+    sendResponse({ ok: false, dropped: 'bad_payload' });
+    return true;
+  }
+  MTCrash.report(payload, 'extension').then((ok) => sendResponse({ ok: !!ok }), () => sendResponse({ ok: false }));
   return true;
 });
