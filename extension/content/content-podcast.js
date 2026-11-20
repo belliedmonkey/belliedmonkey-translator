@@ -297,7 +297,7 @@ var PodcastTranslator = (() => {
     translate: (text, s) => TranslationAPI.translate(
       text, s.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
       TranslationAPI.resolveProvider(s.provider), s.apiKey || '', s.apiBaseUrl || '', s.apiModel || '',
-      { surface: 'web_caption' }),
+      { surface: 'web_caption', kind: 'subtitle', telemetry: true }),
     labels: { btnTitle: T('podcast_sub_off', '关闭播客字幕翻译') },
   });
 

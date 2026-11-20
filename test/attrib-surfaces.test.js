@@ -195,7 +195,7 @@ describe('BEL-267 — real relay surfaces reach the wire', () => {
     // the extension host above is exercised end-to-end. This locks the App wrapper's
     // argument so the two hosts cannot drift.
     const src = fs.readFileSync(path.join(ROOT, 'src', 'app', 'docs-model.js'), 'utf8');
-    const m = /TranslationAPI\.translate\([\s\S]{0,400}?\{ surface: 'doc' \}\)/.exec(src);
+    const m = /TranslationAPI\.translate\([\s\S]{0,500}?\{ surface: 'doc'[^}]*\}\)/.exec(src);
     ok(m, "docs-model must pass { surface: 'doc' } to TranslationAPI.translate");
   });
 

@@ -242,7 +242,7 @@ var YouTubeTranslator = (() => {
     translate: (text, s) => TranslationAPI.translate(
       text, s.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
       TranslationAPI.resolveProvider(s.provider), s.apiKey || '', s.apiBaseUrl || '', s.apiModel || '',
-      { surface: 'web_caption' }),
+      { surface: 'web_caption', kind: 'subtitle', telemetry: true }),
     labels: {
       btnTitle: T('yt_btn_title', '大肚猴翻译 · 视频字幕'),
       subOn: T('yt_sub_on', '开启视频字幕翻译'),

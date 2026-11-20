@@ -705,6 +705,67 @@
       ],
       "op_id": "id"
     },
+    "translate_req": {
+      "provider": "id",
+      "model": "id",
+      "kind": [
+        "page",
+        "subtitle",
+        "doc",
+        "quick"
+      ],
+      "surface": [
+        "listen",
+        "live_caption",
+        "quick",
+        "doc",
+        "web_caption"
+      ],
+      "op_id": "id",
+      "result": [
+        "ok",
+        "fail"
+      ],
+      "chars": "int",
+      "units": "int",
+      "est_tokens": "int",
+      "in_tok": "int",
+      "out_tok": "int",
+      "tok_src": [
+        "provider",
+        "estimate",
+        "none"
+      ],
+      "total_ms": "int",
+      "queue_ms": "int",
+      "net_ms": "int",
+      "recv_ms": "int",
+      "ttft_ms": "int",
+      "think": [
+        "unknown",
+        "none",
+        "reported"
+      ],
+      "think_tok": "int",
+      "stream": [
+        "none",
+        "sse"
+      ],
+      "attempt": "int",
+      "fallback": [
+        "none",
+        "route",
+        "retry"
+      ],
+      "code": "id",
+      "status": "int",
+      "route": [
+        "direct",
+        "proxy",
+        ""
+      ],
+      "timeout_ms": "int"
+    },
     "offline_video_asr_task": {
       "result": [
         "ok",

@@ -657,7 +657,8 @@ const listenModel = (() => {
     // 一行都不该落、一次翻译都不该发 —— 光看界面「没出行」分不清是没发还是发了没回来。
     translateCalls++;
     try {
-      const out = await TranslationAPI.translate(text, toLang, TranslationAPI.resolveProvider(c.tr.provider), c.tr.apiKey, c.tr.baseUrl || '', c.tr.model || '');
+      const out = await TranslationAPI.translate(text, toLang, TranslationAPI.resolveProvider(c.tr.provider), c.tr.apiKey, c.tr.baseUrl || '', c.tr.model || '',
+        { surface: funnelSurface(), kind: 'subtitle', telemetry: true });
       if (myEpoch !== acctEpoch) return '';
       if (out) notePumpSuccess(myGen);
       return out;

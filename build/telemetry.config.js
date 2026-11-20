@@ -479,6 +479,20 @@ const EVENTS = {
   // 两者都可缺：老客户端不发；页面侧不带 surface（kind 已经精确表达了页面翻译）。
   // BEL-294/BEL-296：start 生成 op_id；同一次操作的 ok/fail 沿用（可缺，老客户端不发）。
   translate_start: { engine: 'id', locale_pair: 'id', kind: TRANSLATE_KINDS, surface: SURFACES, op_id: 'id' },
+  // t1217u（2026-11-20）：**每次真正发出的整句翻译请求一条**。现有 translate_start/ok/fail
+  // 是「一次用户操作/一个页面会话」的粒度，回答不了「这一句为什么慢」；本事件只带计数与
+  // 毫秒，不带原文/提示词/响应/think 内容/token 值/key。非流式构建下 ttft_ms **整键省略**
+  // （不可观测就不写），think 一律 'unknown'；provider 返回 usage 时才写 provider 计数。
+  translate_req: {
+    provider: 'id', model: 'id', kind: TRANSLATE_KINDS, surface: SURFACES, op_id: 'id',
+    result: ['ok', 'fail'],
+    chars: 'int', units: 'int', est_tokens: 'int',
+    in_tok: 'int', out_tok: 'int', tok_src: ['provider', 'estimate', 'none'],
+    total_ms: 'int', queue_ms: 'int', net_ms: 'int', recv_ms: 'int',
+    ttft_ms: 'int', think: ['unknown', 'none', 'reported'], think_tok: 'int',
+    stream: ['none', 'sse'], attempt: 'int', fallback: ['none', 'route', 'retry'],
+    code: 'id', status: 'int', route: ['direct', 'proxy', ''], timeout_ms: 'int',
+  },
   // Mac 完整视频离线字幕（domain-design §2.8 / telemetry-design §3.15，BEL-103）。
   // 不进听译漏斗。成功不带 code。code 里没有路径和原文。
   offline_video_asr_task: {
@@ -691,6 +705,9 @@ const SEAMS = {
     { host: 'ext', file: 'extension/content/content-webpage.js', match: "kind: 'page'" },
     { host: 'app', file: 'src/app/listen-model.js', match: "track('translate_start'" },
   ],
+  // t1217u：每请求事件只在真正发出翻译请求的传输层发；OCR / listenPass / translate-fill /
+  // 引擎测试都不带 opts.telemetry，因此不会混进来。
+  translate_req: SHARED('extension/content/translation-api.js'),
   offline_video_asr_task: [
     { host: 'ext', none: '完整视频离线字幕只在 Mac App；扩展没有这条入口，也不进听译漏斗' },
     { host: 'app', file: 'app/offline-video-asr.js', match: "track('offline_video_asr_task'" },
