@@ -64,6 +64,10 @@ describe('telemetry registry — 白名单是唯一登记处', () => {
     eq(cfg.EVENTS.translate_req.think.join(','), 'unknown,none,reported');
     eq(cfg.EVENTS.translate_req.stream.join(','), 'none,sse');
     eq(cfg.EVENTS.translate_req.fallback.join(','), 'none,route,retry');
+    // 2026-11-20 t1220：`code:'http'` 被通用字符串守卫（含 http 即拒）丢掉过；必须是
+    // 与 translate_fail 同一份 enum，不能退回 'id'。
+    eq(cfg.EVENTS.translate_req.code.join(','), cfg.EVENTS.translate_fail.code.join(','));
+    ok(cfg.EVENTS.translate_req.code.includes('http'), 'http must be an allowed code');
     eq(cfg.EVENTS.translate_req.ttft_ms, 'int');
     eq(cfg.EVENTS.translate_req.recv_ms, 'int');
   });

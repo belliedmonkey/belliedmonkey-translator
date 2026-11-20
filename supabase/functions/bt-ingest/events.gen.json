@@ -757,7 +757,24 @@
         "route",
         "retry"
       ],
-      "code": "id",
+      "code": [
+        "timeout",
+        "network",
+        "http",
+        "reasoning_starved",
+        "no_base",
+        "unknown_provider",
+        "credit_exhausted",
+        "grant_unavailable",
+        "model_not_allowed",
+        "auth",
+        "stalled",
+        "relay_bad_json",
+        "relay_bad_messages",
+        "relay_bad_audio",
+        "relay_bad_input",
+        "cancelled"
+      ],
       "status": "int",
       "route": [
         "direct",
