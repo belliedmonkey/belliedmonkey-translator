@@ -151,6 +151,7 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …) ·
 | `asr_start` | 可选 `engine` · `locale_pair` · `surface: listen \| live_caption` | App 里用户**真的开始一场听译或实时字幕**（开麦那一下），每场一次。打开页面只算 `asr_entry` | `src/app/listen-model.js` `micStart()`；若在开麦前就停机，由 `asr_fail` 补记这一条，使「开了又失败」成对 |
 | `asr_fail` | `fail_reason`（短枚举，见 §3.16）· 可选 `engine` · `locale_pair` | 这一场听译/字幕**停机**，每场第一条。用户暂停、点结束、断线重连中途都不算。`fail_reason` 禁止塞系统长文 | `src/app/listen-model.js` `halt()`（`socket-retry` 除外）与开麦前的名额已满 |
 | `translate_start` | 可选 `engine` · `locale_pair` · `kind: page \| subtitle \| doc \| quick` · `surface: listen \| live_caption \| quick \| doc \| web_caption`（仅 App，可缺） · `op_id`（16-hex，在这一刻生成；同一次操作的 ok/fail 沿用） | 页面翻译每会话一条 `kind:'page'`（BEL-290）；App 这场已经有识别文字、**并且翻译请求即将发出**，每场一次。没配引擎、请求没发出去，不记 —— 那一格就是「听过但翻译没跑」 | `extension/content/content-webpage.js` `enable()` · `src/app/listen-model.js`：`translate()` / `passRow()` / `segCall()` 真正调用翻译之前 |
+| `translate_req` | `provider` `model` `kind` `surface` `op_id` `result: ok\|fail` `chars` `units` `est_tokens` `in_tok` `out_tok` `tok_src: provider\|estimate\|none` `total_ms` `queue_ms` `net_ms` `recv_ms` `ttft_ms`（可缺） `think: unknown\|none\|reported` `think_tok`（可缺） `stream: none\|sse` `attempt` `fallback: none\|route\|retry` `code` `status` `route` `timeout_ms` | **每次真正发出的整句翻译请求一条**（t1217u，§3.18）。只发计数/枚举/毫秒；非流式下 `ttft_ms` 整键省略，`think` 当前一律 `unknown`；provider 返回 usage 时 `tok_src=provider`，否则估算并标 `estimate` | `extension/content/translation-api.js` `emitTranslateReq`（`callChatAPI` 成功 / `translate()` 最终失败 / `translateGoogle`）；`opts.telemetry` 由 page / subtitle / doc / quick 四条用户路径显式打开 |
 | `telemetry_off` | — | the user turns the switch off | settings switch `change` |
 | `offline_video_asr_task` | `result: ok \| fail \| cancelled` · `code`（失败或取消时，见 §3.15；成功不带 `code`） | Mac App 一条完整视频离线字幕任务结束。**不是**听译漏斗，扩展不发 | `app/offline-video-asr.js`（只发 `result` 与 `code`） |
 | `grant_debited` | `surface: listen \| live_caption \| quick \| doc \| web_caption` · `kind: chat \| tts \| stt` | 免费额度**记账成功**时记一条（BEL-224）：回答「哪个功能面、哪一档真的花掉了额度」。只在 `bt_grant_charge` 写成功那一步记，不按请求或重试记；不带金额、模型、内容 | hosted `bt_grant_charge` 调用点（`functions/bt-relay`；P0 落码，P1 客户端补 `install_id` / `surface`） |
@@ -244,6 +245,30 @@ post-1.19.4 窗里海外 App 是 `installed` → `asr_entry` → `translate_ok`�
 的客户端与服务端行为同时取消，加上 `translate_start` 与 `engine_test` 的 `op_id` 不再
 因一个坏键拖垮整条，历史对比要按 2026-11-17 划线（上线前 vs 上线后），不能把台阶读成
 增长。被丢键的规模看 `bt_events_rejected.n`，不看 `rejected` 条数。
+
+### 3.18 2026-11-20（t1217u：整句翻译变慢归因）
+
+**问题。** `translate_ok` 是「每页面会话一次」，`ms` 是从开启到第一段译文；App 听译/字幕、
+文档的 `translate_ok` 甚至没有 `ms`。`translate_fail.ms` 是本次请求，但只有失败有。于是
+「整句翻译很慢」无法拆成「输入太长 / 排队或网络 / 推理 / 生成」中的任何一项；非流式整包
+下 TTFT 也不可得。
+
+**新增 `translate_req`（每请求一条，成功或最终失败）。** 只在 `translation-api.js` 真正发出
+请求时发；缓存命中、OCR、`listenPass`、补译文、引擎测试都不发。字段全部是计数/枚举/毫秒：
+
+- `kind` `surface` `provider` `model` `op_id`：入口与操作（`model` 是规范化短 slug）
+- `chars` `units` `est_tokens`：输入字符数、段/句数、`ceil(chars/4)` 估算（只计数）
+- `in_tok` `out_tok` `tok_src: provider|estimate|none`：供应商 `usage` 优先，没有则估算并标明
+- `total_ms` `queue_ms` `net_ms` `recv_ms`：端到端、排队、请求到响应头、响应体读完
+- `ttft_ms`：**只有流式/可观测首 token 才写；当前非流式构建整键省略，不写 0**
+- `think: unknown|none|reported` + `think_tok`：当前一律 `unknown`；只有 provider 返回
+  reasoning token 计数时才是 `reported`，**不写 think_ms 假数**
+- `stream: none|sse`、`attempt`、`fallback: none|route|retry`：是否流式、第几次、是否换路/重试
+- `code` `status` `route` `timeout_ms`：失败分类与本次超时配置
+
+**隐私红线不变。** 没有原文、提示词、响应正文、think 内容、token 值、key、URL；`chars`/
+`units`/`tokens` 只是计数，`model` 只发短 slug。`translate_req` 不替代 `translate_ok/fail`，
+后者会话级口径不动；历史数据不能把两者混读。
 
 ### 3.1 2026-09-10 amendment（第八期：评分为 0 的真因是激活）
 

@@ -65,7 +65,7 @@ function ensureView() {
     pdfjs: () => PdfJsLoader.load(),
     translate: (text, s) => TranslationAPI.translate(text, s.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
       TranslationAPI.resolveProvider(s.provider), s.apiKey || '', s.apiBaseUrl || '', s.apiModel || '',
-      { surface: 'doc' }),
+      { surface: 'doc', kind: 'doc', telemetry: true }),
     ocr: (dataUri, s) => TranslationAPI.ocr(dataUri, TranslationAPI.resolveProvider(s.provider), s.apiKey || '', s.apiBaseUrl || '', s.apiModel || ''),
     detectLang: (text, s) => TranslationAPI.detectLanguage(text, TranslationAPI.resolveProvider(s.provider), s.apiKey || '', s.apiBaseUrl || '', s.apiModel || ''),
     visionOf: (s) => EngineState.visionOf(s.provider),

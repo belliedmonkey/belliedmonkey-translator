@@ -579,6 +579,12 @@ var MTTelemetry = (() => {
       if (!p.op_id) p.op_id = opIds[kind] || newOpId();
       return p;
     }
+    if (name === 'translate_req') {
+      // t1217u：每请求事件沿用同 kind 的 start/terminal op_id；没有 start 的路径
+      // 每次请求生成一个，至少同一次请求内的 ok/fail 能对上。
+      if (!p.op_id) p.op_id = opIds[kind] || newOpId();
+      return p;
+    }
     return p;
   }
   function envelope(id, e) {

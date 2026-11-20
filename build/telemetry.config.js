@@ -82,6 +82,15 @@ const APP_OPEN_SURFACES = SURFACES.concat(['login', 'packs', 'app_home']);
 // 以前只有 ok 有 kind，失败那条无法按功能面拆成功率；复制一份枚举就是下一次漂移的起点，
 // 所以抽成常量、两边引用。加一个值 = 改这里 + docs/telemetry-design.md §3。
 const TRANSLATE_KINDS = ['page', 'subtitle', 'doc', 'quick'];
+// 翻译失败的封闭码表。translate_fail 与 translate_req 共用一份 —— 后者是 **enum**
+// 而不是 'id'：服务端/客户端的通用字符串守卫会拒绝任何含 `http` 的字符串，而
+// `code:'http'` 正是最常见的 HTTP 失败码（2026-11-20 t1220 实测：id 规则把 code 丢掉）。
+const TRANSLATE_FAIL_CODES = ['timeout', 'network', 'http', 'reasoning_starved', 'no_base', 'unknown_provider',
+  'credit_exhausted', 'grant_unavailable', 'model_not_allowed',
+  'auth',
+  'stalled',
+  'relay_bad_json', 'relay_bad_messages', 'relay_bad_audio', 'relay_bad_input',
+  'cancelled'];
 
 // BEL-290（2026-11-17，产品定稿）：一键设定的三个归属面。ext_settings = 扩展设置页，
 // app_feature = App 设置页，onboard = 引导页。只回答「在哪一屏点的」，不是入口。
@@ -203,20 +212,7 @@ const EVENTS = {
     // 免费额度那三个必须在枚举里（§8.10 / telemetry-design §3）：不在枚举里的 code
     // 会被客户端白名单**静默丢掉**，于是「有多少人把 0.2 美元用完了」这个数永远是 0
     // —— 而那正是判断这笔钱该不该继续花的唯一依据。
-    code: ['timeout', 'network', 'http', 'reasoning_starved', 'no_base', 'unknown_provider',
-      'credit_exhausted', 'grant_unavailable', 'model_not_allowed',
-      // auth（2026-09-10，第八期）：401/403 且请求带了非空、非 bmg_ 额度令牌的 key ——
-      // 「这把 key 被服务商拒绝」，引擎停机。5 天里 308 条 401 来自同一台机器逐段重试。
-      'auth',
-      // stalled（BEL-247）：单单元 120 s 不落地。与 timeout 分开 —— 「promise 没回来」
-      // 和「请求超时」不是同一种病，混一列会让连续超时熔断读错。
-      'stalled',
-      // 中继的 400 请求形状错误（BEL-270）：响应正文仍是 `error: 'bad_request'`，
-      // 新增的 `reason` 只用来选这四个码。未知/缺失 reason 仍归 http + status 400。
-      'relay_bad_json', 'relay_bad_messages', 'relay_bad_audio', 'relay_bad_input',
-      // BEL-294/BEL-298：用户取消与超时分码。取消是用户主动结束，不是故障超时；
-      // 也不写 status=0 冒充一个 HTTP 状态。
-      'cancelled'],
+    code: TRANSLATE_FAIL_CODES,
     status: 'int',
     route: ['direct', 'proxy', ''],
     ms: 'int',
@@ -479,6 +475,20 @@ const EVENTS = {
   // 两者都可缺：老客户端不发；页面侧不带 surface（kind 已经精确表达了页面翻译）。
   // BEL-294/BEL-296：start 生成 op_id；同一次操作的 ok/fail 沿用（可缺，老客户端不发）。
   translate_start: { engine: 'id', locale_pair: 'id', kind: TRANSLATE_KINDS, surface: SURFACES, op_id: 'id' },
+  // t1217u（2026-11-20）：**每次真正发出的整句翻译请求一条**。现有 translate_start/ok/fail
+  // 是「一次用户操作/一个页面会话」的粒度，回答不了「这一句为什么慢」；本事件只带计数与
+  // 毫秒，不带原文/提示词/响应/think 内容/token 值/key。非流式构建下 ttft_ms **整键省略**
+  // （不可观测就不写），think 一律 'unknown'；provider 返回 usage 时才写 provider 计数。
+  translate_req: {
+    provider: 'id', model: 'id', kind: TRANSLATE_KINDS, surface: SURFACES, op_id: 'id',
+    result: ['ok', 'fail'],
+    chars: 'int', units: 'int', est_tokens: 'int',
+    in_tok: 'int', out_tok: 'int', tok_src: ['provider', 'estimate', 'none'],
+    total_ms: 'int', queue_ms: 'int', net_ms: 'int', recv_ms: 'int',
+    ttft_ms: 'int', think: ['unknown', 'none', 'reported'], think_tok: 'int',
+    stream: ['none', 'sse'], attempt: 'int', fallback: ['none', 'route', 'retry'],
+    code: TRANSLATE_FAIL_CODES, status: 'int', route: ['direct', 'proxy', ''], timeout_ms: 'int',
+  },
   // Mac 完整视频离线字幕（domain-design §2.8 / telemetry-design §3.15，BEL-103）。
   // 不进听译漏斗。成功不带 code。code 里没有路径和原文。
   offline_video_asr_task: {
@@ -691,6 +701,9 @@ const SEAMS = {
     { host: 'ext', file: 'extension/content/content-webpage.js', match: "kind: 'page'" },
     { host: 'app', file: 'src/app/listen-model.js', match: "track('translate_start'" },
   ],
+  // t1217u：每请求事件只在真正发出翻译请求的传输层发；OCR / listenPass / translate-fill /
+  // 引擎测试都不带 opts.telemetry，因此不会混进来。
+  translate_req: SHARED('extension/content/translation-api.js'),
   offline_video_asr_task: [
     { host: 'ext', none: '完整视频离线字幕只在 Mac App；扩展没有这条入口，也不进听译漏斗' },
     { host: 'app', file: 'app/offline-video-asr.js', match: "track('offline_video_asr_task'" },

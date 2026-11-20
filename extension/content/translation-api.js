@@ -238,6 +238,56 @@ Rules:
     return false;
   }
 
+  // ── t1217u（2026-11-20）：每请求的变慢归因 ──────────────────────────────
+  // 只发计数/枚举/毫秒：没有原文、提示词、响应正文、think 内容、token 值、key。
+  // 非流式构建下 ttft_ms 不可观测 ⇒ 整键省略（不写 0）；think 一律 unknown，除非
+  // provider 自己返回 reasoning token 计数（那时 think='reported' + think_tok）。
+  const responseMeta = new WeakMap();
+  function modelSlug(m) {
+    return String(m == null ? '' : m).toLowerCase().replace(/[^a-z0-9_-]+/g, '_')
+      .replace(/^_+|_+$/g, '').slice(0, 32);
+  }
+  function intOrNull(v) {
+    return Number.isInteger(v) && v >= 0 && v < 1e10 ? v : null;
+  }
+  function tokenMetrics(parsed, chars, outText) {
+    const u = (parsed && (parsed.usage || parsed.usageMetadata)) || null;
+    const d = (u && (u.completion_tokens_details || u.output_tokens_details)) || null;
+    const inTok = intOrNull(u && (u.prompt_tokens != null ? u.prompt_tokens
+      : (u.input_tokens != null ? u.input_tokens : u.promptTokenCount)));
+    const outTok = intOrNull(u && (u.completion_tokens != null ? u.completion_tokens
+      : (u.output_tokens != null ? u.output_tokens : u.candidatesTokenCount)));
+    const thinkTok = intOrNull(d && d.reasoning_tokens);
+    if (inTok != null || outTok != null) {
+      const m = { in_tok: inTok || 0, out_tok: outTok || 0, tok_src: 'provider',
+        think: thinkTok != null ? 'reported' : 'unknown' };
+      if (thinkTok != null) m.think_tok = thinkTok;
+      return m;
+    }
+    const c = Number(chars) || 0;
+    return { in_tok: Math.ceil(c / 4), out_tok: Math.ceil(String(outText || '').length / 4),
+      tok_src: c ? 'estimate' : 'none', think: 'unknown' };
+  }
+  function emitTranslateReq(ctx, extra) {
+    try {
+      if (!ctx || !ctx.telemetry || !ctx.kind) return;
+      if (typeof MTTelemetry === 'undefined' || !MTTelemetry || typeof MTTelemetry.track !== 'function') return;
+      const p = {
+        kind: ctx.kind, chars: ctx.chars, units: ctx.units, est_tokens: ctx.est_tokens,
+        stream: 'none', think: 'unknown',
+      };
+      if (ctx.surface) p.surface = ctx.surface;
+      if (ctx.attempt) p.attempt = ctx.attempt;
+      if (Number.isInteger(ctx.queue_ms)) p.queue_ms = ctx.queue_ms;
+      for (const k of Object.keys(extra || {})) {
+        const v = extra[k];
+        if (v === undefined || v === null || v === '') continue;
+        p[k] = v;
+      }
+      MTTelemetry.track('translate_req', p);
+    } catch (_) {}
+  }
+
   // 这一次请求耗了多久（telemetry-design §3.11 A）。**只在这一处量**，和 `route` 一样
   // 挂在抛出的错误对象上 —— 这里是唯一知道「请求什么时候开始」的地方。
   //
@@ -248,12 +298,26 @@ Rules:
   //
   // 连请求都没发的失败（no_base / unknown_provider 这类）走不到这里，因此**没有** ms，
   // 上层据此不发这个字段：缺席看得出来。
-  async function apiFetch(url, opts, label, diag, timeoutMs) {
+  async function apiFetch(url, opts, label, diag, timeoutMs, reqCtx) {
     const startedAt = Date.now();
     try {
-      return await apiFetchInner(url, opts, label, diag, timeoutMs);
+      const resp = await apiFetchInner(url, opts, label, diag, timeoutMs);
+      const meta = responseMeta.get(resp) || {};
+      responseMeta.set(resp, Object.assign(meta, {
+        startedAt, headersAt: Date.now(), timeoutMs, ctx: reqCtx || null,
+      }));
+      return resp;
     } catch (e) {
-      if (e && typeof e === 'object' && !Number.isInteger(e.ms)) e.ms = Date.now() - startedAt;
+      const now = Date.now();
+      if (e && typeof e === 'object' && !Number.isInteger(e.ms)) e.ms = now - startedAt;
+      if (e && typeof e === 'object') {
+        e.total_ms = Number.isInteger(e.ms) ? e.ms : now - startedAt;
+        // 失败时没有响应头可读：net_ms 就只能是整段；recv_ms 缺席，不写 0。
+        e.net_ms = e.total_ms;
+        e.timeout_ms = timeoutMs;
+        e.ctx = reqCtx || null;
+        e.fallback = e.viaProxy ? 'route' : 'none';
+      }
       throw e;
     }
   }
@@ -282,6 +346,7 @@ Rules:
     }
     let resp;
     let usedRoute = null;
+    let usedFallback = 'none';
     const origin = originOf(url);
     // 已经成功过的那条优先；否则按运行时的默认顺序。
     const known = originRoute.get(origin);
@@ -314,6 +379,7 @@ Rules:
           resp = await second.run();
           originRoute.set(origin, second.tag);
           usedRoute = second.tag;
+          usedFallback = 'route';
           if (diag) diag.route = second.tag;
         } catch (_) {
           if (second.tag === 'proxy') proxyProbe = null;
@@ -378,6 +444,7 @@ Rules:
       e.retryAfter = parseRetryAfter(resp.headers.get('retry-after'));
       throw e;
     }
+    responseMeta.set(resp, { route: usedRoute || '', fallback: usedFallback });
     return resp;
   }
 
@@ -431,17 +498,33 @@ Rules:
   }
 
   async function callChatAPI(o) {
+    const ctx = o.ctx || null;
     const init = {
       method: 'POST', headers: o.headers, body: JSON.stringify(o.body),
     };
     // BEL-267：surface 只给 relayHeaders() 读（中继记账的 props.surface），不是
     // RequestInit 的一部分 —— apiFetchInner 在补完头之后会把它摘掉再发请求。
     if (o.surface) init.surface = o.surface;
-    const resp = await apiFetch(o.url, init, o.label, o.diag, o.timeoutMs);
+    const resp = await apiFetch(o.url, init, o.label, o.diag, o.timeoutMs, ctx);
+    const meta = responseMeta.get(resp) || {};
     // 正文按 text 读再 parse，而不是 resp.json()：apiFetch 的错误分支也这么读，两边
     // 保持一致，且畸形正文抛的是我们能定位的 SyntaxError 而不是 fetch 内部的。
-    const parsed = JSON.parse(await resp.text());
+    const bodyStart = Date.now();
+    const bodyText = await resp.text();
+    const bodyMs = Date.now() - bodyStart;
+    let parsed;
+    try { parsed = JSON.parse(bodyText); }
+    catch (err) {
+      if (err && typeof err === 'object') {
+        err.total_ms = Date.now() - (meta.startedAt || bodyStart);
+        err.net_ms = meta.headersAt ? meta.headersAt - (meta.startedAt || 0) : undefined;
+        err.recv_ms = bodyMs; err.route = meta.route || ''; err.fallback = meta.fallback || 'none';
+        err.ctx = ctx;
+      }
+      throw err;
+    }
     const out = String(o.extract(parsed) || '').trim();
+    const tm = tokenMetrics(parsed, ctx && ctx.chars, out);
     // HTTP 200 + 空正文 = 服务端没意见，是我们要的东西没拿到。其中有一种必须单独说：
     // 推理模型把整个输出预算烧在思考上，一个字都没吐。它长得像「网络不好，再试一次」，
     // 但重试**永远**同样失败（同样的输入、同样的预算、同样的思考）。实测 2026-08-20：
@@ -462,17 +545,38 @@ Rules:
       e.status = 0;
       e.code = 'reasoning_starved';
       e.retryable = false;
+      e.total_ms = Date.now() - (meta.startedAt || bodyStart);
+      e.net_ms = meta.headersAt ? meta.headersAt - (meta.startedAt || 0) : undefined;
+      e.recv_ms = bodyMs; e.route = meta.route || ''; e.fallback = meta.fallback || 'none';
+      e.ctx = ctx; e.metrics = tm;
       throw e;
     }
+    emitTranslateReq(ctx, Object.assign({
+      provider: o.provider || '', model: modelSlug(o.model), result: 'ok',
+      total_ms: Date.now() - (meta.startedAt || bodyStart),
+      net_ms: meta.headersAt ? meta.headersAt - (meta.startedAt || 0) : undefined,
+      recv_ms: bodyMs, fallback: meta.fallback || 'none', route: meta.route || '',
+    }, tm));
     return out;
   }
 
   // ─── Provider adapters (all go through apiFetch → uniform error/timeout) ─
-  async function translateGoogle(text, targetLang) {
+  async function translateGoogle(text, targetLang, ctx) {
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(text)}`;
-    const resp = await apiFetch(url, {}, 'Google');
+    const resp = await apiFetch(url, {}, 'Google', undefined, undefined, ctx);
+    const meta = responseMeta.get(resp) || {};
+    const bodyStart = Date.now();
     const data = await resp.json();
-    return data[0].map(c => c[0]).join('');
+    const bodyMs = Date.now() - bodyStart;
+    const out = data[0].map(c => c[0]).join('');
+    const tm = tokenMetrics(null, ctx && ctx.chars, out);
+    emitTranslateReq(ctx, Object.assign({
+      provider: 'google', model: '', result: 'ok',
+      total_ms: Date.now() - (meta.startedAt || bodyStart), recv_ms: bodyMs,
+      net_ms: meta.headersAt ? meta.headersAt - (meta.startedAt || 0) : undefined,
+      fallback: meta.fallback || 'none', route: meta.route || '',
+    }, tm));
+    return out;
   }
 
   // Provider config comes from the build-time registry (window.MT_PROVIDERS,
@@ -501,7 +605,7 @@ Rules:
 
   // The endpoint is used EXACTLY as stored — no path is appended, ever, under any
   // condition. See content/wire-format.js.
-  function callProvider(provider, text, targetLang, apiKey, baseUrl, model, diag, surface) {
+  function callProvider(provider, text, targetLang, apiKey, baseUrl, model, diag, surface, ctx) {
     const p = providerById(provider);
     // 认识的 google 引擎才走 google。**不认识的 id 一律具名报错,绝不静默兜底。**
     //
@@ -514,7 +618,7 @@ Rules:
     //
     // 默认值那一头已经由 build.js 的 defaultProviderGate 堵死;这里堵的是另一头:
     // 任何来路的未知 id(旧版本遗留、同步过来的、手改存储的)都必须**可见地失败**。
-    if (p && p.type === 'google') return translateGoogle(text, targetLang);
+    if (p && p.type === 'google') return translateGoogle(text, targetLang, ctx);
     if (!p) {
       const e = new Error(`unknown provider: ${provider}`);
       e.status = 0; e.code = 'unknown_provider';
@@ -553,7 +657,8 @@ Rules:
     // 没有这两行的话，「我们发了什么」又只能靠读源码或抓包去猜。
     if (diag) { diag.paramRow = req.caps.id; diag.bodyKeys = Object.keys(req.body); }
     return callChatAPI({ diag, url, headers: req.headers, body: req.body,
-      label: p.label || provider, extract: req.extract, surface: surface || '' });
+      label: p.label || provider, extract: req.extract, surface: surface || '',
+      provider, model: mdl, ctx });
   }
 
   // ─── Cache helpers ────────────────────────────────────────────────────
@@ -689,14 +794,47 @@ Rules:
       if (stored) { memCache.set(key, { v: stored, ts: Date.now() }); return stored; }
     }
 
+    // t1217u：每请求上下文。只有显式 opts.telemetry 的调用才发 translate_req；
+    // OCR / listenPass / translate-fill / engine-test / onboarding try 都不带，避免混入。
+    const surface = String((opts && opts.surface) || '');
+    const kind = String((opts && opts.kind) || (surface === 'doc' ? 'doc'
+      : (surface === 'quick' ? 'quick'
+        : ((surface === 'web_caption' || surface === 'listen' || surface === 'live_caption') ? 'subtitle' : 'page'))));
+    const chars = String(text || '').length;
+    const ctx = {
+      telemetry: !!(opts && opts.telemetry), kind, surface, chars, units: 1,
+      est_tokens: Math.ceil(chars / 4), queue_ms: 0, attempt: 1,
+    };
+    const queuedAt = Date.now();
+    const emitFail = (err) => {
+      if (!ctx.telemetry) return;
+      const p = providerById(provider) || {};
+      const tm = (err && err.metrics) || tokenMetrics(null, ctx.chars, '');
+      const extra = Object.assign({
+        provider, model: modelSlug(model || p.defaultModel), result: 'fail',
+        queue_ms: ctx.queue_ms, fallback: (err && err.fallback) || 'none',
+        route: (err && err.route) || '',
+      }, tm);
+      if (err && Number.isInteger(err.total_ms)) extra.total_ms = err.total_ms;
+      else if (err && Number.isInteger(err.ms)) extra.total_ms = err.ms;
+      if (err && Number.isInteger(err.net_ms)) extra.net_ms = err.net_ms;
+      if (err && Number.isInteger(err.recv_ms)) extra.recv_ms = err.recv_ms;
+      if (err && Number.isInteger(err.timeout_ms)) extra.timeout_ms = err.timeout_ms;
+      if (err && typeof err.code === 'string') extra.code = err.code;
+      if (err && Number.isInteger(err.status) && err.status > 0) extra.status = err.status;
+      emitTranslateReq(ctx, extra);
+    };
+
     const result = await enqueue(async () => {
+      ctx.queue_ms = Date.now() - queuedAt;
       let retries = 0;
       while (retries < MAX_RETRIES) {
         try {
           return await callProvider(provider, text, targetLang, apiKey, baseUrl, model, opts && opts.diag,
-            (opts && opts.surface) || '');
+            surface, ctx);
         } catch (err) {
           retries++;
+          ctx.attempt = retries;
           if (retries >= MAX_RETRIES) {
             // NO SILENT FALLBACK. This used to hand a failed provider off to the free
             // Google endpoint, and the cost of that was three separate things:
@@ -717,6 +855,7 @@ Rules:
             // surface the user turned on: the 'error' state renders 「翻译失败 —
             // 点击重试」 with a working retry. Google remains selectable AS an engine;
             // it is no longer a silent understudy for the one you picked.
+            emitFail(err);
             throw err;
           }
           // 重试只对**可能自己好起来**的失败有意义。这个循环原来对任何错误都退避重试
@@ -725,7 +864,7 @@ Rules:
           // 限流白白撞满。
           // 4xx 里只有 408（超时）和 429（限流）值得再试，其余是我们发错了，重发一遍
           // 还是错。
-          if (!isRetryable(err)) throw err;
+          if (!isRetryable(err)) { emitFail(err); throw err; }
           const backoff = (err && err.retryAfter != null) ? err.retryAfter : Math.pow(2, retries) * BASE_BACKOFF_MS;
           await new Promise(r => setTimeout(r, backoff + Math.random() * JITTER_MS));
         }

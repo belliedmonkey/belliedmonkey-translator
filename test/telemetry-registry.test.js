@@ -43,8 +43,8 @@ describe('telemetry registry — 白名单是唯一登记处', () => {
   });
   // BEL-290（2026-11-17 产品定稿）：事件 37→41。枚举逐字钉住 —— 少一个值客户端会
   // 整条丢（同 unknown_prop 的形状），多一个值则会把没评审的取值放进线上表。
-  test('BEL-290：事件 37→41 与四个新事件的 props / 扩展枚举', () => {
-    eq(Object.keys(cfg.EVENTS).length, 41);
+  test('BEL-290：事件 37→41，t1217u 加 translate_req = 42', () => {
+    eq(Object.keys(cfg.EVENTS).length, 42);
     eq(cfg.EVENTS.setup_apply_ok.surface.join(','), 'ext_settings,app_feature,onboard');
     eq(cfg.EVENTS.setup_apply_ok.wrote.join(','), 'none,any');
     eq(cfg.EVENTS.setup_apply_ok.replaced.join(','), 'none,grant');
@@ -56,6 +56,20 @@ describe('telemetry registry — 白名单是唯一登记处', () => {
     eq(cfg.EVENTS.engine_test.surface.slice(-3).join(','), 'setup_quick,setup_fields,setup_onboard');
     eq(cfg.EVENTS.translate_start.kind.join(','), 'page,subtitle,doc,quick');
     eq(cfg.EVENTS.translate_start.surface.join(','), 'listen,live_caption,quick,doc,web_caption');
+    // t1217u：每请求归因事件。枚举逐字钉住，防止「顺手多一个自由文本字段」。
+    eq(cfg.EVENTS.translate_req.kind.join(','), 'page,subtitle,doc,quick');
+    eq(cfg.EVENTS.translate_req.surface.join(','), 'listen,live_caption,quick,doc,web_caption');
+    eq(cfg.EVENTS.translate_req.result.join(','), 'ok,fail');
+    eq(cfg.EVENTS.translate_req.tok_src.join(','), 'provider,estimate,none');
+    eq(cfg.EVENTS.translate_req.think.join(','), 'unknown,none,reported');
+    eq(cfg.EVENTS.translate_req.stream.join(','), 'none,sse');
+    eq(cfg.EVENTS.translate_req.fallback.join(','), 'none,route,retry');
+    // 2026-11-20 t1220：`code:'http'` 被通用字符串守卫（含 http 即拒）丢掉过；必须是
+    // 与 translate_fail 同一份 enum，不能退回 'id'。
+    eq(cfg.EVENTS.translate_req.code.join(','), cfg.EVENTS.translate_fail.code.join(','));
+    ok(cfg.EVENTS.translate_req.code.includes('http'), 'http must be an allowed code');
+    eq(cfg.EVENTS.translate_req.ttft_ms, 'int');
+    eq(cfg.EVENTS.translate_req.recv_ms, 'int');
   });
 });
 
