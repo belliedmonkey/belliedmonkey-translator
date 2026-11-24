@@ -2,6 +2,7 @@
 // The App face supplies confirm() and show(). Ports run only after that.
 'use strict';
 
+const { ACTIONS } = require('./contract');
 const { buildConfirmCard, failureCard, needsConfirm } = require('./confirm');
 const { callerIdOf, parseAgentDeepLink, pendingIdOf, sourceOf } = require('./parse');
 const { emptyGrants } = require('./grants-model');
@@ -9,6 +10,23 @@ const {
   runAgentAction, cancelledReceipt, unsupportedReceipt, badRequestReceipt,
   failureReceipt, preconditions,
 } = require('./run');
+
+const KNOWN_ACTIONS = new Set(ACTIONS);
+
+// BEL-151 B-PUSH: a heartbeat pending becomes the SAME action link the deep-link
+// path already understands. It is built in memory and never handed to the OS:
+// the caller passes it straight to handleAgentUrl / presentAgentDeepLink, so the
+// copy-locked card, the 120 s timeout and the allow→confirm order stay single-
+// sourced. Invalid ids/actions return '' rather than a component-shaped URL.
+function pendingHref(pending, scheme) {
+  const p = pending || {};
+  const pendingId = pendingIdOf(p.pending_id);
+  const action = String(p.action || '').trim();
+  if (!pendingId || !/^[A-Za-z0-9._:-]{1,64}$/.test(action)) return '';
+  const proto = scheme === 'belliedmonkeycn' ? 'belliedmonkeycn' : 'belliedmonkey';
+  return proto + '://agent/v1/' + encodeURIComponent(action)
+    + '?source=mcp&pending_id=' + encodeURIComponent(pendingId);
+}
 
 // BEL-151 GAP-2. The decision goes back to the Worker through the same device
 // bridge that carries pairing/heartbeat, only after the user decided. A missing
@@ -38,12 +56,77 @@ function callbackFailureCode(result) {
   return 'network_unavailable';
 }
 
+function showReceipt(ui, rec) {
+  if (ui && typeof ui.show === 'function') return Promise.resolve(ui.show(rec, failureCard(rec.code))).then(() => rec);
+  return rec;
+}
+
+// BEL-151 C-r9: B-PUSH pending must not round-trip a custom-scheme URL.
+// presentPending (A2) calls this with {action, pending_id} from heartbeat —
+// no belliedmonkey://, no new URL, no parseAgentDeepLink. A pending_id never
+// returns null: remember the id, mount the same confirm card (or a failure
+// card for an unknown action), and POST deny if the user does not allow.
+async function handlePendingConfirm(pending, ctx, ui) {
+  const p = pending || {};
+  const pendingId = pendingIdOf(p.pending_id);
+  const action = String(p.action || '').trim();
+  const base = ctx || {};
+  const bridge = base.deviceBridge;
+  if (!pendingId) return showReceipt(ui, badRequestReceipt(action));
+
+  await rememberPending(bridge, pendingId, action);
+
+  if (!KNOWN_ACTIONS.has(action)) {
+    await sendDecision(bridge, pendingId, 'deny');
+    return showReceipt(ui, unsupportedReceipt(action));
+  }
+
+  let readiness = base.readiness || {};
+  if (typeof readiness === 'function') readiness = await readiness();
+  const grants = base.grants || emptyGrants();
+  const query = Object.assign({ source: 'mcp', pending_id: pendingId }, base.query || {});
+  const scheme = base.scheme || 'belliedmonkey';
+  const full = {
+    query,
+    scheme,
+    sourceFallback: sourceOf(query, 'mcp'),
+    readiness: readiness || {},
+    hostConnected: base.hostConnected !== false,
+    ports: base.ports || {},
+    grants,
+    persistGrants: base.persistGrants,
+    siteSupported: base.siteSupported,
+    env: base.env,
+    deviceBridge: bridge,
+    confirmed: null,
+  };
+
+  const blocked = preconditions(action, full);
+  if (blocked) {
+    await sendDecision(bridge, pendingId, 'deny');
+    return showReceipt(ui, blocked);
+  }
+
+  const card = buildConfirmCard(action, query);
+  let decision = { allow: false };
+  if (ui && typeof ui.confirm === 'function') decision = await ui.confirm(card) || { allow: false };
+  if (!decision.allow) {
+    await sendDecision(bridge, pendingId, 'deny');
+    return showReceipt(ui, cancelledReceipt(action));
+  }
+  const sent = await sendDecision(bridge, pendingId, 'allow');
+  if (!sent || sent.ok !== true) {
+    return showReceipt(ui, failureReceipt(
+      action, callbackFailureCode(sent), scheme, full.sourceFallback));
+  }
+  full.confirmed = decision;
+  const out = await runAgentAction(action, full);
+  return showReceipt(ui, out.receipt);
+}
+
 async function handleAgentUrl(raw, ctx, ui) {
   const parsed = parseAgentDeepLink(raw);
-  const show = async (rec) => {
-    if (ui && typeof ui.show === 'function') await ui.show(rec, failureCard(rec.code));
-    return rec;
-  };
+  const show = async (rec) => showReceipt(ui, rec);
   if (!parsed) return null;
   const errorPending = parsed.query ? pendingIdOf(parsed.query.pending_id) : '';
   if (parsed.error === 'bad_request') {
@@ -58,6 +141,13 @@ async function handleAgentUrl(raw, ctx, ui) {
   const query = parsed.query || {};
   const callerId = callerIdOf(query);
   const pendingId = pendingIdOf(query.pending_id);
+  if (pendingId) {
+    return handlePendingConfirm(
+      { action: parsed.action, pending_id: pendingId },
+      Object.assign({}, ctx, { scheme: parsed.scheme, query }),
+      ui,
+    );
+  }
   let readiness = ctx.readiness || {};
   if (typeof readiness === 'function') readiness = await readiness();
   const grants = ctx.grants || emptyGrants();
@@ -156,4 +246,4 @@ async function requestPairing(ctx, ui) {
   return out.receipt;
 }
 
-module.exports = { handleAgentUrl, requestPairing };
+module.exports = { handleAgentUrl, handlePendingConfirm, requestPairing, pendingHref };
