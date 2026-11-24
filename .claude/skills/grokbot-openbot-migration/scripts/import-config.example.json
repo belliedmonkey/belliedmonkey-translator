@@ -1,0 +1,55 @@
+{
+  "_comment": "Map Grok Bot names to OpenBot agent ids. Sources are relative to the export root. Use jq/SQL to fill agentId; do not guess ids.",
+  "user": "dev-local-user",
+  "threadPrefix": "55569917dab5",
+  "bots": {
+    "CEO": {
+      "agentId": "agent_a27b5a1b-69f7-4e10-92b8-2233ff89ada8",
+      "sources": ["zips/memory-backup-ceo/backup/raw/facts.json"],
+      "routines": "zips/memory-backup-ceo/backup/routines.md"
+    },
+    "大肚猴翻译产品总监": {
+      "agentId": "agent_651fe4fb-8bc4-469c-a3b9-5e021a10632e",
+      "sources": ["backup-pd/raw/facts.json"],
+      "routines": "backup-pd/routines.md"
+    },
+    "大肚猴翻译研发经理": {
+      "agentId": "agent_9f72580c-5d52-4104-859c-4fbeee01c8d0",
+      "sources": [
+        "backup-rd-manager/shards/from-shared-pool-journal.txt",
+        "backup-rd-manager/shards/from-shared-pool-profile.txt",
+        "backup-rd-manager/shards/seed-profile-ctx.txt"
+      ],
+      "routines": "backup-rd-manager/routines.md"
+    },
+    "大肚猴翻译架构师": {
+      "agentId": "agent_d082939a-e510-467f-ac36-e7358699a923",
+      "sources": ["backup-architect/raw/facts.json"],
+      "routines": "backup-architect/routines.md"
+    },
+    "大肚猴翻译增长经理": {
+      "agentId": "agent_3373b639-406e-4f62-8013-b3da44317769",
+      "sources": ["backup-growth-manager/memory.md"]
+    },
+    "增长开发工程师": {
+      "agentId": "agent_62285395-6eef-4930-aeda-9782f368e9f1",
+      "sources": ["backup-growth-engineer/_profile_facts.json"],
+      "routines": "backup-growth-engineer/routines.md"
+    },
+    "SEO · 大肚猴翻译": {
+      "agentId": "agent_4647ed67-6279-448e-b6df-9e6fd064487c",
+      "sources": ["backup-seo/raw/facts.json"],
+      "routines": "backup-seo/routines.md"
+    },
+    "dr eggbot": {
+      "agentId": "agent_3a184a07-2f7c-4506-8ea2-4c7474bd97d0",
+      "sources": ["zips/memory-backup-eggbot/backup/memory.md"],
+      "routines": "zips/memory-backup-eggbot/backup/routines.md"
+    },
+    "macbook助手": {
+      "agentId": "agent_df3e78f0-b5a2-44eb-b51f-e064512189d4",
+      "sources": [],
+      "routines": "macbook-mem-backup/backup/routines.md"
+    }
+  }
+}

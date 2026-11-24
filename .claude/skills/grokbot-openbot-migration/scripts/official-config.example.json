@@ -1,0 +1,105 @@
+{
+  "_comment": "Input for build_official_zip.py. Paths are relative to the export root. role is used when notes.md is absent.",
+  "agents": [
+    {
+      "key": "ceo",
+      "name": "大肚猴公司CEO",
+      "title": "CEO",
+      "role": "负责统筹，协调公司业务。",
+      "sources": ["zips/memory-backup-ceo/backup/raw/facts.json"],
+      "routines": "zips/memory-backup-ceo/backup/routines.md",
+      "notes": "zips/memory-backup-ceo/backup/notes.md",
+      "connectors": "zips/memory-backup-ceo/backup/connectors.md"
+    },
+    {
+      "key": "product-director",
+      "name": "大肚猴翻译产品总监",
+      "title": "产品总监",
+      "role": "负责规划版本，设计产品交互与视觉。",
+      "sources": ["backup-pd/raw/facts.json"],
+      "routines": "backup-pd/routines.md",
+      "notes": "backup-pd/notes.md",
+      "connectors": "backup-pd/connectors.md"
+    },
+    {
+      "key": "rd-manager",
+      "name": "大肚猴翻译研发经理",
+      "title": "研发经理",
+      "role": "负责大肚猴翻译研发，方案设计和验收；具体执行交给 dsh。",
+      "sources": [
+        "backup-rd-manager/shards/from-shared-pool-journal.txt",
+        "backup-rd-manager/shards/from-shared-pool-profile.txt",
+        "backup-rd-manager/shards/seed-profile-ctx.txt"
+      ],
+      "routines": "backup-rd-manager/routines.md",
+      "notes": "backup-rd-manager/agent-local/notes.md",
+      "connectors": "backup-rd-manager/connectors.md"
+    },
+    {
+      "key": "architect",
+      "name": "大肚猴翻译架构师",
+      "title": "架构师",
+      "role": "负责大肚猴翻译的架构决策与方案评审。",
+      "sources": ["backup-architect/raw/facts.json"],
+      "routines": "backup-architect/routines.md",
+      "notes": "backup-architect/notes.md",
+      "connectors": "backup-architect/connectors.md"
+    },
+    {
+      "key": "growth-manager",
+      "name": "大肚猴翻译增长经理",
+      "title": "增长经理",
+      "role": "负责大肚猴翻译的增长工作，协调增长开发与增长实验。",
+      "sources": ["backup-growth-manager/memory.md"],
+      "notes": "backup-growth-manager/manager-notes.md",
+      "connectors": "backup-growth-manager/connectors.md"
+    },
+    {
+      "key": "growth-engineer",
+      "name": "增长开发工程师",
+      "title": "增长开发",
+      "role": "负责增长相关技术：网站、埋点与试验，.cc 与 .com 同步。",
+      "sources": ["backup-growth-engineer/_profile_facts.json"],
+      "routines": "backup-growth-engineer/routines.md",
+      "notes": "backup-growth-engineer/notes.md",
+      "connectors": "backup-growth-engineer/connectors.md"
+    },
+    {
+      "key": "seo",
+      "name": "SEO · 大肚猴翻译",
+      "title": "SEO",
+      "role": "负责大肚猴翻译的 SEO 与搜索增长。",
+      "sources": ["backup-seo/raw/facts.json"],
+      "routines": "backup-seo/routines.md",
+      "notes": "backup-seo/seo-agent-local/notes.md",
+      "connectors": "backup-seo/connectors.md"
+    },
+    {
+      "key": "dr-eggbot",
+      "name": "dr eggbot",
+      "title": "dr eggbot",
+      "role": "Designs high-quality Grok Bots: one job, verified, unslopped.",
+      "sources": ["zips/memory-backup-eggbot/backup/memory.md"],
+      "routines": "zips/memory-backup-eggbot/backup/routines.md",
+      "notes": "zips/memory-backup-eggbot/backup/notes.md",
+      "connectors": "zips/memory-backup-eggbot/backup/connectors.md"
+    },
+    {
+      "key": "macbook-helper",
+      "name": "macbook助手",
+      "title": "macbook助手",
+      "role": "负责 Mac 机务、本机环境与通道，只安排与验收。",
+      "sources": [],
+      "routines": "macbook-mem-backup/backup/routines.md",
+      "notes": "macbook-mem-backup/backup/notes.md",
+      "connectors": "macbook-mem-backup/backup/connectors.md"
+    },
+    {
+      "key": "quality-director",
+      "name": "大肚猴翻译质量总监",
+      "title": "质量总监",
+      "role": "负责大肚猴翻译的工程质量和算法效果保障。",
+      "sources": []
+    }
+  ]
+}
