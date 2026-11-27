@@ -133,6 +133,10 @@ re-applying it drifts silently ([#51](https://github.com/belliedmonkey/belliedmo
 - **Account switch**: switching accounts no longer keeps the previous account’s exhausted credit token.
 - Live interpretation is still a work in progress; this release does not claim it is finished.
 
+## What's new (1.23.2)
+
+- On the China edition, free-quota translation is restored. Live subtitles and conversation Chinese translations had been failing on every line because the relay address built into the app was no longer valid; the app now uses the new relay, so those translations work again.
+
 ## What it does
 
 <p align="center">
