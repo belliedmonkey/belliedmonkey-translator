@@ -344,3 +344,59 @@ describe('BEL-188 Q7 · 冷启动首点开始不在开麦前 return', () => {
       'prep.readyUntil 的「已就绪」既有语义被改掉了');
   });
 });
+
+// BEL-184：字幕模式（sub）没有任何对话收音键，whyText 过去会落到 needText()，
+// 而空原因又被兜成「需要 iOS 26 / macOS 26」—— 字幕页因此误报系统版本。这里守三件事：
+// 空原因返回空串；字幕 whyText 走 listen_ptt_subtitle_only；BEL-273 permWaiting 不回退。
+describe('BEL-184 · 字幕误报文案（空原因 / subtitle whyText）', () => {
+  const PTTVIEW = MODEL.slice(MODEL.indexOf('function pttView'), MODEL.indexOf('function lidModel'));
+  const NEEDTEXT = MODEL.slice(MODEL.indexOf('function needText'), MODEL.indexOf('let trackedNoLive'));
+  const SUBTITLE_ONLY = '实时字幕模式没有对话收音键';
+  const LOCALES = ['en', 'zh_CN', 'zh_TW', 'ja', 'ko', 'de', 'es', 'fr', 'pt_BR', 'ru', 'th', 'hi', 'ar'];
+  const WANT = {
+    en: 'Subtitle mode has no conversation mic keys',
+    zh_CN: SUBTITLE_ONLY,
+    zh_TW: '即時字幕模式沒有對話收音鍵',
+    ja: 'リアルタイム字幕モードには会話用のマイクキーはありません',
+    ko: '실시간 자막 모드에는 대화용 마이크 키가 없습니다',
+    de: 'Im Untertitelmodus gibt es keine Gesprächs-Mikrofontasten',
+    es: 'El modo de subtítulos no tiene teclas de micrófono para conversación',
+    fr: "Le mode sous-titres n'a pas de touches micro de conversation",
+    pt_BR: 'O modo de legendas não tem teclas de microfone de conversa',
+    ru: 'В режиме субтитров нет кнопок микрофона для разговора',
+    th: 'โหมดคำบรรยายไม่มีปุ่มไมโครโฟนสำหรับบทสนทนา',
+    hi: 'सबटाइटल मोड में बातचीत के लिए माइक कुंजियाँ नहीं हैं',
+    ar: 'لا يوجد في وضع الترجمة الفورية مفاتيح ميكروفون للمحادثة',
+  };
+
+  test('needText 空原因返回空串，不落到 listen_need_os', () => {
+    ok(/function needText\(reason\) \{\s*if \(!reason\) return '';/.test(NEEDTEXT),
+      'needText 没有空原因守卫（空原因会落到「需要 iOS 26 / macOS 26」）');
+  });
+
+  test('字幕模式 whyText 用 listen_ptt_subtitle_only（zh_CN 文案）', () => {
+    ok(/sub\s*\n?\s*\?\s*t\('listen_ptt_subtitle_only', '实时字幕模式没有对话收音键'\)/.test(PTTVIEW),
+      '字幕 whyText 没有换成 listen_ptt_subtitle_only / 文案不是 zh_CN 默认');
+  });
+
+  test('BEL-273 permWaiting 仍在 disabled 侧，没有被回退', () => {
+    ok(/const permWaiting = !sub && micPermRequired\(\) && micPerm\.state === 'prompted';/.test(PTTVIEW),
+      'permWaiting 判据被改掉了');
+    ok(/disabled: permWaiting \|\| mineChrome\.disabled/.test(PTTVIEW)
+      && /mineDisabled: permWaiting \|\| mineChrome\.disabled/.test(PTTVIEW)
+      && /otherDisabled: permWaiting \|\| otherChrome\.disabled/.test(PTTVIEW),
+      'permWaiting 没有继续挂在 disabled 侧');
+  });
+
+  test('13 个 locale 与生成的 i18n-messages.js 文案一致', () => {
+    const gen = JSON.parse(read('extension/content/i18n-messages.js')
+      .match(/window\.MT_I18N_MESSAGES = (.*);\n?$/s)[1]);
+    for (const loc of LOCALES) {
+      const json = JSON.parse(read(`extension/_locales/${loc}/messages.json`));
+      ok(json.listen_ptt_subtitle_only && json.listen_ptt_subtitle_only.message === WANT[loc],
+        `${loc} 的 _locales 文案不对`);
+      ok(gen[loc] && gen[loc].listen_ptt_subtitle_only === WANT[loc],
+        `${loc} 的 i18n-messages.js 文案不对（忘了重生成？）`);
+    }
+  });
+});

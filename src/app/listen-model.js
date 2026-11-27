@@ -416,6 +416,7 @@ const listenModel = (() => {
     return r.ok ? '' : (r.reason === 'locale' ? 'locale' : 'os');
   }
   function needText(reason) {
+    if (!reason) return '';
     return reason === 'locale'
       ? t('listen_need_locale', '本机识别器不支持这门语言 —— 换一种语言试试')
       : t('listen_need_os', '对话 · 实时字幕需要 iOS 26 / macOS 26');
@@ -1931,11 +1932,13 @@ const listenModel = (() => {
       disabled: permWaiting || mineChrome.disabled,
       mineDisabled: permWaiting || mineChrome.disabled,
       otherDisabled: permWaiting || otherChrome.disabled,
-      whyText: canUse
-        ? ((mineChrome.hint === 'preparing' || otherChrome.hint === 'preparing')
-          ? t('listen_ptt_preparing_why', '正在准备本机识别包…')
-          : '')
-        : needText(unavailableReason()),
+      whyText: sub
+        ? t('listen_ptt_subtitle_only', '实时字幕模式没有对话收音键')
+        : canUse
+          ? ((mineChrome.hint === 'preparing' || otherChrome.hint === 'preparing')
+            ? t('listen_ptt_preparing_why', '正在准备本机识别包…')
+            : '')
+          : needText(unavailableReason()),
     };
   }
   // 这里曾经有一道「整句落行要判词稳住 1.5s」的闸（2026-10-08 上午，`1ae1280a`）—— 为挡 whisper
