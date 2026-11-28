@@ -2478,14 +2478,15 @@ export default function SettingsView() {
           </label>
           <p className="note" id="listen-autospeak-note">{t('listen_autospeak_note',
             '整句翻译完之后自动读出来。对方说的读给你听，你说的读给对方听。')}</p>
-          {/* BEL-19 E1 A 层：中文默认开。仅 macOS 非中国版常显（中国/iOS 仍 hidden）。 */}
+          {/* BEL-19 E1 A 层：中文默认开。App 的两个宿主（macOS / iOS）× 两个 flavor 常显；
+              行为门在 listen-model（lane==zh 才走 SenseVoice）。 */}
           <label className="check" id="listen-e1-row"
-            hidden={!listenModel.isMacHost() || isChinaFlavor()}>
+            hidden={!listenModel.isMacHost() && !listenModel.isIOSHost()}>
             <input id="listen-e1" type="checkbox" />
             <span id="listen-e1-label">{t('app_e1_label', '中文听译 SenseVoice')}</span>
           </label>
           <p className="note" id="listen-e1-note"
-            hidden={!listenModel.isMacHost() || isChinaFlavor()}>
+            hidden={!listenModel.isMacHost() && !listenModel.isIOSHost()}>
             {t('app_e1_note', '默认开启，仅中文（zh）。首次使用会在后台下载约 160MB；下载完成前及失败时仍用系统听写，完成后的下一次会话生效。关闭后回到系统听写。')}
           </p>
           {/* 1.21.2 泰语 Grok BYOK（Pencil B-01/02/03）。china flavor 整块隐藏。 */}

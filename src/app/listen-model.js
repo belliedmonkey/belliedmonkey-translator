@@ -51,6 +51,15 @@ const listenModel = (() => {
   const t = (k, fb) => PageText.t(k, fb);
   // macOS 宿主：有物理键盘、没有触屏 —— 「按住」的提示要把空格说出来（interaction-spec「macOS」）。
   const isMacHost = () => { try { return /^Mac/.test(navigator.platform || '') && !(navigator.maxTouchPoints > 0); } catch (_) { return false; } };
+  // iOS 宿主：iPhone/iPad（含 iPadOS 13+ 的桌面 UA —— platform 报 MacIntel、maxTouchPoints > 0）。
+  // 只用来判断「这台设备能不能跑 App 的端侧 SenseVoice」，与 macOS 判定互斥。
+  const isIOSHost = () => {
+    try {
+      const p = navigator.platform || '';
+      if (/^(iPhone|iPad|iPod)/.test(p)) return true;
+      return /^Mac/.test(p) && navigator.maxTouchPoints > 0;
+    } catch (_) { return false; }
+  };
   const C = ListenCore;
   const PROCESSOR_FRAMES = 4096;
   const SOURCE_LABEL = () => t('listen_source_label', '对话');
@@ -286,8 +295,10 @@ const listenModel = (() => {
           captureOn: sub ? s.subtitleCapture !== false : s.listenCapture !== false,
           mode: sub ? 'subtitle' : 'conv',
           lidEngine: s.lidEngine === 'whisper' ? 'whisper' : 'ecapa',
-          // BEL-19 E1 A 层：中文默认开（未存过 / true）；显式 false 关；China flavor / iOS 仍 sa。
-          zhAsrE1Arm: (isMacHost() && Registry.flavor() !== 'china' && s.zhAsrE1 !== false)
+          // BEL-19 E1 A 层：中文默认开（未存过 / true）；显式 false 关。
+          // 2026-11-28 起覆盖 App 的两个宿主（macOS + iOS）、两个 flavor（global + china）：
+          // 中国版 iOS / 中国版 Mac / 国际站 iOS 与国际站 Mac 同一条读时默认，不写 seed。
+          zhAsrE1Arm: ((isMacHost() || isIOSHost()) && s.zhAsrE1 !== false)
             ? 'e1_b1' : 'sa',
           lidThreshold: Number(s.lidThreshold) > 0 ? Number(s.lidThreshold) : 6,
           lidCpuOnly: s.lidCpuOnly === true,
@@ -4150,7 +4161,7 @@ const listenModel = (() => {
     noteView: () => ({ text: noteMsg, err: noteErr, go: !!noteGo }),
     historyView, summaryView, showView, pipNoteText, pipFloatShown,
     entryView: (sfx) => ({ listen: entryState[sfx], subs: subsEntryState[sfx] }),
-    langOptions, langLabel, copyText, isMacHost,
+    langOptions, langLabel, copyText, isMacHost, isIOSHost,
     setOpenEnginePicker, changeEngine, anyLangUnsupported,
     // 视图直写 pip 预览矩形的通道（几何感知在画布，去重与发桥在模型）
     pipRectUpdate,
