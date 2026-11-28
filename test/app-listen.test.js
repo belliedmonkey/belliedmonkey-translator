@@ -1201,7 +1201,8 @@ async function waitUntil(fn, ms) {
 }
 
 // BEL-19：默认是**读时**决定（不播种、不写盘）。seed 里没有 zhAsrE1 时必须得到 e1_b1，
-// 显式 false 才回 sa；China flavor 与 iPhone/iPad 即使显式 true 也仍是 sa。
+// 显式 false 才回 sa。2026-11-28 起覆盖 App 两宿主（macOS / iOS）× 两 flavor：
+// 中国版 iOS、中国版 Mac、国际站 iOS 与国际站 Mac 同一条默认。
 describe('BEL-19 中文默认 SenseVoice — 读时默认与平台/flavor 门', () => {
   async function arm(seed, env) {
     const box = bootListen(seed, new Set(['en', 'zh']), env);
@@ -1210,6 +1211,8 @@ describe('BEL-19 中文默认 SenseVoice — 读时默认与平台/flavor 门', 
     ok(ready, 'cfg 未读入: ' + JSON.stringify(box.A._debug()));
     return box;
   }
+  const IPHONE = { platform: 'iPhone', maxTouchPoints: 5 };
+  const IPAD_DESKTOP_UA = { platform: 'MacIntel', maxTouchPoints: 5 };
 
   test('intl Mac 未存过 → e1_b1，且不写盘/不播种', async () => {
     const box = await arm({}, { flavor: 'global' });
@@ -1218,26 +1221,82 @@ describe('BEL-19 中文默认 SenseVoice — 读时默认与平台/flavor 门', 
     ok(!box.writes.some((w) => 'zhAsrE1' in w), '读时默认不应写盘: ' + JSON.stringify(box.writes));
   });
 
-  test('intl Mac 显式 false → sa', async () => {
-    const box = await arm({ zhAsrE1: false }, { flavor: 'global' });
-    eq(box.A._debug().cfgE1Arm, 'sa', '显式 false 必须关');
-    eq(box.store.zhAsrE1, false, '读路径不应改写显式 false');
+  test('china Mac 未存过 → e1_b1（本令新增），且不写盘', async () => {
+    const box = await arm({}, { flavor: 'china' });
+    eq(box.A._debug().cfgE1Arm, 'e1_b1', '中国版 Mac 未存过应默认开');
+    ok(!('zhAsrE1' in box.store), '读时默认不应播种 zhAsrE1');
+    ok(!box.writes.some((w) => 'zhAsrE1' in w), '读时默认不应写盘: ' + JSON.stringify(box.writes));
   });
 
-  test('intl Mac 显式 true → e1_b1', async () => {
-    const box = await arm({ zhAsrE1: true }, { flavor: 'global' });
-    eq(box.A._debug().cfgE1Arm, 'e1_b1', '显式 true 必须开');
+  test('china iPhone 未存过 → e1_b1（本令新增）', async () => {
+    eq((await arm({}, Object.assign({ flavor: 'china' }, IPHONE))).A._debug().cfgE1Arm, 'e1_b1',
+      '中国版 iPhone 未存过应默认开');
   });
 
-  test('China flavor 未存过/true 仍 sa', async () => {
-    eq((await arm({}, { flavor: 'china' })).A._debug().cfgE1Arm, 'sa', '中国包未存过应 sa');
-    eq((await arm({ zhAsrE1: true }, { flavor: 'china' })).A._debug().cfgE1Arm, 'sa', '中国包显式 true 也应 sa');
+  test('intl iPhone / iPad 未存过 → e1_b1（本令新增）', async () => {
+    eq((await arm({}, Object.assign({ flavor: 'global' }, IPHONE))).A._debug().cfgE1Arm, 'e1_b1',
+      '国际站 iPhone 未存过应默认开');
+    eq((await arm({}, Object.assign({ flavor: 'global' }, IPAD_DESKTOP_UA))).A._debug().cfgE1Arm, 'e1_b1',
+      'iPadOS 桌面 UA 未存过应默认开');
   });
 
-  test('iPhone/iPad 未存过/true 仍 sa', async () => {
-    const iphone = { platform: 'iPhone', maxTouchPoints: 5 };
-    eq((await arm({}, iphone)).A._debug().cfgE1Arm, 'sa', 'iPhone 未存过应 sa');
-    eq((await arm({ zhAsrE1: true }, iphone)).A._debug().cfgE1Arm, 'sa', 'iPhone 显式 true 也应 sa');
+  test('显式 false 在三端都回 sa（用户关掉后回系统听写）', async () => {
+    eq((await arm({ zhAsrE1: false }, { flavor: 'global' })).A._debug().cfgE1Arm, 'sa', 'intl Mac 显式 false');
+    eq((await arm({ zhAsrE1: false }, { flavor: 'china' })).A._debug().cfgE1Arm, 'sa', 'china Mac 显式 false');
+    eq((await arm({ zhAsrE1: false }, Object.assign({ flavor: 'china' }, IPHONE))).A._debug().cfgE1Arm, 'sa',
+      'china iPhone 显式 false');
+    eq((await arm({ zhAsrE1: false }, Object.assign({ flavor: 'global' }, IPHONE))).A._debug().cfgE1Arm, 'sa',
+      'intl iPhone 显式 false');
+  });
+
+  test('显式 true 也开（三端），读路径不改写显式值', async () => {
+    for (const env of [{ flavor: 'global' }, { flavor: 'china' }, Object.assign({ flavor: 'china' }, IPHONE),
+      Object.assign({ flavor: 'global' }, IPHONE)]) {
+      const box = await arm({ zhAsrE1: true }, env);
+      eq(box.A._debug().cfgE1Arm, 'e1_b1', '显式 true 未开: ' + JSON.stringify(env));
+      eq(box.store.zhAsrE1, true, '读路径不应改写显式 true: ' + JSON.stringify(env));
+    }
+  });
+
+  test('非 App 宿主（Chrome/Linux）不因默认而开', async () => {
+    eq((await arm({}, { flavor: 'global', platform: 'Linux x86_64', maxTouchPoints: 0 })).A._debug().cfgE1Arm, 'sa',
+      '非 App 宿主应保持 sa');
+  });
+
+  test('字幕路径同样按三端默认开', async () => {
+    const box = bootListen({}, new Set(['en', 'zh']), Object.assign({ flavor: 'china' }, IPHONE));
+    box.A.open('subtitle');
+    const ready = await waitUntil(() => box.A._debug().cfgReady && box.A._debug().cfgE1Arm !== undefined);
+    ok(ready, '字幕 cfg 未读入');
+    eq(box.A._debug().mode, 'subtitle', '不是字幕模式');
+    eq(box.A._debug().cfgE1Arm, 'e1_b1', '字幕路径未按中文默认开选臂');
+  });
+
+  test('会话开始把本场臂下发给原生；中文 lane=zh', async () => {
+    const box = bootListen({ listenMyLang: 'zh', listenOtherLang: 'en' }, new Set(['en', 'zh']),
+      Object.assign({ flavor: 'china' }, IPHONE));
+    box.A.open('conv');
+    await waitUntil(() => box.A._debug().cfgReady);
+    await box.A.start();
+    const opened = await waitUntil(() => box.sttOpens.length > 0, 2500);
+    ok(opened, 'start 后 NativeSpeech.sttOpen 未调用: ' + JSON.stringify(box.A._debug()));
+    const o = box.sttOpens[0];
+    eq(o.zhAsrE1Arm, 'e1_b1', '本场臂未下发 e1_b1');
+    eq(o.lane, 'zh', '中文 lane 不是 zh: ' + o.lane);
+  });
+
+  test('非中文 lane 仍把 lane 交给原生工厂（arm 只被 zh 分支采用）', async () => {
+    const box = bootListen({ listenMyLang: 'en', listenOtherLang: 'en' }, new Set(['en', 'zh']),
+      Object.assign({ flavor: 'global' }, IPHONE));
+    box.A.open('conv');
+    await waitUntil(() => box.A._debug().cfgReady);
+    await box.A.start();
+    const opened = await waitUntil(() => box.sttOpens.length > 0, 2500);
+    ok(opened, 'start 后 NativeSpeech.sttOpen 未调用: ' + JSON.stringify(box.A._debug()));
+    const o = box.sttOpens[0];
+    eq(o.zhAsrE1Arm, 'e1_b1', '默认开时应把臂如实下发（由原生按 lane 分叉）');
+    eq(String(o.lane).split(/[-_]/)[0].toLowerCase(), 'en', '非中文 lane 被冒充成 zh: ' + o.lane);
+    ok(!(o.locales || []).some((l) => String(l).toLowerCase().split(/[-_]/)[0] === 'zh'), '非中文会话混进了 zh locale');
   });
 });
 

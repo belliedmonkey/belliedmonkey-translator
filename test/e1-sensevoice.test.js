@@ -70,14 +70,17 @@ describe('E1 关臂 ≡ 基线 SA', () => {
     ok(zhArm >= 0 && b1 > zhArm && fallback > b1,
       'e1_b1 未限 zh（lane!=zh 应走 MTDeviceTranscriber）');
   });
-  test('JS 只认 schema：未存过/true 才 e1_b1，显式 false 才 sa', () => {
+  test('JS 只认 schema：App 两宿主（Mac/iOS）× 两 flavor，未存过/true 才 e1_b1，显式 false 才 sa', () => {
     const lm = read('src/app/listen-model.js');
     ok(!/zh_asr_e1_arm/.test(lm), 'listen-model 仍引用旧开发键 zh_asr_e1_arm');
     ok(!/testBridge/.test(lm), 'listen-model 仍留 testBridge');
-    ok(/zhAsrE1Arm:\s*\(isMacHost\(\)\s*&&\s*Registry\.flavor\(\)\s*!==\s*'china'\s*&&\s*s\.zhAsrE1\s*!==\s*false\)\s*\?\s*'e1_b1'\s*:\s*'sa'/.test(lm),
-      '听译未按 intl Mac + zhAsrE1 !== false 选臂');
+    ok(/const isIOSHost = \(\) => \{/.test(lm), 'listen-model 没定义 isIOSHost');
+    ok(/zhAsrE1Arm:\s*\(\(isMacHost\(\)\s*\|\|\s*isIOSHost\(\)\)\s*&&\s*s\.zhAsrE1\s*!==\s*false\)\s*\?\s*'e1_b1'\s*:\s*'sa'/.test(lm),
+      '听译未按 Mac/iOS + zhAsrE1 !== false 选臂');
+    ok(!/zhAsrE1Arm:[^\n]*Registry\.flavor/.test(lm), '中文默认开的门仍带 flavor 限制');
     ok(!lm.includes('__mtTest'), 'listen-model 含 __mtTest 字面量（出货包会带测试桥）');
     ok(/zhAsrE1Arm: \(cfg && cfg\.zhAsrE1Arm === 'e1_b1'\) \? 'e1_b1' : 'sa'/.test(lm), 'sttOpen 未传臂');
+    ok(/isMacHost, isIOSHost/.test(lm), 'settings 需要的 isIOSHost 未导出');
     const resume = lm.slice(lm.indexOf('async function resume()'), lm.indexOf('function resumeByUser'));
     ok(resume && !/readCfg/.test(resume), 'resume() 重读了 readCfg（会话应钉住本场臂）');
     const schema = read('src/store/schema.js');
@@ -219,19 +222,21 @@ describe('BEL-19 中文默认 SenseVoice — 设置行与 13 语文案', () => {
   const M = {};
   for (const l of LOCALES) M[l] = JSON.parse(read('extension/_locales/' + l + '/messages.json'));
 
-  test('设置页读 !== false；行常显（去 adv-only / !detail），China/iOS 仍 hidden', () => {
+  test('设置页读 !== false；行常显（去 adv-only / !detail），Mac/iOS × flavor 都露出', () => {
     ok(/\$\('listen-e1'\)\.checked = cur\.zhAsrE1 !== false;/.test(VIEW),
       '设置页回填仍不是 cur.zhAsrE1 !== false');
     ok(ROW, '找不到 listen-e1-row 的 label 开标签');
     ok(!/adv-only/.test(ROW), 'listen-e1-row 仍带 adv-only');
     ok(!/!detail/.test(ROW), 'listen-e1-row 仍被 !detail 隐藏');
-    ok(/hidden=\{!listenModel\.isMacHost\(\) \|\| isChinaFlavor\(\)\}/.test(ROW),
-      'listen-e1-row 未保留 Mac 非中国 hidden 门');
+    ok(/hidden=\{!listenModel\.isMacHost\(\) && !listenModel\.isIOSHost\(\)\}/.test(ROW),
+      'listen-e1-row 未按 Mac/iOS 两宿主常显');
+    ok(!/isChinaFlavor\(\)/.test(ROW), 'listen-e1-row 仍被中国版隐藏');
     ok(NOTE, '找不到 listen-e1-note 的开标签');
     ok(!/adv-only/.test(NOTE), 'listen-e1-note 仍带 adv-only');
     ok(!/!detail/.test(NOTE), 'listen-e1-note 仍被 !detail 隐藏');
-    ok(/hidden=\{!listenModel\.isMacHost\(\) \|\| isChinaFlavor\(\)\}/.test(NOTE),
-      'listen-e1-note 未保留 Mac 非中国 hidden 门');
+    ok(/hidden=\{!listenModel\.isMacHost\(\) && !listenModel\.isIOSHost\(\)\}/.test(NOTE),
+      'listen-e1-note 未按 Mac/iOS 两宿主常显');
+    ok(!/isChinaFlavor\(\)/.test(NOTE), 'listen-e1-note 仍被中国版隐藏');
   });
 
   test('13 语 app_e1_note 含 160，且不再以旧「默认关闭」前缀开头', () => {
